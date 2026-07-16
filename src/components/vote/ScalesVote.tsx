@@ -37,7 +37,7 @@ export default function ScalesVote({
   return (
     <div className="flex flex-col gap-6">
       {slide.options.map((statement, i) => (
-        <div key={i} className="bg-white rounded-xl border-2 border-line p-4">
+        <div key={i} className="bg-white rounded-2xl border-2 border-line p-4 shadow-sm">
           <p className="font-medium mb-3">{statement}</p>
           <input
             type="range"
@@ -48,7 +48,7 @@ export default function ScalesVote({
             onChange={(e) =>
               setRatings(ratings.map((r, j) => (j === i ? Number(e.target.value) : r)))
             }
-            className="w-full accent-[#2d6ff7]"
+            className="w-full accent-[#2563eb]"
             aria-label={`${statement} puanı`}
           />
           <div className="flex justify-between text-sm text-muted mt-1">
@@ -63,11 +63,11 @@ export default function ScalesVote({
       <button
         onClick={vote}
         disabled={sending || slide.options.length === 0}
-        className="w-full bg-ink hover:bg-black disabled:opacity-40 text-white font-semibold rounded-xl py-4"
+        className="btn-accent w-full py-4"
       >
         {sending ? "Gönderiliyor…" : "Gönder"}
       </button>
-      {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+      {error && <p className="text-brand text-sm text-center">{error}</p>}
     </div>
   );
 }

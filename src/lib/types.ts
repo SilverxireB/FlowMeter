@@ -63,6 +63,7 @@ export interface Participant {
   /** Doküman ID = voterId (cihaz başına tek kayıt) */
   id: string;
   nickname: string;
+  emoji?: string;
   joinedAt: Timestamp | null;
 }
 

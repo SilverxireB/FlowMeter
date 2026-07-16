@@ -49,68 +49,67 @@ export default function DashboardPage() {
   }
 
   if (loading || !user) {
-    return <main className="min-h-screen flex items-center justify-center">Yükleniyor…</main>;
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-wash">
+        <p className="text-muted animate-pulse">Yükleniyor…</p>
+      </main>
+    );
   }
 
   return (
-    <main className="min-h-screen bg-paper">
-      <header className="bg-white border-b border-line px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="font-bold text-lg">FlowMeter</Link>
-        <span className="text-muted text-sm">{user.email}</span>
+    <main className="min-h-screen bg-wash">
+      <header className="bg-white/80 backdrop-blur border-b border-line px-6 py-4 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-brand" aria-hidden />
+          <span className="font-display font-semibold tracking-tight text-lg">FlowMeter</span>
+        </Link>
+        <span className="chip text-muted">{user.email}</span>
       </header>
 
-      <section className="max-w-3xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Sunumlarım</h1>
+      <section className="max-w-3xl mx-auto px-4 py-10">
+        <p className="eyebrow mb-2">Sunucu paneli</p>
+        <h1 className="font-display text-3xl font-semibold tracking-tight mb-8">Sunumlarım</h1>
 
-        <form onSubmit={create} className="flex gap-2 mb-8">
+        <form onSubmit={create} className="card p-2 flex gap-2 mb-10">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Yeni sunum adı…"
-            className="flex-1 rounded-lg border border-line px-3 py-3 focus:outline-none focus:border-accent"
+            className="flex-1 bg-transparent px-4 py-3 focus:outline-none font-semibold placeholder:font-normal"
           />
-          <button
-            type="submit"
-            disabled={!title.trim() || busy}
-            className="bg-ink hover:bg-black disabled:opacity-40 text-white font-semibold rounded-lg px-5"
-          >
-            Oluştur
+          <button type="submit" disabled={!title.trim() || busy} className="btn-primary px-6">
+            + Oluştur
           </button>
         </form>
 
         {items.length === 0 ? (
-          <p className="text-muted text-center py-12">
-            Henüz sunumun yok. Yukarıdan ilkini oluştur!
-          </p>
+          <div className="text-center py-16">
+            <p className="text-5xl mb-4" aria-hidden>🎤</p>
+            <p className="text-muted">Henüz sunumun yok. Yukarıdan ilkini oluştur!</p>
+          </div>
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="grid gap-4 sm:grid-cols-2">
             {items.map((p) => (
-              <li
-                key={p.id}
-                className="bg-white border border-line rounded-xl px-5 py-4 flex items-center justify-between gap-4"
-              >
+              <li key={p.id} className="card p-5 flex flex-col gap-4 hover:-translate-y-0.5 transition-transform">
                 <div className="min-w-0">
-                  <p className="font-semibold truncate">{p.title}</p>
-                  <p className="text-muted text-sm">
-                    Kod: <span className="font-mono">{p.joinCode || "—"}</span>
+                  <p className="font-display font-semibold text-lg truncate">{p.title}</p>
+                  <p className="text-muted text-sm mt-1">
+                    Kod:{" "}
+                    <span className="font-display font-semibold tracking-[0.15em] text-brand">
+                      {p.joinCode || "—"}
+                    </span>
                   </p>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <Link
-                    href={`/edit/${p.id}`}
-                    className="border border-line hover:bg-paper rounded-lg px-4 py-2 text-sm font-medium"
-                  >
-                    Düzenle
+                <div className="flex gap-2 items-center">
+                  <Link href={`/present/${p.id}`} className="btn-primary !py-2 !px-4 text-sm">
+                    ▶ Sun
                   </Link>
-                  <Link
-                    href={`/present/${p.id}`}
-                    className="bg-ink hover:bg-black text-white rounded-lg px-4 py-2 text-sm font-medium"
-                  >
-                    Sun
+                  <Link href={`/edit/${p.id}`} className="btn-ghost !py-2 !px-4 text-sm">
+                    Düzenle
                   </Link>
                   <button
                     onClick={() => remove(p)}
-                    className="text-red-500 hover:bg-red-50 rounded-lg px-3 py-2 text-sm"
+                    className="ml-auto text-muted hover:text-brand text-sm font-semibold cursor-pointer px-2 py-1"
                     aria-label={`${p.title} sunumunu sil`}
                   >
                     Sil

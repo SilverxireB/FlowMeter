@@ -24,20 +24,19 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-3xl border border-line p-8 text-center">
-        <h1 className="text-2xl font-semibold mb-1">FlowMeter</h1>
+    <main className="min-h-screen flex items-center justify-center px-4 bg-wash">
+      <div className="w-full max-w-sm card p-8 text-center">
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <span className="w-2.5 h-2.5 rounded-full bg-brand" aria-hidden />
+          <h1 className="font-display text-2xl font-semibold tracking-tight">FlowMeter</h1>
+        </div>
         <p className="text-muted text-sm mb-8">Sunum oluşturmak için giriş yap</p>
 
-        <button
-          onClick={signIn}
-          disabled={busy}
-          className="w-full bg-ink hover:bg-black disabled:opacity-40 text-white rounded-2xl py-4 font-medium"
-        >
+        <button onClick={signIn} disabled={busy} className="btn-accent w-full py-4">
           {busy ? "Bağlanıyor…" : "Google ile devam et"}
         </button>
 
-        {error && <p className="text-red-600 text-sm mt-4">{error}</p>}
+        {error && <p className="text-brand text-sm mt-4">{error}</p>}
 
         <p className="text-muted text-xs mt-8">
           İzleyicilerin girişe ihtiyacı yok — onlar sadece kod girer.

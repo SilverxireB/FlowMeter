@@ -47,23 +47,23 @@ export default function EditPage() {
 
   return (
     <main className="min-h-screen flex flex-col">
-      <header className="bg-white border-b border-line px-4 py-3 flex items-center justify-between gap-3">
+      <header className="bg-white/80 backdrop-blur border-b border-line px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/dashboard" className="text-muted hover:text-ink shrink-0">←</Link>
-          <span className="font-semibold truncate">{presentation.title}</span>
+          <span className="font-display font-semibold truncate">{presentation.title}</span>
           <span className="text-muted text-sm shrink-0 hidden sm:inline">
             Kod: <span className="font-mono">{presentation.joinCode}</span>
           </span>
           {isLive && (
-            <span className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-full px-2.5 py-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+            <span className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-brand bg-brand-soft rounded-full px-2.5 py-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
               CANLI
             </span>
           )}
         </div>
         <Link
           href={`/present/${id}`}
-          className="bg-ink hover:bg-black text-white rounded-xl px-4 py-2 text-sm font-medium shrink-0"
+          className="btn-primary !py-2 !px-4 text-sm shrink-0"
         >
           ▶ Sun
         </Link>
@@ -78,7 +78,7 @@ export default function EditPage() {
               onClick={() => select(s.id, i)}
               className={`shrink-0 md:shrink text-left rounded-xl border px-3 py-2 w-40 md:w-full transition-colors ${
                 s.id === selectedId
-                  ? "border-accent bg-accent-soft/40"
+                  ? "border-accent bg-accent-soft/50"
                   : "border-line hover:border-muted"
               }`}
             >
@@ -166,8 +166,8 @@ function SlideEditor({
   }
 
   return (
-    <div className="max-w-xl mx-auto bg-white rounded-2xl border border-line p-6">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted mb-4">
+    <div className="max-w-xl mx-auto card p-6">
+      <p className="eyebrow mb-4">
         {SLIDE_TYPE_LABELS[slide.type]}
       </p>
 
@@ -175,7 +175,7 @@ function SlideEditor({
       <input
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
-        className="w-full rounded-lg border border-line px-3 py-3 mb-4 focus:outline-none focus:border-accent"
+        className="input-base mb-4 font-semibold"
       />
 
       {optionLabel && (
@@ -189,12 +189,12 @@ function SlideEditor({
                   onChange={(e) =>
                     setOptions(options.map((o, j) => (j === i ? e.target.value : o)))
                   }
-                  className="flex-1 rounded-lg border border-line px-3 py-2 focus:outline-none focus:border-accent"
+                  className="input-base flex-1 !py-2"
                 />
                 <button
                   onClick={() => setOptions(options.filter((_, j) => j !== i))}
                   disabled={options.length <= minOptions}
-                  className="text-muted hover:text-red-500 disabled:opacity-30 px-2"
+                  className="text-muted hover:text-brand disabled:opacity-30 px-2 cursor-pointer"
                   aria-label={`Seçenek ${i + 1} sil`}
                 >
                   ✕
@@ -219,17 +219,17 @@ function SlideEditor({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            className="w-full rounded-lg border border-line px-3 py-2 mb-4 resize-none focus:outline-none focus:border-accent"
+            className="input-base mb-4 resize-none"
           />
         </>
       )}
 
       <div className="flex items-center justify-between pt-4 border-t border-line">
-        <button onClick={onDelete} className="text-red-500 hover:bg-red-50 rounded-lg px-3 py-2 text-sm">
+        <button onClick={onDelete} className="text-muted hover:text-brand hover:bg-brand-soft/50 rounded-full px-3 py-2 text-sm font-semibold cursor-pointer">
           Slaytı sil
         </button>
         <div className="flex items-center gap-3">
-          {saved && <span className="text-green-600 text-sm">Kaydedildi ✓</span>}
+          {saved && <span className="text-sm font-semibold" style={{ color: "var(--series-2)" }}>Kaydedildi ✓</span>}
           <button
             onClick={save}
             disabled={saving}

@@ -20,7 +20,7 @@ export default function RankingResult({
   for (const r of responses) {
     if (!Array.isArray(r.value) || r.value.length !== n) continue;
     validCount++;
-    r.value.forEach((optionIndex, pos) => {
+    (r.value as number[]).forEach((optionIndex, pos) => {
       if (typeof optionIndex === "number" && optionIndex < n) {
         positionSums[optionIndex] += pos + 1;
       }
@@ -36,25 +36,33 @@ export default function RankingResult({
     .sort((a, b) => (a.avg ?? Infinity) - (b.avg ?? Infinity));
 
   return (
-    <div className="w-full flex flex-col gap-3">
+    <div className="w-full flex flex-col gap-4">
       {ranked.map((item, pos) => {
-        // En iyi sıra (1) en uzun bar olacak şekilde ters ölçek
         const score = item.avg === null ? 0 : (n - item.avg + 1) / n;
         return (
-          <div key={item.i} className="flex items-center gap-3">
-            <span className="text-muted font-bold tabular-nums w-8 text-lg">
-              {pos + 1}.
+          <div key={item.i} className="flex items-center gap-4">
+            <span
+              className={`font-display font-semibold tabular-nums w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${
+                pos === 0 && validCount > 0
+                  ? "bg-brand-soft text-brand text-lg"
+                  : "bg-line/50 text-muted"
+              }`}
+              aria-label={`${pos + 1}. sıra`}
+            >
+              {pos + 1}
             </span>
-            <div className="flex-1">
-              <div className="flex items-baseline justify-between mb-1">
-                <span className="font-medium text-ink">{item.option}</span>
-                <span className="text-muted text-sm tabular-nums">
-                  {item.avg === null ? "—" : `ort. sıra ${item.avg.toFixed(1)}`}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline justify-between gap-4 mb-1">
+                <span className={`truncate text-lg ${pos === 0 && validCount > 0 ? "font-bold" : "font-medium"}`}>
+                  {item.option}
+                </span>
+                <span className="text-muted text-sm tabular-nums shrink-0 font-semibold">
+                  {item.avg === null ? "—" : `ort. ${item.avg.toFixed(1)}`}
                 </span>
               </div>
-              <div className="h-6 bg-line/40 rounded-r">
+              <div className="h-6 bg-line/50 rounded-lg overflow-hidden">
                 <div
-                  className="h-full rounded-r transition-[width] duration-500"
+                  className="h-full rounded-r-lg transition-[width] duration-700 ease-out"
                   style={{
                     width: `${score * 100}%`,
                     background: `var(--series-${(item.i % 8) + 1})`,
@@ -65,7 +73,7 @@ export default function RankingResult({
           </div>
         );
       })}
-      <p className="text-muted text-sm">{validCount} cevap</p>
+      <p className="text-muted text-sm font-semibold tabular-nums">{validCount} cevap</p>
     </div>
   );
 }

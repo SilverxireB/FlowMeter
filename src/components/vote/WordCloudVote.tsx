@@ -47,19 +47,19 @@ export default function WordCloudVote({
         onChange={(e) => setWord(e.target.value)}
         maxLength={30}
         placeholder="Bir kelime yaz…"
-        className="w-full rounded-xl border-2 border-line px-4 py-4 text-lg focus:outline-none focus:border-accent"
+        className="input-base text-lg py-4"
       />
       <button
         type="submit"
         disabled={!word.trim() || sending || remaining <= 0}
-        className="w-full bg-ink hover:bg-black disabled:opacity-40 text-white font-semibold rounded-xl py-4"
+        className="btn-accent w-full py-4"
       >
         {sending ? "Gönderiliyor…" : "Gönder"}
       </button>
       <p className="text-muted text-sm text-center">
         {remaining > 0 ? `${remaining} hakkın kaldı` : "Tüm hakların kullanıldı"}
       </p>
-      {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+      {error && <p className="text-brand text-sm text-center">{error}</p>}
     </form>
   );
 }

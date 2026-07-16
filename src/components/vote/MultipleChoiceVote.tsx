@@ -38,10 +38,10 @@ export default function MultipleChoiceVote({
         <button
           key={i}
           onClick={() => setSelected(i)}
-          className={`w-full text-left px-4 py-4 rounded-xl border-2 font-medium transition-colors ${
+          className={`w-full text-left px-4 py-4 rounded-2xl border-2 font-semibold cursor-pointer transition-all duration-200 active:scale-[0.98] ${
             selected === i
-              ? "border-accent bg-accent-soft/40"
-              : "border-line bg-white hover:border-muted"
+              ? "border-accent bg-accent-soft/50 shadow-md shadow-accent/10"
+              : "border-line bg-white hover:border-muted shadow-sm"
           }`}
         >
           <span
@@ -55,11 +55,11 @@ export default function MultipleChoiceVote({
       <button
         onClick={vote}
         disabled={selected === null || sending}
-        className="mt-2 w-full bg-ink hover:bg-black disabled:opacity-40 text-white font-semibold rounded-xl py-4"
+        className="btn-accent mt-2 w-full py-4"
       >
         {sending ? "Gönderiliyor…" : "Gönder"}
       </button>
-      {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+      {error && <p className="text-brand text-sm text-center">{error}</p>}
     </div>
   );
 }

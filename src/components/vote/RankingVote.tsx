@@ -46,7 +46,7 @@ export default function RankingVote({
       {order.map((optionIndex, pos) => (
         <div
           key={optionIndex}
-          className="flex items-center gap-3 bg-white rounded-xl border-2 border-line px-4 py-3"
+          className="flex items-center gap-3 bg-white rounded-2xl border-2 border-line px-4 py-3 shadow-sm"
         >
           <span className="text-muted font-semibold tabular-nums w-6">{pos + 1}.</span>
           <span className="flex-1 font-medium">{slide.options[optionIndex]}</span>
@@ -73,11 +73,11 @@ export default function RankingVote({
       <button
         onClick={vote}
         disabled={sending || order.length === 0}
-        className="mt-2 w-full bg-ink hover:bg-black disabled:opacity-40 text-white font-semibold rounded-xl py-4"
+        className="btn-accent mt-2 w-full py-4"
       >
         {sending ? "Gönderiliyor…" : "Sıralamayı gönder"}
       </button>
-      {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+      {error && <p className="text-brand text-sm text-center">{error}</p>}
     </div>
   );
 }

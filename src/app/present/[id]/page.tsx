@@ -17,10 +17,12 @@ import {
   useSlides,
 } from "@/lib/hooks";
 import { setCurrentSlide } from "@/lib/presentations";
+import { SLIDE_TYPE_LABELS } from "@/lib/types";
 
 /**
  * Sunum modu. index -1 = katılım ekranı (büyük QR + kod + gelen isimler),
- * 0..n-1 = slaytlar. Klavye ←/→ ile gezinir.
+ * 0..n-1 = slaytlar (köşede mini QR kartı — geç gelenler de katılabilsin).
+ * Klavye ←/→ ile gezinir.
  */
 export default function PresentPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +32,7 @@ export default function PresentPage() {
   const { slides } = useSlides(id);
   const participants = useParticipants(id);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
+  const [host, setHost] = useState("flowmeter");
 
   const rawIndex = presentation?.currentSlideIndex ?? -1;
   const index = Math.min(rawIndex, slides.length - 1);
@@ -48,6 +51,7 @@ export default function PresentPage() {
   }, [presentation, id]);
 
   useEffect(() => {
+    setHost(window.location.host);
     if (presentation?.joinCode) {
       setJoinUrl(`${window.location.origin}/join/${presentation.joinCode}`);
     }
@@ -65,114 +69,150 @@ export default function PresentPage() {
 
   if (!presentation) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
+      <main className="min-h-screen flex items-center justify-center bg-wash">
         <p className="text-muted animate-pulse">Yükleniyor…</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen flex flex-col">
-      <header className="px-6 py-4 flex items-center justify-between border-b border-line bg-white">
-        <p className="text-sm">
-          <span className="text-muted">Katıl:</span>{" "}
-          <span className="font-medium">{typeof window !== "undefined" ? window.location.host : "flowmeter"}</span>{" "}
-          <span className="text-muted">· kod</span>{" "}
-          <span className="font-mono font-semibold tracking-widest">{presentation.joinCode}</span>
+    <main className="min-h-screen flex flex-col bg-wash">
+      <header className="px-6 py-3.5 flex items-center justify-between border-b border-line bg-white/80 backdrop-blur">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-brand animate-pulse" aria-hidden />
+          <span className="font-display font-semibold tracking-tight">FlowMeter</span>
+        </div>
+        <p className="hidden sm:block text-sm text-muted">
+          <span className="font-semibold text-ink">{host}</span> · kod{" "}
+          <span className="font-display font-semibold text-ink tracking-[0.2em]">
+            {presentation.joinCode}
+          </span>
         </p>
         <div className="flex items-center gap-4">
-          <span className="text-muted text-sm tabular-nums">
-            👥 {participants.length}
+          <span className="chip tabular-nums" title="Katılımcı sayısı">
+            <span aria-hidden>👥</span> {participants.length}
           </span>
-          <Link href={`/edit/${id}`} className="text-muted hover:text-ink text-sm">
+          <Link href={`/edit/${id}`} className="text-muted hover:text-ink text-sm font-semibold">
             Editör
           </Link>
         </div>
       </header>
 
-      <section className="flex-1 flex flex-col items-center justify-center px-6 py-6">
+      <section className="relative flex-1 flex flex-col items-center justify-center px-6 py-6">
         {rawIndex < 0 ? (
-          /* Katılım ekranı: büyük QR + kod + canlı gelen isimler */
-          <div className="w-full max-w-4xl flex flex-col md:flex-row items-center gap-10 md:gap-16">
-            <div className="bg-white border border-line rounded-3xl p-6">
-              {joinUrl && <QrCode text={joinUrl} size={280} />}
+          /* ── Katılım ekranı: büyük QR + kod + canlı gelen isimler ── */
+          <div className="w-full max-w-5xl flex flex-col md:flex-row items-center gap-10 md:gap-16">
+            <div className="card p-7 shrink-0">
+              {joinUrl && <QrCode text={joinUrl} size={300} />}
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h1 className="text-3xl md:text-4xl font-semibold mb-3">
+              <p className="eyebrow mb-3">Canlı sunum</p>
+              <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-4">
                 {presentation.title}
               </h1>
-              <p className="text-muted text-lg mb-2">
-                Telefonunla QR kodu okut veya siteye gir, kodu yaz:
+              <p className="text-muted text-lg mb-1">
+                QR kodu okut veya <span className="font-semibold text-ink">{host}</span>
+                &apos;a gir, kodu yaz:
               </p>
-              <p className="font-mono text-5xl md:text-6xl font-bold tracking-[0.2em] mb-8">
+              <p className="font-display text-6xl md:text-7xl font-semibold tracking-[0.18em] text-brand mb-8">
                 {presentation.joinCode}
               </p>
-              <p className="text-muted text-sm mb-3 tabular-nums">
+              <p className="text-muted text-sm mb-3 tabular-nums font-semibold">
                 {participants.length} kişi katıldı
               </p>
-              <div className="flex flex-wrap gap-2 justify-center md:justify-start max-h-32 overflow-hidden">
-                {participants.slice(0, 24).map((p) => (
-                  <span
-                    key={p.id}
-                    className="bg-white border border-line rounded-full px-3 py-1 text-sm"
-                  >
-                    {p.nickname}
+              <div className="flex flex-wrap gap-2 justify-center md:justify-start max-h-36 overflow-hidden">
+                {participants.slice(0, 21).map((p) => (
+                  <span key={p.id} className="chip">
+                    <span aria-hidden>{p.emoji ?? "😀"}</span> {p.nickname}
                   </span>
                 ))}
-                {participants.length > 24 && (
-                  <span className="text-muted text-sm px-2 py-1">
-                    +{participants.length - 24} kişi
+                {participants.length > 21 && (
+                  <span className="text-muted text-sm px-2 py-1 font-semibold">
+                    +{participants.length - 21} kişi
                   </span>
                 )}
               </div>
             </div>
           </div>
         ) : slide ? (
-          <div className="w-full max-w-4xl bg-white rounded-3xl border border-line p-8 md:p-12">
-            <h1 className="text-2xl md:text-4xl font-semibold mb-8">{slide.question}</h1>
-            {slide.type === "multiple-choice" ? (
-              <BarChartResult slide={slide} responses={responses} />
-            ) : slide.type === "word-cloud" ? (
-              <div className="min-h-[16rem] flex items-center justify-center">
-                <WordCloudResult responses={responses} />
+          <>
+            <div className="w-full max-w-5xl card p-8 md:p-12">
+              <p className="eyebrow mb-3">{SLIDE_TYPE_LABELS[slide.type]}</p>
+              <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-tight mb-10 pr-32">
+                {slide.question}
+              </h1>
+              {slide.type === "multiple-choice" ? (
+                <BarChartResult slide={slide} responses={responses} />
+              ) : slide.type === "word-cloud" ? (
+                <div className="min-h-[18rem] flex items-center justify-center">
+                  <WordCloudResult responses={responses} />
+                </div>
+              ) : slide.type === "open-ended" ? (
+                <OpenEndedResult responses={responses} />
+              ) : slide.type === "scales" ? (
+                <ScalesResult slide={slide} responses={responses} />
+              ) : slide.type === "ranking" ? (
+                <RankingResult slide={slide} responses={responses} />
+              ) : slide.type === "content" ? (
+                <p className="text-ink/80 text-2xl leading-relaxed whitespace-pre-wrap">
+                  {slide.settings?.description}
+                </p>
+              ) : null}
+            </div>
+
+            {/* Mini QR: her slaytta köşede — geç gelenler de katılabilsin */}
+            {joinUrl && (
+              <div className="absolute top-6 right-6 hidden lg:flex flex-col items-center gap-1.5 bg-white border border-line rounded-2xl p-3 shadow-sm">
+                <QrCode text={joinUrl} size={92} />
+                <span className="font-display text-sm font-semibold tracking-[0.15em] text-brand">
+                  {presentation.joinCode}
+                </span>
               </div>
-            ) : slide.type === "open-ended" ? (
-              <OpenEndedResult responses={responses} />
-            ) : slide.type === "scales" ? (
-              <ScalesResult slide={slide} responses={responses} />
-            ) : slide.type === "ranking" ? (
-              <RankingResult slide={slide} responses={responses} />
-            ) : slide.type === "content" ? (
-              <p className="text-ink/80 text-xl whitespace-pre-wrap">
-                {slide.settings?.description}
-              </p>
-            ) : null}
-          </div>
+            )}
+          </>
         ) : (
           <p className="text-muted text-xl">Henüz slayt yok — editörden slayt ekleyin.</p>
         )}
       </section>
 
-      <footer className="px-6 py-4 flex items-center justify-between border-t border-line bg-white">
-        <span className="text-muted text-sm tabular-nums">
+      <footer className="px-6 py-4 flex items-center justify-between border-t border-line bg-white/80 backdrop-blur">
+        <span className="text-muted text-sm tabular-nums font-semibold">
           {participants.length} katılımcı
         </span>
+
+        {/* İlerleme noktaları */}
+        <div className="hidden md:flex items-center gap-1.5" aria-hidden>
+          <span
+            className={`w-2 h-2 rounded-full transition-colors ${
+              rawIndex < 0 ? "bg-brand" : "bg-line"
+            }`}
+          />
+          {slides.map((s, i) => (
+            <span
+              key={s.id}
+              className={`w-2 h-2 rounded-full transition-colors ${
+                i === index && rawIndex >= 0 ? "bg-brand" : "bg-line"
+              }`}
+            />
+          ))}
+        </div>
+
         <div className="flex items-center gap-3">
           <button
             onClick={() => setCurrentSlide(id, rawIndex - 1)}
             disabled={rawIndex <= -1}
-            className="border border-line hover:bg-paper disabled:opacity-30 rounded-xl px-4 py-2"
+            className="btn-ghost w-11 h-11 !p-0"
             aria-label="Önceki slayt"
           >
             ←
           </button>
-          <span className="text-muted text-sm tabular-nums w-16 text-center">
+          <span className="text-muted text-sm tabular-nums w-16 text-center font-semibold">
             {rawIndex < 0 ? "Katılım" : `${index + 1} / ${slides.length}`}
           </span>
           <button
             onClick={() => setCurrentSlide(id, rawIndex + 1)}
             disabled={rawIndex >= slides.length - 1}
-            className="border border-line hover:bg-paper disabled:opacity-30 rounded-xl px-4 py-2"
+            className="btn-ghost w-11 h-11 !p-0"
             aria-label="Sonraki slayt"
           >
             →

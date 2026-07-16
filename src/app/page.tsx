@@ -25,13 +25,15 @@ export default function LandingPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col">
-      <header className="px-6 py-5">
-        <span className="text-xl font-semibold tracking-tight">FlowMeter</span>
+    <main className="min-h-screen flex flex-col bg-wash">
+      <header className="px-6 py-5 flex items-center gap-2">
+        <span className="w-2.5 h-2.5 rounded-full bg-accent" aria-hidden />
+        <span className="text-lg font-extrabold tracking-tight">FlowMeter</span>
       </header>
 
-      <section className="flex-1 flex flex-col items-center justify-center px-4 -mt-16">
-        <h1 className="text-3xl sm:text-4xl font-semibold text-center mb-3">
+      <section className="flex-1 flex flex-col items-center justify-center px-4 -mt-14">
+        <p className="eyebrow mb-4">Canlı sunum</p>
+        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-center mb-3">
           Sunuma katıl
         </h1>
         <p className="text-muted text-center mb-10">
@@ -46,23 +48,25 @@ export default function LandingPage() {
             autoFocus
             placeholder="123 456"
             aria-label="Katılım kodu"
-            className="w-full text-center text-3xl tracking-[0.3em] font-semibold rounded-2xl px-4 py-5 bg-white border border-line placeholder:text-line focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent-soft"
+            className="input-base text-center text-4xl tracking-[0.3em] font-bold py-5 placeholder:text-line placeholder:font-semibold"
           />
-          <button
-            type="submit"
-            disabled={code.length !== 6}
-            className="w-full bg-ink hover:bg-black disabled:opacity-30 text-white font-medium rounded-2xl py-4 text-lg transition-opacity"
-          >
-            Katıl
+          <button type="submit" disabled={code.length !== 6} className="btn-accent py-4 text-lg">
+            Katıl →
           </button>
         </form>
 
         {last && (
           <Link
             href={`/p/${last.id}`}
-            className="mt-8 text-accent hover:text-accent-dark text-sm font-medium"
+            className="mt-8 group inline-flex items-center gap-2 bg-white border border-line rounded-full pl-2 pr-4 py-1.5 text-sm hover:border-accent transition-colors"
           >
-            ‹{last.title}› sunumuna geri dön →
+            <span className="bg-accent-soft text-accent-dark rounded-full px-2 py-0.5 text-xs font-bold">
+              Devam et
+            </span>
+            <span className="text-ink/80 group-hover:text-ink truncate max-w-[14rem]">
+              {last.title}
+            </span>
+            <span className="text-muted">→</span>
           </Link>
         )}
       </section>
