@@ -18,6 +18,7 @@ import {
   storeIdentity,
   storeLastPresentation,
 } from "@/lib/participants";
+import { REACTION_EMOJIS, sendReaction } from "@/lib/reactions";
 import { getVoteCount } from "@/lib/responses";
 import { themeStyle } from "@/lib/themes";
 import { Slide } from "@/lib/types";
@@ -36,6 +37,7 @@ export default function AudiencePage() {
   const [draft, setDraft] = useState("");
   const [draftSeed, setDraftSeed] = useState<string>(AVATAR_SEEDS[0]);
   const [extraSeeds, setExtraSeeds] = useState<string[]>([]);
+  const [editingIdentity, setEditingIdentity] = useState(false);
 
   useEffect(() => {
     setNickname(getStoredNickname());
@@ -73,6 +75,14 @@ export default function AudiencePage() {
     storeIdentity(clean, draftSeed);
     setNickname(clean);
     setAvatarSeed(draftSeed);
+    setEditingIdentity(false);
+  }
+
+  /** Kayıtlı kimliği düzenlemek için seçim ekranını tekrar aç. */
+  function openIdentityEditor() {
+    setDraft(nickname ?? "");
+    setDraftSeed(avatarSeed ?? AVATAR_SEEDS[0]);
+    setEditingIdentity(true);
   }
 
   /** Galeriye 8 rastgele avatar ekle ("karıştır"). */
@@ -89,8 +99,8 @@ export default function AudiencePage() {
     return <Centered><p className="text-xl font-medium">Sunum bulunamadı.</p></Centered>;
   }
 
-  // 1) Kimlik kapısı: emoji + takma ad
-  if (!nickname) {
+  // 1) Kimlik kapısı: avatar + takma ad (ilk giriş VEYA kimlik düzenleme)
+  if (!nickname || editingIdentity) {
     return (
       <Centered>
         <p className="eyebrow mb-2">{presentation.title}</p>
@@ -154,7 +164,13 @@ export default function AudiencePage() {
           Hoş geldin, {nickname}!
         </h1>
         <p className="text-muted">{presentation.title}</p>
-        <p className="text-muted mt-8 animate-pulse">Sunumun başlaması bekleniyor…</p>
+        <button
+          onClick={openIdentityEditor}
+          className="mt-4 text-accent hover:text-accent-dark text-sm font-bold cursor-pointer"
+        >
+          ✎ Avatarını / adını değiştir
+        </button>
+        <p className="text-muted mt-6 animate-pulse">Sunumun başlaması bekleniyor…</p>
       </Centered>
     );
   }
@@ -174,10 +190,15 @@ export default function AudiencePage() {
           )}
           FlowMeter
         </span>
-        <span className="flex items-center gap-2 bg-paper border border-line rounded-full pl-1 pr-3 py-1 text-sm font-semibold">
+        <button
+          onClick={openIdentityEditor}
+          title="Avatarını / adını değiştir"
+          className="flex items-center gap-2 bg-paper border border-line rounded-full pl-1 pr-3 py-1 text-sm font-semibold cursor-pointer hover:border-accent transition-colors"
+        >
           <Avatar seed={avatarSeed ?? "Luna"} size={24} />
           <span className="truncate max-w-[9rem]">{nickname}</span>
-        </span>
+          <span className="text-muted" aria-hidden>✎</span>
+        </button>
       </header>
 
       <section className="flex-1 w-full max-w-md mx-auto px-4 py-8">
@@ -217,6 +238,22 @@ export default function AudiencePage() {
           <p className="text-muted">Bu slayt için katılım gerekmiyor.</p>
         )}
       </section>
+
+      {/* Tepki çubuğu: her an bir emoji fırlat */}
+      <footer className="sticky bottom-0 px-4 py-3 bg-white/85 backdrop-blur border-t border-line">
+        <div className="max-w-md mx-auto flex items-center justify-center gap-2">
+          {REACTION_EMOJIS.map((e) => (
+            <button
+              key={e}
+              onClick={() => sendReaction(id, e)}
+              aria-label={`Tepki gönder: ${e}`}
+              className="text-2xl w-12 h-12 rounded-full bg-paper border border-line cursor-pointer transition-all duration-150 hover:scale-110 active:scale-90"
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      </footer>
     </main>
   );
 }

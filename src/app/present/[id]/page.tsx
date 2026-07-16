@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Avatar from "@/components/Avatar";
 import QrCode from "@/components/present/QrCode";
+import ReactionOverlay from "@/components/present/ReactionOverlay";
 import BarChartResult from "@/components/results/BarChartResult";
 import OpenEndedResult from "@/components/results/OpenEndedResult";
 import RankingResult from "@/components/results/RankingResult";
@@ -40,6 +41,12 @@ export default function PresentPage() {
   const participants = useParticipants(id);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
   const [host, setHost] = useState("flowmeter");
+  const [hideResults, setHideResults] = useState(false);
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  }
 
   const rawIndex = presentation?.currentSlideIndex ?? -1;
   const index = Math.min(rawIndex, slides.length - 1);
@@ -87,6 +94,7 @@ export default function PresentPage() {
 
   return (
     <main className="min-h-screen flex flex-col" style={themeBg}>
+      <ReactionOverlay presentationId={id} />
       <header className="px-6 py-3.5 flex items-center justify-between border-b border-line bg-white/80 backdrop-blur">
         <div className="flex items-center gap-2">
           {logo ? (
@@ -165,7 +173,13 @@ export default function PresentPage() {
               <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-tight mb-10 pr-32">
                 {slide.question}
               </h1>
-              {slide.type === "multiple-choice" ? (
+              {hideResults ? (
+                <div className="text-center py-16">
+                  <p className="text-5xl mb-4" aria-hidden>🙈</p>
+                  <p className="text-xl font-bold">Sonuçlar gizli</p>
+                  <p className="text-muted mt-1 tabular-nums">{responses.length} cevap toplandı</p>
+                </div>
+              ) : slide.type === "multiple-choice" ? (
                 <BarChartResult slide={slide} responses={responses} />
               ) : slide.type === "word-cloud" ? (
                 <div className="min-h-[18rem] flex items-center justify-center">
@@ -223,6 +237,22 @@ export default function PresentPage() {
               ↺ Sıfırla
             </button>
           )}
+          {slide && (
+            <button
+              onClick={() => setHideResults(!hideResults)}
+              className="btn-ghost !py-1.5 !px-3.5 text-sm"
+              title={hideResults ? "Sonuçları göster" : "Sonuçları gizle"}
+            >
+              {hideResults ? "🙈 Gizli" : "👁 Görünür"}
+            </button>
+          )}
+          <button
+            onClick={toggleFullscreen}
+            className="btn-ghost !py-1.5 !px-3.5 text-sm"
+            title="Tam ekran (aç/kapat)"
+          >
+            ⛶
+          </button>
           <button
             onClick={async () => {
               if (confirm("Sunum bitirilsin mi? İzleyiciler bekleme ekranına döner.")) {
