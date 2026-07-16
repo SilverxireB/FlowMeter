@@ -229,8 +229,8 @@ export default function PresentPage() {
         )}
       </section>
 
-      <footer className="px-6 py-4 flex items-center justify-between gap-3 border-t border-line bg-white/80 backdrop-blur">
-        <div className="flex items-center gap-2">
+      <footer className="px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-2 border-t border-line bg-white/80 backdrop-blur">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={() => setVotingClosed(id, !presentation.votingClosed)}
             className={`btn-ghost !py-1.5 !px-3.5 text-sm ${

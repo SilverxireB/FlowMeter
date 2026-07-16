@@ -28,12 +28,12 @@ export default function LandingPage() {
     <main className="min-h-screen flex flex-col bg-wash">
       <header className="px-6 py-5 flex items-center gap-2">
         <span className="w-2.5 h-2.5 rounded-full bg-accent" aria-hidden />
-        <span className="text-lg font-extrabold tracking-tight">FlowMeter</span>
+        <span className="font-display text-lg font-semibold tracking-tight">FlowMeter</span>
       </header>
 
       <section className="flex-1 flex flex-col items-center justify-center px-4 -mt-14">
         <p className="eyebrow mb-4">Canlı sunum</p>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-center mb-3">
+        <h1 className="font-display text-4xl sm:text-5xl font-semibold tracking-tight text-center mb-3">
           Sunuma katıl
         </h1>
         <p className="text-muted text-center mb-10">

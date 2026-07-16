@@ -57,7 +57,11 @@ export default function EditPage() {
   }
 
   if (!presentation) {
-    return <main className="min-h-screen flex items-center justify-center">Yükleniyor…</main>;
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-muted animate-pulse">Yükleniyor…</p>
+      </main>
+    );
   }
 
   return (

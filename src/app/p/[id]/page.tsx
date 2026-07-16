@@ -100,7 +100,7 @@ export default function AudiencePage() {
     return (
       <Centered>
         <p className="eyebrow mb-2">{presentation.title}</p>
-        <h1 className="text-3xl font-extrabold tracking-tight mb-8">
+        <h1 className="font-display text-3xl font-semibold tracking-tight mb-8">
           Sana nasıl seslenelim?
         </h1>
         <form onSubmit={saveIdentity} className="w-full max-w-sm flex flex-col gap-5">
@@ -156,7 +156,7 @@ export default function AudiencePage() {
         <div className="mb-5 animate-bounce">
           <Avatar seed={avatarSeed ?? "Luna"} size={104} className="ring-4 ring-white shadow-lg" />
         </div>
-        <h1 className="text-3xl font-extrabold tracking-tight mb-2">
+        <h1 className="font-display text-3xl font-semibold tracking-tight mb-2">
           Hoş geldin, {nickname}!
         </h1>
         <p className="text-muted">{presentation.title}</p>
@@ -173,7 +173,7 @@ export default function AudiencePage() {
   return (
     <main className="min-h-screen flex flex-col" style={themeBg}>
       <header className="px-4 py-3 flex items-center justify-between border-b border-line bg-white/80 backdrop-blur">
-        <span className="flex items-center gap-2 font-extrabold tracking-tight">
+        <span className="flex items-center gap-2 font-display font-semibold tracking-tight">
           {logo && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logo} alt="Logo" className="h-6 w-auto" />
@@ -199,7 +199,7 @@ export default function AudiencePage() {
           ))}
         </div>
 
-        <h1 className={`text-2xl font-extrabold tracking-tight mb-6 ${dark ? "text-white" : ""}`}>{slide.question}</h1>
+        <h1 className={`font-display text-2xl font-semibold tracking-tight mb-6 ${dark ? "text-white" : ""}`}>{slide.question}</h1>
 
         {presentation.votingClosed ? (
           <StatusCard emoji="🔒" title="Oylama kapalı" text="Sunucu oylamayı tekrar açana kadar bekle." />
