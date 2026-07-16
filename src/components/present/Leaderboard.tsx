@@ -58,9 +58,32 @@ export default function Leaderboard({
 
   const byVoter = new Map(participants.map((p) => [p.id, p]));
   const medals = ["🥇", "🥈", "🥉"];
+  const confetti = rows && rows.length > 0
+    ? Array.from({ length: 60 }, (_, i) => ({
+        left: (i * 137.5) % 100,
+        delay: (i % 12) * 0.18,
+        duration: 2.6 + (i % 5) * 0.5,
+        color: `var(--series-${(i % 8) + 1})`,
+      }))
+    : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4" onClick={onClose}>
+      {/* 🎊 Konfeti */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
+        {confetti.map((c, i) => (
+          <span
+            key={i}
+            className="absolute top-0 w-2.5 h-2.5 rounded-sm animate-confetti"
+            style={{
+              left: `${c.left}%`,
+              background: c.color,
+              animationDelay: `${c.delay}s`,
+              animationDuration: `${c.duration}s`,
+            }}
+          />
+        ))}
+      </div>
       <div
         className="card w-full max-w-lg p-8 max-h-[85vh] overflow-y-auto animate-pop"
         onClick={(e) => e.stopPropagation()}

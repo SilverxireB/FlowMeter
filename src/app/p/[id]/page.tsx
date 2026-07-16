@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import MultipleChoiceVote from "@/components/vote/MultipleChoiceVote";
 import QnaVote from "@/components/vote/QnaVote";
+import QuizPersonalResult from "@/components/vote/QuizPersonalResult";
 import QuizVote from "@/components/vote/QuizVote";
 import OpenEndedVote from "@/components/vote/OpenEndedVote";
 import RankingVote from "@/components/vote/RankingVote";
@@ -11,6 +12,7 @@ import ScalesVote from "@/components/vote/ScalesVote";
 import WordCloudVote from "@/components/vote/WordCloudVote";
 import { usePresentation, useSlides } from "@/lib/hooks";
 import Avatar from "@/components/Avatar";
+import Logo from "@/components/Logo";
 import {
   AVATAR_SEEDS,
   getStoredAvatarSeed,
@@ -149,6 +151,21 @@ export default function AudiencePage() {
     );
   }
 
+  // 2a) Sunum bitti ekranı
+  if (presentation.ended && !presentation.isLive) {
+    return (
+      <Centered>
+        <div className="mb-5">
+          <Avatar seed={avatarSeed ?? "Luna"} size={104} className="ring-4 ring-white shadow-lg" />
+        </div>
+        <h1 className="font-display text-3xl font-semibold tracking-tight mb-2">
+          Sunum sona erdi 🎉
+        </h1>
+        <p className="text-muted">Katıldığın için teşekkürler, {nickname}!</p>
+      </Centered>
+    );
+  }
+
   // 2) Bekleme / karşılama (sunum kapalı veya hâlâ QR ekranında)
   if (!presentation.isLive || rawIndex < 0 || !slide) {
     return (
@@ -173,12 +190,12 @@ export default function AudiencePage() {
   return (
     <main className="min-h-screen flex flex-col" style={themeBg}>
       <header className="px-4 py-3 flex items-center justify-between border-b border-line bg-white/80 backdrop-blur">
-        <span className="flex items-center gap-2 font-display font-semibold tracking-tight">
+        <span className="flex items-center gap-3">
           {logo && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt="Logo" className="h-6 w-auto" />
+            <img src={logo} alt="Sunum logosu" className="h-6 w-auto" />
           )}
-          FlowMeter
+          <Logo size="sm" />
         </span>
         <span className="flex items-center gap-2 bg-paper border border-line rounded-full pl-1 pr-3 py-1 text-sm font-semibold">
           <Avatar seed={avatarSeed ?? "Luna"} size={24} />
@@ -203,6 +220,8 @@ export default function AudiencePage() {
 
         {presentation.votingClosed ? (
           <StatusCard emoji="🔒" title="Oylama kapalı" text="Sunucu oylamayı tekrar açana kadar bekle." />
+        ) : hasVoted && slide.type === "quiz" ? (
+          <QuizPersonalResult slide={slide} />
         ) : hasVoted ? (
           <StatusCard emoji="🎉" title="Cevabın alındı!" text="Sonuçları sunum ekranında izle." />
         ) : slide.type === "multiple-choice" ? (

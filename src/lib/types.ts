@@ -23,6 +23,8 @@ export interface Presentation {
   isLive: boolean;
   /** true iken izleyiciler yeni cevap gönderemez */
   votingClosed?: boolean;
+  /** Sunum "Bitir" ile kapatıldı mı (izleyiciye teşekkür ekranı) */
+  ended?: boolean;
   /** Görsel kimlik: hazır tema + arka plan görseli + logo */
   theme?: PresentationTheme;
   createdAt: Timestamp | null;

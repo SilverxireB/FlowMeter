@@ -53,7 +53,9 @@ export default function QuizVote({
     if (sending) return;
     setSending(true);
     try {
-      await submitResponse(presentationId, slide.id, [i, Date.now() - startedMs!]);
+      const answer = [i, Date.now() - startedMs!];
+      await submitResponse(presentationId, slide.id, answer);
+      localStorage.setItem(`flowmeter.quizAnswer.${slide.id}`, JSON.stringify(answer));
       onVoted();
     } catch {
       setSending(false);

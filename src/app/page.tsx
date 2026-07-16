@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import Logo from "@/components/Logo";
 import { getLastPresentation, LastPresentation } from "@/lib/participants";
 
 /**
@@ -26,9 +27,8 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-wash">
-      <header className="px-6 py-5 flex items-center gap-2">
-        <span className="w-2.5 h-2.5 rounded-full bg-accent" aria-hidden />
-        <span className="font-display text-lg font-semibold tracking-tight">FlowMeter</span>
+      <header className="px-6 py-5">
+        <Logo />
       </header>
 
       <section className="flex-1 flex flex-col items-center justify-center px-4 -mt-14">

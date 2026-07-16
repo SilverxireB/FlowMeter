@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Avatar from "@/components/Avatar";
+import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
 import Leaderboard from "@/components/present/Leaderboard";
 import ReactionOverlay from "@/components/present/ReactionOverlay";
@@ -108,14 +109,12 @@ export default function PresentPage() {
     <main className="min-h-screen flex flex-col" style={themeBg}>
       <ReactionOverlay presentationId={id} />
       <header className="px-6 py-3.5 flex items-center justify-between border-b border-line bg-white/80 backdrop-blur">
-        <div className="flex items-center gap-2">
-          {logo ? (
+        <div className="flex items-center gap-3">
+          {logo && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt="Logo" className="h-7 w-auto" />
-          ) : (
-            <span className="w-2.5 h-2.5 rounded-full bg-brand animate-pulse" aria-hidden />
+            <img src={logo} alt="Sunum logosu" className="h-7 w-auto" />
           )}
-          <span className="font-display font-semibold tracking-tight">FlowMeter</span>
+          <Logo size="sm" />
         </div>
         <p className="hidden sm:block text-sm text-muted">
           <span className="font-semibold text-ink">{host}</span> · kod{" "}

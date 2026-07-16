@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useAuthUser } from "@/lib/hooks";
@@ -59,9 +60,8 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-wash">
       <header className="bg-white/80 backdrop-blur border-b border-line px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-brand" aria-hidden />
-          <span className="font-display font-semibold tracking-tight text-lg">FlowMeter</span>
+        <Link href="/">
+          <Logo />
         </Link>
         <span className="chip text-muted">{user.email}</span>
       </header>

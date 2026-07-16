@@ -94,6 +94,7 @@ export async function setCurrentSlide(presentationId: string, index: number): Pr
   await updateDoc(doc(db(), "presentations", presentationId), {
     currentSlideIndex: index,
     isLive: true,
+    ended: false,
   });
 }
 
@@ -110,7 +111,7 @@ export async function setVotingClosed(presentationId: string, closed: boolean): 
 
 /** Sunumu bitirir — izleyiciler bekleme ekranına döner. */
 export async function endPresentation(presentationId: string): Promise<void> {
-  await updateDoc(doc(db(), "presentations", presentationId), { isLive: false });
+  await updateDoc(doc(db(), "presentations", presentationId), { isLive: false, ended: true });
 }
 
 /** Bir slaytın tüm cevaplarını siler (sadece sahibi — rules ile korunur). */
