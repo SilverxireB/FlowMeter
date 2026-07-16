@@ -46,14 +46,17 @@ Sunucu (presenter) slaytlar oluşturur, izleyiciler (audience) telefonlarından
 - **Logo**: `src/components/Logo.tsx` — `public/logo-flow.png` (FLOW, harfler
   lacivert, O = renkli halka) + yanında "METER" yazısı. `logo-flow-white.png`
   koyu zemin sürümü. **Logo asla deforme edilmez** (h sabit, w auto).
+- **Koyu tema kuralı**: tema koyuysa üst bar lacivert (#001e64) + logo beyaz;
+  açık temada beyaz bar + lacivert logo.
 
 ## Domain Modeli
 
 - **Presentation**: joinCode (6 hane), currentSlideIndex (**-1 = QR katılım
   ekranı**), isLive, ended, votingClosed, theme{preset,bgImage,logo}, mode.
 - **Slide** `type`: multiple-choice, word-cloud, open-ended, scales, ranking,
-  **quiz** (correctIndex, timeLimit, quizStartedAt), **qna**, content.
-  Settings: allowMultiple, maxEntries, description.
+  **quiz** (correctIndex, timeLimit, quizStartedAt), **guess-number**
+  (correctNumber), **qna**, content. Settings: allowMultiple, maxEntries,
+  description, image (base64 slayt görseli).
 - **Response.value**: MC=number|number[]; WC/open-ended=string;
   scales/ranking=number[]; **quiz=[optionIndex, geçenMs]**.
 - **Participant**: doc id = voterId (localStorage UUID); nickname + avatarSeed.
@@ -87,6 +90,5 @@ Firebase projesi: `flowmeter-938a3`. Rules değişince tam halini kullanıcıya 
 
 ## Durum & Sonraki Adımlar
 
-Tamamlanan/kalan her şey: `docs/ROADMAP.md`. Kısaca kalanlar: Guess the Number,
-audience-pace anket modu, şablon galerisi, profanity filtresi, slayta görsel
-ekleme, editör canlı önizleme/otomatik kayıt, Cloud Function temizlik, i18n.
+Tamamlanan/kalan her şey: `docs/ROADMAP.md`. Kısaca kalanlar: audience-pace anket modu,
+profanity filtresi, editör canlı önizleme/otomatik kayıt, Cloud Function temizlik, i18n.

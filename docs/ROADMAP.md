@@ -43,7 +43,7 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 - [x] Slayt ayarları: çoklu seçim (MC), kişi başı N cevap (WC/open-ended)
 - [x] Sonuçları gizle/göster (present 🙈/👁)
 - [x] Slayt sıralama (↑/↓) ve çoğaltma
-- [ ] Slayta görsel ekleme (soru yanında resim — URL/galeri)
+- [x] Slayta görsel ekleme (editörden yükle → sıkıştır → Firestore; audience+present)
 - [ ] Canlı önizleme: editörde slaytın audience görünümü küçük önizlemesi
 - [ ] Otomatik kaydetme (Kaydet butonu yerine debounce'lu kayıt)
 
@@ -60,14 +60,14 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
       hız bonusu), 🏆 skor tablosu (avatar + nickname, madalyalar)
 - [x] Kazanan konfetisi (skor tablosu açılınca)
 - [x] **Q&A**: izleyici soru gönderir + upvote (tek oy); moderasyon (gizle/göster/sil)
-- [ ] **Guess the Number** slayt tipi (tahmin + dağılım gösterimi)
+- [x] **Guess the Number** slayt tipi: ortalama + histogram + opsiyonel doğru sayı
 - [ ] Audience-pace (anket modu): izleyici kendi ilerler, bitiş ekranı
 - [x] Quiz kişisel sonucu: izleyici kendi doğru/yanlış + puanını telefonunda görür
 
 ## Faz 4 — Yayınlama & Cila
 
 - [x] Sonuç sayfası `/results/[id]`: slayt slayt inceleme + CSV export
-- [ ] Sunum kopyalama + hazır şablon galerisi (buz kırıcı, retro, quiz paketi)
+- [x] Sunum kopyalama (⧉) + şablon galerisi (🧊 Buz Kırıcı, 💬 Geri Bildirim, ⚡ Quiz Paketi)
 - [ ] Profanity filtresi (word cloud / open-ended)
 - [ ] i18n (TR/EN), kod süresi/temizliği, Cloud Function ile yetim veri temizliği
 - [ ] Performans: 100+ eşzamanlı izleyici için yazma/okuma gözden geçirme
@@ -79,9 +79,11 @@ Proje durumu: Faz 1-2-3 büyük ölçüde tamam ve canlıda. Marka logosu entegr
 bileşende #001e64). Quiz puanı = Menti formülü 1000×(1−(t/T)/2) + seri bonusu
 (Leaderboard.tsx). Kurallar: her rules değişikliğinde kullanıcıya TAM metin ver.
 
+Tasarım notu: koyu tema seçiliyken üst bar Beko lacisi (#001e64) + logo beyaz
+sürüm; açık temada beyaz bar + lacivert logo (kullanıcının kararı).
+
 Öncelikli kalanlar (önerilen sıra):
-1. Slayta görsel ekleme (images.ts hazır — soru yanına sıkıştırılmış görsel)
-2. Guess the Number slayt tipi
-3. Audience-pace (anket) modu + bitiş ekranı
-4. Şablon galerisi + sunum kopyalama
-5. Profanity filtresi, Cloud Function temizlik, i18n, 100+ izleyici perf
+1. Audience-pace (anket) modu + bitiş ekranı
+2. Profanity filtresi (word cloud / open-ended)
+3. Editör canlı önizleme + otomatik kaydetme
+4. Cloud Function yetim veri temizliği, i18n, 100+ izleyici perf

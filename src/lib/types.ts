@@ -9,6 +9,7 @@ export type SlideType =
   | "ranking"
   | "qna"
   | "quiz"
+  | "guess-number"
   | "content";
 
 export type PresentationMode = "presenter-pace" | "audience-pace";
@@ -41,6 +42,10 @@ export interface SlideSettings {
   correctIndex?: number;
   /** quiz: cevap süresi (saniye, varsayılan 20) */
   timeLimit?: number;
+  /** guess-number: doğru sayı (opsiyonel — girilirse açıklanır) */
+  correctNumber?: number;
+  /** slayt görseli (sıkıştırılmış data-URI) */
+  image?: string;
 }
 
 export interface Slide {
@@ -98,6 +103,7 @@ export const SLIDE_TYPE_ICONS: Record<SlideType, string> = {
   ranking: "🏆",
   qna: "🙋",
   quiz: "⚡",
+  "guess-number": "🔢",
   content: "📄",
 };
 
@@ -109,6 +115,7 @@ export const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
   ranking: "Sıralama",
   qna: "Soru & Cevap",
   quiz: "Quiz",
+  "guess-number": "Sayı Tahmini",
   content: "İçerik",
 };
 
@@ -120,6 +127,7 @@ export const AVAILABLE_SLIDE_TYPES: SlideType[] = [
   "scales",
   "ranking",
   "quiz",
+  "guess-number",
   "qna",
   "content",
 ];

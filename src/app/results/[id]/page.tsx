@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Logo from "@/components/Logo";
 import BarChartResult from "@/components/results/BarChartResult";
+import GuessNumberResult from "@/components/results/GuessNumberResult";
 import OpenEndedResult from "@/components/results/OpenEndedResult";
 import QnaResult from "@/components/results/QnaResult";
 import QuizResult from "@/components/results/QuizResult";
@@ -150,6 +151,8 @@ export default function ResultsPage() {
                 <RankingResult slide={selected} responses={responses} />
               ) : selected.type === "quiz" ? (
                 <QuizResult slide={selected} responses={responses} />
+              ) : selected.type === "guess-number" ? (
+                <GuessNumberResult slide={selected} responses={responses} />
               ) : selected.type === "qna" ? (
                 <QnaResult presentationId={id} />
               ) : (

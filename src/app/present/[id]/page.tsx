@@ -9,6 +9,7 @@ import QrCode from "@/components/present/QrCode";
 import Leaderboard from "@/components/present/Leaderboard";
 import ReactionOverlay from "@/components/present/ReactionOverlay";
 import BarChartResult from "@/components/results/BarChartResult";
+import GuessNumberResult from "@/components/results/GuessNumberResult";
 import OpenEndedResult from "@/components/results/OpenEndedResult";
 import QnaResult from "@/components/results/QnaResult";
 import QuizResult from "@/components/results/QuizResult";
@@ -108,25 +109,25 @@ export default function PresentPage() {
   return (
     <main className="min-h-screen flex flex-col" style={themeBg}>
       <ReactionOverlay presentationId={id} />
-      <header className="px-6 py-3.5 flex items-center justify-between border-b border-line bg-white/80 backdrop-blur">
+      <header className={`px-6 py-3.5 flex items-center justify-between border-b backdrop-blur ${dark ? "bg-[#001e64] border-[#001e64]" : "bg-white/80 border-line"}`}>
         <div className="flex items-center gap-3">
           {logo && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logo} alt="Sunum logosu" className="h-7 w-auto" />
           )}
-          <Logo size="sm" />
+          <Logo size="sm" onDark={dark} />
         </div>
-        <p className="hidden sm:block text-sm text-muted">
-          <span className="font-semibold text-ink">{host}</span> · kod{" "}
-          <span className="font-display font-semibold text-ink tracking-[0.2em]">
+        <p className={`hidden sm:block text-sm ${dark ? "text-white/70" : "text-muted"}`}>
+          <span className={`font-semibold ${dark ? "text-white" : "text-ink"}`}>{host}</span> · kod{" "}
+          <span className={`font-display font-semibold tracking-[0.2em] ${dark ? "text-white" : "text-ink"}`}>
             {presentation.joinCode}
           </span>
         </p>
         <div className="flex items-center gap-4">
-          <span className="chip tabular-nums" title="Katılımcı sayısı">
+          <span className={`chip tabular-nums ${dark ? "!bg-white/10 !border-white/20 text-white" : ""}`} title="Katılımcı sayısı">
             <span aria-hidden>👥</span> {participants.length}
           </span>
-          <Link href={`/edit/${id}`} className="text-muted hover:text-ink text-sm font-semibold">
+          <Link href={`/edit/${id}`} className={`text-sm font-semibold ${dark ? "text-white/70 hover:text-white" : "text-muted hover:text-ink"}`}>
             Editör
           </Link>
         </div>
@@ -181,9 +182,15 @@ export default function PresentPage() {
           <>
             <div key={slide.id} className="w-full max-w-5xl card p-8 md:p-12 animate-pop">
               <p className="eyebrow mb-3">{SLIDE_TYPE_ICONS[slide.type]} {SLIDE_TYPE_LABELS[slide.type]}</p>
-              <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-tight mb-10 lg:pr-32">
-                {slide.question}
-              </h1>
+              <div className="flex items-start gap-6 mb-10 lg:pr-32">
+                <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-tight flex-1">
+                  {slide.question}
+                </h1>
+                {slide.settings?.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={slide.settings.image} alt="" className="max-h-40 max-w-[16rem] object-contain rounded-2xl shrink-0 hidden md:block" />
+                )}
+              </div>
               {hideResults ? (
                 <div className="text-center py-16">
                   <p className="text-5xl mb-4" aria-hidden>🙈</p>
@@ -204,6 +211,8 @@ export default function PresentPage() {
                 <RankingResult slide={slide} responses={responses} />
               ) : slide.type === "quiz" ? (
                 <QuizResult slide={slide} responses={responses} />
+              ) : slide.type === "guess-number" ? (
+                <GuessNumberResult slide={slide} responses={responses} />
               ) : slide.type === "qna" ? (
                 <QnaResult presentationId={id} />
               ) : slide.type === "content" ? (

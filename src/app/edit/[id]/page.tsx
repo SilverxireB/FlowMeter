@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ThemePanel from "@/components/editor/ThemePanel";
+import { fileToCompressedDataUrl } from "@/lib/images";
 import { useAuthUser, usePresentation, useSlides } from "@/lib/hooks";
 import {
   addSlide,
@@ -196,6 +197,11 @@ function SlideEditor({
   const [allowMultiple, setAllowMultiple] = useState(slide.settings?.allowMultiple ?? false);
   const [correctIndex, setCorrectIndex] = useState(slide.settings?.correctIndex ?? 0);
   const [timeLimit, setTimeLimit] = useState(slide.settings?.timeLimit ?? 20);
+  const [correctNumber, setCorrectNumber] = useState<string>(
+    slide.settings?.correctNumber?.toString() ?? ""
+  );
+  const [image, setImage] = useState<string | null>(slide.settings?.image ?? null);
+  const [imgBusy, setImgBusy] = useState(false);
   const [maxEntries, setMaxEntries] = useState(
     slide.settings?.maxEntries ?? (slide.type === "word-cloud" ? 3 : 1)
   );
@@ -209,21 +215,29 @@ function SlideEditor({
   async function save() {
     setSaving(true);
     setSaved(false);
+    const settings: Record<string, unknown> = {
+      ...slide.settings,
+      ...(slide.type === "content" ? { description } : {}),
+      ...(slide.type === "multiple-choice" ? { allowMultiple } : {}),
+      ...(hasMaxEntries ? { maxEntries: Math.min(10, Math.max(1, maxEntries)) } : {}),
+      ...(slide.type === "quiz"
+        ? {
+            correctIndex: Math.min(correctIndex, options.length - 1),
+            timeLimit: Math.min(120, Math.max(5, timeLimit)),
+          }
+        : {}),
+    };
+    // Görsel ve doğru sayı: boşsa alanı tamamen kaldır (Firestore undefined kabul etmez)
+    if (image) settings.image = image; else delete settings.image;
+    const cn = Number(correctNumber.replace(",", "."));
+    if (slide.type === "guess-number") {
+      if (correctNumber.trim() && Number.isFinite(cn)) settings.correctNumber = cn;
+      else delete settings.correctNumber;
+    }
     await updateSlide(presentationId, slide.id, {
       question: question.trim() || "Soru",
       options: options.map((o) => o.trim()).filter(Boolean),
-      settings: {
-        ...slide.settings,
-        ...(slide.type === "content" ? { description } : {}),
-        ...(slide.type === "multiple-choice" ? { allowMultiple } : {}),
-        ...(hasMaxEntries ? { maxEntries: Math.min(10, Math.max(1, maxEntries)) } : {}),
-        ...(slide.type === "quiz"
-          ? {
-              correctIndex: Math.min(correctIndex, options.length - 1),
-              timeLimit: Math.min(120, Math.max(5, timeLimit)),
-            }
-          : {}),
-      },
+      settings,
     });
     setSaving(false);
     setSaved(true);
@@ -297,6 +311,61 @@ function SlideEditor({
             className="input-base mb-4 resize-none"
           />
         </>
+      )}
+
+      {slide.type === "guess-number" && (
+        <label className="flex items-center gap-3 mb-4">
+          <span className="text-sm font-semibold">Doğru sayı (opsiyonel)</span>
+          <input
+            type="number"
+            step="any"
+            value={correctNumber}
+            onChange={(e) => setCorrectNumber(e.target.value)}
+            placeholder="—"
+            className="input-base !w-32 !py-1.5 text-center tabular-nums"
+          />
+        </label>
+      )}
+
+      {/* Slayt görseli (content hariç tüm tipler) */}
+      {slide.type !== "content" && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Görsel (opsiyonel)</label>
+          {image ? (
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={image} alt="Slayt görseli" className="h-16 w-auto rounded-xl object-cover" />
+              <button
+                onClick={() => setImage(null)}
+                className="text-brand text-sm font-bold cursor-pointer"
+              >
+                Kaldır
+              </button>
+            </div>
+          ) : (
+            <label className="btn-ghost !py-2 !px-4 text-sm cursor-pointer inline-flex">
+              {imgBusy ? "Sıkıştırılıyor…" : "+ Görsel yükle"}
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  setImgBusy(true);
+                  try {
+                    setImage(await fileToCompressedDataUrl(f, 1200, 350_000));
+                  } catch {
+                    alert("Görsel çok büyük — daha küçük bir görsel deneyin.");
+                  } finally {
+                    setImgBusy(false);
+                  }
+                }}
+              />
+            </label>
+          )}
+          <p className="text-muted text-xs mt-1">Kaydet'e basınca uygulanır.</p>
+        </div>
       )}
 
       {slide.type === "quiz" && (

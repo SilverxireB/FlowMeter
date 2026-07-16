@@ -6,10 +6,13 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useAuthUser } from "@/lib/hooks";
 import {
+  copyPresentation,
+  createFromTemplate,
   createPresentation,
   deletePresentation,
   listPresentations,
 } from "@/lib/presentations";
+import { TEMPLATES } from "@/lib/templates";
 import { Presentation } from "@/lib/types";
 
 export default function DashboardPage() {
@@ -38,6 +41,28 @@ export default function DashboardPage() {
     try {
       const id = await createPresentation(user.uid, title.trim());
       router.push(`/edit/${id}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function fromTemplate(t: (typeof TEMPLATES)[number]) {
+    if (!user || busy) return;
+    setBusy(true);
+    try {
+      const id = await createFromTemplate(user.uid, t.title, t.slides);
+      router.push(`/edit/${id}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copy(p: Presentation) {
+    if (!user || busy) return;
+    setBusy(true);
+    try {
+      await copyPresentation(user.uid, p);
+      await refresh();
     } finally {
       setBusy(false);
     }
@@ -82,6 +107,20 @@ export default function DashboardPage() {
           </button>
         </form>
 
+        <div className="flex flex-wrap items-center gap-2 -mt-6 mb-10">
+          <span className="text-muted text-sm font-semibold">veya şablondan başla:</span>
+          {TEMPLATES.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => fromTemplate(t)}
+              disabled={busy}
+              className="btn-ghost !py-1.5 !px-3.5 text-sm"
+            >
+              {t.emoji} {t.name}
+            </button>
+          ))}
+        </div>
+
         {items.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-5xl mb-4" aria-hidden>🎤</p>
@@ -110,6 +149,14 @@ export default function DashboardPage() {
                   <Link href={`/results/${p.id}`} className="btn-ghost !py-2 !px-4 text-sm">
                     Sonuçlar
                   </Link>
+                  <button
+                    onClick={() => copy(p)}
+                    disabled={busy}
+                    title="Sunumu kopyala"
+                    className="text-muted hover:text-ink text-sm font-semibold cursor-pointer px-1 py-1"
+                  >
+                    ⧉
+                  </button>
                   <button
                     onClick={() => remove(p)}
                     className="ml-auto text-muted hover:text-brand text-sm font-semibold cursor-pointer px-2 py-1"

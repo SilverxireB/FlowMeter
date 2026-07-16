@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import GuessNumberVote from "@/components/vote/GuessNumberVote";
 import MultipleChoiceVote from "@/components/vote/MultipleChoiceVote";
 import QnaVote from "@/components/vote/QnaVote";
 import QuizPersonalResult from "@/components/vote/QuizPersonalResult";
@@ -67,7 +68,7 @@ export default function AudiencePage() {
     if (
       slide &&
       getVoteCount(slide.id) > 0 &&
-      ["multiple-choice", "scales", "ranking", "quiz"].includes(slide.type)
+      ["multiple-choice", "scales", "ranking", "quiz", "guess-number"].includes(slide.type)
     ) {
       setVotedSlideIds((prev) => new Set(prev).add(slide.id));
     }
@@ -189,15 +190,15 @@ export default function AudiencePage() {
 
   return (
     <main className="min-h-screen flex flex-col" style={themeBg}>
-      <header className="px-4 py-3 flex items-center justify-between border-b border-line bg-white/80 backdrop-blur">
+      <header className={`px-4 py-3 flex items-center justify-between border-b backdrop-blur ${dark ? "bg-[#001e64] border-[#001e64]" : "bg-white/80 border-line"}`}>
         <span className="flex items-center gap-3">
           {logo && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logo} alt="Sunum logosu" className="h-6 w-auto" />
           )}
-          <Logo size="sm" />
+          <Logo size="sm" onDark={dark} />
         </span>
-        <span className="flex items-center gap-2 bg-paper border border-line rounded-full pl-1 pr-3 py-1 text-sm font-semibold">
+        <span className={`flex items-center gap-2 rounded-full pl-1 pr-3 py-1 text-sm font-semibold border ${dark ? "bg-white/10 border-white/20 text-white" : "bg-paper border-line"}`}>
           <Avatar seed={avatarSeed ?? "Luna"} size={24} />
           <span className="truncate max-w-[9rem]">{nickname}</span>
         </span>
@@ -216,6 +217,10 @@ export default function AudiencePage() {
           ))}
         </div>
 
+        {slide.settings?.image && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={slide.settings.image} alt="" className="w-full max-h-52 object-cover rounded-2xl mb-4" />
+        )}
         <h1 className={`font-display text-2xl font-semibold tracking-tight mb-6 ${dark ? "text-white" : ""}`}>{slide.question}</h1>
 
         {presentation.votingClosed ? (
@@ -236,6 +241,8 @@ export default function AudiencePage() {
           <RankingVote presentationId={id} slide={slide} onVoted={markVoted} />
         ) : slide.type === "quiz" ? (
           <QuizVote presentationId={id} slide={slide} onVoted={markVoted} />
+        ) : slide.type === "guess-number" ? (
+          <GuessNumberVote presentationId={id} slide={slide} onVoted={markVoted} />
         ) : slide.type === "qna" ? (
           <QnaVote presentationId={id} />
         ) : slide.type === "content" ? (

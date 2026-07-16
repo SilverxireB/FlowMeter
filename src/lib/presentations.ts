@@ -150,6 +150,36 @@ export async function duplicateSlide(presentationId: string, slide: Slide): Prom
   return ref.id;
 }
 
+/** Sunumu slaytlarıyla birlikte kopyalar (cevaplar kopyalanmaz). */
+export async function copyPresentation(ownerId: string, source: Presentation): Promise<string> {
+  const newId = await createPresentation(ownerId, `${source.title} (kopya)`);
+  const slides = await listSlides(source.id);
+  for (const s of slides) {
+    await addDoc(collection(db(), "presentations", newId, "slides"), {
+      type: s.type,
+      question: s.question,
+      options: s.options,
+      order: s.order,
+      settings: s.settings ?? {},
+    });
+  }
+  if (source.theme) await updateDoc(doc(db(), "presentations", newId), { theme: source.theme });
+  return newId;
+}
+
+/** Hazır şablondan sunum oluşturur. */
+export async function createFromTemplate(
+  ownerId: string,
+  title: string,
+  slides: Array<{ type: SlideType; question: string; options: string[]; settings: object }>
+): Promise<string> {
+  const newId = await createPresentation(ownerId, title);
+  for (const [i, s] of slides.entries()) {
+    await addDoc(collection(db(), "presentations", newId, "slides"), { ...s, order: i });
+  }
+  return newId;
+}
+
 // ── Slaytlar ────────────────────────────────────────────────────────────────
 
 export async function addSlide(presentationId: string, type: SlideType, order: number): Promise<string> {
@@ -183,6 +213,11 @@ export async function addSlide(presentationId: string, type: SlideType, order: n
       question: "Quiz sorusu",
       options: ["Seçenek 1", "Seçenek 2", "Seçenek 3"],
       settings: { correctIndex: 0, timeLimit: 20 },
+    },
+    "guess-number": {
+      question: "Tahmininiz kaç?",
+      options: [],
+      settings: {},
     },
     qna: {
       question: "Sorularınızı alalım!",
