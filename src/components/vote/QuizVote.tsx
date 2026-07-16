@@ -94,7 +94,7 @@ export default function QuizVote({
           {option}
         </button>
       ))}
-      <p className="text-muted text-xs text-center">Hızlı cevap = daha çok puan!</p>
+      <p className="text-muted text-xs text-center">Hızlı cevap = daha çok puan · üst üste doğrular 🔥 seri bonusu</p>
     </div>
   );
 }

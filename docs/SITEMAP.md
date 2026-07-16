@@ -1,83 +1,83 @@
 # FlowMeter — Site & Dosya Haritası
 
-> Bu dosya projenin **hedef** yapısıdır. Henüz yazılmamış dosyalar 🔜 ile işaretlidir.
-> Yeni dosya/route eklerken burayı güncelle.
+> Güncel gerçek durum. Yeni route/dosya eklerken burayı güncelle.
 
 ## 1. Site Haritası (Routes)
 
 ### Halka açık (audience — auth yok, mobile-first)
 | Route | Amaç |
 |---|---|
-| `/` | Landing: logo + "Kod ile katıl" kutusu (Mentimeter'daki menti.com ana ekranı) + "Sunum oluştur" CTA |
-| `/join/[code]` | Koda göre sunuma katıl → aktif slayta yönlendirir |
-| `/p/[presentationId]` | Audience oylama ekranı (presenter-pace: aktif slaytı canlı takip eder; audience-pace: kendi ilerler) |
+| `/` | Landing: yalnızca 6 haneli kod girişi + "kaldığın sunuma dön"; altta silik sunucu girişi linki |
+| `/join/[code]` | Kodu çözer → `/p/[id]` |
+| `/p/[id]` | İzleyici: avatar+ad seçimi (ilk girişte bir kez) → bekleme → oylama → tepki çubuğu (❤️👍🎉) → quiz kişisel sonucu → "sunum bitti" ekranı |
 
-### Presenter (auth gerekli)
+### Presenter (Google auth)
 | Route | Amaç |
 |---|---|
-| `/login` | Google / email ile giriş |
-| `/dashboard` | Sunum listesi: oluştur, yeniden adlandır, sil, kopyala |
-| `/edit/[presentationId]` | Slayt editörü: sol slayt listesi, orta önizleme, sağ ayar paneli (Mentimeter editör düzeni) |
-| `/present/[presentationId]` | Sunum modu (tam ekran): büyük soru + canlı sonuç grafiği + join talimatı (kod & QR) + slayt kontrolü |
-| `/results/[presentationId]` | Sunum sonrası sonuçlar, slayt slayt inceleme, export |
+| `/login` | Sadece Google girişi |
+| `/dashboard` | Sunum CRUD; kartlarda Sun / Düzenle / Sonuçlar / Sil |
+| `/edit/[id]` | Editör: slayt listesi (canlıyken seçim = izleyici senkronu), slayt ayarları, ↑/↓/çoğalt, 🎨 Tema paneli |
+| `/present/[id]` | Sunum: -1 = büyük QR katılım ekranı; slaytlarda mini QR; tepki uçuşları+sayaç; kontroller (oylama aç/kapat, sıfırla, 🙈 gizle, ⛶, 🏆 skor, Bitir) |
+| `/results/[id]` | Sonuç inceleme + ⬇ CSV export |
 
 ## 2. Dosya Haritası
 
 ```
 FlowMeter/
-├─ CLAUDE.md                      ✅ Proje anayasası
-├─ README.md                      ✅ Kısa tanıtım + kurulum
-├─ docs/
-│  ├─ SITEMAP.md                  ✅ Bu dosya
-│  └─ ROADMAP.md                  ✅ Fazlar & özellik listesi
-├─ .env.example                   ✅ NEXT_PUBLIC_FIREBASE_* şablonu
-├─ firestore.rules                ✅ Güvenlik kuralları (v1)
-├─ next.config.mjs                ✅
-├─ tailwind.config.ts             ✅ brand renkleri (navy/blue/sky)
-├─ postcss.config.mjs             ✅
-├─ package.json                   ✅
+├─ CLAUDE.md / README.md / docs/{SITEMAP,ROADMAP}.md
+├─ .env.example                # NEXT_PUBLIC_FIREBASE_* şablonu
+├─ firestore.rules             # TAM hali kullanıcıya verilir (konsola yapıştırıyor)
+├─ .claude/skills/ui-ux-pro-max/   # Tasarım bilgi bankası (search.py + CSV'ler)
+├─ public/
+│  ├─ logo-flow.png            # FLOW logosu (lacivert harfler, renkli O halkası)
+│  └─ logo-flow-white.png      # Koyu zemin sürümü
 │
 ├─ src/
 │  ├─ app/
-│  │  ├─ layout.tsx               ✅ Kök layout (tr, metadata)
-│  │  ├─ page.tsx                 ✅ Landing + 6 haneli kod girişi
-│  │  ├─ join/[code]/page.tsx     ✅ Kod çözümle → /p/[id]
-│  │  ├─ p/[id]/page.tsx          ✅ Audience oylama ekranı (canlı slayt takibi)
-│  │  ├─ login/page.tsx           ✅ Google + email/şifre
-│  │  ├─ dashboard/page.tsx       ✅ Sunum listesi + CRUD
-│  │  ├─ edit/[id]/page.tsx       ✅ Slayt editörü (SlideEditor bileşeni içinde)
-│  │  ├─ present/[id]/page.tsx    ✅ Tam ekran sunum modu (klavye ←/→, canlı sonuç)
-│  │  └─ results/[id]/page.tsx    🔜 Sonuç inceleme (Faz 2)
+│  │  ├─ layout.tsx            # Fredoka + Nunito (next/font)
+│  │  ├─ page.tsx              # Landing (PIN)
+│  │  ├─ join/[code]/page.tsx
+│  │  ├─ p/[id]/page.tsx       # İzleyici (kimlik kapısı + oylama + tepkiler)
+│  │  ├─ login/page.tsx
+│  │  ├─ dashboard/page.tsx
+│  │  ├─ edit/[id]/page.tsx    # + SlideEditor (quiz doğru cevap/süre dahil)
+│  │  ├─ present/[id]/page.tsx # + katılım ekranı, mini QR, kontroller
+│  │  └─ results/[id]/page.tsx # Sonuçlar + CSV
 │  │
 │  ├─ components/
-│  │  ├─ present/
-│  │  │  └─ QrCode.tsx             ✅ Katılım QR kodu (client-side üretim)
-│  │  ├─ vote/
-│  │  │  ├─ MultipleChoiceVote.tsx ✅
-│  │  │  ├─ WordCloudVote.tsx      ✅ (kişi başı maxEntries hakkı)
-│  │  │  └─ OpenEndedVote, ScalesVote, RankingVote, QnaVote, QuizVote 🔜 Faz 2-3
-│  │  └─ results/
-│  │     ├─ BarChartResult.tsx     ✅ saf CSS canlı bar chart
-│  │     ├─ WordCloudResult.tsx    ✅ frekansla büyüyen kelime bulutu
-│  │     └─ OpenEndedResult, ScalesResult, RankingResult, QnaResult, Leaderboard 🔜 Faz 2-3
+│  │  ├─ Logo.tsx              # FLOW görseli + METER yazısı (#001e64)
+│  │  ├─ Avatar.tsx            # DiceBear SVG (seed → data-URI)
+│  │  ├─ editor/ThemePanel.tsx # Tema/arka plan/logo yönetimi
+│  │  ├─ present/QrCode.tsx
+│  │  ├─ present/ReactionOverlay.tsx  # Sağ alttan uçan tepkiler + sayaç
+│  │  ├─ present/Leaderboard.tsx      # 🏆 skor + konfeti (puan formülü BURADA)
+│  │  ├─ vote/                 # MultipleChoice, WordCloud, OpenEnded, Scales,
+│  │  │                        # Ranking, Quiz, QuizPersonalResult, Qna
+│  │  └─ results/              # BarChart, WordCloud, OpenEnded, Scales,
+│  │                           # Ranking, Quiz, Qna
 │  │
 │  ├─ lib/
-│  │  ├─ firebase.ts              ✅ Lazy init (env yokken build kırılmaz)
-│  │  ├─ types.ts                 ✅ Presentation, Slide, ResponseDoc, SlideType
-│  │  ├─ presentations.ts         ✅ CRUD + joinCode üretimi + slayt CRUD
-│  │  ├─ participants.ts          ✅ Nickname (localStorage) + katılımcı kaydı + son sunum
-│  │  ├─ responses.ts             ✅ Oy gönderme + localStorage voterId/mükerrer oy
-│  │  └─ hooks.ts                 ✅ useAuthUser, usePresentation, useSlides, useLiveResponses
-│  │
-│  └─ styles/globals.css          ✅ Tailwind + dataviz kategorik palet değişkenleri
+│  │  ├─ firebase.ts           # Lazy init (env yokken build kırılmaz)
+│  │  ├─ types.ts              # Tüm tipler + SLIDE_TYPE_{LABELS,ICONS}
+│  │  ├─ presentations.ts      # CRUD, joinCode, slayt CRUD, startQuiz,
+│  │  │                        # votingClosed, endPresentation, resetResponses,
+│  │  │                        # swapSlideOrder, duplicateSlide, updateTheme
+│  │  ├─ participants.ts       # nickname+avatarSeed (localStorage), son sunum
+│  │  ├─ responses.ts          # voterId, oy gönderme, mükerrer oy sayacı
+│  │  ├─ reactions.ts          # ❤️👍🎉 gönderme (rate limit)
+│  │  ├─ questions.ts          # Q&A: gönder/upvote(+1)/gizle/sil
+│  │  ├─ themes.ts             # 8 preset + themeStyle() (koyu/açık)
+│  │  ├─ images.ts             # canvas sıkıştırma → base64 (Firestore'a)
+│  │  └─ hooks.ts              # useAuthUser, usePresentation, useSlides,
+│  │                           # useLiveResponses, useParticipants, useQuestions
+│  └─ styles/globals.css       # Tasarım sistemi sınıfları + animasyonlar
 ```
 
 ## 3. Veri Akışı Özeti
 
 ```
-Presenter                        Firestore                      Audience
-─────────                        ─────────                      ────────
-/edit → slayt CRUD  ──────────▶  presentations/slides
-/present → slayt değiştir ────▶  currentSlideIndex ──onSnapshot──▶ /p/[id] aktif soru
-/present ◀──onSnapshot── responses ◀────────────── oy gönder (create-only)
+Presenter                          Firestore                       Audience
+/edit, /present ──────────▶ currentSlideIndex ──onSnapshot──▶ /p/[id] aktif slayt
+/present ◀──onSnapshot── responses / participants / reactions ◀── izleyici yazar
+quiz: /present startQuiz ──▶ slide.quizStartedAt ──▶ iki tarafta geri sayım
 ```

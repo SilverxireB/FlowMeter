@@ -10,11 +10,14 @@ interface Row {
   voterId: string;
   points: number;
   correct: number;
+  streak: number;
 }
 
 /**
- * Skor tablosu: tüm quiz slaytlarının cevaplarından puan hesaplar.
- * Doğru cevap = 500 taban + hıza göre 500'e kadar bonus.
+ * Skor tablosu — Menti formülü + Kahoot usulü seri bonusu:
+ * - Doğru cevap: 1000 × (1 − (geçen süre / toplam süre) / 2)
+ *   → en hızlı ≈1000, son anda doğru ≈500
+ * - Seri bonusu: üst üste 2. doğrudan itibaren +50/soru (en çok +250)
  */
 export default function Leaderboard({
   presentationId,
@@ -32,22 +35,42 @@ export default function Leaderboard({
   const compute = useCallback(async () => {
     const quizSlides = slides.filter((s) => s.type === "quiz");
     const scores = new Map<string, Row>();
+    const streaks = new Map<string, number>();
+
+    // Slayt sırasına göre işle — seri bonusu ardışıklığa bağlı
     for (const s of quizSlides) {
       const timeLimitMs = (s.settings?.timeLimit ?? 20) * 1000;
       const correctIndex = s.settings?.correctIndex ?? 0;
       const snap = await getDocs(
         collection(db(), "presentations", presentationId, "slides", s.id, "responses")
       );
+      const answeredCorrect = new Set<string>();
       snap.docs.forEach((d) => {
         const { voterId, value } = d.data() as { voterId: string; value: unknown };
-        if (!Array.isArray(value) || value[0] !== correctIndex) return;
+        if (!Array.isArray(value)) return;
+        if (value[0] !== correctIndex) {
+          streaks.set(voterId, 0); // yanlış → seri sıfırlanır
+          return;
+        }
+        answeredCorrect.add(voterId);
         const elapsed = typeof value[1] === "number" ? value[1] : timeLimitMs;
-        const points = 500 + Math.round(500 * Math.max(0, 1 - elapsed / timeLimitMs));
-        const row = scores.get(voterId) ?? { voterId, points: 0, correct: 0 };
-        row.points += points;
+        // Menti formülü: 1000 × (1 − (t/T)/2)
+        const speedPoints = Math.round(
+          1000 * (1 - Math.min(1, Math.max(0, elapsed / timeLimitMs)) / 2)
+        );
+        const streak = (streaks.get(voterId) ?? 0) + 1;
+        streaks.set(voterId, streak);
+        const streakBonus = Math.min(streak - 1, 5) * 50;
+        const row = scores.get(voterId) ?? { voterId, points: 0, correct: 0, streak: 0 };
+        row.points += speedPoints + streakBonus;
         row.correct += 1;
+        row.streak = streak;
         scores.set(voterId, row);
       });
+      // Bu soruyu hiç cevaplamayanların da serisi kırılır
+      for (const [v, st] of streaks) {
+        if (st > 0 && !answeredCorrect.has(v)) streaks.set(v, 0);
+      }
     }
     setRows([...scores.values()].sort((a, b) => b.points - a.points).slice(0, 10));
   }, [presentationId, slides]);
@@ -119,7 +142,9 @@ export default function Leaderboard({
                   <span className={`flex-1 truncate ${i === 0 ? "font-bold text-lg" : "font-semibold"}`}>
                     {p?.nickname ?? "Anonim"}
                   </span>
-                  <span className="text-muted text-xs shrink-0">{row.correct} doğru</span>
+                  <span className="text-muted text-xs shrink-0">
+                    {row.correct} doğru{row.streak >= 2 ? ` · 🔥${row.streak}` : ""}
+                  </span>
                   <span className={`tabular-nums shrink-0 font-display font-semibold ${i === 0 ? "text-brand text-xl" : ""}`}>
                     {row.points}
                   </span>
@@ -132,6 +157,9 @@ export default function Leaderboard({
         <button onClick={compute} className="btn-ghost w-full mt-6 !py-2 text-sm">
           ↻ Güncelle
         </button>
+        <p className="text-muted text-xs text-center mt-3">
+          Puan: hıza göre 500–1000 · üst üste doğrularda 🔥 seri bonusu (+50/soru, max +250)
+        </p>
       </div>
     </div>
   );

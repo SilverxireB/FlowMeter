@@ -1,79 +1,92 @@
 # FlowMeter — CLAUDE.md
 
 FlowMeter, Mentimeter'ın birebir klonu olan interaktif sunum/oylama uygulamasıdır.
-Sunucu (presenter) slaytlar oluşturur, izleyiciler (audience) telefonlarından bir
-**join kodu** ile katılıp oy verir, sonuçlar **canlı** olarak ekranda güncellenir.
+Sunucu (presenter) slaytlar oluşturur, izleyiciler (audience) telefonlarından
+**6 haneli kod veya QR** ile katılıp oy verir, sonuçlar **canlı** güncellenir.
 
 ## Teknoloji Yığını (Stack)
 
 | Katman | Teknoloji | Not |
 |---|---|---|
-| Framework | Next.js 14+ (App Router, TypeScript) | Vercel'e deploy edilir |
-| UI | Tailwind CSS | Mentimeter tarzı temiz, renkli tasarım |
-| Grafikler | Recharts | Bar chart, pie, scales görselleştirme |
-| Veritabanı | Firebase Firestore | Canlı sonuçlar için `onSnapshot` realtime dinleme |
-| Auth | Firebase Auth | Presenter için Google + email/şifre; audience için **anonim** (auth gerekmez) |
-| Hosting | Vercel | Push direkt production'a gider (main branch) |
-| State | React hooks + context | Ekstra state kütüphanesi YOK (Redux vs. kullanma) |
+| Framework | Next.js 14 (App Router, TypeScript) | Vercel'e deploy |
+| UI | Tailwind CSS | Tasarım sistemi aşağıda |
+| Grafikler | Saf CSS/HTML | Kütüphane YOK (recharts kullanılmıyor) |
+| Avatar | @dicebear/core + collection (adventurer) | Client-side SVG, dış servis yok |
+| QR | qrcode | Client-side data-URI |
+| Veritabanı | Firebase Firestore | `onSnapshot` realtime; asla polling yapma |
+| Auth | Firebase Auth | Presenter: sadece Google; audience: auth YOK |
+| Hosting | Vercel | Production branch: `claude/practical-lamport-ls9miq` |
+| State | React hooks | Redux vs. YOK |
 
 ## Altın Kurallar
 
-1. **Audience tarafı auth istemez.** İzleyici sadece kod girer ve oy verir. Sürtünme sıfır olmalı.
-2. **Realtime her şeydir.** Sonuç ekranları Firestore `onSnapshot` ile canlı güncellenir; asla polling yapma.
-3. **Mobile-first audience.** `/join` ve oylama ekranları önce telefon için tasarlanır. Presenter ekranları desktop-first.
-4. **Firebase config `.env.local`'da.** `NEXT_PUBLIC_FIREBASE_*` değişkenleri; asla koda gömme, `.env.example` güncel tut.
-5. **Firestore güvenliği:** `firestore.rules` her yeni koleksiyonla birlikte güncellenir. Oylar sadece create edilebilir, update/delete edilemez (mükerrer oy client'ta `localStorage` + kural tarafında kontrol).
-6. **Türkçe UI, İngilizce kod.** Arayüz metinleri Türkçe (i18n'e hazır yapıda), değişken/dosya adları İngilizce.
-7. Dosya haritası `docs/SITEMAP.md`'de — yeni route/dosya eklediğinde orayı da güncelle.
+1. **Audience auth istemez.** Kod gir → avatar+ad seç (bir kez, localStorage) → oy ver.
+2. **Realtime her şeydir.** `onSnapshot` (bkz. `src/lib/hooks.ts`); asla polling.
+3. **Mobile-first audience, desktop-first presenter.**
+4. **DIŞ SERVİS YOK.** Kurumsal ağlar 3. parti CDN'leri engelliyor (Cloudinary
+   elendi). Görseller: repo içi `public/` veya sıkıştırılıp Firestore'a base64
+   (`src/lib/images.ts`). Yalnızca kendi domain + firestore.googleapis.com.
+5. **Firestore güvenliği:** `firestore.rules` her koleksiyon değişikliğinde
+   güncellenir ve KULLANICIYA TAM HALİ verilir (konsola elle yapıştırıyor).
+   Oylar create-only; silme sadece sahibi ("sıfırla" için).
+6. **Türkçe UI, İngilizce kod.**
+7. Dosya haritası `docs/SITEMAP.md`, fazlar `docs/ROADMAP.md` — değişince güncelle.
+8. Push öncesi MUTLAKA `npm run build`.
 
-## Temel Kavramlar (Domain Modeli)
+## Tasarım Sistemi (ui-ux-pro-max skill önerisi — .claude/skills/ altında kurulu)
 
-- **Presentation**: Bir sunum; slaytlardan oluşur, 6 haneli `joinCode`'u vardır, bir `ownerId`'ye aittir.
-- **Slide**: Bir soru/içerik. `type` alanı slayt tipini belirler:
-  - `multiple-choice` — çoktan seçmeli, canlı bar chart (en çok kullanılan)
-  - `word-cloud` — kelime bulutu, tekrar edenler büyür
-  - `open-ended` — serbest metin, kartlar halinde akar
-  - `scales` — 1–5 kaydırmalı derecelendirme, ortalama gösterimi
-  - `ranking` — seçenekleri sıralama
-  - `qna` — izleyici soru sorar, upvote eder
-  - `quiz` — doğru cevaplı yarışma + leaderboard (süre puanı)
-  - `content` — oysuz başlık/metin slaytı
-- **Response**: Bir izleyicinin bir slayta verdiği cevap. `voterId` = localStorage'daki anonim UUID.
-- **Presentation modu**: `presenter-pace` (izleyici sunucunun açtığı slaytı görür — varsayılan) vs `audience-pace` (izleyici kendi ilerler, anket modu).
+- **Renkler** (tailwind.config.ts): `brand` gül #e11d48, `accent` mavi #2563eb,
+  `ink` #1c1917, `paper` #fff7f6, `line`, `muted`. Logo lacisi: **#001e64** (Beko).
+- **Font**: Fredoka (`font-display`, başlıklar) + Nunito (`--font-sans`, metin).
+- **Bileşen sınıfları** (globals.css): `.card` (tombul köşe + çift gölge),
+  `.btn-primary` (gül), `.btn-accent` (mavi), `.btn-ghost`, `.input-base`,
+  `.eyebrow`, `.chip`, `.bg-wash`. Animasyonlar: `.animate-pop`, `.animate-float-up`,
+  `.animate-confetti`. `prefers-reduced-motion` destekli.
+- **Grafik paleti**: `--series-1..8` CSS değişkenleri (dataviz doğrulanmış sıra).
+- **Logo**: `src/components/Logo.tsx` — `public/logo-flow.png` (FLOW, harfler
+  lacivert, O = renkli halka) + yanında "METER" yazısı. `logo-flow-white.png`
+  koyu zemin sürümü. **Logo asla deforme edilmez** (h sabit, w auto).
+
+## Domain Modeli
+
+- **Presentation**: joinCode (6 hane), currentSlideIndex (**-1 = QR katılım
+  ekranı**), isLive, ended, votingClosed, theme{preset,bgImage,logo}, mode.
+- **Slide** `type`: multiple-choice, word-cloud, open-ended, scales, ranking,
+  **quiz** (correctIndex, timeLimit, quizStartedAt), **qna**, content.
+  Settings: allowMultiple, maxEntries, description.
+- **Response.value**: MC=number|number[]; WC/open-ended=string;
+  scales/ranking=number[]; **quiz=[optionIndex, geçenMs]**.
+- **Participant**: doc id = voterId (localStorage UUID); nickname + avatarSeed.
+- **Quiz puanı (Menti formülü)**: `1000 × (1 − (t/T)/2)` → 500–1000 arası.
+  Seri bonusu (Kahoot usulü): üst üste 2. doğrudan itibaren +50/soru, max +250.
+  Hesap: `src/components/present/Leaderboard.tsx`.
 
 ## Firestore Şeması
 
 ```
-presentations/{presentationId}
-  ├─ ownerId, title, joinCode (6 hane, unique), createdAt
-  ├─ currentSlideIndex (presenter-pace canlı senkron için)
-  ├─ mode: "presenter-pace" | "audience-pace"
-  ├─ isLive: boolean
-  └─ slides/{slideId}          # alt koleksiyon
-       ├─ type, question, options[], order, settings{}
-       └─ responses/{responseId}   # alt koleksiyon
-            ├─ voterId, value, createdAt
+presentations/{id}: ownerId, title, joinCode, mode, currentSlideIndex,
+                    isLive, ended, votingClosed, theme{}, createdAt
+  ├─ participants/{voterId}: nickname, avatarSeed, (eski: emoji), joinedAt
+  ├─ reactions/{autoId}: emoji (❤️👍🎉), createdAt   [create-only]
+  ├─ questions/{autoId}: text, voterId, upvotes, hidden?, createdAt
+  │                      [upvote sadece +1; moderasyon owner]
+  └─ slides/{slideId}: type, question, options[], order, settings{}, quizStartedAt?
+       └─ responses/{autoId}: voterId, value, createdAt
+                              [create-only; delete sadece owner]
+joinCodes/{code}: presentationId
 ```
 
-Join kodu çözümü için ayrıca: `joinCodes/{code} → { presentationId }` (tek okuma ile lookup).
-
-## Komutlar
+## Komutlar & Deploy
 
 ```bash
-npm run dev        # localhost:3000
-npm run build      # production build (push öncesi MUTLAKA çalıştır)
-npm run lint       # ESLint
+npm run dev / build / lint     # build push öncesi zorunlu
 ```
+Branch `claude/practical-lamport-ls9miq` → Vercel production (kullanıcı böyle
+ayarladı). Firebase env: `NEXT_PUBLIC_FIREBASE_*` (.env.example) Vercel'de tanımlı.
+Firebase projesi: `flowmeter-938a3`. Rules değişince tam halini kullanıcıya ver.
 
-## Deploy
+## Durum & Sonraki Adımlar
 
-- `main` branch'e push = Vercel production deploy (Vercel projesi kullanıcı tarafından bağlanır).
-- Geliştirme bu repo içinde feature branch'lerde yapılır, kullanıcı onayıyla main'e gider.
-- Firebase env değişkenleri Vercel dashboard'da tanımlıdır; build bunlarsız da kırılmamalı (lazy init).
-
-## Yol Haritası
-
-Fazlar ve ayrıntılı özellik listesi: `docs/ROADMAP.md`. Kısaca:
-- **Faz 1 (MVP)**: Join akışı + multiple-choice + word cloud + canlı sonuçlar
-- **Faz 2**: open-ended, scales, ranking, presenter senkron sunum modu, QR kod
-- **Faz 3**: Quiz + leaderboard, Q&A, temalar, sonuç export
+Tamamlanan/kalan her şey: `docs/ROADMAP.md`. Kısaca kalanlar: Guess the Number,
+audience-pace anket modu, şablon galerisi, profanity filtresi, slayta görsel
+ekleme, editör canlı önizleme/otomatik kayıt, Cloud Function temizlik, i18n.

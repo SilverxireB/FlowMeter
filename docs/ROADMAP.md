@@ -17,7 +17,7 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 - [x] Her slaytta mini QR; firestore.rules v2
 - [x] Tasarım sistemi: rose+blue, Fredoka/Nunito, claymorphism (ui-ux-pro-max önerisi)
 
-## Faz 2 — Kişiselleştirme & Görsellik ⬅ SIRADAKİ OTURUM
+## Faz 2 — Kişiselleştirme & Görsellik ✅ (küçük kalanlar aşağıda)
 
 ### 2a. Avatar sistemi ✅
 - [x] @dicebear adventurer stiliyle client-side SVG avatarlar (dış servis yok)
@@ -41,7 +41,7 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 
 ### 2c. Editör güçlendirme (sunum hazırlama)
 - [x] Slayt ayarları: çoklu seçim (MC), kişi başı N cevap (WC/open-ended)
-- [ ] Sonuçları gizle/göster
+- [x] Sonuçları gizle/göster (present 🙈/👁)
 - [x] Slayt sıralama (↑/↓) ve çoğaltma
 - [ ] Slayta görsel ekleme (soru yanında resim — URL/galeri)
 - [ ] Canlı önizleme: editörde slaytın audience görünümü küçük önizlemesi
@@ -51,32 +51,37 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 - [x] Oylamayı kapat/aç düğmesi (present altbilgisi)
 - [x] Cevapları sıfırla (slayt başına, onaylı; rules'da owner-delete)
 - [x] Sunumu bitir (isLive=false → izleyici bekleme ekranına döner)
-- [ ] Tam ekran modu (F / buton), koyu sunum teması seçeneği
+- [x] Tam ekran (⛶); koyu temalar tema galerisinde
 
 ## Faz 3 — Etkileşim & Rekabet
 
 - [x] **Emoji reactions**: ❤️👍🎉 sağ alt köşeden uçuşur + canlı sayaç
 - [x] **Quiz**: doğru cevap işaretleme (editör), süre bazlı puan (500 taban +
       hız bonusu), 🏆 skor tablosu (avatar + nickname, madalyalar)
-- [ ] Kazanan konfetisi
+- [x] Kazanan konfetisi (skor tablosu açılınca)
 - [x] **Q&A**: izleyici soru gönderir + upvote (tek oy); moderasyon (gizle/göster/sil)
 - [ ] **Guess the Number** slayt tipi (tahmin + dağılım gösterimi)
 - [ ] Audience-pace (anket modu): izleyici kendi ilerler, bitiş ekranı
-- [ ] Katılımcıya sonuçları gösterme seçeneği (oy verince kendi ekranında sonuç)
+- [x] Quiz kişisel sonucu: izleyici kendi doğru/yanlış + puanını telefonunda görür
 
 ## Faz 4 — Yayınlama & Cila
 
-- [ ] Sonuç sayfası `/results/[id]`: slayt slayt inceleme + CSV export
+- [x] Sonuç sayfası `/results/[id]`: slayt slayt inceleme + CSV export
 - [ ] Sunum kopyalama + hazır şablon galerisi (buz kırıcı, retro, quiz paketi)
 - [ ] Profanity filtresi (word cloud / open-ended)
 - [ ] i18n (TR/EN), kod süresi/temizliği, Cloud Function ile yetim veri temizliği
 - [ ] Performans: 100+ eşzamanlı izleyici için yazma/okuma gözden geçirme
 
-## Teknik notlar (sonraki oturum için hatırlatma)
+## YENİ SOHBET İÇİN BAŞLANGIÇ NOTU
 
-- Avatar: `npm i @dicebear/core @dicebear/collection` — SVG string üret,
-  `dangerouslySetInnerHTML` yerine data-URI `<img>` ile bas.
-- Tema şeması: `theme: { preset: string, bgImage?: string, logo?: string(base64),
-  primary?: string }` → firestore.rules `presentations` update zaten owner-only.
-- Arka plan görselleri: `public/backgrounds/` altına 6-8 optimize WebP + degradeler.
-- Reactions için rules: create-only, key kısıtlı, rate-limit client-side.
+Proje durumu: Faz 1-2-3 büyük ölçüde tamam ve canlıda. Marka logosu entegre
+(public/logo-flow.png — FLOW yazısı, O harfi renkli halka; "METER" yazısı
+bileşende #001e64). Quiz puanı = Menti formülü 1000×(1−(t/T)/2) + seri bonusu
+(Leaderboard.tsx). Kurallar: her rules değişikliğinde kullanıcıya TAM metin ver.
+
+Öncelikli kalanlar (önerilen sıra):
+1. Slayta görsel ekleme (images.ts hazır — soru yanına sıkıştırılmış görsel)
+2. Guess the Number slayt tipi
+3. Audience-pace (anket) modu + bitiş ekranı
+4. Şablon galerisi + sunum kopyalama
+5. Profanity filtresi, Cloud Function temizlik, i18n, 100+ izleyici perf

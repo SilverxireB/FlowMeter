@@ -107,6 +107,9 @@ export default function DashboardPage() {
                   <Link href={`/edit/${p.id}`} className="btn-ghost !py-2 !px-4 text-sm">
                     Düzenle
                   </Link>
+                  <Link href={`/results/${p.id}`} className="btn-ghost !py-2 !px-4 text-sm">
+                    Sonuçlar
+                  </Link>
                   <button
                     onClick={() => remove(p)}
                     className="ml-auto text-muted hover:text-brand text-sm font-semibold cursor-pointer px-2 py-1"

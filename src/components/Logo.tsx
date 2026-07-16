@@ -2,10 +2,16 @@
 
 import { useState } from "react";
 
+const SIZES = {
+  sm: { img: "h-5", fontSize: 23 },
+  md: { img: "h-7", fontSize: 32 },
+  lg: { img: "h-10", fontSize: 46 },
+} as const;
+
 /**
- * Marka logosu: /logo-flow.png ("Flow" görseli) + yanında "meter" yazısı
- * (Beko lacisi). Görsel henüz yoksa eski nokta + FlowMeter yazısına düşer.
- * Kural: logo görseli asla deforme edilmez (h sabit, w auto).
+ * Marka logosu: FLOW görseli (renkli O halkası, harfler Beko lacisi) +
+ * yanında benzer puntoda "METER" yazısı. Logo asla deforme edilmez
+ * (yükseklik sabit, genişlik otomatik). Koyu zeminde beyaz sürüm kullanılır.
  */
 export default function Logo({
   size = "md",
@@ -15,38 +21,30 @@ export default function Logo({
   onDark?: boolean;
 }) {
   const [imgOk, setImgOk] = useState(true);
-  const h = size === "lg" ? "h-10" : size === "sm" ? "h-5" : "h-7";
-  const text = size === "lg" ? "text-3xl" : size === "sm" ? "text-base" : "text-lg";
-
-  if (!imgOk) {
-    return (
-      <span className="inline-flex items-center gap-2">
-        <span className="w-2.5 h-2.5 rounded-full bg-brand" aria-hidden />
-        <span
-          className={`font-display font-semibold tracking-tight ${text} ${
-            onDark ? "text-white" : ""
-          }`}
-        >
-          FlowMeter
-        </span>
-      </span>
-    );
-  }
+  const { img, fontSize } = SIZES[size];
 
   return (
-    <span className="inline-flex items-baseline gap-0.5">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/logo-flow.png"
-        alt="Flow"
-        className={`${h} w-auto self-center`}
-        onError={() => setImgOk(false)}
-      />
+    <span className="inline-flex items-center">
+      {imgOk && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={onDark ? "/logo-flow-white.png" : "/logo-flow.png"}
+          alt="Flow"
+          className={`${img} w-auto`}
+          onError={() => setImgOk(false)}
+        />
+      )}
       <span
-        className={`font-display font-semibold tracking-tight ${text}`}
-        style={{ color: onDark ? "#ffffff" : "#001e64" }}
+        className="font-display font-semibold"
+        style={{
+          color: onDark ? "#ffffff" : "#001e64",
+          fontSize,
+          lineHeight: 1,
+          letterSpacing: "0.03em",
+          marginLeft: imgOk ? "0.1em" : 0,
+        }}
       >
-        meter
+        {imgOk ? "METER" : "FLOWMETER"}
       </span>
     </span>
   );

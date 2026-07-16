@@ -39,8 +39,9 @@ export default function QuizPersonalResult({ slide }: { slide: Slide }) {
 
   const [picked, elapsed] = answer;
   const correct = picked === correctIndex;
+  // Menti formülü: 1000 × (1 − (t/T)/2) — seri bonusu skor tablosunda eklenir
   const points = correct
-    ? 500 + Math.round(500 * Math.max(0, 1 - elapsed / (timeLimit * 1000)))
+    ? Math.round(1000 * (1 - Math.min(1, Math.max(0, elapsed / (timeLimit * 1000))) / 2))
     : 0;
 
   return (
@@ -48,7 +49,10 @@ export default function QuizPersonalResult({ slide }: { slide: Slide }) {
       <p className="text-6xl mb-4" aria-hidden>{correct ? "🎉" : "😅"}</p>
       <p className="text-2xl font-bold mb-1">{correct ? "Doğru!" : "Yanlış"}</p>
       {correct ? (
-        <p className="font-display text-4xl font-semibold text-brand mt-2">+{points} puan</p>
+        <>
+          <p className="font-display text-4xl font-semibold text-brand mt-2">+{points} puan</p>
+          <p className="text-muted text-xs mt-2">Seri bonusun 🔥 skor tablosuna eklenir</p>
+        </>
       ) : (
         <p className="text-muted mt-1">
           Doğru cevap: <span className="font-bold text-ink">{slide.options[correctIndex]}</span>
