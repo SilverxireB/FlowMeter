@@ -7,18 +7,20 @@ import { db, isFirebaseConfigured } from "@/lib/firebase";
 interface FloatingReaction {
   key: string;
   emoji: string;
-  /** Yatay konum (viewport yüzdesi) */
-  x: number;
-  /** Hafif süre çeşitliliği (s) */
+  /** Sağ kenardan uzaklık (%) */
+  right: number;
+  /** Yatay sürüklenme (px) ve süre (s) — doğal görünüm için rastgele */
+  drift: number;
   duration: number;
 }
 
 /**
- * Yeni gelen tepkileri dinler ve ekranda yukarı doğru uçurur.
- * Sadece bileşen açıldıktan SONRA gelen tepkiler gösterilir.
+ * Tepkiler sağ alt köşeden yukarı fırlar (Menti tarzı); köşede emoji başına
+ * canlı sayaç birikir. Sadece ekran açıldıktan sonra gelen tepkiler uçar.
  */
 export default function ReactionOverlay({ presentationId }: { presentationId: string }) {
   const [floats, setFloats] = useState<FloatingReaction[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const mountedAt = useRef(Timestamp.now());
 
   useEffect(() => {
@@ -28,35 +30,70 @@ export default function ReactionOverlay({ presentationId }: { presentationId: st
       where("createdAt", ">", mountedAt.current)
     );
     return onSnapshot(q, (snap) => {
-      const fresh = snap
-        .docChanges()
-        .filter((c) => c.type === "added")
-        .map((c) => ({
-          key: c.doc.id,
-          emoji: String(c.doc.data().emoji ?? "❤️"),
-          x: 8 + Math.random() * 84,
-          duration: 2.4 + Math.random() * 1.4,
-        }));
-      if (fresh.length === 0) return;
+      const added = snap.docChanges().filter((c) => c.type === "added");
+      if (added.length === 0) return;
+
+      setCounts((prev) => {
+        const next = { ...prev };
+        for (const c of added) {
+          const e = String(c.doc.data().emoji ?? "❤️");
+          next[e] = (next[e] ?? 0) + 1;
+        }
+        return next;
+      });
+
+      const fresh = added.map((c) => ({
+        key: c.doc.id,
+        emoji: String(c.doc.data().emoji ?? "❤️"),
+        right: 3 + Math.random() * 12,
+        drift: -60 + Math.random() * 90,
+        duration: 2.2 + Math.random() * 1.4,
+      }));
       setFloats((prev) => [...prev.slice(-40), ...fresh]);
-      // Animasyon bitince temizle
       setTimeout(() => {
         setFloats((prev) => prev.filter((f) => !fresh.some((n) => n.key === f.key)));
       }, 4000);
     });
   }, [presentationId]);
 
+  const totals = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
   return (
-    <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden" aria-hidden>
-      {floats.map((f) => (
-        <span
-          key={f.key}
-          className="absolute bottom-0 text-4xl animate-float-up"
-          style={{ left: `${f.x}%`, animationDuration: `${f.duration}s` }}
+    <>
+      {/* Uçuşan tepkiler — sağ alt köşeden */}
+      <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden" aria-hidden>
+        {floats.map((f) => (
+          <span
+            key={f.key}
+            className="absolute text-4xl animate-float-up"
+            style={{
+              right: `${f.right}%`,
+              bottom: "6rem",
+              animationDuration: `${f.duration}s`,
+              ["--drift" as string]: `${f.drift}px`,
+            }}
+          >
+            {f.emoji}
+          </span>
+        ))}
+      </div>
+
+      {/* Sağ alt köşede canlı sayaç */}
+      {totals.length > 0 && (
+        <div
+          className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-1"
+          aria-label="Tepki sayıları"
         >
-          {f.emoji}
-        </span>
-      ))}
-    </div>
+          {totals.map(([emoji, count]) => (
+            <span
+              key={emoji}
+              className="inline-flex items-center gap-1.5 bg-white/90 backdrop-blur border border-line rounded-full pl-2 pr-3 py-1 text-sm font-bold tabular-nums shadow-sm"
+            >
+              <span className="text-lg" aria-hidden>{emoji}</span> {count}
+            </span>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
