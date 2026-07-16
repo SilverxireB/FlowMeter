@@ -32,12 +32,14 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
       upload gerektirmez, anında çalışır
 - [ ] Arka plan resmi: hazır galeri + URL ile özel görsel; present ve audience
       ekranlarına uygulanır (okunabilirlik için otomatik karartma katmanı)
-- [ ] Görsel yükleme altyapısı: **Cloudinary** (unsigned upload preset —
-      client-side, sunucu kodu yok, ücretsiz katman; Firebase Storage Blaze
-      istediği için). Env: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME +
-      NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET. Alternatif: Vercel Blob (API route gerekir)
-- [ ] Marka logosu: Cloudinary'ye yüklenir, present köşesi + audience başlığında;
-      arka plan görselleri f_auto,q_auto,w_1920 dönüşümüyle optimize servis edilir
+- [ ] Görsel altyapısı — **dış servis YOK** (kurumsal ağlar 3. parti CDN'leri
+      engelliyor; Cloudinary denendi, elendi). Kural: yalnızca uygulamanın
+      zaten kullandığı domain'ler (kendi Vercel domain'imiz + firestore.googleapis.com).
+      - Hazır arka planlar: `public/backgrounds/` (repo içi, 8-10 WebP + degradeler)
+      - Logo / slayt görseli / özel arka plan: tarayıcıda canvas ile sıkıştır
+        (logo ~64KB, görsel max 1600px/~400KB) → base64 → Firestore alanı
+        (1MB doküman limitine otomatik sığdırma + boyut hatası mesajı)
+- [ ] Marka logosu: present köşesi + audience başlığında gösterim
 - [ ] Editörde "Tema" sekmesi: tema seç, logo yükle, arka plan seç/önizle
 
 ### 2c. Editör güçlendirme (sunum hazırlama)
