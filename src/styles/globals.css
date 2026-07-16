@@ -47,6 +47,21 @@ body {
   animation: float-up 3s ease-out forwards;
 }
 
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-pop {
+  animation: pop-in 0.35s ease-out both;
+}
+
 @layer components {
   /* Sayfa arkasındaki yumuşak renk yıkaması: gül + mavi */
   .bg-wash {
@@ -65,6 +80,7 @@ body {
   }
 
   .btn-primary {
+    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
     @apply inline-flex items-center justify-center gap-2 cursor-pointer select-none
       bg-brand text-white font-bold rounded-full px-6 py-3.5
       transition-all duration-200 ease-out
@@ -73,6 +89,7 @@ body {
   }
 
   .btn-accent {
+    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
     @apply inline-flex items-center justify-center gap-2 cursor-pointer select-none
       bg-accent text-white font-bold rounded-full px-6 py-3.5
       transition-all duration-200 ease-out
@@ -81,6 +98,7 @@ body {
   }
 
   .btn-ghost {
+    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
     @apply inline-flex items-center justify-center gap-2 cursor-pointer select-none
       border border-line bg-white font-semibold rounded-full px-5 py-2.5
       transition-all duration-200 hover:border-muted active:scale-[0.97]

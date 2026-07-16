@@ -13,7 +13,13 @@ import {
   swapSlideOrder,
   updateSlide,
 } from "@/lib/presentations";
-import { AVAILABLE_SLIDE_TYPES, Slide, SLIDE_TYPE_LABELS, SlideType } from "@/lib/types";
+import {
+  AVAILABLE_SLIDE_TYPES,
+  Slide,
+  SLIDE_TYPE_ICONS,
+  SLIDE_TYPE_LABELS,
+  SlideType,
+} from "@/lib/types";
 
 /** Slayt editörü: solda slayt listesi, sağda seçili slaytın ayarları. */
 export default function EditPage() {
@@ -94,7 +100,7 @@ export default function EditPage() {
               }`}
             >
               <p className="text-xs text-muted">
-                {i + 1} · {SLIDE_TYPE_LABELS[s.type]}
+                {i + 1} · {SLIDE_TYPE_ICONS[s.type]} {SLIDE_TYPE_LABELS[s.type]}
               </p>
               <p className="text-sm font-medium truncate">{s.question}</p>
             </button>
@@ -106,7 +112,7 @@ export default function EditPage() {
                 onClick={() => add(t)}
                 className="border border-dashed border-line hover:border-accent hover:text-accent rounded-xl px-3 py-2 text-sm text-muted transition-colors"
               >
-                + {SLIDE_TYPE_LABELS[t]}
+                + {SLIDE_TYPE_ICONS[t]} {SLIDE_TYPE_LABELS[t]}
               </button>
             ))}
           </div>

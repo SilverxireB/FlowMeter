@@ -25,7 +25,7 @@ import {
   setVotingClosed,
 } from "@/lib/presentations";
 import { themeStyle } from "@/lib/themes";
-import { SLIDE_TYPE_LABELS } from "@/lib/types";
+import { SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/lib/types";
 
 /**
  * Sunum modu. index -1 = katılım ekranı (büyük QR + kod + gelen isimler),
@@ -168,9 +168,9 @@ export default function PresentPage() {
           </div>
         ) : slide ? (
           <>
-            <div className="w-full max-w-5xl card p-8 md:p-12">
-              <p className="eyebrow mb-3">{SLIDE_TYPE_LABELS[slide.type]}</p>
-              <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-tight mb-10 pr-32">
+            <div key={slide.id} className="w-full max-w-5xl card p-8 md:p-12 animate-pop">
+              <p className="eyebrow mb-3">{SLIDE_TYPE_ICONS[slide.type]} {SLIDE_TYPE_LABELS[slide.type]}</p>
+              <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-tight mb-10 lg:pr-32">
                 {slide.question}
               </h1>
               {hideResults ? (

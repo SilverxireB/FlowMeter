@@ -201,7 +201,7 @@ export default function AudiencePage() {
         </button>
       </header>
 
-      <section className="flex-1 w-full max-w-md mx-auto px-4 py-8">
+      <section key={slide.id} className="flex-1 w-full max-w-md mx-auto px-4 py-8 animate-pop">
         {/* İlerleme çubuğu */}
         <div className="flex items-center gap-1.5 mb-6" aria-label={`Slayt ${index + 1} / ${slides.length}`}>
           {slides.map((s, i) => (

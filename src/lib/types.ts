@@ -72,6 +72,17 @@ export interface Participant {
   joinedAt: Timestamp | null;
 }
 
+export const SLIDE_TYPE_ICONS: Record<SlideType, string> = {
+  "multiple-choice": "📊",
+  "word-cloud": "☁️",
+  "open-ended": "💬",
+  scales: "🎚️",
+  ranking: "🏆",
+  qna: "🙋",
+  quiz: "⚡",
+  content: "📄",
+};
+
 export const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
   "multiple-choice": "Çoktan Seçmeli",
   "word-cloud": "Kelime Bulutu",
