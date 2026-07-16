@@ -166,6 +166,7 @@ const OPTION_LABELS: Partial<Record<SlideType, string>> = {
   "multiple-choice": "Seçenekler",
   scales: "İfadeler (her biri 1–5 puanlanır)",
   ranking: "Sıralanacak seçenekler",
+  quiz: "Seçenekler (doğru cevabı işaretle)",
 };
 
 function SlideEditor({
@@ -189,6 +190,8 @@ function SlideEditor({
   const [options, setOptions] = useState<string[]>(slide.options);
   const [description, setDescription] = useState(slide.settings?.description ?? "");
   const [allowMultiple, setAllowMultiple] = useState(slide.settings?.allowMultiple ?? false);
+  const [correctIndex, setCorrectIndex] = useState(slide.settings?.correctIndex ?? 0);
+  const [timeLimit, setTimeLimit] = useState(slide.settings?.timeLimit ?? 20);
   const [maxEntries, setMaxEntries] = useState(
     slide.settings?.maxEntries ?? (slide.type === "word-cloud" ? 3 : 1)
   );
@@ -210,6 +213,12 @@ function SlideEditor({
         ...(slide.type === "content" ? { description } : {}),
         ...(slide.type === "multiple-choice" ? { allowMultiple } : {}),
         ...(hasMaxEntries ? { maxEntries: Math.min(10, Math.max(1, maxEntries)) } : {}),
+        ...(slide.type === "quiz"
+          ? {
+              correctIndex: Math.min(correctIndex, options.length - 1),
+              timeLimit: Math.min(120, Math.max(5, timeLimit)),
+            }
+          : {}),
       },
     });
     setSaving(false);
@@ -235,7 +244,17 @@ function SlideEditor({
           <label className="block text-sm font-medium mb-1">{optionLabel}</label>
           <div className="flex flex-col gap-2 mb-2">
             {options.map((opt, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={i} className="flex gap-2 items-center">
+                {slide.type === "quiz" && (
+                  <input
+                    type="radio"
+                    name="correct"
+                    checked={correctIndex === i}
+                    onChange={() => setCorrectIndex(i)}
+                    title="Doğru cevap"
+                    className="w-5 h-5 accent-[#008300] cursor-pointer shrink-0"
+                  />
+                )}
                 <input
                   value={opt}
                   onChange={(e) =>
@@ -274,6 +293,20 @@ function SlideEditor({
             className="input-base mb-4 resize-none"
           />
         </>
+      )}
+
+      {slide.type === "quiz" && (
+        <label className="flex items-center gap-3 mb-4">
+          <span className="text-sm font-semibold">Süre (saniye)</span>
+          <input
+            type="number"
+            min={5}
+            max={120}
+            value={timeLimit}
+            onChange={(e) => setTimeLimit(Number(e.target.value))}
+            className="input-base !w-24 !py-1.5 text-center tabular-nums"
+          />
+        </label>
       )}
 
       {slide.type === "multiple-choice" && (

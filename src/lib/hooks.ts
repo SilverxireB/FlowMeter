@@ -4,7 +4,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { auth, db, isFirebaseConfigured } from "./firebase";
-import { Participant, Presentation, ResponseDoc, Slide } from "./types";
+import { AudienceQuestion, Participant, Presentation, ResponseDoc, Slide } from "./types";
 
 /** Presenter oturumu. loading=true iken yönlendirme yapma. */
 export function useAuthUser() {
@@ -80,6 +80,27 @@ export function useParticipants(presentationId: string | null) {
   }, [presentationId]);
 
   return participants;
+}
+
+/** Q&A sorularını canlı dinler (upvote'a göre sıralı). */
+export function useQuestions(presentationId: string | null) {
+  const [questions, setQuestions] = useState<AudienceQuestion[]>([]);
+
+  useEffect(() => {
+    if (!presentationId || !isFirebaseConfigured()) return;
+    const q = collection(db(), "presentations", presentationId, "questions");
+    return onSnapshot(q, (snap) => {
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AudienceQuestion);
+      items.sort(
+        (a, b) =>
+          b.upvotes - a.upvotes ||
+          (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0)
+      );
+      setQuestions(items);
+    });
+  }, [presentationId]);
+
+  return questions;
 }
 
 /** Bir slaytın cevaplarını canlı dinler — sonuç ekranlarının kalbi. */

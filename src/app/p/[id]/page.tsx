@@ -3,6 +3,8 @@
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import MultipleChoiceVote from "@/components/vote/MultipleChoiceVote";
+import QnaVote from "@/components/vote/QnaVote";
+import QuizVote from "@/components/vote/QuizVote";
 import OpenEndedVote from "@/components/vote/OpenEndedVote";
 import RankingVote from "@/components/vote/RankingVote";
 import ScalesVote from "@/components/vote/ScalesVote";
@@ -63,7 +65,7 @@ export default function AudiencePage() {
     if (
       slide &&
       getVoteCount(slide.id) > 0 &&
-      ["multiple-choice", "scales", "ranking"].includes(slide.type)
+      ["multiple-choice", "scales", "ranking", "quiz"].includes(slide.type)
     ) {
       setVotedSlideIds((prev) => new Set(prev).add(slide.id));
     }
@@ -213,6 +215,10 @@ export default function AudiencePage() {
           <ScalesVote presentationId={id} slide={slide} onVoted={markVoted} />
         ) : slide.type === "ranking" ? (
           <RankingVote presentationId={id} slide={slide} onVoted={markVoted} />
+        ) : slide.type === "quiz" ? (
+          <QuizVote presentationId={id} slide={slide} onVoted={markVoted} />
+        ) : slide.type === "qna" ? (
+          <QnaVote presentationId={id} />
         ) : slide.type === "content" ? (
           <div className="text-ink/80 whitespace-pre-wrap">
             {slide.settings?.description || "Sunumu ekrandan takip et."}

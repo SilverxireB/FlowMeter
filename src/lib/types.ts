@@ -35,6 +35,10 @@ export interface SlideSettings {
   allowMultiple?: boolean;
   /** content: başlık altındaki açıklama metni */
   description?: string;
+  /** quiz: doğru seçeneğin index'i */
+  correctIndex?: number;
+  /** quiz: cevap süresi (saniye, varsayılan 20) */
+  timeLimit?: number;
 }
 
 export interface Slide {
@@ -44,6 +48,18 @@ export interface Slide {
   options: string[];
   order: number;
   settings: SlideSettings;
+  /** quiz: sunucu slaytı açınca yazılır — geri sayım bundan hesaplanır */
+  quizStartedAt?: Timestamp | null;
+}
+
+/** Q&A sorusu (sunum geneli havuz — Menti gibi) */
+export interface AudienceQuestion {
+  id: string;
+  text: string;
+  voterId: string;
+  upvotes: number;
+  hidden?: boolean;
+  createdAt: Timestamp | null;
 }
 
 /**
@@ -101,5 +117,7 @@ export const AVAILABLE_SLIDE_TYPES: SlideType[] = [
   "open-ended",
   "scales",
   "ranking",
+  "quiz",
+  "qna",
   "content",
 ];

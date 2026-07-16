@@ -5,9 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Avatar from "@/components/Avatar";
 import QrCode from "@/components/present/QrCode";
+import Leaderboard from "@/components/present/Leaderboard";
 import ReactionOverlay from "@/components/present/ReactionOverlay";
 import BarChartResult from "@/components/results/BarChartResult";
 import OpenEndedResult from "@/components/results/OpenEndedResult";
+import QnaResult from "@/components/results/QnaResult";
+import QuizResult from "@/components/results/QuizResult";
 import RankingResult from "@/components/results/RankingResult";
 import ScalesResult from "@/components/results/ScalesResult";
 import WordCloudResult from "@/components/results/WordCloudResult";
@@ -23,6 +26,7 @@ import {
   resetResponses,
   setCurrentSlide,
   setVotingClosed,
+  startQuiz,
 } from "@/lib/presentations";
 import { themeStyle } from "@/lib/themes";
 import { SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/lib/types";
@@ -42,6 +46,7 @@ export default function PresentPage() {
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
   const [host, setHost] = useState("flowmeter");
   const [hideResults, setHideResults] = useState(false);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
   function toggleFullscreen() {
     if (document.fullscreenElement) document.exitFullscreen();
@@ -70,6 +75,13 @@ export default function PresentPage() {
       setJoinUrl(`${window.location.origin}/join/${presentation.joinCode}`);
     }
   }, [presentation?.joinCode]);
+
+  // Quiz slaytı açılınca geri sayımı bir kez başlat
+  useEffect(() => {
+    if (slide?.type === "quiz" && !slide.quizStartedAt) {
+      startQuiz(id, slide.id);
+    }
+  }, [id, slide]);
 
   // Klavye ile gezinme (←/→), -1 katılım ekranına kadar geri gidilebilir
   useEffect(() => {
@@ -191,6 +203,10 @@ export default function PresentPage() {
                 <ScalesResult slide={slide} responses={responses} />
               ) : slide.type === "ranking" ? (
                 <RankingResult slide={slide} responses={responses} />
+              ) : slide.type === "quiz" ? (
+                <QuizResult slide={slide} responses={responses} />
+              ) : slide.type === "qna" ? (
+                <QnaResult presentationId={id} />
               ) : slide.type === "content" ? (
                 <p className="text-ink/80 text-2xl leading-relaxed whitespace-pre-wrap">
                   {slide.settings?.description}
@@ -244,6 +260,15 @@ export default function PresentPage() {
               title={hideResults ? "Sonuçları göster" : "Sonuçları gizle"}
             >
               {hideResults ? "🙈 Gizli" : "👁 Görünür"}
+            </button>
+          )}
+          {slides.some((s) => s.type === "quiz") && (
+            <button
+              onClick={() => setLeaderboardOpen(true)}
+              className="btn-ghost !py-1.5 !px-3.5 text-sm"
+              title="Skor tablosu"
+            >
+              🏆
             </button>
           )}
           <button
@@ -308,6 +333,15 @@ export default function PresentPage() {
           </button>
         </div>
       </footer>
+
+      {leaderboardOpen && (
+        <Leaderboard
+          presentationId={id}
+          slides={slides}
+          participants={participants}
+          onClose={() => setLeaderboardOpen(false)}
+        />
+      )}
     </main>
   );
 }

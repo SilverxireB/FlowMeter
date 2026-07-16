@@ -97,6 +97,13 @@ export async function setCurrentSlide(presentationId: string, index: number): Pr
   });
 }
 
+/** Quiz geri sayımını başlatır (slayt açıldığında bir kez yazılır). */
+export async function startQuiz(presentationId: string, slideId: string): Promise<void> {
+  await updateDoc(doc(db(), "presentations", presentationId, "slides", slideId), {
+    quizStartedAt: serverTimestamp(),
+  });
+}
+
 export async function setVotingClosed(presentationId: string, closed: boolean): Promise<void> {
   await updateDoc(doc(db(), "presentations", presentationId), { votingClosed: closed });
 }
@@ -169,6 +176,16 @@ export async function addSlide(presentationId: string, type: SlideType, order: n
     ranking: {
       question: "Önem sırasına göre sıralayın",
       options: ["Seçenek 1", "Seçenek 2", "Seçenek 3"],
+      settings: {},
+    },
+    quiz: {
+      question: "Quiz sorusu",
+      options: ["Seçenek 1", "Seçenek 2", "Seçenek 3"],
+      settings: { correctIndex: 0, timeLimit: 20 },
+    },
+    qna: {
+      question: "Sorularınızı alalım!",
+      options: [],
       settings: {},
     },
     content: {

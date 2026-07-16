@@ -55,11 +55,11 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 
 ## Faz 3 — Etkileşim & Rekabet
 
-- [ ] **Emoji reactions**: izleyici ❤️👍😮 gönderir, present ekranında uçuşur
-      (responses benzeri hafif `reactions` alt koleksiyonu + TTL temizlik)
-- [ ] **Quiz**: doğru cevap işaretleme (editör), süre bazlı puan, slaytlar arası
-      **leaderboard** (avatar + nickname ile), kazanan konfetisi
-- [ ] **Q&A**: izleyici soru gönderir + upvote; sunucu moderasyonu (göster/gizle)
+- [x] **Emoji reactions**: ❤️👍🎉 sağ alt köşeden uçuşur + canlı sayaç
+- [x] **Quiz**: doğru cevap işaretleme (editör), süre bazlı puan (500 taban +
+      hız bonusu), 🏆 skor tablosu (avatar + nickname, madalyalar)
+- [ ] Kazanan konfetisi
+- [x] **Q&A**: izleyici soru gönderir + upvote (tek oy); moderasyon (gizle/göster/sil)
 - [ ] **Guess the Number** slayt tipi (tahmin + dağılım gösterimi)
 - [ ] Audience-pace (anket modu): izleyici kendi ilerler, bitiş ekranı
 - [ ] Katılımcıya sonuçları gösterme seçeneği (oy verince kendi ekranında sonuç)
