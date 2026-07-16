@@ -111,6 +111,13 @@ export default function EditPage() {
   );
 }
 
+// Seçenek listesi düzenlenen tipler ve etiketleri
+const OPTION_LABELS: Partial<Record<SlideType, string>> = {
+  "multiple-choice": "Seçenekler",
+  scales: "İfadeler (her biri 1–5 puanlanır)",
+  ranking: "Sıralanacak seçenekler",
+};
+
 function SlideEditor({
   presentationId,
   slide,
@@ -122,8 +129,12 @@ function SlideEditor({
 }) {
   const [question, setQuestion] = useState(slide.question);
   const [options, setOptions] = useState<string[]>(slide.options);
+  const [description, setDescription] = useState(slide.settings?.description ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const optionLabel = OPTION_LABELS[slide.type];
+  const minOptions = slide.type === "multiple-choice" ? 2 : 1;
 
   async function save() {
     setSaving(true);
@@ -131,6 +142,10 @@ function SlideEditor({
     await updateSlide(presentationId, slide.id, {
       question: question.trim() || "Soru",
       options: options.map((o) => o.trim()).filter(Boolean),
+      settings: {
+        ...slide.settings,
+        ...(slide.type === "content" ? { description } : {}),
+      },
     });
     setSaving(false);
     setSaved(true);
@@ -150,9 +165,9 @@ function SlideEditor({
         className="w-full rounded-lg border border-slate-300 px-3 py-3 mb-4 focus:outline-none focus:border-brand-blue"
       />
 
-      {slide.type === "multiple-choice" && (
+      {optionLabel && (
         <>
-          <label className="block text-sm font-medium mb-1">Seçenekler</label>
+          <label className="block text-sm font-medium mb-1">{optionLabel}</label>
           <div className="flex flex-col gap-2 mb-2">
             {options.map((opt, i) => (
               <div key={i} className="flex gap-2">
@@ -165,7 +180,7 @@ function SlideEditor({
                 />
                 <button
                   onClick={() => setOptions(options.filter((_, j) => j !== i))}
-                  disabled={options.length <= 2}
+                  disabled={options.length <= minOptions}
                   className="text-slate-400 hover:text-red-500 disabled:opacity-30 px-2"
                   aria-label={`Seçenek ${i + 1} sil`}
                 >
@@ -181,6 +196,18 @@ function SlideEditor({
           >
             + Seçenek ekle
           </button>
+        </>
+      )}
+
+      {slide.type === "content" && (
+        <>
+          <label className="block text-sm font-medium mb-1">Açıklama</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={4}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 mb-4 resize-none focus:outline-none focus:border-brand-blue"
+          />
         </>
       )}
 

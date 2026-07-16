@@ -1,5 +1,6 @@
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
+import { ResponseValue } from "./types";
 
 const VOTER_ID_KEY = "flowmeter.voterId";
 
@@ -27,7 +28,7 @@ export function getVoteCount(slideId: string): number {
 export async function submitResponse(
   presentationId: string,
   slideId: string,
-  value: string | number
+  value: ResponseValue
 ): Promise<void> {
   await addDoc(
     collection(db(), "presentations", presentationId, "slides", slideId, "responses"),

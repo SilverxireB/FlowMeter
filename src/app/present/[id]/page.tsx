@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import BarChartResult from "@/components/results/BarChartResult";
+import OpenEndedResult from "@/components/results/OpenEndedResult";
+import RankingResult from "@/components/results/RankingResult";
+import ScalesResult from "@/components/results/ScalesResult";
 import WordCloudResult from "@/components/results/WordCloudResult";
 import { useAuthUser, useLiveResponses, usePresentation, useSlides } from "@/lib/hooks";
 import { setCurrentSlide } from "@/lib/presentations";
@@ -82,6 +85,16 @@ export default function PresentPage() {
               <div className="min-h-[16rem] flex items-center justify-center">
                 <WordCloudResult responses={responses} />
               </div>
+            ) : slide.type === "open-ended" ? (
+              <OpenEndedResult responses={responses} />
+            ) : slide.type === "scales" ? (
+              <ScalesResult slide={slide} responses={responses} />
+            ) : slide.type === "ranking" ? (
+              <RankingResult slide={slide} responses={responses} />
+            ) : slide.type === "content" ? (
+              <p className="text-slate-600 text-xl whitespace-pre-wrap">
+                {slide.settings?.description}
+              </p>
             ) : (
               <p className="text-slate-400">Bu slayt tipi için sonuç görünümü yakında.</p>
             )}

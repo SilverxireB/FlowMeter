@@ -20,14 +20,18 @@ export interface Presentation {
   mode: PresentationMode;
   currentSlideIndex: number;
   isLive: boolean;
+  /** true iken izleyiciler yeni cevap gönderemez */
+  votingClosed?: boolean;
   createdAt: Timestamp | null;
 }
 
 export interface SlideSettings {
-  /** word-cloud: kişi başı kaç kelime gönderilebilir (varsayılan 3) */
+  /** word-cloud / open-ended: kişi başı kaç cevap gönderilebilir */
   maxEntries?: number;
   /** multiple-choice: birden fazla seçenek işaretlenebilir mi */
   allowMultiple?: boolean;
+  /** content: başlık altındaki açıklama metni */
+  description?: string;
 }
 
 export interface Slide {
@@ -39,11 +43,19 @@ export interface Slide {
   settings: SlideSettings;
 }
 
+/**
+ * Cevap değeri, slayt tipine göre:
+ * - multiple-choice: seçenek index'i (number) veya çoklu seçimde number[]
+ * - word-cloud / open-ended: metin (string)
+ * - scales: ifade başına 1–5 puanlar (number[], options ile aynı sırada)
+ * - ranking: sıralanmış seçenek index'leri (number[], ilk eleman = 1. sıra)
+ */
+export type ResponseValue = string | number | number[];
+
 export interface ResponseDoc {
   id: string;
   voterId: string;
-  /** multiple-choice: seçenek index'i (number) — word-cloud/open-ended: metin (string) */
-  value: string | number;
+  value: ResponseValue;
   createdAt: Timestamp | null;
 }
 
@@ -58,5 +70,12 @@ export const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
   content: "İçerik",
 };
 
-/** Faz 1'de editörden eklenebilen slayt tipleri */
-export const AVAILABLE_SLIDE_TYPES: SlideType[] = ["multiple-choice", "word-cloud"];
+/** Editörden eklenebilen slayt tipleri (qna ve quiz Faz 3'te) */
+export const AVAILABLE_SLIDE_TYPES: SlideType[] = [
+  "multiple-choice",
+  "word-cloud",
+  "open-ended",
+  "scales",
+  "ranking",
+  "content",
+];

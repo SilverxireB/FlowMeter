@@ -3,6 +3,9 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import MultipleChoiceVote from "@/components/vote/MultipleChoiceVote";
+import OpenEndedVote from "@/components/vote/OpenEndedVote";
+import RankingVote from "@/components/vote/RankingVote";
+import ScalesVote from "@/components/vote/ScalesVote";
 import WordCloudVote from "@/components/vote/WordCloudVote";
 import { usePresentation, useSlides } from "@/lib/hooks";
 import { getVoteCount } from "@/lib/responses";
@@ -21,9 +24,15 @@ export default function AudiencePage() {
   );
   const slide: Slide | undefined = slides[index];
 
-  // Sayfa yenilense bile localStorage'daki oy kaydını dikkate al
+  // Sayfa yenilense bile localStorage'daki oy kaydını dikkate al.
+  // Tek gönderimli tipler: MC, scales, ranking. (WC ve open-ended kendi
+  // maxEntries sayacını bileşen içinde tutar.)
   useEffect(() => {
-    if (slide && getVoteCount(slide.id) > 0 && slide.type === "multiple-choice") {
+    if (
+      slide &&
+      getVoteCount(slide.id) > 0 &&
+      ["multiple-choice", "scales", "ranking"].includes(slide.type)
+    ) {
       setVotedSlideIds((prev) => new Set(prev).add(slide.id));
     }
   }, [slide]);
@@ -44,6 +53,7 @@ export default function AudiencePage() {
   }
 
   const hasVoted = votedSlideIds.has(slide.id);
+  const markVoted = () => setVotedSlideIds((prev) => new Set(prev).add(slide.id));
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col">
@@ -55,24 +65,32 @@ export default function AudiencePage() {
       <section className="flex-1 w-full max-w-md mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6">{slide.question}</h1>
 
-        {hasVoted ? (
+        {presentation.votingClosed ? (
+          <div className="text-center py-12">
+            <p className="text-4xl mb-3">🔒</p>
+            <p className="text-lg font-semibold">Oylama kapalı</p>
+            <p className="text-slate-500 mt-1">Sunucu oylamayı tekrar açana kadar bekle.</p>
+          </div>
+        ) : hasVoted ? (
           <div className="text-center py-12">
             <p className="text-4xl mb-3">✅</p>
             <p className="text-lg font-semibold">Cevabın alındı!</p>
             <p className="text-slate-500 mt-1">Sonuçları sunum ekranında izle.</p>
           </div>
         ) : slide.type === "multiple-choice" ? (
-          <MultipleChoiceVote
-            presentationId={id}
-            slide={slide}
-            onVoted={() => setVotedSlideIds((prev) => new Set(prev).add(slide.id))}
-          />
+          <MultipleChoiceVote presentationId={id} slide={slide} onVoted={markVoted} />
         ) : slide.type === "word-cloud" ? (
-          <WordCloudVote
-            presentationId={id}
-            slide={slide}
-            onDone={() => setVotedSlideIds((prev) => new Set(prev).add(slide.id))}
-          />
+          <WordCloudVote presentationId={id} slide={slide} onDone={markVoted} />
+        ) : slide.type === "open-ended" ? (
+          <OpenEndedVote presentationId={id} slide={slide} onDone={markVoted} />
+        ) : slide.type === "scales" ? (
+          <ScalesVote presentationId={id} slide={slide} onVoted={markVoted} />
+        ) : slide.type === "ranking" ? (
+          <RankingVote presentationId={id} slide={slide} onVoted={markVoted} />
+        ) : slide.type === "content" ? (
+          <div className="text-slate-600 whitespace-pre-wrap">
+            {slide.settings?.description || "Sunumu ekrandan takip et."}
+          </div>
         ) : (
           <p className="text-slate-500">Bu slayt için katılım gerekmiyor.</p>
         )}

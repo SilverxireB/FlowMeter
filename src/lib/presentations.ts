@@ -88,17 +88,45 @@ export async function setCurrentSlide(presentationId: string, index: number): Pr
 // ── Slaytlar ────────────────────────────────────────────────────────────────
 
 export async function addSlide(presentationId: string, type: SlideType, order: number): Promise<string> {
-  const defaults: Record<string, Partial<Slide>> = {
-    "multiple-choice": { question: "Yeni soru", options: ["Seçenek 1", "Seçenek 2"] },
-    "word-cloud": { question: "Aklınıza gelen ilk kelime?", options: [] },
+  const defaults: Record<string, { question: string; options: string[]; settings: object }> = {
+    "multiple-choice": {
+      question: "Yeni soru",
+      options: ["Seçenek 1", "Seçenek 2"],
+      settings: { allowMultiple: false },
+    },
+    "word-cloud": {
+      question: "Aklınıza gelen ilk kelime?",
+      options: [],
+      settings: { maxEntries: 3 },
+    },
+    "open-ended": {
+      question: "Görüşlerinizi paylaşın",
+      options: [],
+      settings: { maxEntries: 1 },
+    },
+    scales: {
+      question: "Ne kadar katılıyorsunuz?",
+      options: ["İfade 1", "İfade 2"],
+      settings: {},
+    },
+    ranking: {
+      question: "Önem sırasına göre sıralayın",
+      options: ["Seçenek 1", "Seçenek 2", "Seçenek 3"],
+      settings: {},
+    },
+    content: {
+      question: "Başlık",
+      options: [],
+      settings: { description: "" },
+    },
   };
-  const base = defaults[type] ?? { question: "Yeni slayt", options: [] };
+  const base = defaults[type] ?? { question: "Yeni slayt", options: [], settings: {} };
   const ref = await addDoc(collection(db(), "presentations", presentationId, "slides"), {
     type,
     question: base.question,
     options: base.options,
     order,
-    settings: type === "word-cloud" ? { maxEntries: 3 } : {},
+    settings: base.settings,
   });
   return ref.id;
 }
