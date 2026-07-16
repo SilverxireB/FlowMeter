@@ -5,7 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ThemePanel from "@/components/editor/ThemePanel";
 import { useAuthUser, usePresentation, useSlides } from "@/lib/hooks";
-import { addSlide, deleteSlide, setCurrentSlide, updateSlide } from "@/lib/presentations";
+import {
+  addSlide,
+  deleteSlide,
+  duplicateSlide,
+  setCurrentSlide,
+  swapSlideOrder,
+  updateSlide,
+} from "@/lib/presentations";
 import { AVAILABLE_SLIDE_TYPES, Slide, SLIDE_TYPE_LABELS, SlideType } from "@/lib/types";
 
 /** Slayt editörü: solda slayt listesi, sağda seçili slaytın ayarları. */
@@ -112,6 +119,18 @@ export default function EditPage() {
               key={selected.id}
               presentationId={id}
               slide={selected}
+              index={slides.findIndex((s) => s.id === selected.id)}
+              count={slides.length}
+              onMove={async (dir) => {
+                const i = slides.findIndex((s) => s.id === selected.id);
+                const j = i + dir;
+                if (j < 0 || j >= slides.length) return;
+                await swapSlideOrder(id, slides[i], slides[j]);
+              }}
+              onDuplicate={async () => {
+                const newId = await duplicateSlide(id, selected);
+                setSelectedId(newId);
+              }}
               onDelete={async () => {
                 await deleteSlide(id, selected.id);
                 setSelectedId(null);
@@ -146,20 +165,33 @@ const OPTION_LABELS: Partial<Record<SlideType, string>> = {
 function SlideEditor({
   presentationId,
   slide,
+  index,
+  count,
+  onMove,
+  onDuplicate,
   onDelete,
 }: {
   presentationId: string;
   slide: Slide;
+  index: number;
+  count: number;
+  onMove: (dir: -1 | 1) => Promise<void>;
+  onDuplicate: () => Promise<void>;
   onDelete: () => Promise<void>;
 }) {
   const [question, setQuestion] = useState(slide.question);
   const [options, setOptions] = useState<string[]>(slide.options);
   const [description, setDescription] = useState(slide.settings?.description ?? "");
+  const [allowMultiple, setAllowMultiple] = useState(slide.settings?.allowMultiple ?? false);
+  const [maxEntries, setMaxEntries] = useState(
+    slide.settings?.maxEntries ?? (slide.type === "word-cloud" ? 3 : 1)
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const optionLabel = OPTION_LABELS[slide.type];
   const minOptions = slide.type === "multiple-choice" ? 2 : 1;
+  const hasMaxEntries = slide.type === "word-cloud" || slide.type === "open-ended";
 
   async function save() {
     setSaving(true);
@@ -170,6 +202,8 @@ function SlideEditor({
       settings: {
         ...slide.settings,
         ...(slide.type === "content" ? { description } : {}),
+        ...(slide.type === "multiple-choice" ? { allowMultiple } : {}),
+        ...(hasMaxEntries ? { maxEntries: Math.min(10, Math.max(1, maxEntries)) } : {}),
       },
     });
     setSaving(false);
@@ -235,6 +269,39 @@ function SlideEditor({
           />
         </>
       )}
+
+      {slide.type === "multiple-choice" && (
+        <label className="flex items-center gap-2.5 mb-4 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={allowMultiple}
+            onChange={(e) => setAllowMultiple(e.target.checked)}
+            className="w-5 h-5 accent-[#2563eb]"
+          />
+          <span className="text-sm font-semibold">Birden fazla seçime izin ver</span>
+        </label>
+      )}
+
+      {hasMaxEntries && (
+        <label className="flex items-center gap-3 mb-4">
+          <span className="text-sm font-semibold">Kişi başı cevap hakkı</span>
+          <input
+            type="number"
+            min={1}
+            max={10}
+            value={maxEntries}
+            onChange={(e) => setMaxEntries(Number(e.target.value))}
+            className="input-base !w-20 !py-1.5 text-center tabular-nums"
+          />
+        </label>
+      )}
+
+      <div className="flex items-center gap-1.5 mb-4 pt-4 border-t border-line">
+        <button onClick={() => onMove(-1)} disabled={index <= 0} className="btn-ghost !py-1.5 !px-3 text-sm" title="Yukarı taşı">↑</button>
+        <button onClick={() => onMove(1)} disabled={index >= count - 1} className="btn-ghost !py-1.5 !px-3 text-sm" title="Aşağı taşı">↓</button>
+        <button onClick={onDuplicate} className="btn-ghost !py-1.5 !px-3 text-sm">⧉ Çoğalt</button>
+        <span className="text-muted text-xs ml-auto tabular-nums">Slayt {index + 1} / {count}</span>
+      </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-line">
         <button onClick={onDelete} className="text-muted hover:text-brand hover:bg-brand-soft/50 rounded-full px-3 py-2 text-sm font-semibold cursor-pointer">

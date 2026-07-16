@@ -19,19 +19,16 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 
 ## Faz 2 — Kişiselleştirme & Görsellik ⬅ SIRADAKİ OTURUM
 
-### 2a. Avatar sistemi (emoji yerine resimli avatar)
-- [ ] `@dicebear` ile client-side üretilen SVG avatarlar (ör. `adventurer` /
-      `bottts` stili) — dış servis/CDN yok, seed string Firestore'da tutulur
-- [ ] Katılım ekranında 24'lü avatar galerisi + "karıştır" butonu
-- [ ] Rozetlerde, katılım ekranında ve (ileride) leaderboard'da avatar görünümü
-- [ ] Geçiş: mevcut `emoji` alanı `avatarSeed`e evrilir (geriye uyumlu okunur)
+### 2a. Avatar sistemi ✅
+- [x] @dicebear adventurer stiliyle client-side SVG avatarlar (dış servis yok)
+- [x] Katılım ekranında 24'lü galeri + 🎲 karıştır butonu
+- [x] Rozetler, karşılama ekranı ve izleyici başlığında avatar
+- [x] Eski emoji kayıtları geriye uyumlu
 
 ### 2b. Tema & marka (sunum başına görsel kimlik)
-- [ ] `presentations.theme{}` alanı: renk paleti + arka plan + logo
-- [ ] Hazır tema galerisi (6-8 tema: renk + degrade/desen arka planlar) —
-      upload gerektirmez, anında çalışır
-- [ ] Arka plan resmi: hazır galeri + URL ile özel görsel; present ve audience
-      ekranlarına uygulanır (okunabilirlik için otomatik karartma katmanı)
+- [x] `presentations.theme{}` alanı: preset + arka plan + logo
+- [x] Hazır tema galerisi (8 tema, koyu/açık uyumlu)
+- [x] Arka plan görseli: sıkıştır + Firestore, otomatik karartma; present + audience
 - [ ] Görsel altyapısı — **dış servis YOK** (kurumsal ağlar 3. parti CDN'leri
       engelliyor; Cloudinary denendi, elendi). Kural: yalnızca uygulamanın
       zaten kullandığı domain'ler (kendi Vercel domain'imiz + firestore.googleapis.com).
@@ -39,21 +36,21 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
       - Logo / slayt görseli / özel arka plan: tarayıcıda canvas ile sıkıştır
         (logo ~64KB, görsel max 1600px/~400KB) → base64 → Firestore alanı
         (1MB doküman limitine otomatik sığdırma + boyut hatası mesajı)
-- [ ] Marka logosu: present köşesi + audience başlığında gösterim
-- [ ] Editörde "Tema" sekmesi: tema seç, logo yükle, arka plan seç/önizle
+- [x] Marka logosu: present başlığı, katılım ekranı ve audience başlığında
+- [x] Editörde 🎨 Tema paneli
 
 ### 2c. Editör güçlendirme (sunum hazırlama)
-- [ ] Slayt ayar paneli: çoklu seçim (MC), kişi başı N cevap (WC/open-ended),
-      sonuçları gizle/göster
-- [ ] Slayt sıralama (yukarı/aşağı taşı), slayt çoğaltma
+- [x] Slayt ayarları: çoklu seçim (MC), kişi başı N cevap (WC/open-ended)
+- [ ] Sonuçları gizle/göster
+- [x] Slayt sıralama (↑/↓) ve çoğaltma
 - [ ] Slayta görsel ekleme (soru yanında resim — URL/galeri)
 - [ ] Canlı önizleme: editörde slaytın audience görünümü küçük önizlemesi
 - [ ] Otomatik kaydetme (Kaydet butonu yerine debounce'lu kayıt)
 
 ### 2d. Sunum kontrolü
-- [ ] Oylamayı kapat/aç butonu (izleyici tarafı hazır, present'e düğme)
-- [ ] Cevapları sıfırla (slayt başına, onaylı)
-- [ ] Sunumu bitir (isLive=false → izleyicide "teşekkürler" ekranı)
+- [x] Oylamayı kapat/aç düğmesi (present altbilgisi)
+- [x] Cevapları sıfırla (slayt başına, onaylı; rules'da owner-delete)
+- [x] Sunumu bitir (isLive=false → izleyici bekleme ekranına döner)
 - [ ] Tam ekran modu (F / buton), koyu sunum teması seçeneği
 
 ## Faz 3 — Etkileşim & Rekabet

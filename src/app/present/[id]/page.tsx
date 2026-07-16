@@ -17,7 +17,12 @@ import {
   usePresentation,
   useSlides,
 } from "@/lib/hooks";
-import { setCurrentSlide } from "@/lib/presentations";
+import {
+  endPresentation,
+  resetResponses,
+  setCurrentSlide,
+  setVotingClosed,
+} from "@/lib/presentations";
 import { themeStyle } from "@/lib/themes";
 import { SLIDE_TYPE_LABELS } from "@/lib/types";
 
@@ -194,10 +199,45 @@ export default function PresentPage() {
         )}
       </section>
 
-      <footer className="px-6 py-4 flex items-center justify-between border-t border-line bg-white/80 backdrop-blur">
-        <span className="text-muted text-sm tabular-nums font-semibold">
-          {participants.length} katılımcı
-        </span>
+      <footer className="px-6 py-4 flex items-center justify-between gap-3 border-t border-line bg-white/80 backdrop-blur">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setVotingClosed(id, !presentation.votingClosed)}
+            className={`btn-ghost !py-1.5 !px-3.5 text-sm ${
+              presentation.votingClosed ? "!border-brand !text-brand" : ""
+            }`}
+            title={presentation.votingClosed ? "Oylamayı aç" : "Oylamayı kapat"}
+          >
+            {presentation.votingClosed ? "🔒 Oylama kapalı" : "🔓 Oylama açık"}
+          </button>
+          {slide && (
+            <button
+              onClick={async () => {
+                if (confirm("Bu slaytın tüm cevapları silinsin mi?")) {
+                  await resetResponses(id, slide.id);
+                }
+              }}
+              className="btn-ghost !py-1.5 !px-3.5 text-sm"
+              title="Bu slaytın cevaplarını sıfırla"
+            >
+              ↺ Sıfırla
+            </button>
+          )}
+          <button
+            onClick={async () => {
+              if (confirm("Sunum bitirilsin mi? İzleyiciler bekleme ekranına döner.")) {
+                await endPresentation(id);
+                router.push(`/edit/${id}`);
+              }
+            }}
+            className="btn-ghost !py-1.5 !px-3.5 text-sm text-muted"
+          >
+            Bitir
+          </button>
+          <span className="text-muted text-sm tabular-nums font-semibold hidden xl:inline ml-2">
+            {participants.length} katılımcı
+          </span>
+        </div>
 
         {/* İlerleme noktaları */}
         <div className="hidden md:flex items-center gap-1.5" aria-hidden>

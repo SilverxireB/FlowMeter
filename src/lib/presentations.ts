@@ -97,6 +97,51 @@ export async function setCurrentSlide(presentationId: string, index: number): Pr
   });
 }
 
+export async function setVotingClosed(presentationId: string, closed: boolean): Promise<void> {
+  await updateDoc(doc(db(), "presentations", presentationId), { votingClosed: closed });
+}
+
+/** Sunumu bitirir — izleyiciler bekleme ekranına döner. */
+export async function endPresentation(presentationId: string): Promise<void> {
+  await updateDoc(doc(db(), "presentations", presentationId), { isLive: false });
+}
+
+/** Bir slaytın tüm cevaplarını siler (sadece sahibi — rules ile korunur). */
+export async function resetResponses(presentationId: string, slideId: string): Promise<void> {
+  const snap = await getDocs(
+    collection(db(), "presentations", presentationId, "slides", slideId, "responses")
+  );
+  const docs = snap.docs;
+  for (let i = 0; i < docs.length; i += 450) {
+    const batch = writeBatch(db());
+    docs.slice(i, i + 450).forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+}
+
+/** İki slaytın order değerini değiştirir (listede yukarı/aşağı taşıma). */
+export async function swapSlideOrder(
+  presentationId: string,
+  a: { id: string; order: number },
+  b: { id: string; order: number }
+): Promise<void> {
+  const batch = writeBatch(db());
+  batch.update(doc(db(), "presentations", presentationId, "slides", a.id), { order: b.order });
+  batch.update(doc(db(), "presentations", presentationId, "slides", b.id), { order: a.order });
+  await batch.commit();
+}
+
+export async function duplicateSlide(presentationId: string, slide: Slide): Promise<string> {
+  const ref = await addDoc(collection(db(), "presentations", presentationId, "slides"), {
+    type: slide.type,
+    question: `${slide.question} (kopya)`,
+    options: slide.options,
+    order: slide.order + 0.5, // araya girer; sıralama order'a göre
+    settings: slide.settings ?? {},
+  });
+  return ref.id;
+}
+
 // ── Slaytlar ────────────────────────────────────────────────────────────────
 
 export async function addSlide(presentationId: string, type: SlideType, order: number): Promise<string> {

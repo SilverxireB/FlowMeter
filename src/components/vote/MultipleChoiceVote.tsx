@@ -15,16 +15,31 @@ export default function MultipleChoiceVote({
   slide: Slide;
   onVoted: () => void;
 }) {
-  const [selected, setSelected] = useState<number | null>(null);
+  const allowMultiple = slide.settings?.allowMultiple ?? false;
+  const [selected, setSelected] = useState<number[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function toggle(i: number) {
+    if (allowMultiple) {
+      setSelected((prev) =>
+        prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]
+      );
+    } else {
+      setSelected([i]);
+    }
+  }
+
   async function vote() {
-    if (selected === null || sending) return;
+    if (selected.length === 0 || sending) return;
     setSending(true);
     setError(null);
     try {
-      await submitResponse(presentationId, slide.id, selected);
+      await submitResponse(
+        presentationId,
+        slide.id,
+        allowMultiple ? selected : selected[0]
+      );
       onVoted();
     } catch {
       setError("Oy gönderilemedi, tekrar dene.");
@@ -34,12 +49,15 @@ export default function MultipleChoiceVote({
 
   return (
     <div className="flex flex-col gap-3">
+      {allowMultiple && (
+        <p className="text-muted text-sm font-semibold">Birden fazla seçebilirsin</p>
+      )}
       {slide.options.map((option, i) => (
         <button
           key={i}
-          onClick={() => setSelected(i)}
+          onClick={() => toggle(i)}
           className={`w-full text-left px-4 py-4 rounded-2xl border-2 font-semibold cursor-pointer transition-all duration-200 active:scale-[0.98] ${
-            selected === i
+            selected.includes(i)
               ? "border-accent bg-accent-soft/50 shadow-md shadow-accent/10"
               : "border-line bg-white hover:border-muted shadow-sm"
           }`}
@@ -54,7 +72,7 @@ export default function MultipleChoiceVote({
       ))}
       <button
         onClick={vote}
-        disabled={selected === null || sending}
+        disabled={selected.length === 0 || sending}
         className="btn-accent mt-2 w-full py-4"
       >
         {sending ? "Gönderiliyor…" : "Gönder"}
