@@ -39,8 +39,10 @@ export default function AudiencePage() {
   const [extraSeeds, setExtraSeeds] = useState<string[]>([]);
 
   useEffect(() => {
-    setNickname(getStoredNickname());
+    const n = getStoredNickname();
+    setNickname(n);
     setAvatarSeed(getStoredAvatarSeed());
+    if (n) setDraft(n);
     setIdentityLoaded(true);
   }, []);
 
@@ -90,8 +92,9 @@ export default function AudiencePage() {
     return <Centered><p className="text-xl font-medium">Sunum bulunamadı.</p></Centered>;
   }
 
-  // 1) Kimlik kapısı: avatar + takma ad (yalnızca ilk giriş — sonrası kalıcı)
-  if (!nickname) {
+  // 1) Kimlik kapısı: avatar + takma ad (yalnızca ilk giriş — sonrası kalıcı).
+  // Avatarı olmayan eski kayıtlar (emoji dönemi) da bir kez seçici görür.
+  if (!nickname || !avatarSeed) {
     return (
       <Centered>
         <p className="eyebrow mb-2">{presentation.title}</p>
