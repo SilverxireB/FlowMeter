@@ -26,48 +26,47 @@
 ```
 FlowMeter/
 ├─ CLAUDE.md                      ✅ Proje anayasası
-├─ README.md                      🔜 Kısa tanıtım + kurulum
+├─ README.md                      ✅ Kısa tanıtım + kurulum
 ├─ docs/
 │  ├─ SITEMAP.md                  ✅ Bu dosya
 │  └─ ROADMAP.md                  ✅ Fazlar & özellik listesi
-├─ .env.example                   🔜 NEXT_PUBLIC_FIREBASE_* şablonu
-├─ firestore.rules                🔜 Güvenlik kuralları
-├─ next.config.mjs                🔜
-├─ tailwind.config.ts             🔜
-├─ package.json                   🔜
+├─ .env.example                   ✅ NEXT_PUBLIC_FIREBASE_* şablonu
+├─ firestore.rules                ✅ Güvenlik kuralları (v1)
+├─ next.config.mjs                ✅
+├─ tailwind.config.ts             ✅ brand renkleri (navy/blue/sky)
+├─ postcss.config.mjs             ✅
+├─ package.json                   ✅
 │
 ├─ src/
 │  ├─ app/
-│  │  ├─ layout.tsx               🔜 Kök layout (font, tema)
-│  │  ├─ page.tsx                 🔜 Landing + kod girişi
-│  │  ├─ join/[code]/page.tsx     🔜 Kod çözümle → /p/[id]
-│  │  ├─ p/[id]/page.tsx          🔜 Audience oylama ekranı
-│  │  ├─ login/page.tsx           🔜
-│  │  ├─ dashboard/page.tsx       🔜 Sunum listesi
-│  │  ├─ edit/[id]/page.tsx       🔜 Slayt editörü
-│  │  ├─ present/[id]/page.tsx    🔜 Tam ekran sunum modu
-│  │  └─ results/[id]/page.tsx    🔜 Sonuç inceleme
+│  │  ├─ layout.tsx               ✅ Kök layout (tr, metadata)
+│  │  ├─ page.tsx                 ✅ Landing + 6 haneli kod girişi
+│  │  ├─ join/[code]/page.tsx     ✅ Kod çözümle → /p/[id]
+│  │  ├─ p/[id]/page.tsx          ✅ Audience oylama ekranı (canlı slayt takibi)
+│  │  ├─ login/page.tsx           ✅ Google + email/şifre
+│  │  ├─ dashboard/page.tsx       ✅ Sunum listesi + CRUD
+│  │  ├─ edit/[id]/page.tsx       ✅ Slayt editörü (SlideEditor bileşeni içinde)
+│  │  ├─ present/[id]/page.tsx    ✅ Tam ekran sunum modu (klavye ←/→, canlı sonuç)
+│  │  └─ results/[id]/page.tsx    🔜 Sonuç inceleme (Faz 2)
 │  │
 │  ├─ components/
-│  │  ├─ ui/                      🔜 Button, Input, Modal, Card... (ortak parçalar)
-│  │  ├─ editor/                  🔜 SlideList, SlidePreview, SettingsPanel, SlideTypeMenu
-│  │  ├─ present/                 🔜 JoinBanner (kod+QR), SlideControls, LiveCounter
-│  │  ├─ vote/                    🔜 Slayt tipi başına oylama formu:
-│  │  │                              MultipleChoiceVote, WordCloudVote, OpenEndedVote,
-│  │  │                              ScalesVote, RankingVote, QnaVote, QuizVote
-│  │  └─ results/                 🔜 Slayt tipi başına canlı sonuç görseli:
-│  │                                 BarChartResult, WordCloudResult, OpenEndedResult,
-│  │                                 ScalesResult, RankingResult, QnaResult, Leaderboard
+│  │  ├─ vote/
+│  │  │  ├─ MultipleChoiceVote.tsx ✅
+│  │  │  ├─ WordCloudVote.tsx      ✅ (kişi başı maxEntries hakkı)
+│  │  │  └─ OpenEndedVote, ScalesVote, RankingVote, QnaVote, QuizVote 🔜 Faz 2-3
+│  │  └─ results/
+│  │     ├─ BarChartResult.tsx     ✅ saf CSS canlı bar chart
+│  │     ├─ WordCloudResult.tsx    ✅ frekansla büyüyen kelime bulutu
+│  │     └─ OpenEndedResult, ScalesResult, RankingResult, QnaResult, Leaderboard 🔜 Faz 2-3
 │  │
 │  ├─ lib/
-│  │  ├─ firebase.ts              🔜 Firebase app/db/auth lazy init
-│  │  ├─ types.ts                 🔜 Presentation, Slide, Response, SlideType tipleri
-│  │  ├─ presentations.ts         🔜 CRUD + joinCode üretimi
-│  │  ├─ responses.ts             🔜 Oy gönderme + mükerrer oy kontrolü
-│  │  └─ hooks/                   🔜 usePresentation, useSlides, useLiveResponses,
-│  │                                 useCurrentSlide (onSnapshot tabanlı)
+│  │  ├─ firebase.ts              ✅ Lazy init (env yokken build kırılmaz)
+│  │  ├─ types.ts                 ✅ Presentation, Slide, ResponseDoc, SlideType
+│  │  ├─ presentations.ts         ✅ CRUD + joinCode üretimi + slayt CRUD
+│  │  ├─ responses.ts             ✅ Oy gönderme + localStorage voterId/mükerrer oy
+│  │  └─ hooks.ts                 ✅ useAuthUser, usePresentation, useSlides, useLiveResponses
 │  │
-│  └─ styles/globals.css          🔜
+│  └─ styles/globals.css          ✅ Tailwind + dataviz kategorik palet değişkenleri
 ```
 
 ## 3. Veri Akışı Özeti

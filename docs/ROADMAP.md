@@ -5,16 +5,16 @@ Kaynak araştırma: Mentimeter'da en popüler slayt tipleri **multiple choice** 
 **word cloud**; onları quiz (leaderboard'lu), anonim Q&A ve scales izliyor.
 Katılım akışı: menti.com'a 6 haneli kod / QR / link ile giriş → oy → canlı sonuç.
 
-## Faz 1 — MVP: "Kod gir, oy ver, canlı gör" ✅ hedef ilk deploy
+## Faz 1 — MVP: "Kod gir, oy ver, canlı gör" ✅ TAMAMLANDI
 
-- [ ] Next.js + Tailwind + Firebase iskeleti, Vercel'e deploy edilebilir durumda
-- [ ] Landing (`/`): 6 haneli kod girişi
-- [ ] Presenter auth (Google + email) ve `/dashboard` sunum CRUD
-- [ ] Editör (basit): slayt ekle/sil/sırala, **multiple-choice** ve **word-cloud** tipleri
-- [ ] `/present`: tam ekran soru + join kodu banner'ı + canlı sonuçlar (onSnapshot)
-- [ ] `/p/[id]`: audience oylama (auth yok), mükerrer oy engeli (localStorage voterId)
-- [ ] Canlı sonuçlar: bar chart (multiple-choice), büyüyen kelime bulutu (word-cloud)
-- [ ] firestore.rules v1
+- [x] Next.js + Tailwind + Firebase iskeleti, Vercel'e deploy edilebilir durumda
+- [x] Landing (`/`): 6 haneli kod girişi
+- [x] Presenter auth (Google + email) ve `/dashboard` sunum CRUD
+- [x] Editör (basit): slayt ekle/sil, **multiple-choice** ve **word-cloud** tipleri
+- [x] `/present`: tam ekran soru + join kodu banner'ı + canlı sonuçlar (onSnapshot)
+- [x] `/p/[id]`: audience oylama (auth yok), mükerrer oy engeli (localStorage voterId)
+- [x] Canlı sonuçlar: bar chart (multiple-choice), büyüyen kelime bulutu (word-cloud)
+- [x] firestore.rules v1
 
 ## Faz 2 — Çekirdek Mentimeter deneyimi
 

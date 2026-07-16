@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Sunumlar: herkes okuyabilir (izleyiciler auth'suz katılır),
+    // sadece sahibi yazabilir.
+    match /presentations/{presentationId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && resource.data.ownerId == request.auth.uid;
+
+      match /slides/{slideId} {
+        allow read: if true;
+        allow create, update, delete: if request.auth != null
+          && get(/databases/$(database)/documents/presentations/$(presentationId))
+             .data.ownerId == request.auth.uid;
+
+        // Oylar: herkes ekleyebilir (anonim izleyici), ama asla
+        // değiştirilemez/silinemez — sadece create.
+        match /responses/{responseId} {
+          allow read: if true;
+          allow create: if request.resource.data.keys()
+              .hasOnly(['voterId', 'value', 'createdAt'])
+            && request.resource.data.voterId is string;
+          allow update, delete: if false;
+        }
+      }
+    }
+
+    // Join kodu -> sunum ID lookup tablosu.
+    match /joinCodes/{code} {
+      allow read: if true;
+      allow create, delete: if request.auth != null;
+      allow update: if false;
+    }
+  }
+}
