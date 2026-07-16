@@ -32,9 +32,12 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
       upload gerektirmez, anında çalışır
 - [ ] Arka plan resmi: hazır galeri + URL ile özel görsel; present ve audience
       ekranlarına uygulanır (okunabilirlik için otomatik karartma katmanı)
-- [ ] Marka logosu: küçük görsel (≤150KB) base64 olarak Firestore'da
-      (Firebase Storage yeni projelerde Blaze istiyor — Spark'ta kalıyoruz);
-      present ekranı köşesinde ve audience başlığında gösterim
+- [ ] Görsel yükleme altyapısı: **Cloudinary** (unsigned upload preset —
+      client-side, sunucu kodu yok, ücretsiz katman; Firebase Storage Blaze
+      istediği için). Env: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME +
+      NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET. Alternatif: Vercel Blob (API route gerekir)
+- [ ] Marka logosu: Cloudinary'ye yüklenir, present köşesi + audience başlığında;
+      arka plan görselleri f_auto,q_auto,w_1920 dönüşümüyle optimize servis edilir
 - [ ] Editörde "Tema" sekmesi: tema seç, logo yükle, arka plan seç/önizle
 
 ### 2c. Editör güçlendirme (sunum hazırlama)
