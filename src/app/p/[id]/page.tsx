@@ -37,7 +37,6 @@ export default function AudiencePage() {
   const [draft, setDraft] = useState("");
   const [draftSeed, setDraftSeed] = useState<string>(AVATAR_SEEDS[0]);
   const [extraSeeds, setExtraSeeds] = useState<string[]>([]);
-  const [editingIdentity, setEditingIdentity] = useState(false);
 
   useEffect(() => {
     setNickname(getStoredNickname());
@@ -75,14 +74,6 @@ export default function AudiencePage() {
     storeIdentity(clean, draftSeed);
     setNickname(clean);
     setAvatarSeed(draftSeed);
-    setEditingIdentity(false);
-  }
-
-  /** Kayıtlı kimliği düzenlemek için seçim ekranını tekrar aç. */
-  function openIdentityEditor() {
-    setDraft(nickname ?? "");
-    setDraftSeed(avatarSeed ?? AVATAR_SEEDS[0]);
-    setEditingIdentity(true);
   }
 
   /** Galeriye 8 rastgele avatar ekle ("karıştır"). */
@@ -99,8 +90,8 @@ export default function AudiencePage() {
     return <Centered><p className="text-xl font-medium">Sunum bulunamadı.</p></Centered>;
   }
 
-  // 1) Kimlik kapısı: avatar + takma ad (ilk giriş VEYA kimlik düzenleme)
-  if (!nickname || editingIdentity) {
+  // 1) Kimlik kapısı: avatar + takma ad (yalnızca ilk giriş — sonrası kalıcı)
+  if (!nickname) {
     return (
       <Centered>
         <p className="eyebrow mb-2">{presentation.title}</p>
@@ -164,13 +155,7 @@ export default function AudiencePage() {
           Hoş geldin, {nickname}!
         </h1>
         <p className="text-muted">{presentation.title}</p>
-        <button
-          onClick={openIdentityEditor}
-          className="mt-4 text-accent hover:text-accent-dark text-sm font-bold cursor-pointer"
-        >
-          ✎ Avatarını / adını değiştir
-        </button>
-        <p className="text-muted mt-6 animate-pulse">Sunumun başlaması bekleniyor…</p>
+        <p className="text-muted mt-8 animate-pulse">Sunumun başlaması bekleniyor…</p>
       </Centered>
     );
   }
@@ -190,15 +175,10 @@ export default function AudiencePage() {
           )}
           FlowMeter
         </span>
-        <button
-          onClick={openIdentityEditor}
-          title="Avatarını / adını değiştir"
-          className="flex items-center gap-2 bg-paper border border-line rounded-full pl-1 pr-3 py-1 text-sm font-semibold cursor-pointer hover:border-accent transition-colors"
-        >
+        <span className="flex items-center gap-2 bg-paper border border-line rounded-full pl-1 pr-3 py-1 text-sm font-semibold">
           <Avatar seed={avatarSeed ?? "Luna"} size={24} />
           <span className="truncate max-w-[9rem]">{nickname}</span>
-          <span className="text-muted" aria-hidden>✎</span>
-        </button>
+        </span>
       </header>
 
       <section key={slide.id} className="flex-1 w-full max-w-md mx-auto px-4 py-8 animate-pop">
