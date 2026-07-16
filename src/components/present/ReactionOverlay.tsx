@@ -81,7 +81,7 @@ export default function ReactionOverlay({ presentationId }: { presentationId: st
       {/* Sağ alt köşede canlı sayaç */}
       {totals.length > 0 && (
         <div
-          className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-1"
+          className="fixed bottom-20 right-4 z-40 flex flex-row items-center gap-1.5"
           aria-label="Tepki sayıları"
         >
           {totals.map(([emoji, count]) => (

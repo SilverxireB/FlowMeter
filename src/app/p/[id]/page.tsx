@@ -223,14 +223,14 @@ export default function AudiencePage() {
       </section>
 
       {/* Tepki çubuğu: her an bir emoji fırlat */}
-      <footer className="sticky bottom-0 px-4 py-3 bg-white/85 backdrop-blur border-t border-line">
-        <div className="max-w-md mx-auto flex items-center justify-center gap-2">
+      <footer className="sticky bottom-0 px-4 py-2.5 bg-white/85 backdrop-blur border-t border-line">
+        <div className="max-w-md mx-auto flex items-center justify-center gap-3">
           {REACTION_EMOJIS.map((e) => (
             <button
               key={e}
               onClick={() => sendReaction(id, e)}
               aria-label={`Tepki gönder: ${e}`}
-              className="text-2xl w-12 h-12 rounded-full bg-paper border border-line cursor-pointer transition-all duration-150 hover:scale-110 active:scale-90"
+              className="text-xl w-11 h-11 rounded-full grayscale hover:grayscale-0 active:grayscale-0 cursor-pointer transition-all duration-150 hover:scale-110 active:scale-90 hover:bg-paper"
             >
               {e}
             </button>

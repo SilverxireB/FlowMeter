@@ -1,7 +1,7 @@
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 
-export const REACTION_EMOJIS = ["❤️", "👍", "😂", "😮", "🎉"] as const;
+export const REACTION_EMOJIS = ["❤️", "👍", "🎉"] as const;
 export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
 
 let lastSent = 0;
