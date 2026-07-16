@@ -59,6 +59,13 @@ export interface ResponseDoc {
   createdAt: Timestamp | null;
 }
 
+export interface Participant {
+  /** Doküman ID = voterId (cihaz başına tek kayıt) */
+  id: string;
+  nickname: string;
+  joinedAt: Timestamp | null;
+}
+
 export const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
   "multiple-choice": "Çoktan Seçmeli",
   "word-cloud": "Kelime Bulutu",

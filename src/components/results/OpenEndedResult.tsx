@@ -9,7 +9,7 @@ export default function OpenEndedResult({ responses }: { responses: ResponseDoc[
   );
 
   if (sorted.length === 0) {
-    return <p className="text-slate-400 text-center text-lg">Cevaplar bekleniyor…</p>;
+    return <p className="text-muted text-center text-lg">Cevaplar bekleniyor…</p>;
   }
 
   return (
@@ -18,14 +18,14 @@ export default function OpenEndedResult({ responses }: { responses: ResponseDoc[
         {sorted.map((r, i) => (
           <div
             key={r.id}
-            className="bg-slate-50 border border-slate-200 rounded-xl p-4 border-l-4"
+            className="bg-paper border border-line rounded-xl p-4 border-l-4"
             style={{ borderLeftColor: `var(--series-${(i % 8) + 1})` }}
           >
-            <p className="text-slate-800 break-words">{String(r.value)}</p>
+            <p className="text-ink break-words">{String(r.value)}</p>
           </div>
         ))}
       </div>
-      <p className="text-slate-400 text-sm mt-3">{sorted.length} cevap</p>
+      <p className="text-muted text-sm mt-3">{sorted.length} cevap</p>
     </div>
   );
 }

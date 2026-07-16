@@ -27,12 +27,12 @@ export default function ScalesResult({
         return (
           <div key={i}>
             <div className="flex items-baseline justify-between mb-1">
-              <span className="font-medium text-slate-800">{statement}</span>
-              <span className="text-slate-500 text-sm tabular-nums">
+              <span className="font-medium text-ink">{statement}</span>
+              <span className="text-muted text-sm tabular-nums">
                 {avg === null ? "—" : `ort. ${avg.toFixed(1)} / ${MAX}`}
               </span>
             </div>
-            <div className="h-8 bg-slate-100 rounded-r">
+            <div className="h-8 bg-line/40 rounded-r">
               <div
                 className="h-full rounded-r transition-[width] duration-500"
                 style={{
@@ -44,7 +44,7 @@ export default function ScalesResult({
           </div>
         );
       })}
-      <p className="text-slate-400 text-sm">{responses.length} cevap</p>
+      <p className="text-muted text-sm">{responses.length} cevap</p>
     </div>
   );
 }

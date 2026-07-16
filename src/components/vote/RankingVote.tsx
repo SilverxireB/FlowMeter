@@ -42,19 +42,19 @@ export default function RankingVote({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-slate-500 text-sm">En önemliyi en üste taşı:</p>
+      <p className="text-muted text-sm">En önemliyi en üste taşı:</p>
       {order.map((optionIndex, pos) => (
         <div
           key={optionIndex}
-          className="flex items-center gap-3 bg-white rounded-xl border-2 border-slate-200 px-4 py-3"
+          className="flex items-center gap-3 bg-white rounded-xl border-2 border-line px-4 py-3"
         >
-          <span className="text-slate-400 font-semibold tabular-nums w-6">{pos + 1}.</span>
+          <span className="text-muted font-semibold tabular-nums w-6">{pos + 1}.</span>
           <span className="flex-1 font-medium">{slide.options[optionIndex]}</span>
           <div className="flex gap-1">
             <button
               onClick={() => move(pos, -1)}
               disabled={pos === 0}
-              className="w-9 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30"
+              className="w-9 h-9 rounded-lg border border-line hover:bg-paper disabled:opacity-30"
               aria-label={`${slide.options[optionIndex]} yukarı taşı`}
             >
               ↑
@@ -62,7 +62,7 @@ export default function RankingVote({
             <button
               onClick={() => move(pos, 1)}
               disabled={pos === order.length - 1}
-              className="w-9 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30"
+              className="w-9 h-9 rounded-lg border border-line hover:bg-paper disabled:opacity-30"
               aria-label={`${slide.options[optionIndex]} aşağı taşı`}
             >
               ↓
@@ -73,7 +73,7 @@ export default function RankingVote({
       <button
         onClick={vote}
         disabled={sending || order.length === 0}
-        className="mt-2 w-full bg-brand-blue hover:bg-blue-600 disabled:opacity-40 text-white font-semibold rounded-xl py-4"
+        className="mt-2 w-full bg-ink hover:bg-black disabled:opacity-40 text-white font-semibold rounded-xl py-4"
       >
         {sending ? "Gönderiliyor…" : "Sıralamayı gönder"}
       </button>

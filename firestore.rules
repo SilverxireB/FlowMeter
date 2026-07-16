@@ -11,6 +11,17 @@ service cloud.firestore {
       allow update, delete: if request.auth != null
         && resource.data.ownerId == request.auth.uid;
 
+      // Katılımcılar: izleyici kendi voterId dokümanını oluşturur/günceller
+      // (nickname). Silme yok.
+      match /participants/{participantId} {
+        allow read: if true;
+        allow create, update: if request.resource.data.keys()
+            .hasOnly(['nickname', 'joinedAt'])
+          && request.resource.data.nickname is string
+          && request.resource.data.nickname.size() <= 30;
+        allow delete: if false;
+      }
+
       match /slides/{slideId} {
         allow read: if true;
         allow create, update, delete: if request.auth != null

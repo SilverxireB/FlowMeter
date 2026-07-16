@@ -41,7 +41,8 @@ export async function createPresentation(ownerId: string, title: string): Promis
     title,
     joinCode: "",
     mode: "presenter-pace",
-    currentSlideIndex: 0,
+    currentSlideIndex: -1, // -1 = katılım (QR) ekranı
+
     isLive: false,
     createdAt: serverTimestamp(),
   });

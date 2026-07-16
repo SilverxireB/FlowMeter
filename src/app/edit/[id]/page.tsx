@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthUser, usePresentation, useSlides } from "@/lib/hooks";
-import { addSlide, deleteSlide, updateSlide } from "@/lib/presentations";
+import { addSlide, deleteSlide, setCurrentSlide, updateSlide } from "@/lib/presentations";
 import { AVAILABLE_SLIDE_TYPES, Slide, SLIDE_TYPE_LABELS, SlideType } from "@/lib/types";
 
 /** Slayt editörü: solda slayt listesi, sağda seçili slaytın ayarları. */
@@ -28,6 +28,13 @@ export default function EditPage() {
   }, [slides, selectedId]);
 
   const selected = slides.find((s) => s.id === selectedId) ?? null;
+  const isLive = presentation?.isLive ?? false;
+
+  /** Slayt seçimi: sunum canlıysa izleyicileri de bu slayta taşı (canlı senkron). */
+  function select(slideId: string, slideIndex: number) {
+    setSelectedId(slideId);
+    if (isLive) setCurrentSlide(id, slideIndex);
+  }
 
   async function add(type: SlideType) {
     const newId = await addSlide(id, type, slides.length);
@@ -39,18 +46,24 @@ export default function EditPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 flex flex-col">
-      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-3">
+    <main className="min-h-screen flex flex-col">
+      <header className="bg-white border-b border-line px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <Link href="/dashboard" className="text-slate-400 hover:text-slate-600 shrink-0">←</Link>
+          <Link href="/dashboard" className="text-muted hover:text-ink shrink-0">←</Link>
           <span className="font-semibold truncate">{presentation.title}</span>
-          <span className="text-slate-400 text-sm shrink-0 hidden sm:inline">
+          <span className="text-muted text-sm shrink-0 hidden sm:inline">
             Kod: <span className="font-mono">{presentation.joinCode}</span>
           </span>
+          {isLive && (
+            <span className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-full px-2.5 py-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              CANLI
+            </span>
+          )}
         </div>
         <Link
           href={`/present/${id}`}
-          className="bg-brand-navy hover:bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-medium shrink-0"
+          className="bg-ink hover:bg-black text-white rounded-xl px-4 py-2 text-sm font-medium shrink-0"
         >
           ▶ Sun
         </Link>
@@ -58,18 +71,18 @@ export default function EditPage() {
 
       <div className="flex-1 flex flex-col md:flex-row">
         {/* Slayt listesi */}
-        <aside className="md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-200 p-3 flex md:flex-col gap-2 overflow-auto">
+        <aside className="md:w-64 bg-white border-b md:border-b-0 md:border-r border-line p-3 flex md:flex-col gap-2 overflow-auto">
           {slides.map((s, i) => (
             <button
               key={s.id}
-              onClick={() => setSelectedId(s.id)}
-              className={`shrink-0 md:shrink text-left rounded-lg border-2 px-3 py-2 w-40 md:w-full ${
+              onClick={() => select(s.id, i)}
+              className={`shrink-0 md:shrink text-left rounded-xl border px-3 py-2 w-40 md:w-full transition-colors ${
                 s.id === selectedId
-                  ? "border-brand-blue bg-brand-sky"
-                  : "border-slate-200 hover:border-slate-300"
+                  ? "border-accent bg-accent-soft/40"
+                  : "border-line hover:border-muted"
               }`}
             >
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted">
                 {i + 1} · {SLIDE_TYPE_LABELS[s.type]}
               </p>
               <p className="text-sm font-medium truncate">{s.question}</p>
@@ -80,7 +93,7 @@ export default function EditPage() {
               <button
                 key={t}
                 onClick={() => add(t)}
-                className="border border-dashed border-slate-300 hover:border-brand-blue hover:text-brand-blue rounded-lg px-3 py-2 text-sm text-slate-500"
+                className="border border-dashed border-line hover:border-accent hover:text-accent rounded-xl px-3 py-2 text-sm text-muted transition-colors"
               >
                 + {SLIDE_TYPE_LABELS[t]}
               </button>
@@ -101,7 +114,7 @@ export default function EditPage() {
               }}
             />
           ) : (
-            <p className="text-slate-400 text-center py-16">
+            <p className="text-muted text-center py-16">
               Soldan bir slayt tipi ekleyerek başla.
             </p>
           )}
@@ -153,8 +166,8 @@ function SlideEditor({
   }
 
   return (
-    <div className="max-w-xl mx-auto bg-white rounded-2xl border border-slate-200 p-6">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-4">
+    <div className="max-w-xl mx-auto bg-white rounded-2xl border border-line p-6">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted mb-4">
         {SLIDE_TYPE_LABELS[slide.type]}
       </p>
 
@@ -162,7 +175,7 @@ function SlideEditor({
       <input
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
-        className="w-full rounded-lg border border-slate-300 px-3 py-3 mb-4 focus:outline-none focus:border-brand-blue"
+        className="w-full rounded-lg border border-line px-3 py-3 mb-4 focus:outline-none focus:border-accent"
       />
 
       {optionLabel && (
@@ -176,12 +189,12 @@ function SlideEditor({
                   onChange={(e) =>
                     setOptions(options.map((o, j) => (j === i ? e.target.value : o)))
                   }
-                  className="flex-1 rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:border-brand-blue"
+                  className="flex-1 rounded-lg border border-line px-3 py-2 focus:outline-none focus:border-accent"
                 />
                 <button
                   onClick={() => setOptions(options.filter((_, j) => j !== i))}
                   disabled={options.length <= minOptions}
-                  className="text-slate-400 hover:text-red-500 disabled:opacity-30 px-2"
+                  className="text-muted hover:text-red-500 disabled:opacity-30 px-2"
                   aria-label={`Seçenek ${i + 1} sil`}
                 >
                   ✕
@@ -192,7 +205,7 @@ function SlideEditor({
           <button
             onClick={() => setOptions([...options, `Seçenek ${options.length + 1}`])}
             disabled={options.length >= 8}
-            className="text-brand-blue text-sm font-medium mb-4 disabled:opacity-40"
+            className="text-accent text-sm font-medium mb-4 disabled:opacity-40"
           >
             + Seçenek ekle
           </button>
@@ -206,12 +219,12 @@ function SlideEditor({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 mb-4 resize-none focus:outline-none focus:border-brand-blue"
+            className="w-full rounded-lg border border-line px-3 py-2 mb-4 resize-none focus:outline-none focus:border-accent"
           />
         </>
       )}
 
-      <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+      <div className="flex items-center justify-between pt-4 border-t border-line">
         <button onClick={onDelete} className="text-red-500 hover:bg-red-50 rounded-lg px-3 py-2 text-sm">
           Slaytı sil
         </button>
@@ -220,7 +233,7 @@ function SlideEditor({
           <button
             onClick={save}
             disabled={saving}
-            className="bg-brand-blue hover:bg-blue-600 disabled:opacity-40 text-white font-semibold rounded-lg px-5 py-2"
+            className="bg-ink hover:bg-black disabled:opacity-40 text-white font-semibold rounded-lg px-5 py-2"
           >
             {saving ? "Kaydediliyor…" : "Kaydet"}
           </button>

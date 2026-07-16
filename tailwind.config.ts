@@ -5,11 +5,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // FlowMeter marka paleti (Mentimeter'ın koyu lacivert + canlı vurgu düzenine benzer)
-        brand: {
-          navy: "#10305b",
-          blue: "#2d6ff7",
-          sky: "#e8f0fe",
+        // Sade FlowMeter paleti: sıcak nötr zemin + tek mavi vurgu
+        ink: "#0b0b0b",
+        paper: "#f9f9f7",
+        line: "#e1e0d9",
+        muted: "#898781",
+        accent: {
+          DEFAULT: "#2a78d6",
+          dark: "#1c5cab",
+          soft: "#cde2fb",
         },
       },
     },

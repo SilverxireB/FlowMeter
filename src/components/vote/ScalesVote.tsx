@@ -37,7 +37,7 @@ export default function ScalesVote({
   return (
     <div className="flex flex-col gap-6">
       {slide.options.map((statement, i) => (
-        <div key={i} className="bg-white rounded-xl border-2 border-slate-200 p-4">
+        <div key={i} className="bg-white rounded-xl border-2 border-line p-4">
           <p className="font-medium mb-3">{statement}</p>
           <input
             type="range"
@@ -51,9 +51,9 @@ export default function ScalesVote({
             className="w-full accent-[#2d6ff7]"
             aria-label={`${statement} puanı`}
           />
-          <div className="flex justify-between text-sm text-slate-400 mt-1">
+          <div className="flex justify-between text-sm text-muted mt-1">
             <span>{MIN}</span>
-            <span className="font-semibold text-brand-blue text-lg tabular-nums">
+            <span className="font-semibold text-accent text-lg tabular-nums">
               {ratings[i]}
             </span>
             <span>{MAX}</span>
@@ -63,7 +63,7 @@ export default function ScalesVote({
       <button
         onClick={vote}
         disabled={sending || slide.options.length === 0}
-        className="w-full bg-brand-blue hover:bg-blue-600 disabled:opacity-40 text-white font-semibold rounded-xl py-4"
+        className="w-full bg-ink hover:bg-black disabled:opacity-40 text-white font-semibold rounded-xl py-4"
       >
         {sending ? "Gönderiliyor…" : "Gönder"}
       </button>

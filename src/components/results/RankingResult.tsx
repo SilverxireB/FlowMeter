@@ -42,17 +42,17 @@ export default function RankingResult({
         const score = item.avg === null ? 0 : (n - item.avg + 1) / n;
         return (
           <div key={item.i} className="flex items-center gap-3">
-            <span className="text-slate-400 font-bold tabular-nums w-8 text-lg">
+            <span className="text-muted font-bold tabular-nums w-8 text-lg">
               {pos + 1}.
             </span>
             <div className="flex-1">
               <div className="flex items-baseline justify-between mb-1">
-                <span className="font-medium text-slate-800">{item.option}</span>
-                <span className="text-slate-500 text-sm tabular-nums">
+                <span className="font-medium text-ink">{item.option}</span>
+                <span className="text-muted text-sm tabular-nums">
                   {item.avg === null ? "—" : `ort. sıra ${item.avg.toFixed(1)}`}
                 </span>
               </div>
-              <div className="h-6 bg-slate-100 rounded-r">
+              <div className="h-6 bg-line/40 rounded-r">
                 <div
                   className="h-full rounded-r transition-[width] duration-500"
                   style={{
@@ -65,7 +65,7 @@ export default function RankingResult({
           </div>
         );
       })}
-      <p className="text-slate-400 text-sm">{validCount} cevap</p>
+      <p className="text-muted text-sm">{validCount} cevap</p>
     </div>
   );
 }

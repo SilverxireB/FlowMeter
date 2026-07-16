@@ -50,6 +50,8 @@ FlowMeter/
 │  │  └─ results/[id]/page.tsx    🔜 Sonuç inceleme (Faz 2)
 │  │
 │  ├─ components/
+│  │  ├─ present/
+│  │  │  └─ QrCode.tsx             ✅ Katılım QR kodu (client-side üretim)
 │  │  ├─ vote/
 │  │  │  ├─ MultipleChoiceVote.tsx ✅
 │  │  │  ├─ WordCloudVote.tsx      ✅ (kişi başı maxEntries hakkı)
@@ -63,6 +65,7 @@ FlowMeter/
 │  │  ├─ firebase.ts              ✅ Lazy init (env yokken build kırılmaz)
 │  │  ├─ types.ts                 ✅ Presentation, Slide, ResponseDoc, SlideType
 │  │  ├─ presentations.ts         ✅ CRUD + joinCode üretimi + slayt CRUD
+│  │  ├─ participants.ts          ✅ Nickname (localStorage) + katılımcı kaydı + son sunum
 │  │  ├─ responses.ts             ✅ Oy gönderme + localStorage voterId/mükerrer oy
 │  │  └─ hooks.ts                 ✅ useAuthUser, usePresentation, useSlides, useLiveResponses
 │  │

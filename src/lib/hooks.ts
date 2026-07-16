@@ -4,7 +4,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { auth, db, isFirebaseConfigured } from "./firebase";
-import { Presentation, ResponseDoc, Slide } from "./types";
+import { Participant, Presentation, ResponseDoc, Slide } from "./types";
 
 /** Presenter oturumu. loading=true iken yönlendirme yapma. */
 export function useAuthUser() {
@@ -65,6 +65,21 @@ export function useSlides(presentationId: string | null) {
   }, [presentationId]);
 
   return { slides, loading };
+}
+
+/** Sunuma katılanları canlı dinler — sunum ekranındaki sayaç ve isimler. */
+export function useParticipants(presentationId: string | null) {
+  const [participants, setParticipants] = useState<Participant[]>([]);
+
+  useEffect(() => {
+    if (!presentationId || !isFirebaseConfigured()) return;
+    const q = collection(db(), "presentations", presentationId, "participants");
+    return onSnapshot(q, (snap) => {
+      setParticipants(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Participant));
+    });
+  }, [presentationId]);
+
+  return participants;
 }
 
 /** Bir slaytın cevaplarını canlı dinler — sonuç ekranlarının kalbi. */

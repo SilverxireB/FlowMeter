@@ -48,9 +48,9 @@ export default function OpenEndedVote({
         maxLength={250}
         rows={4}
         placeholder="Cevabını yaz…"
-        className="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-lg resize-none focus:outline-none focus:border-brand-blue"
+        className="w-full rounded-xl border-2 border-line px-4 py-3 text-lg resize-none focus:outline-none focus:border-accent"
       />
-      <div className="flex justify-between text-sm text-slate-400">
+      <div className="flex justify-between text-sm text-muted">
         <span>{text.length}/250</span>
         {maxEntries > 1 && (
           <span>{remaining > 0 ? `${remaining} hakkın kaldı` : "Hakların bitti"}</span>
@@ -59,7 +59,7 @@ export default function OpenEndedVote({
       <button
         type="submit"
         disabled={!text.trim() || sending || remaining <= 0}
-        className="w-full bg-brand-blue hover:bg-blue-600 disabled:opacity-40 text-white font-semibold rounded-xl py-4"
+        className="w-full bg-ink hover:bg-black disabled:opacity-40 text-white font-semibold rounded-xl py-4"
       >
         {sending ? "Gönderiliyor…" : "Gönder"}
       </button>

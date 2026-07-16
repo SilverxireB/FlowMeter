@@ -28,12 +28,12 @@ export default function BarChartResult({
         return (
           <div key={i}>
             <div className="flex items-baseline justify-between mb-1">
-              <span className="font-medium text-slate-800">{option}</span>
-              <span className="text-slate-500 text-sm tabular-nums">
+              <span className="font-medium text-ink">{option}</span>
+              <span className="text-muted text-sm tabular-nums">
                 {count} oy · %{pct}
               </span>
             </div>
-            <div className="h-8 bg-slate-100 rounded-r">
+            <div className="h-8 bg-line/40 rounded-r">
               <div
                 className="h-full rounded-r transition-[width] duration-500"
                 style={{
@@ -46,7 +46,7 @@ export default function BarChartResult({
           </div>
         );
       })}
-      <p className="text-slate-400 text-sm">{total} cevap</p>
+      <p className="text-muted text-sm">{total} cevap</p>
     </div>
   );
 }

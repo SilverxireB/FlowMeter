@@ -19,12 +19,16 @@ Katılım akışı: menti.com'a 6 haneli kod / QR / link ile giriş → oy → c
 ## Faz 2 — Çekirdek Mentimeter deneyimi
 
 - [ ] Slayt tipleri: **open-ended**, **scales (1–5)**, **ranking**, **content** (oysuz slayt)
-- [ ] Presenter-pace canlı senkron: presenter slayt değiştirince audience ekranı otomatik geçer
+- [x] Presenter-pace canlı senkron: present ekranından VE editörden (canlıyken) slayt geçişi
 - [ ] Audience-pace (anket/survey modu): izleyici kendi hızında ilerler
-- [ ] QR kod ile katılım (present ekranında)
+- [x] QR kod ile katılım: sunum başında büyük QR'lı katılım ekranı (index -1)
+- [x] Katılımcı nickname'i (auth yok, localStorage) + son sunumu hatırlama (landing'de "geri dön")
+- [x] Canlı katılımcı sayacı ve isim rozetleri (participants alt koleksiyonu)
+- [x] Landing sadeleştirildi: yalnızca PIN girişi; sunucu girişi /dashboard üzerinden
+- [x] Login sadece Google
+- [x] Sade tasarım dili: sıcak nötr zemin, tek vurgu rengi, hairline kenarlıklar
 - [ ] Editörde ayar paneli: çoklu seçim izni, kişi başı N kelime, sonuçları gizle/göster
-- [ ] Oylamayı aç/kapat (close voting), cevapları sıfırla
-- [ ] Katılımcı sayacı (kaç kişi katıldı)
+- [ ] Oylamayı aç/kapat (close voting), cevapları sıfırla — izleyici tarafı hazır, sunucu düğmesi eksik
 
 ## Faz 3 — Etkileşim & rekabet
 

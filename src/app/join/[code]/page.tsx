@@ -25,19 +25,22 @@ export default function JoinPage() {
   }, [code, router]);
 
   return (
-    <main className="min-h-screen bg-brand-navy flex flex-col items-center justify-center px-4 text-center">
+    <main className="min-h-screen flex flex-col items-center justify-center px-4 text-center">
       {notFound ? (
         <>
-          <p className="text-white text-2xl font-semibold mb-2">Sunum bulunamadı</p>
-          <p className="text-white/60 mb-6">
+          <p className="text-2xl font-semibold mb-2">Sunum bulunamadı</p>
+          <p className="text-muted mb-6">
             <span className="font-mono">{code}</span> koduna ait aktif bir sunum yok.
           </p>
-          <Link href="/" className="bg-brand-blue text-white font-medium px-5 py-3 rounded-lg">
+          <Link
+            href="/"
+            className="bg-ink hover:bg-black text-white font-medium px-5 py-3 rounded-2xl"
+          >
             Kodu tekrar gir
           </Link>
         </>
       ) : (
-        <p className="text-white/80 text-lg animate-pulse">Sunuma bağlanılıyor…</p>
+        <p className="text-muted text-lg animate-pulse">Sunuma bağlanılıyor…</p>
       )}
     </main>
   );

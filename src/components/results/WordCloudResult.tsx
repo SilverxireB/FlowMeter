@@ -20,7 +20,7 @@ export default function WordCloudResult({ responses }: { responses: ResponseDoc[
   }, [responses]);
 
   if (words.length === 0) {
-    return <p className="text-slate-400 text-center text-lg">Cevaplar bekleniyor…</p>;
+    return <p className="text-muted text-center text-lg">Cevaplar bekleniyor…</p>;
   }
 
   const max = words[0][1];
