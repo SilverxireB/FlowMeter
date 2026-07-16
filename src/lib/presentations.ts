@@ -79,6 +79,17 @@ export async function resolveJoinCode(code: string): Promise<string | null> {
   return snap.exists() ? (snap.data().presentationId as string) : null;
 }
 
+export async function updateTheme(
+  presentationId: string,
+  theme: Record<string, string | undefined>
+): Promise<void> {
+  // Firestore undefined kabul etmez — boş alanları ayıkla
+  const clean = Object.fromEntries(
+    Object.entries(theme).filter(([, v]) => v !== undefined && v !== null)
+  );
+  await updateDoc(doc(db(), "presentations", presentationId), { theme: clean });
+}
+
 export async function setCurrentSlide(presentationId: string, index: number): Promise<void> {
   await updateDoc(doc(db(), "presentations", presentationId), {
     currentSlideIndex: index,

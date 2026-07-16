@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import ThemePanel from "@/components/editor/ThemePanel";
 import { useAuthUser, usePresentation, useSlides } from "@/lib/hooks";
 import { addSlide, deleteSlide, setCurrentSlide, updateSlide } from "@/lib/presentations";
 import { AVAILABLE_SLIDE_TYPES, Slide, SLIDE_TYPE_LABELS, SlideType } from "@/lib/types";
@@ -15,6 +16,7 @@ export default function EditPage() {
   const { presentation } = usePresentation(id);
   const { slides } = useSlides(id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [themeOpen, setThemeOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
@@ -61,12 +63,14 @@ export default function EditPage() {
             </span>
           )}
         </div>
-        <Link
-          href={`/present/${id}`}
-          className="btn-primary !py-2 !px-4 text-sm shrink-0"
-        >
-          ▶ Sun
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => setThemeOpen(true)} className="btn-ghost !py-2 !px-4 text-sm">
+            🎨 Tema
+          </button>
+          <Link href={`/present/${id}`} className="btn-primary !py-2 !px-4 text-sm">
+            ▶ Sun
+          </Link>
+        </div>
       </header>
 
       <div className="flex-1 flex flex-col md:flex-row">
@@ -120,6 +124,14 @@ export default function EditPage() {
           )}
         </section>
       </div>
+
+      {themeOpen && (
+        <ThemePanel
+          presentationId={id}
+          theme={presentation.theme}
+          onClose={() => setThemeOpen(false)}
+        />
+      )}
     </main>
   );
 }

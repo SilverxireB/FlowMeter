@@ -19,6 +19,7 @@ import {
   storeLastPresentation,
 } from "@/lib/participants";
 import { getVoteCount } from "@/lib/responses";
+import { themeStyle } from "@/lib/themes";
 import { Slide } from "@/lib/types";
 
 /** İzleyici ekranı — auth yok, mobile-first. Aktif slaytı canlı takip eder. */
@@ -160,11 +161,19 @@ export default function AudiencePage() {
 
   const hasVoted = votedSlideIds.has(slide.id);
   const markVoted = () => setVotedSlideIds((prev) => new Set(prev).add(slide.id));
+  const { style: themeBg, dark } = themeStyle(presentation.theme);
+  const logo = presentation.theme?.logo;
 
   return (
-    <main className="min-h-screen flex flex-col bg-wash">
+    <main className="min-h-screen flex flex-col" style={themeBg}>
       <header className="px-4 py-3 flex items-center justify-between border-b border-line bg-white/80 backdrop-blur">
-        <span className="font-extrabold tracking-tight">FlowMeter</span>
+        <span className="flex items-center gap-2 font-extrabold tracking-tight">
+          {logo && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logo} alt="Logo" className="h-6 w-auto" />
+          )}
+          FlowMeter
+        </span>
         <span className="flex items-center gap-2 bg-paper border border-line rounded-full pl-1 pr-3 py-1 text-sm font-semibold">
           <Avatar seed={avatarSeed ?? "Luna"} size={24} />
           <span className="truncate max-w-[9rem]">{nickname}</span>
@@ -184,7 +193,7 @@ export default function AudiencePage() {
           ))}
         </div>
 
-        <h1 className="text-2xl font-extrabold tracking-tight mb-6">{slide.question}</h1>
+        <h1 className={`text-2xl font-extrabold tracking-tight mb-6 ${dark ? "text-white" : ""}`}>{slide.question}</h1>
 
         {presentation.votingClosed ? (
           <StatusCard emoji="🔒" title="Oylama kapalı" text="Sunucu oylamayı tekrar açana kadar bekle." />

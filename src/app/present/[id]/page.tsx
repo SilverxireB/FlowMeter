@@ -18,6 +18,7 @@ import {
   useSlides,
 } from "@/lib/hooks";
 import { setCurrentSlide } from "@/lib/presentations";
+import { themeStyle } from "@/lib/themes";
 import { SLIDE_TYPE_LABELS } from "@/lib/types";
 
 /**
@@ -76,11 +77,19 @@ export default function PresentPage() {
     );
   }
 
+  const { style: themeBg, dark } = themeStyle(presentation.theme);
+  const logo = presentation.theme?.logo;
+
   return (
-    <main className="min-h-screen flex flex-col bg-wash">
+    <main className="min-h-screen flex flex-col" style={themeBg}>
       <header className="px-6 py-3.5 flex items-center justify-between border-b border-line bg-white/80 backdrop-blur">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-brand animate-pulse" aria-hidden />
+          {logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logo} alt="Logo" className="h-7 w-auto" />
+          ) : (
+            <span className="w-2.5 h-2.5 rounded-full bg-brand animate-pulse" aria-hidden />
+          )}
           <span className="font-display font-semibold tracking-tight">FlowMeter</span>
         </div>
         <p className="hidden sm:block text-sm text-muted">
@@ -107,18 +116,22 @@ export default function PresentPage() {
               {joinUrl && <QrCode text={joinUrl} size={300} />}
             </div>
             <div className="flex-1 text-center md:text-left">
-              <p className="eyebrow mb-3">Canlı sunum</p>
-              <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-4">
+              {logo && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logo} alt="Logo" className="h-12 w-auto mb-4 inline-block" />
+              )}
+              <p className={`eyebrow mb-3 ${dark ? "!text-white/60" : ""}`}>Canlı sunum</p>
+              <h1 className={`font-display text-4xl md:text-5xl font-semibold tracking-tight mb-4 ${dark ? "text-white" : ""}`}>
                 {presentation.title}
               </h1>
-              <p className="text-muted text-lg mb-1">
-                QR kodu okut veya <span className="font-semibold text-ink">{host}</span>
+              <p className={`text-lg mb-1 ${dark ? "text-white/70" : "text-muted"}`}>
+                QR kodu okut veya <span className={`font-semibold ${dark ? "text-white" : "text-ink"}`}>{host}</span>
                 &apos;a gir, kodu yaz:
               </p>
-              <p className="font-display text-6xl md:text-7xl font-semibold tracking-[0.18em] text-brand mb-8">
+              <p className={`font-display text-6xl md:text-7xl font-semibold tracking-[0.18em] mb-8 ${dark ? "text-white" : "text-brand"}`}>
                 {presentation.joinCode}
               </p>
-              <p className="text-muted text-sm mb-3 tabular-nums font-semibold">
+              <p className={`text-sm mb-3 tabular-nums font-semibold ${dark ? "text-white/70" : "text-muted"}`}>
                 {participants.length} kişi katıldı
               </p>
               <div className="flex flex-wrap gap-2 justify-center md:justify-start max-h-36 overflow-hidden">

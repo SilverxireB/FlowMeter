@@ -1,4 +1,5 @@
 import { Timestamp } from "firebase/firestore";
+import { PresentationTheme } from "./themes";
 
 export type SlideType =
   | "multiple-choice"
@@ -22,6 +23,8 @@ export interface Presentation {
   isLive: boolean;
   /** true iken izleyiciler yeni cevap gönderemez */
   votingClosed?: boolean;
+  /** Görsel kimlik: hazır tema + arka plan görseli + logo */
+  theme?: PresentationTheme;
   createdAt: Timestamp | null;
 }
 
