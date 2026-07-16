@@ -6,12 +6,16 @@ import { useEffect, useState } from "react";
 import Avatar from "@/components/Avatar";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
+import ChatPanel from "@/components/present/ChatPanel";
 import Leaderboard from "@/components/present/Leaderboard";
+import LeaderboardSlide from "@/components/present/LeaderboardSlide";
 import ReactionOverlay from "@/components/present/ReactionOverlay";
 import BarChartResult from "@/components/results/BarChartResult";
 import OpenEndedResult from "@/components/results/OpenEndedResult";
+import PinOnImageResult from "@/components/results/PinOnImageResult";
 import QnaResult from "@/components/results/QnaResult";
 import QuizResult from "@/components/results/QuizResult";
+import QuizTypeResult from "@/components/results/QuizTypeResult";
 import RankingResult from "@/components/results/RankingResult";
 import ScalesResult from "@/components/results/ScalesResult";
 import WordCloudResult from "@/components/results/WordCloudResult";
@@ -29,13 +33,14 @@ import {
   setVotingClosed,
   startQuiz,
 } from "@/lib/presentations";
+import { startQuizMusic, stopQuizMusic } from "@/lib/quizMusic";
 import { themeStyle } from "@/lib/themes";
-import { SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/lib/types";
+import { INTERACTIVE_SLIDE_TYPES, SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/lib/types";
 
 /**
  * Sunum modu. index -1 = katılım ekranı (büyük QR + kod + gelen isimler),
  * 0..n-1 = slaytlar (köşede mini QR kartı — geç gelenler de katılabilsin).
- * Klavye ←/→ ile gezinir.
+ * Klavye ←/→ ile gezinir; "atlandı" işaretli slaytların üzerinden geçer.
  */
 export default function PresentPage() {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +53,7 @@ export default function PresentPage() {
   const [host, setHost] = useState("flowmeter");
   const [hideResults, setHideResults] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   function toggleFullscreen() {
     if (document.fullscreenElement) document.exitFullscreen();
@@ -58,6 +64,20 @@ export default function PresentPage() {
   const index = Math.min(rawIndex, slides.length - 1);
   const slide = rawIndex < 0 ? undefined : slides[index];
   const responses = useLiveResponses(id, slide?.id ?? null);
+
+  /** dir yönünde, atlanmayan bir sonraki slayt index'i (-1 = katılım ekranı). */
+  function nextVisibleIndex(from: number, dir: -1 | 1): number | null {
+    let i = from + dir;
+    while (i >= 0 && i < slides.length && slides[i]?.settings?.skipped) i += dir;
+    if (dir === -1 && i <= -1) return from > -1 ? -1 : null;
+    if (i < -1 || i >= slides.length) return null;
+    return i;
+  }
+
+  function go(dir: -1 | 1) {
+    const next = nextVisibleIndex(rawIndex, dir);
+    if (next !== null) setCurrentSlide(id, next);
+  }
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
@@ -79,20 +99,41 @@ export default function PresentPage() {
 
   // Quiz slaytı açılınca geri sayımı bir kez başlat
   useEffect(() => {
-    if (slide?.type === "quiz" && !slide.quizStartedAt) {
+    if ((slide?.type === "quiz" || slide?.type === "quiz-type") && !slide.quizStartedAt) {
       startQuiz(id, slide.id);
     }
   }, [id, slide]);
 
+  // Quiz müziği: geri sayım sürerken çal, süre dolunca / slayt değişince sus
+  useEffect(() => {
+    const isQuiz = slide?.type === "quiz" || slide?.type === "quiz-type";
+    if (!isQuiz || !slide?.settings?.music || !slide.quizStartedAt) {
+      stopQuizMusic();
+      return;
+    }
+    const endMs = slide.quizStartedAt.toMillis() + (slide.settings?.timeLimit ?? 20) * 1000;
+    if (Date.now() >= endMs) {
+      stopQuizMusic();
+      return;
+    }
+    startQuizMusic();
+    const t = window.setTimeout(stopQuizMusic, endMs - Date.now());
+    return () => {
+      window.clearTimeout(t);
+      stopQuizMusic();
+    };
+  }, [slide]);
+
   // Klavye ile gezinme (←/→), -1 katılım ekranına kadar geri gidilebilir
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "ArrowRight" && rawIndex < slides.length - 1) setCurrentSlide(id, rawIndex + 1);
-      if (e.key === "ArrowLeft" && rawIndex > -1) setCurrentSlide(id, rawIndex - 1);
+      if (e.key === "ArrowRight") go(1);
+      if (e.key === "ArrowLeft") go(-1);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [id, rawIndex, slides.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, rawIndex, slides]);
 
   if (!presentation) {
     return (
@@ -102,8 +143,15 @@ export default function PresentPage() {
     );
   }
 
-  const { style: themeBg, dark } = themeStyle(presentation.theme);
+  const { style: themeBg } = themeStyle(presentation.theme);
+  const dark = themeStyle(presentation.theme).dark;
   const logo = presentation.theme?.logo;
+  const collectsVotes =
+    slide && INTERACTIVE_SLIDE_TYPES.includes(slide.type) && slide.type !== "qna";
+  const slideImage =
+    slide && slide.type !== "pin-on-image" && slide.type !== "image"
+      ? slide.settings?.image
+      : undefined;
 
   return (
     <main className="min-h-screen flex flex-col" style={themeBg}>
@@ -180,37 +228,107 @@ export default function PresentPage() {
         ) : slide ? (
           <>
             <div key={slide.id} className="w-full max-w-5xl card p-8 md:p-12 animate-pop">
-              <p className="eyebrow mb-3">{SLIDE_TYPE_ICONS[slide.type]} {SLIDE_TYPE_LABELS[slide.type]}</p>
+              <div className="flex items-start justify-between gap-4">
+                <p className="eyebrow mb-3">
+                  {slide.settings?.label?.trim() ||
+                    `${SLIDE_TYPE_ICONS[slide.type]} ${SLIDE_TYPE_LABELS[slide.type]}`}
+                </p>
+                {/* "X / Y yanıtladı" — Menti'deki responded sayacı */}
+                {collectsVotes && participants.length > 0 && (
+                  <span className="chip tabular-nums shrink-0" title="Yanıt veren katılımcı">
+                    {new Set(responses.map((r) => r.voterId)).size} / {participants.length} yanıtladı
+                  </span>
+                )}
+              </div>
               <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-tight mb-10 lg:pr-32">
                 {slide.question}
               </h1>
-              {hideResults ? (
-                <div className="text-center py-16">
-                  <p className="text-5xl mb-4" aria-hidden>🙈</p>
-                  <p className="text-xl font-bold">Sonuçlar gizli</p>
-                  <p className="text-muted mt-1 tabular-nums">{responses.length} cevap toplandı</p>
+              <div className={slideImage ? "grid md:grid-cols-[minmax(0,320px)_1fr] gap-8 items-start" : ""}>
+                {slideImage && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={slideImage}
+                    alt=""
+                    className="w-full h-auto rounded-2xl border border-line bg-white"
+                  />
+                )}
+                <div className="min-w-0">
+                  {hideResults && collectsVotes ? (
+                    <div className="text-center py-16">
+                      <p className="text-5xl mb-4" aria-hidden>🙈</p>
+                      <p className="text-xl font-bold">Sonuçlar gizli</p>
+                      <p className="text-muted mt-1 tabular-nums">{responses.length} cevap toplandı</p>
+                    </div>
+                  ) : slide.type === "multiple-choice" ? (
+                    <BarChartResult slide={slide} responses={responses} />
+                  ) : slide.type === "word-cloud" ? (
+                    <div className="min-h-[18rem] flex items-center justify-center">
+                      <WordCloudResult responses={responses} />
+                    </div>
+                  ) : slide.type === "open-ended" ? (
+                    <OpenEndedResult responses={responses} />
+                  ) : slide.type === "scales" ? (
+                    <ScalesResult slide={slide} responses={responses} />
+                  ) : slide.type === "ranking" ? (
+                    <RankingResult slide={slide} responses={responses} />
+                  ) : slide.type === "quiz" ? (
+                    <QuizResult slide={slide} responses={responses} />
+                  ) : slide.type === "quiz-type" ? (
+                    <QuizTypeResult slide={slide} responses={responses} />
+                  ) : slide.type === "pin-on-image" ? (
+                    <PinOnImageResult slide={slide} responses={responses} />
+                  ) : slide.type === "qna" ? (
+                    <QnaResult presentationId={id} />
+                  ) : slide.type === "leaderboard" ? (
+                    <LeaderboardSlide presentationId={id} slides={slides} participants={participants} />
+                  ) : slide.type === "image" ? (
+                    <div className="flex flex-col items-center gap-4">
+                      {slide.settings?.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={slide.settings.image}
+                          alt={slide.question}
+                          className="max-h-[26rem] w-auto max-w-full rounded-2xl border border-line"
+                        />
+                      ) : (
+                        <p className="text-muted py-10">Editörden görsel ekleyin.</p>
+                      )}
+                      {slide.settings?.description && (
+                        <p className="text-ink/70 text-lg text-center">{slide.settings.description}</p>
+                      )}
+                    </div>
+                  ) : slide.type === "video" ? (
+                    slide.settings?.videoUrl ? (
+                      <video
+                        src={slide.settings.videoUrl}
+                        controls
+                        className="w-full max-h-[26rem] rounded-2xl border border-line bg-black"
+                      />
+                    ) : (
+                      <p className="text-muted py-10">Editörden video URL&apos;i ekleyin.</p>
+                    )
+                  ) : slide.type === "instructions" ? (
+                    <ol className="flex flex-col gap-3">
+                      {slide.options.map((step, i) => (
+                        <li key={i} className="flex items-start gap-3 text-xl md:text-2xl">
+                          <span
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-full text-white text-base font-bold shrink-0 mt-0.5"
+                            style={{ background: `var(--series-${(i % 8) + 1})` }}
+                            aria-hidden
+                          >
+                            {i + 1}
+                          </span>
+                          {step}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : slide.type === "content" ? (
+                    <p className="text-ink/80 text-2xl leading-relaxed whitespace-pre-wrap">
+                      {slide.settings?.description}
+                    </p>
+                  ) : null}
                 </div>
-              ) : slide.type === "multiple-choice" ? (
-                <BarChartResult slide={slide} responses={responses} />
-              ) : slide.type === "word-cloud" ? (
-                <div className="min-h-[18rem] flex items-center justify-center">
-                  <WordCloudResult responses={responses} />
-                </div>
-              ) : slide.type === "open-ended" ? (
-                <OpenEndedResult responses={responses} />
-              ) : slide.type === "scales" ? (
-                <ScalesResult slide={slide} responses={responses} />
-              ) : slide.type === "ranking" ? (
-                <RankingResult slide={slide} responses={responses} />
-              ) : slide.type === "quiz" ? (
-                <QuizResult slide={slide} responses={responses} />
-              ) : slide.type === "qna" ? (
-                <QnaResult presentationId={id} />
-              ) : slide.type === "content" ? (
-                <p className="text-ink/80 text-2xl leading-relaxed whitespace-pre-wrap">
-                  {slide.settings?.description}
-                </p>
-              ) : null}
+              </div>
             </div>
 
             {/* Mini QR: her slaytta köşede — geç gelenler de katılabilsin */}
@@ -222,6 +340,16 @@ export default function PresentPage() {
                 </span>
               </div>
             )}
+
+            {/* Kalıcı katıl pili (Menti "Join at menti.com XXXX") */}
+            <div
+              className={`absolute bottom-3 right-4 flex items-center gap-2 rounded-full px-4 py-1.5 text-sm shadow-sm ${
+                dark ? "bg-white/10 text-white backdrop-blur border border-white/20" : "bg-white border border-line"
+              }`}
+            >
+              <span className={dark ? "text-white/70" : "text-muted"}>{host}&apos;da katıl</span>
+              <span className="font-display font-semibold tracking-[0.18em]">{presentation.joinCode}</span>
+            </div>
           </>
         ) : (
           <p className="text-muted text-xl">Henüz slayt yok — editörden slayt ekleyin.</p>
@@ -239,7 +367,7 @@ export default function PresentPage() {
           >
             {presentation.votingClosed ? "🔒 Oylama kapalı" : "🔓 Oylama açık"}
           </button>
-          {slide && (
+          {slide && collectsVotes && (
             <button
               onClick={async () => {
                 if (confirm("Bu slaytın tüm cevapları silinsin mi?")) {
@@ -252,7 +380,7 @@ export default function PresentPage() {
               ↺ Sıfırla
             </button>
           )}
-          {slide && (
+          {slide && collectsVotes && (
             <button
               onClick={() => setHideResults(!hideResults)}
               className="btn-ghost !py-1.5 !px-3.5 text-sm"
@@ -261,13 +389,22 @@ export default function PresentPage() {
               {hideResults ? "🙈 Gizli" : "👁 Görünür"}
             </button>
           )}
-          {slides.some((s) => s.type === "quiz") && (
+          {slides.some((s) => s.type === "quiz" || s.type === "quiz-type") && (
             <button
               onClick={() => setLeaderboardOpen(true)}
               className="btn-ghost !py-1.5 !px-3.5 text-sm"
               title="Skor tablosu"
             >
               🏆
+            </button>
+          )}
+          {presentation.chatEnabled && (
+            <button
+              onClick={() => setChatOpen(true)}
+              className="btn-ghost !py-1.5 !px-3.5 text-sm"
+              title="Canlı sohbet"
+            >
+              💬
             </button>
           )}
           <button
@@ -293,7 +430,7 @@ export default function PresentPage() {
           </span>
         </div>
 
-        {/* İlerleme noktaları */}
+        {/* İlerleme noktaları (atlananlar silik çarpı) */}
         <div className="hidden md:flex items-center gap-1.5" aria-hidden>
           <span
             className={`w-2 h-2 rounded-full transition-colors ${
@@ -304,7 +441,11 @@ export default function PresentPage() {
             <span
               key={s.id}
               className={`w-2 h-2 rounded-full transition-colors ${
-                i === index && rawIndex >= 0 ? "bg-brand" : "bg-line"
+                s.settings?.skipped
+                  ? "bg-line/40 scale-75"
+                  : i === index && rawIndex >= 0
+                    ? "bg-brand"
+                    : "bg-line"
               }`}
             />
           ))}
@@ -312,7 +453,7 @@ export default function PresentPage() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setCurrentSlide(id, rawIndex - 1)}
+            onClick={() => go(-1)}
             disabled={rawIndex <= -1}
             className="btn-ghost w-11 h-11 !p-0"
             aria-label="Önceki slayt"
@@ -323,8 +464,8 @@ export default function PresentPage() {
             {rawIndex < 0 ? "Katılım" : `${index + 1} / ${slides.length}`}
           </span>
           <button
-            onClick={() => setCurrentSlide(id, rawIndex + 1)}
-            disabled={rawIndex >= slides.length - 1}
+            onClick={() => go(1)}
+            disabled={nextVisibleIndex(rawIndex, 1) === null}
             className="btn-ghost w-11 h-11 !p-0"
             aria-label="Sonraki slayt"
           >
@@ -339,6 +480,14 @@ export default function PresentPage() {
           slides={slides}
           participants={participants}
           onClose={() => setLeaderboardOpen(false)}
+        />
+      )}
+      {chatOpen && (
+        <ChatPanel
+          presentationId={id}
+          nickname="Sunucu 🎤"
+          isOwner
+          onClose={() => setChatOpen(false)}
         />
       )}
     </main>

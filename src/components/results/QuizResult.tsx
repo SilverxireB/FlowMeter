@@ -66,11 +66,22 @@ export default function QuizResult({
                   {String.fromCharCode(65 + i)}
                 </span>
                 <span className={`truncate text-lg ${isCorrect ? "font-bold" : "font-medium"}`}>
-                  {option} {isCorrect && <span className="text-green-700">✓ Doğru</span>}
+                  {option}
                 </span>
               </span>
-              <span className={`shrink-0 tabular-nums ${isCorrect ? "font-bold" : "text-muted"}`}>
+              <span className={`shrink-0 tabular-nums flex items-center gap-1.5 ${isCorrect ? "font-bold" : "text-muted"}`}>
                 {revealed ? count : total > 0 ? count : 0}
+                {/* Menti tarzı ✓/✗ rozeti — süre dolunca */}
+                {revealed && (
+                  <span
+                    className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] text-white ${
+                      isCorrect ? "bg-green-600" : "bg-rose-400"
+                    }`}
+                    aria-label={isCorrect ? "doğru cevap" : "yanlış"}
+                  >
+                    {isCorrect ? "✓" : "✕"}
+                  </span>
+                )}
               </span>
             </div>
             <div className="h-9 bg-line/50 rounded-lg overflow-hidden">

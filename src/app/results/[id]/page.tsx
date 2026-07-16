@@ -7,8 +7,10 @@ import { useEffect, useState } from "react";
 import Logo from "@/components/Logo";
 import BarChartResult from "@/components/results/BarChartResult";
 import OpenEndedResult from "@/components/results/OpenEndedResult";
+import PinOnImageResult from "@/components/results/PinOnImageResult";
 import QnaResult from "@/components/results/QnaResult";
 import QuizResult from "@/components/results/QuizResult";
+import QuizTypeResult from "@/components/results/QuizTypeResult";
 import RankingResult from "@/components/results/RankingResult";
 import ScalesResult from "@/components/results/ScalesResult";
 import WordCloudResult from "@/components/results/WordCloudResult";
@@ -150,6 +152,10 @@ export default function ResultsPage() {
                 <RankingResult slide={selected} responses={responses} />
               ) : selected.type === "quiz" ? (
                 <QuizResult slide={selected} responses={responses} />
+              ) : selected.type === "quiz-type" ? (
+                <QuizTypeResult slide={selected} responses={responses} />
+              ) : selected.type === "pin-on-image" ? (
+                <PinOnImageResult slide={selected} responses={responses} />
               ) : selected.type === "qna" ? (
                 <QnaResult presentationId={id} />
               ) : (

@@ -43,9 +43,9 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 - [x] Slayt ayarları: çoklu seçim (MC), kişi başı N cevap (WC/open-ended)
 - [x] Sonuçları gizle/göster (present 🙈/👁)
 - [x] Slayt sıralama (↑/↓) ve çoğaltma
-- [ ] Slayta görsel ekleme (soru yanında resim — URL/galeri)
-- [ ] Canlı önizleme: editörde slaytın audience görünümü küçük önizlemesi
-- [ ] Otomatik kaydetme (Kaydet butonu yerine debounce'lu kayıt)
+- [x] Slayta görsel ekleme (soru yanında sıkıştırılmış görsel — tüm soru tipleri)
+- [x] Canlı önizleme: editörde temalı slayt önizlemesi + film şeridi mini kartları
+- [x] Otomatik kaydetme (600ms debounce — Kaydet butonu kalktı)
 
 ### 2d. Sunum kontrolü
 - [x] Oylamayı kapat/aç düğmesi (present altbilgisi)
@@ -64,6 +64,26 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 - [ ] Audience-pace (anket modu): izleyici kendi ilerler, bitiş ekranı
 - [x] Quiz kişisel sonucu: izleyici kendi doğru/yanlış + puanını telefonunda görür
 
+## Faz 3.5 — Menti Eşitleme Turu ✅ (2026-07, referans ekran görüntüleri)
+
+- [x] **Podyumlu skor tablosu**: ilk 3 avatarlarıyla kürsüde (2-1-3), geri kalan
+      arkada kompakt liste; puan count-up + son sorudan "+delta" rozeti; hem 🏆
+      modalı hem **leaderboard slayt tipi** (sona eklenir) aynı Podium'u kullanır
+- [x] Yeni slayt tipleri: **quiz-type** (yazarak cevap, normalize eşleştirme),
+      **pin-on-image** (görselde işaretle, [x,y] normalize), **image**, **video**
+      (URL), **instructions** (adımlar)
+- [x] Menti tarzı mobil editör: ortada canlı önizleme, yüzen araç çubuğu
+      (✏️ ➕ 🎨 ⋯), yatay film şeridi, bottom-sheet paneller
+- [x] Slayt ayarları: 🚫 atla (skip), başlık etiketi (label), katılımcıya
+      açıklama (description tüm tiplerde audience'ta görünür)
+- [x] Present cilası: kalıcı "katıl" pili, "X/Y yanıtladı" sayacı, quiz
+      sonuçlarında ✓/✗ rozetleri, atlanan slaytları geçen gezinme
+- [x] **Canlı sohbet** 💬: messages koleksiyonu (create-only), izleyici bottom
+      sheet + sunucu moderasyonu (sil); editör ⚙ menüsünden aç/kapat
+- [x] **Quiz müziği** 🎵: WebAudio sentez (dosya/dış servis yok), slayt başına
+- [x] Dashboard: arama, 📁 klasörler, grid/liste, temalı kart önizlemesi,
+      yeniden adlandırma, son düzenlenene göre sıralama (updatedAt)
+
 ## Faz 4 — Yayınlama & Cila
 
 - [x] Sonuç sayfası `/results/[id]`: slayt slayt inceleme + CSV export
@@ -80,8 +100,7 @@ bileşende #001e64). Quiz puanı = Menti formülü 1000×(1−(t/T)/2) + seri bo
 (Leaderboard.tsx). Kurallar: her rules değişikliğinde kullanıcıya TAM metin ver.
 
 Öncelikli kalanlar (önerilen sıra):
-1. Slayta görsel ekleme (images.ts hazır — soru yanına sıkıştırılmış görsel)
-2. Guess the Number slayt tipi
-3. Audience-pace (anket) modu + bitiş ekranı
-4. Şablon galerisi + sunum kopyalama
-5. Profanity filtresi, Cloud Function temizlik, i18n, 100+ izleyici perf
+1. Guess the Number slayt tipi
+2. Audience-pace (anket) modu + bitiş ekranı
+3. Şablon galerisi + sunum kopyalama
+4. Profanity filtresi, Cloud Function temizlik, i18n, 100+ izleyici perf

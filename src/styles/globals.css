@@ -77,6 +77,20 @@ body {
   animation: confetti-fall linear forwards;
 }
 
+@keyframes podium-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.podium-pedestal {
+  transform-origin: bottom;
+  animation: podium-rise 0.6s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
 @layer components {
   /* Sayfa arkasındaki yumuşak renk yıkaması: gül + mavi */
   .bg-wash {

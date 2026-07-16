@@ -59,7 +59,22 @@ export async function listPresentations(ownerId: string): Promise<Presentation[]
 }
 
 export async function renamePresentation(id: string, title: string): Promise<void> {
-  await updateDoc(doc(db(), "presentations", id), { title });
+  await updateDoc(doc(db(), "presentations", id), { title, updatedAt: serverTimestamp() });
+}
+
+/** Dashboard klasörü (boş string = klasörsüz). */
+export async function setPresentationFolder(id: string, folder: string): Promise<void> {
+  await updateDoc(doc(db(), "presentations", id), { folder, updatedAt: serverTimestamp() });
+}
+
+/** Canlı sohbeti aç/kapat. */
+export async function setChatEnabled(id: string, enabled: boolean): Promise<void> {
+  await updateDoc(doc(db(), "presentations", id), { chatEnabled: enabled });
+}
+
+/** Son düzenleme zamanını günceller (dashboard "son düzenlenen" sıralaması). */
+async function touchPresentation(id: string): Promise<void> {
+  await updateDoc(doc(db(), "presentations", id), { updatedAt: serverTimestamp() }).catch(() => {});
 }
 
 export async function deletePresentation(p: Presentation): Promise<void> {
@@ -87,7 +102,10 @@ export async function updateTheme(
   const clean = Object.fromEntries(
     Object.entries(theme).filter(([, v]) => v !== undefined && v !== null)
   );
-  await updateDoc(doc(db(), "presentations", presentationId), { theme: clean });
+  await updateDoc(doc(db(), "presentations", presentationId), {
+    theme: clean,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function setCurrentSlide(presentationId: string, index: number): Promise<void> {
@@ -189,10 +207,40 @@ export async function addSlide(presentationId: string, type: SlideType, order: n
       options: [],
       settings: {},
     },
+    "quiz-type": {
+      question: "Cevabı yazın",
+      options: ["Doğru cevap"],
+      settings: { timeLimit: 30 },
+    },
+    "pin-on-image": {
+      question: "Görselde işaretleyin",
+      options: [],
+      settings: {},
+    },
     content: {
       question: "Başlık",
       options: [],
       settings: { description: "" },
+    },
+    image: {
+      question: "Görsel başlığı",
+      options: [],
+      settings: { description: "" },
+    },
+    video: {
+      question: "Video",
+      options: [],
+      settings: { videoUrl: "" },
+    },
+    instructions: {
+      question: "Nasıl katılırsınız?",
+      options: ["Adım 1", "Adım 2"],
+      settings: {},
+    },
+    leaderboard: {
+      question: "Skor Tablosu",
+      options: [],
+      settings: {},
     },
   };
   const base = defaults[type] ?? { question: "Yeni slayt", options: [], settings: {} };
@@ -203,6 +251,7 @@ export async function addSlide(presentationId: string, type: SlideType, order: n
     order,
     settings: base.settings,
   });
+  await touchPresentation(presentationId);
   return ref.id;
 }
 
@@ -212,10 +261,23 @@ export async function updateSlide(
   data: Partial<Pick<Slide, "question" | "options" | "order" | "settings">>
 ): Promise<void> {
   await updateDoc(doc(db(), "presentations", presentationId, "slides", slideId), data);
+  await touchPresentation(presentationId);
+}
+
+/** Slaytı sunumda atla/geri al (Menti "Skip slide"). */
+export async function setSlideSkipped(
+  presentationId: string,
+  slide: Slide,
+  skipped: boolean
+): Promise<void> {
+  await updateSlide(presentationId, slide.id, {
+    settings: { ...slide.settings, skipped },
+  });
 }
 
 export async function deleteSlide(presentationId: string, slideId: string): Promise<void> {
   await deleteDoc(doc(db(), "presentations", presentationId, "slides", slideId));
+  await touchPresentation(presentationId);
 }
 
 export async function listSlides(presentationId: string): Promise<Slide[]> {

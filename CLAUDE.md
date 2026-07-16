@@ -50,16 +50,22 @@ Sunucu (presenter) slaytlar oluşturur, izleyiciler (audience) telefonlarından
 ## Domain Modeli
 
 - **Presentation**: joinCode (6 hane), currentSlideIndex (**-1 = QR katılım
-  ekranı**), isLive, ended, votingClosed, theme{preset,bgImage,logo}, mode.
+  ekranı**), isLive, ended, votingClosed, chatEnabled, folder,
+  theme{preset,bgImage,logo}, mode, updatedAt.
 - **Slide** `type`: multiple-choice, word-cloud, open-ended, scales, ranking,
-  **quiz** (correctIndex, timeLimit, quizStartedAt), **qna**, content.
-  Settings: allowMultiple, maxEntries, description.
+  **quiz** (correctIndex, timeLimit, quizStartedAt), **quiz-type** (yazarak;
+  options = kabul edilen cevaplar), **pin-on-image**, **qna**, content, image,
+  video, instructions, **leaderboard** (podyum slaytı).
+  Settings: allowMultiple, maxEntries, description, label, image, videoUrl,
+  music, skipped.
 - **Response.value**: MC=number|number[]; WC/open-ended=string;
-  scales/ranking=number[]; **quiz=[optionIndex, geçenMs]**.
+  scales/ranking=number[]; **quiz=[optionIndex, geçenMs]**;
+  **quiz-type=[metin, geçenMs]**; **pin-on-image=[x, y] (0–1)**.
 - **Participant**: doc id = voterId (localStorage UUID); nickname + avatarSeed.
 - **Quiz puanı (Menti formülü)**: `1000 × (1 − (t/T)/2)` → 500–1000 arası.
   Seri bonusu (Kahoot usulü): üst üste 2. doğrudan itibaren +50/soru, max +250.
-  Hesap: `src/components/present/Leaderboard.tsx`.
+  Hesap: `src/lib/quizScores.ts`; podyum: `src/components/present/Podium.tsx`
+  (ilk 3 kürsüde 2-1-3, geri kalan arkada liste).
 
 ## Firestore Şeması
 
@@ -68,6 +74,8 @@ presentations/{id}: ownerId, title, joinCode, mode, currentSlideIndex,
                     isLive, ended, votingClosed, theme{}, createdAt
   ├─ participants/{voterId}: nickname, avatarSeed, (eski: emoji), joinedAt
   ├─ reactions/{autoId}: emoji (❤️👍🎉), createdAt   [create-only]
+  ├─ messages/{autoId}: text, voterId, nickname, createdAt
+  │                      [create-only; silme sadece owner (moderasyon)]
   ├─ questions/{autoId}: text, voterId, upvotes, hidden?, createdAt
   │                      [upvote sadece +1; moderasyon owner]
   └─ slides/{slideId}: type, question, options[], order, settings{}, quizStartedAt?

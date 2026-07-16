@@ -1,18 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isTypedAnswerCorrect } from "@/lib/quizScores";
 import { Slide } from "@/lib/types";
 
 /**
  * İzleyicinin kendi quiz sonucu: süre dolana kadar "cevabın alındı",
  * dolunca doğru/yanlış + kazanılan puan (sunumdaki reveal ile eş zamanlı).
+ * quiz (seçmeli) ve quiz-type (yazarak) için ortak.
  */
 export default function QuizPersonalResult({ slide }: { slide: Slide }) {
   const timeLimit = slide.settings?.timeLimit ?? 20;
   const correctIndex = slide.settings?.correctIndex ?? 0;
   const startedMs = slide.quizStartedAt?.toMillis() ?? null;
   const [now, setNow] = useState(() => Date.now());
-  const [answer, setAnswer] = useState<[number, number] | null>(null);
+  const [answer, setAnswer] = useState<[number | string, number] | null>(null);
 
   useEffect(() => {
     try {
@@ -38,7 +40,12 @@ export default function QuizPersonalResult({ slide }: { slide: Slide }) {
   }
 
   const [picked, elapsed] = answer;
-  const correct = picked === correctIndex;
+  const correct =
+    slide.type === "quiz-type"
+      ? typeof picked === "string" && isTypedAnswerCorrect(picked, slide.options)
+      : picked === correctIndex;
+  const correctLabel =
+    slide.type === "quiz-type" ? slide.options.join(" / ") : slide.options[correctIndex];
   // Menti formülü: 1000 × (1 − (t/T)/2) — seri bonusu skor tablosunda eklenir
   const points = correct
     ? Math.round(1000 * (1 - Math.min(1, Math.max(0, elapsed / (timeLimit * 1000))) / 2))
@@ -55,7 +62,7 @@ export default function QuizPersonalResult({ slide }: { slide: Slide }) {
         </>
       ) : (
         <p className="text-muted mt-1">
-          Doğru cevap: <span className="font-bold text-ink">{slide.options[correctIndex]}</span>
+          Doğru cevap: <span className="font-bold text-ink">{correctLabel}</span>
         </p>
       )}
       <p className="text-muted text-sm mt-4 tabular-nums">
