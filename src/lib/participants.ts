@@ -3,15 +3,20 @@ import { db } from "./firebase";
 import { getVoterId } from "./responses";
 
 const NICKNAME_KEY = "flowmeter.nickname";
-const EMOJI_KEY = "flowmeter.emoji";
+const AVATAR_KEY = "flowmeter.avatarSeed";
 const LAST_PRESENTATION_KEY = "flowmeter.lastPresentation";
 
-/** Katılımcının seçebileceği avatar emojileri */
-export const AVATAR_EMOJIS = [
-  "😀", "😎", "🤩", "🥳", "😇", "🤓", "😺", "🦊",
-  "🐼", "🐨", "🦁", "🐸", "🐙", "🦄", "🐝", "🦋",
-  "🌟", "🔥", "⚡", "🌈", "🍀", "🍉", "🎸", "🚀",
+/** Galeride gösterilen hazır avatar seed'leri (DiceBear deterministik üretir). */
+export const AVATAR_SEEDS = [
+  "Luna", "Atlas", "Nova", "Pixel", "Koda", "Mira",
+  "Zephyr", "Rio", "Alya", "Bulut", "Duman", "Fıstık",
+  "Karamel", "Limon", "Maya", "Pati", "Sedef", "Tarçın",
+  "Yıldız", "Zeytin", "Poyraz", "Badem", "Çakıl", "İnci",
 ] as const;
+
+export function randomAvatarSeed(): string {
+  return `rnd-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 /** Cihazda kayıtlı takma ad (auth yok — Menti gibi, sadece localStorage). */
 export function getStoredNickname(): string | null {
@@ -19,25 +24,25 @@ export function getStoredNickname(): string | null {
   return localStorage.getItem(NICKNAME_KEY);
 }
 
-export function getStoredEmoji(): string | null {
+export function getStoredAvatarSeed(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(EMOJI_KEY);
+  return localStorage.getItem(AVATAR_KEY);
 }
 
-export function storeIdentity(nickname: string, emoji: string): void {
+export function storeIdentity(nickname: string, avatarSeed: string): void {
   localStorage.setItem(NICKNAME_KEY, nickname);
-  localStorage.setItem(EMOJI_KEY, emoji);
+  localStorage.setItem(AVATAR_KEY, avatarSeed);
 }
 
 /** Katılımcıyı sunuma kaydeder (voterId başına tek doküman, tekrar girişte günceller). */
 export async function joinPresentation(
   presentationId: string,
   nickname: string,
-  emoji: string
+  avatarSeed: string
 ): Promise<void> {
   await setDoc(
     doc(db(), "presentations", presentationId, "participants", getVoterId()),
-    { nickname, emoji, joinedAt: serverTimestamp() },
+    { nickname, avatarSeed, joinedAt: serverTimestamp() },
     { merge: true }
   );
 }

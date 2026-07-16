@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Avatar from "@/components/Avatar";
 import QrCode from "@/components/present/QrCode";
 import BarChartResult from "@/components/results/BarChartResult";
 import OpenEndedResult from "@/components/results/OpenEndedResult";
@@ -122,8 +123,13 @@ export default function PresentPage() {
               </p>
               <div className="flex flex-wrap gap-2 justify-center md:justify-start max-h-36 overflow-hidden">
                 {participants.slice(0, 21).map((p) => (
-                  <span key={p.id} className="chip">
-                    <span aria-hidden>{p.emoji ?? "😀"}</span> {p.nickname}
+                  <span key={p.id} className="chip !pl-1">
+                    {p.avatarSeed ? (
+                      <Avatar seed={p.avatarSeed} size={26} />
+                    ) : (
+                      <span aria-hidden>{p.emoji ?? "😀"}</span>
+                    )}
+                    {p.nickname}
                   </span>
                 ))}
                 {participants.length > 21 && (

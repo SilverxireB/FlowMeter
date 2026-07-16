@@ -63,6 +63,8 @@ export interface Participant {
   /** Doküman ID = voterId (cihaz başına tek kayıt) */
   id: string;
   nickname: string;
+  /** DiceBear avatar seed'i (yeni); eski kayıtlarda emoji olabilir */
+  avatarSeed?: string;
   emoji?: string;
   joinedAt: Timestamp | null;
 }

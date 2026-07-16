@@ -8,11 +8,13 @@ import RankingVote from "@/components/vote/RankingVote";
 import ScalesVote from "@/components/vote/ScalesVote";
 import WordCloudVote from "@/components/vote/WordCloudVote";
 import { usePresentation, useSlides } from "@/lib/hooks";
+import Avatar from "@/components/Avatar";
 import {
-  AVATAR_EMOJIS,
-  getStoredEmoji,
+  AVATAR_SEEDS,
+  getStoredAvatarSeed,
   getStoredNickname,
   joinPresentation,
+  randomAvatarSeed,
   storeIdentity,
   storeLastPresentation,
 } from "@/lib/participants";
@@ -26,26 +28,27 @@ export default function AudiencePage() {
   const { slides } = useSlides(id);
   const [votedSlideIds, setVotedSlideIds] = useState<Set<string>>(new Set());
 
-  // Kimlik (takma ad + emoji): localStorage'dan yüklenir; yoksa önce sorulur.
+  // Kimlik (takma ad + avatar): localStorage'dan yüklenir; yoksa önce sorulur.
   const [nickname, setNickname] = useState<string | null>(null);
-  const [emoji, setEmoji] = useState<string | null>(null);
+  const [avatarSeed, setAvatarSeed] = useState<string | null>(null);
   const [identityLoaded, setIdentityLoaded] = useState(false);
   const [draft, setDraft] = useState("");
-  const [draftEmoji, setDraftEmoji] = useState<string>(AVATAR_EMOJIS[0]);
+  const [draftSeed, setDraftSeed] = useState<string>(AVATAR_SEEDS[0]);
+  const [extraSeeds, setExtraSeeds] = useState<string[]>([]);
 
   useEffect(() => {
     setNickname(getStoredNickname());
-    setEmoji(getStoredEmoji());
+    setAvatarSeed(getStoredAvatarSeed());
     setIdentityLoaded(true);
   }, []);
 
   // Katılımı kaydet + son sunumu hatırla
   useEffect(() => {
     if (nickname && presentation) {
-      joinPresentation(id, nickname, emoji ?? "😀").catch(() => {});
+      joinPresentation(id, nickname, avatarSeed ?? "Luna").catch(() => {});
       storeLastPresentation({ id, title: presentation.title });
     }
-  }, [nickname, emoji, presentation, id]);
+  }, [nickname, avatarSeed, presentation, id]);
 
   const rawIndex = presentation?.currentSlideIndex ?? -1;
   const index = Math.min(rawIndex, Math.max(0, slides.length - 1));
@@ -66,9 +69,16 @@ export default function AudiencePage() {
     e.preventDefault();
     const clean = draft.trim().slice(0, 30);
     if (!clean) return;
-    storeIdentity(clean, draftEmoji);
+    storeIdentity(clean, draftSeed);
     setNickname(clean);
-    setEmoji(draftEmoji);
+    setAvatarSeed(draftSeed);
+  }
+
+  /** Galeriye 8 rastgele avatar ekle ("karıştır"). */
+  function shuffleAvatars() {
+    const fresh = Array.from({ length: 8 }, () => randomAvatarSeed());
+    setExtraSeeds(fresh);
+    setDraftSeed(fresh[0]);
   }
 
   if (loading || !identityLoaded) {
@@ -88,24 +98,33 @@ export default function AudiencePage() {
         </h1>
         <form onSubmit={saveIdentity} className="w-full max-w-sm flex flex-col gap-5">
           <div className="card p-5">
-            <div className="text-6xl mb-4" aria-hidden>{draftEmoji}</div>
-            <div className="grid grid-cols-8 gap-1.5">
-              {AVATAR_EMOJIS.map((e) => (
+            <div className="flex justify-center mb-4">
+              <Avatar seed={draftSeed} size={88} className="ring-4 ring-accent-soft" />
+            </div>
+            <div className="grid grid-cols-6 gap-2">
+              {[...(extraSeeds.length ? extraSeeds : AVATAR_SEEDS.slice(0, 16)), ...AVATAR_SEEDS.slice(16, 24)].slice(0, 24).map((seed) => (
                 <button
-                  key={e}
+                  key={seed}
                   type="button"
-                  onClick={() => setDraftEmoji(e)}
-                  aria-label={`Emoji seç: ${e}`}
-                  className={`text-xl rounded-xl p-1.5 transition-all ${
-                    draftEmoji === e
-                      ? "bg-accent-soft ring-2 ring-accent scale-110"
-                      : "hover:bg-paper"
+                  onClick={() => setDraftSeed(seed)}
+                  aria-label="Avatar seç"
+                  className={`rounded-full p-0.5 transition-all cursor-pointer ${
+                    draftSeed === seed
+                      ? "ring-[3px] ring-accent scale-110"
+                      : "hover:scale-105 opacity-90"
                   }`}
                 >
-                  {e}
+                  <Avatar seed={seed} size={44} />
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={shuffleAvatars}
+              className="mt-4 text-accent hover:text-accent-dark text-sm font-bold cursor-pointer"
+            >
+              🎲 Karıştır — yeni avatarlar getir
+            </button>
           </div>
           <input
             value={draft}
@@ -127,7 +146,9 @@ export default function AudiencePage() {
   if (!presentation.isLive || rawIndex < 0 || !slide) {
     return (
       <Centered>
-        <div className="text-7xl mb-5 animate-bounce" aria-hidden>{emoji ?? "👋"}</div>
+        <div className="mb-5 animate-bounce">
+          <Avatar seed={avatarSeed ?? "Luna"} size={104} className="ring-4 ring-white shadow-lg" />
+        </div>
         <h1 className="text-3xl font-extrabold tracking-tight mb-2">
           Hoş geldin, {nickname}!
         </h1>
@@ -144,8 +165,8 @@ export default function AudiencePage() {
     <main className="min-h-screen flex flex-col bg-wash">
       <header className="px-4 py-3 flex items-center justify-between border-b border-line bg-white/80 backdrop-blur">
         <span className="font-extrabold tracking-tight">FlowMeter</span>
-        <span className="flex items-center gap-2 bg-paper border border-line rounded-full pl-1.5 pr-3 py-1 text-sm font-medium">
-          <span aria-hidden>{emoji ?? "😀"}</span>
+        <span className="flex items-center gap-2 bg-paper border border-line rounded-full pl-1 pr-3 py-1 text-sm font-semibold">
+          <Avatar seed={avatarSeed ?? "Luna"} size={24} />
           <span className="truncate max-w-[9rem]">{nickname}</span>
         </span>
       </header>
