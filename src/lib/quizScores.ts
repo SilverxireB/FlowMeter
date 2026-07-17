@@ -67,10 +67,11 @@ export async function computeQuizScores(
       }
       answeredCorrect.add(voterId);
       const elapsed = typeof value[1] === "number" ? value[1] : timeLimitMs;
-      // Menti formülü: 1000 × (1 − (t/T)/2)
-      const speedPoints = Math.round(
-        1000 * (1 - Math.min(1, Math.max(0, elapsed / timeLimitMs)) / 2)
-      );
+      // Puanlama: "fixed" → her doğru 1000; "time" → Menti formülü 1000×(1−(t/T)/2)
+      const speedPoints =
+        s.settings?.scoreMode === "fixed"
+          ? 1000
+          : Math.round(1000 * (1 - Math.min(1, Math.max(0, elapsed / timeLimitMs)) / 2));
       const streak = (streaks.get(voterId) ?? 0) + 1;
       streaks.set(voterId, streak);
       const streakBonus = Math.min(streak - 1, 5) * 50;

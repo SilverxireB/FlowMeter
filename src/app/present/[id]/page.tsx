@@ -148,6 +148,11 @@ export default function PresentPage() {
   const logo = presentation.theme?.logo;
   const collectsVotes =
     slide && INTERACTIVE_SLIDE_TYPES.includes(slide.type) && slide.type !== "qna";
+  const nextIdx = nextVisibleIndex(rawIndex, 1);
+  const nextSlide = nextIdx !== null && nextIdx >= 0 ? slides[nextIdx] : undefined;
+  const nextName = nextSlide
+    ? nextSlide.settings?.label?.trim() || SLIDE_TYPE_LABELS[nextSlide.type]
+    : null;
   const slideImage =
     slide && slide.type !== "pin-on-image" && slide.type !== "image"
       ? slide.settings?.image
@@ -463,12 +468,19 @@ export default function PresentPage() {
           <span className="text-muted text-sm tabular-nums w-16 text-center font-semibold">
             {rawIndex < 0 ? "Katılım" : `${index + 1} / ${slides.length}`}
           </span>
+          {/* Bağlamsal sonraki buton — sonraki slaytın adını gösterir (Menti) */}
           <button
             onClick={() => go(1)}
-            disabled={nextVisibleIndex(rawIndex, 1) === null}
-            className="btn-ghost w-11 h-11 !p-0"
-            aria-label="Sonraki slayt"
+            disabled={nextIdx === null}
+            className="btn-ghost h-11 !px-4 flex items-center gap-2"
+            aria-label={nextName ? `Sonraki: ${nextName}` : "Sonraki slayt"}
+            title={nextName ?? undefined}
           >
+            {nextName && (
+              <span className="hidden sm:inline max-w-[9rem] truncate text-sm font-semibold">
+                {nextName}
+              </span>
+            )}
             →
           </button>
         </div>

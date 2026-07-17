@@ -55,8 +55,15 @@ export interface SlideSettings {
   correctIndex?: number;
   /** quiz / quiz-type: cevap süresi (saniye, varsayılan 20) */
   timeLimit?: number;
+  /** quiz / quiz-type: puanlama — "time" hıza göre (500–1000), "fixed" sabit 1000 */
+  scoreMode?: "time" | "fixed";
   /** quiz / quiz-type: geri sayım sırasında gerilim müziği (WebAudio, dış servis yok) */
   music?: boolean;
+  /**
+   * pin-on-image: puanlı "doğru alan" — normalize daire [x, y, yarıçap] (0–1).
+   * Tanımlıysa pin bu daireye düşen izleyiciler puan kazanır.
+   */
+  correctArea?: [number, number, number];
   /** Soru yanında gösterilen görsel (sıkıştırılmış data-URI) — pin-on-image'da zorunlu */
   image?: string;
   /** video: mp4/webm dosya URL'i (kurumsal ağlarda dış host engellenebilir) */

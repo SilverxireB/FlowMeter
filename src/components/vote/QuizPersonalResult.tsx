@@ -46,9 +46,11 @@ export default function QuizPersonalResult({ slide }: { slide: Slide }) {
       : picked === correctIndex;
   const correctLabel =
     slide.type === "quiz-type" ? slide.options.join(" / ") : slide.options[correctIndex];
-  // Menti formülü: 1000 × (1 − (t/T)/2) — seri bonusu skor tablosunda eklenir
+  // Puanlama moduna göre — seri bonusu skor tablosunda eklenir
   const points = correct
-    ? Math.round(1000 * (1 - Math.min(1, Math.max(0, elapsed / (timeLimit * 1000))) / 2))
+    ? slide.settings?.scoreMode === "fixed"
+      ? 1000
+      : Math.round(1000 * (1 - Math.min(1, Math.max(0, elapsed / (timeLimit * 1000))) / 2))
     : 0;
 
   return (

@@ -12,10 +12,13 @@ export default function SlidePreview({
   slide,
   theme,
   mini = false,
+  bare = false,
 }: {
   slide: Slide;
   theme?: PresentationTheme;
   mini?: boolean;
+  /** Kart içine gömmek için: kendi kenarlığını/köşesini/filigranını kaldırır. */
+  bare?: boolean;
 }) {
   const { style, dark } = themeStyle(theme);
   const text = dark ? "text-white" : "text-ink";
@@ -24,11 +27,11 @@ export default function SlidePreview({
   return (
     <div
       className={`relative w-full aspect-video overflow-hidden ${
-        mini ? "rounded-lg" : "rounded-2xl border border-line shadow-sm"
+        mini ? "rounded-lg" : bare ? "" : "rounded-2xl border border-line shadow-sm"
       }`}
       style={style}
     >
-      {!mini && (
+      {!mini && !bare && (
         <span className={`absolute top-2 right-3 text-[10px] font-bold ${soft}`}>FlowMeter</span>
       )}
       <div className={`absolute inset-0 flex flex-col ${mini ? "p-2" : "p-5 md:p-7"}`}>

@@ -5,6 +5,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   orderBy,
   query,
   serverTimestamp,
@@ -170,8 +171,15 @@ export async function duplicateSlide(presentationId: string, slide: Slide): Prom
 
 // ── Slaytlar ────────────────────────────────────────────────────────────────
 
-export async function addSlide(presentationId: string, type: SlideType, order: number): Promise<string> {
-  const defaults: Record<string, { question: string; options: string[]; settings: object }> = {
+interface SlideDefault {
+  question: string;
+  options: string[];
+  settings: Record<string, unknown>;
+}
+
+/** Bir slayt tipinin varsayılan soru/seçenek/ayarları (ekleme + tip değiştirmede). */
+export function slideDefaults(type: SlideType): SlideDefault {
+  const defaults: Partial<Record<SlideType, SlideDefault>> = {
     "multiple-choice": {
       question: "Yeni soru",
       options: ["Seçenek 1", "Seçenek 2"],
@@ -200,20 +208,20 @@ export async function addSlide(presentationId: string, type: SlideType, order: n
     quiz: {
       question: "Quiz sorusu",
       options: ["Seçenek 1", "Seçenek 2", "Seçenek 3"],
-      settings: { correctIndex: 0, timeLimit: 20 },
-    },
-    qna: {
-      question: "Sorularınızı alalım!",
-      options: [],
-      settings: {},
+      settings: { correctIndex: 0, timeLimit: 20, scoreMode: "time" },
     },
     "quiz-type": {
       question: "Cevabı yazın",
       options: ["Doğru cevap"],
-      settings: { timeLimit: 30 },
+      settings: { timeLimit: 30, scoreMode: "time" },
     },
     "pin-on-image": {
       question: "Görselde işaretleyin",
+      options: [],
+      settings: {},
+    },
+    qna: {
+      question: "Sorularınızı alalım!",
       options: [],
       settings: {},
     },
@@ -243,7 +251,20 @@ export async function addSlide(presentationId: string, type: SlideType, order: n
       settings: {},
     },
   };
-  const base = defaults[type] ?? { question: "Yeni slayt", options: [], settings: {} };
+  return defaults[type] ?? { question: "Yeni slayt", options: [], settings: {} };
+}
+
+/** Seçenek listesi tutan (birbirine dönüştürülünce korunan) slayt tipleri. */
+const OPTION_TYPES: SlideType[] = [
+  "multiple-choice",
+  "quiz",
+  "ranking",
+  "scales",
+  "instructions",
+];
+
+export async function addSlide(presentationId: string, type: SlideType, order: number): Promise<string> {
+  const base = slideDefaults(type);
   const ref = await addDoc(collection(db(), "presentations", presentationId, "slides"), {
     type,
     question: base.question,
@@ -253,6 +274,46 @@ export async function addSlide(presentationId: string, type: SlideType, order: n
   });
   await touchPresentation(presentationId);
   return ref.id;
+}
+
+/**
+ * Slaytın tipini yerinde değiştirir (Menti "Edit" sheet'indeki tip dropdown'u).
+ * Soru + ortak ayarlar (label/description/image) korunur; seçenekler iki tip de
+ * seçenek tutuyorsa taşınır, aksi halde yeni tipin varsayılanı kullanılır.
+ */
+export async function changeSlideType(
+  presentationId: string,
+  slide: Slide,
+  newType: SlideType
+): Promise<void> {
+  if (slide.type === newType) return;
+  const def = slideDefaults(newType);
+  const keepOptions =
+    OPTION_TYPES.includes(slide.type) && OPTION_TYPES.includes(newType) && slide.options.length > 0;
+  const preserved: Record<string, unknown> = {};
+  if (slide.settings?.label) preserved.label = slide.settings.label;
+  if (slide.settings?.description) preserved.description = slide.settings.description;
+  if (slide.settings?.image) preserved.image = slide.settings.image;
+  await updateDoc(doc(db(), "presentations", presentationId, "slides", slide.id), {
+    type: newType,
+    options: keepOptions ? slide.options : def.options,
+    settings: { ...def.settings, ...preserved },
+    quizStartedAt: null,
+  });
+  await touchPresentation(presentationId);
+}
+
+/** Dashboard kart önizlemesi için sunumun ilk (order'ı en küçük) slaytı. */
+export async function getFirstSlide(presentationId: string): Promise<Slide | null> {
+  const snap = await getDocs(
+    query(
+      collection(db(), "presentations", presentationId, "slides"),
+      orderBy("order"),
+      limit(1)
+    )
+  );
+  const d = snap.docs[0];
+  return d ? ({ id: d.id, ...d.data() } as Slide) : null;
 }
 
 export async function updateSlide(

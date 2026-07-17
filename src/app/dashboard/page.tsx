@@ -2,18 +2,56 @@
 
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import SlidePreview from "@/components/editor/SlidePreview";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuthUser } from "@/lib/hooks";
 import {
   createPresentation,
   deletePresentation,
+  getFirstSlide,
   listPresentations,
   renamePresentation,
   setPresentationFolder,
 } from "@/lib/presentations";
 import { themeStyle } from "@/lib/themes";
-import { Presentation } from "@/lib/types";
+import { Presentation, Slide } from "@/lib/types";
+
+/** Kart önizlemesi — sunumun gerçek 1. slaytını render eder (yoksa başlık). */
+function CardThumb({ presentation, view }: { presentation: Presentation; view: "grid" | "list" }) {
+  const [slide, setSlide] = useState<Slide | null | undefined>(undefined);
+  const { style, dark } = themeStyle(presentation.theme);
+
+  useEffect(() => {
+    let active = true;
+    getFirstSlide(presentation.id)
+      .then((s) => active && setSlide(s))
+      .catch(() => active && setSlide(null));
+    return () => {
+      active = false;
+    };
+  }, [presentation.id]);
+
+  if (slide) {
+    return <SlidePreview slide={slide} theme={presentation.theme} bare />;
+  }
+  // Yükleniyor / slayt yok → temalı başlık
+  return (
+    <div className="absolute inset-0 flex items-center justify-center px-4" style={style}>
+      {presentation.theme?.logo && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={presentation.theme.logo} alt="" className="absolute top-2 left-3 h-5 w-auto" />
+      )}
+      <span
+        className={`text-center font-display font-semibold ${dark ? "text-white" : "text-ink"} ${
+          view === "grid" ? "text-lg" : "text-xs"
+        }`}
+      >
+        {presentation.title}
+      </span>
+    </div>
+  );
+}
 
 /** Sunucu paneli — arama, klasörler, grid/liste görünümü (Menti "My Mentis"). */
 export default function DashboardPage() {
@@ -187,7 +225,6 @@ export default function DashboardPage() {
         ) : (
           <ul className={view === "grid" ? "grid gap-4 sm:grid-cols-2" : "flex flex-col gap-3"}>
             {visible.map((p) => {
-              const { style, dark } = themeStyle(p.theme);
               return (
                 <li
                   key={p.id}
@@ -195,23 +232,14 @@ export default function DashboardPage() {
                     view === "list" ? "flex items-stretch" : ""
                   }`}
                 >
-                  {/* Temalı canlı önizleme */}
+                  {/* Gerçek 1. slayt önizlemesi */}
                   <Link
                     href={`/edit/${p.id}`}
-                    className={`block relative shrink-0 ${view === "grid" ? "aspect-[16/7]" : "w-36"} overflow-hidden`}
-                    style={style}
+                    className={`block relative shrink-0 overflow-hidden ${
+                      view === "grid" ? "aspect-video" : "w-36 self-stretch"
+                    }`}
                   >
-                    {p.theme?.logo && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.theme.logo} alt="" className="absolute top-2 left-3 h-5 w-auto" />
-                    )}
-                    <span
-                      className={`absolute inset-0 flex items-center justify-center px-4 text-center font-display font-semibold ${
-                        dark ? "text-white" : "text-ink"
-                      } ${view === "grid" ? "text-lg" : "text-xs"}`}
-                    >
-                      {p.title}
-                    </span>
+                    <CardThumb presentation={p} view={view} />
                   </Link>
 
                   <div className="p-4 flex flex-col gap-3 min-w-0 flex-1">
