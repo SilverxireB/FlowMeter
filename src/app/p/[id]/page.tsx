@@ -3,6 +3,9 @@
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import ChatPanel from "@/components/present/ChatPanel";
+import Grid2x2Vote from "@/components/vote/Grid2x2Vote";
+import GuessNumberVote from "@/components/vote/GuessNumberVote";
+import HundredPointsVote from "@/components/vote/HundredPointsVote";
 import MultipleChoiceVote from "@/components/vote/MultipleChoiceVote";
 import PinOnImageVote from "@/components/vote/PinOnImageVote";
 import QnaVote from "@/components/vote/QnaVote";
@@ -71,7 +74,17 @@ export default function AudiencePage() {
     if (
       slide &&
       getVoteCount(slide.id) > 0 &&
-      ["multiple-choice", "scales", "ranking", "quiz", "quiz-type", "pin-on-image"].includes(slide.type)
+      [
+        "multiple-choice",
+        "scales",
+        "ranking",
+        "quiz",
+        "quiz-type",
+        "pin-on-image",
+        "guess-number",
+        "hundred-points",
+        "grid-2x2",
+      ].includes(slide.type)
     ) {
       setVotedSlideIds((prev) => new Set(prev).add(slide.id));
     }
@@ -265,6 +278,12 @@ export default function AudiencePage() {
           <QuizTypeVote presentationId={id} slide={slide} onVoted={markVoted} />
         ) : slide.type === "pin-on-image" ? (
           <PinOnImageVote presentationId={id} slide={slide} onVoted={markVoted} />
+        ) : slide.type === "guess-number" ? (
+          <GuessNumberVote presentationId={id} slide={slide} onVoted={markVoted} />
+        ) : slide.type === "hundred-points" ? (
+          <HundredPointsVote presentationId={id} slide={slide} onVoted={markVoted} />
+        ) : slide.type === "grid-2x2" ? (
+          <Grid2x2Vote presentationId={id} slide={slide} onVoted={markVoted} />
         ) : slide.type === "qna" ? (
           <QnaVote presentationId={id} />
         ) : slide.type === "content" ? (

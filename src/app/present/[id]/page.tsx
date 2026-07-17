@@ -11,6 +11,9 @@ import Leaderboard from "@/components/present/Leaderboard";
 import LeaderboardSlide from "@/components/present/LeaderboardSlide";
 import ReactionOverlay from "@/components/present/ReactionOverlay";
 import BarChartResult from "@/components/results/BarChartResult";
+import Grid2x2Result from "@/components/results/Grid2x2Result";
+import GuessNumberResult from "@/components/results/GuessNumberResult";
+import HundredPointsResult from "@/components/results/HundredPointsResult";
 import OpenEndedResult from "@/components/results/OpenEndedResult";
 import PinOnImageResult from "@/components/results/PinOnImageResult";
 import QnaResult from "@/components/results/QnaResult";
@@ -283,6 +286,12 @@ export default function PresentPage() {
                     <QuizTypeResult slide={slide} responses={responses} />
                   ) : slide.type === "pin-on-image" ? (
                     <PinOnImageResult slide={slide} responses={responses} />
+                  ) : slide.type === "guess-number" ? (
+                    <GuessNumberResult slide={slide} responses={responses} />
+                  ) : slide.type === "hundred-points" ? (
+                    <HundredPointsResult slide={slide} responses={responses} />
+                  ) : slide.type === "grid-2x2" ? (
+                    <Grid2x2Result slide={slide} responses={responses} />
                   ) : slide.type === "qna" ? (
                     <QnaResult presentationId={id} />
                   ) : slide.type === "leaderboard" ? (

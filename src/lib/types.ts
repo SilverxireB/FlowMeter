@@ -11,6 +11,9 @@ export type SlideType =
   | "quiz"
   | "quiz-type"
   | "pin-on-image"
+  | "guess-number"
+  | "hundred-points"
+  | "grid-2x2"
   | "content"
   | "image"
   | "video"
@@ -64,6 +67,14 @@ export interface SlideSettings {
    * Tanımlıysa pin bu daireye düşen izleyiciler puan kazanır.
    */
   correctArea?: [number, number, number];
+  /** guess-number: doğru sayı (tahmine en yakınlık ödüllendirilir) */
+  correctNumber?: number;
+  /** guess-number: izin verilen alt/üst sınır ve birim etiketi */
+  min?: number;
+  max?: number;
+  unit?: string;
+  /** grid-2x2: eksen uçları [sol, sağ, alt, üst] */
+  gridLabels?: [string, string, string, string];
   /** Soru yanında gösterilen görsel (sıkıştırılmış data-URI) — pin-on-image'da zorunlu */
   image?: string;
   /** video: mp4/webm dosya URL'i (kurumsal ağlarda dış host engellenebilir) */
@@ -141,6 +152,9 @@ export const SLIDE_TYPE_ICONS: Record<SlideType, string> = {
   quiz: "⚡",
   "quiz-type": "✍️",
   "pin-on-image": "📍",
+  "guess-number": "🔢",
+  "hundred-points": "💯",
+  "grid-2x2": "🔲",
   content: "📄",
   image: "🖼️",
   video: "🎬",
@@ -158,6 +172,9 @@ export const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
   quiz: "Quiz",
   "quiz-type": "Quiz (Yazarak)",
   "pin-on-image": "Görselde İşaretle",
+  "guess-number": "Sayı Tahmini",
+  "hundred-points": "100 Puan",
+  "grid-2x2": "2x2 Izgara",
   content: "Metin",
   image: "Görsel",
   video: "Video",
@@ -175,6 +192,9 @@ export const INTERACTIVE_SLIDE_TYPES: SlideType[] = [
   "quiz",
   "quiz-type",
   "pin-on-image",
+  "guess-number",
+  "hundred-points",
+  "grid-2x2",
   "qna",
 ];
 

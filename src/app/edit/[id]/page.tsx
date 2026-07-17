@@ -30,7 +30,7 @@ import {
   SlideType,
 } from "@/lib/types";
 
-type SheetKind = "edit" | "add" | "more" | null;
+type SheetKind = "edit" | "add" | "more" | "interactivity" | null;
 
 /**
  * Slayt editörü — Menti mobil düzeni: ortada canlı önizleme, altında yüzen
@@ -174,6 +174,7 @@ export default function EditPage() {
           >
             +
           </button>
+          <ToolButton label="Etkileşim" onClick={() => setSheet("interactivity")}>👆</ToolButton>
           <ToolButton label="Tema" onClick={() => setThemeOpen(true)}>🎨</ToolButton>
           <ToolButton label="Diğer işlemler" onClick={() => selected && setSheet("more")} disabled={!selected}>
             ···
@@ -219,6 +220,43 @@ export default function EditPage() {
           }}
           onClose={() => setSheet(null)}
         />
+      )}
+
+      {sheet === "interactivity" && (
+        <Sheet title="Etkileşim" onClose={() => setSheet(null)}>
+          <div className="flex flex-col gap-6">
+            <div>
+              <p className="eyebrow mb-3">💬 Canlı sohbet</p>
+              <label className="flex items-center justify-between gap-3 cursor-pointer select-none">
+                <span className="text-sm font-semibold">Canlı sohbeti aç</span>
+                <input
+                  type="checkbox"
+                  checked={presentation.chatEnabled ?? false}
+                  onChange={(e) => setChatEnabled(id, e.target.checked)}
+                  className="w-5 h-5 accent-[#2563eb]"
+                />
+              </label>
+              <p className="text-muted text-xs mt-2">
+                Açıkken izleyiciler telefonlarındaki 💬 ile mesaj yazar; sunucu ekranından
+                moderasyon yapıp mesaj silebilirsin.
+              </p>
+            </div>
+            <div className="border-t border-line pt-5">
+              <p className="eyebrow mb-3">🙋 Soru & Cevap</p>
+              <p className="text-muted text-sm">
+                Soru & Cevap, bir <strong>slayt tipi</strong> olarak eklenir: <b>+</b> → Etkileşimli
+                sorular → Soru & Cevap. İzleyiciler soru gönderip birbirininkini oylar; sunum
+                ekranından gizleyip silebilirsin.
+              </p>
+              <button
+                onClick={() => add("qna")}
+                className="btn-ghost mt-3 !py-2 !px-4 text-sm"
+              >
+                + Soru & Cevap slaytı ekle
+              </button>
+            </div>
+          </div>
+        </Sheet>
       )}
 
       {sheet === "edit" && selected && (
@@ -374,6 +412,7 @@ const OPTION_LABELS: Partial<Record<SlideType, string>> = {
   ranking: "Sıralanacak seçenekler",
   quiz: "Seçenekler (doğru cevabı işaretle)",
   "quiz-type": "Kabul edilen cevaplar",
+  "hundred-points": "Puan dağıtılacak seçenekler",
   instructions: "Adımlar",
 };
 
@@ -518,6 +557,13 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
   const [correctArea, setCorrectArea] = useState<[number, number, number] | undefined>(
     slide.settings?.correctArea
   );
+  const [correctNumber, setCorrectNumber] = useState(slide.settings?.correctNumber ?? 50);
+  const [numMin, setNumMin] = useState(slide.settings?.min ?? 0);
+  const [numMax, setNumMax] = useState(slide.settings?.max ?? 100);
+  const [unit, setUnit] = useState(slide.settings?.unit ?? "");
+  const [gridLabels, setGridLabels] = useState<[string, string, string, string]>(
+    slide.settings?.gridLabels ?? ["Düşük", "Yüksek", "Kolay", "Zor"]
+  );
   const [maxEntries, setMaxEntries] = useState(
     slide.settings?.maxEntries ?? (slide.type === "word-cloud" ? 3 : 1)
   );
@@ -528,7 +574,7 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
   const firstRender = useRef(true);
 
   const optionLabel = OPTION_LABELS[slide.type];
-  const minOptions = slide.type === "multiple-choice" || slide.type === "quiz" ? 2 : 1;
+  const minOptions = ["multiple-choice", "quiz", "hundred-points"].includes(slide.type) ? 2 : 1;
   const hasMaxEntries = slide.type === "word-cloud" || slide.type === "open-ended";
   const isQuiz = slide.type === "quiz" || slide.type === "quiz-type";
   const hasImage = IMAGE_TYPES.includes(slide.type);
@@ -564,6 +610,13 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
         if (correctArea) settings.correctArea = correctArea;
         else delete settings.correctArea;
       }
+      if (slide.type === "guess-number") {
+        settings.min = numMin;
+        settings.max = Math.max(numMin + 1, numMax);
+        settings.correctNumber = Math.min(numMax, Math.max(numMin, correctNumber));
+        settings.unit = unit.trim();
+      }
+      if (slide.type === "grid-2x2") settings.gridLabels = gridLabels;
       await updateSlide(presentationId, slide.id, {
         question: question.trim() || "Soru",
         options: options.map((o) => o.trim()).filter(Boolean),
@@ -573,7 +626,7 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
     }, 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [question, options, description, label, allowMultiple, correctIndex, timeLimit, scoreMode, music, videoUrl, image, correctArea, maxEntries]);
+  }, [question, options, description, label, allowMultiple, correctIndex, timeLimit, scoreMode, music, videoUrl, image, correctArea, correctNumber, numMin, numMax, unit, gridLabels, maxEntries]);
 
   async function uploadImage(file: File | undefined) {
     if (!file) return;
@@ -684,6 +737,50 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
             Not: dış sunucudaki videolar bazı kurumsal ağlarda engellenebilir.
           </p>
         </>
+      )}
+
+      {/* Sayı tahmini ayarları */}
+      {slide.type === "guess-number" && (
+        <div className="border-t border-line pt-4 mb-4">
+          <p className="eyebrow mb-3">Tahmin ayarları</p>
+          <div className="flex gap-2 mb-3">
+            <label className="flex-1">
+              <span className="block text-sm font-medium mb-1">En az</span>
+              <input type="number" value={numMin} onChange={(e) => setNumMin(Number(e.target.value))} className="input-base !py-2 text-center tabular-nums" />
+            </label>
+            <label className="flex-1">
+              <span className="block text-sm font-medium mb-1">En çok</span>
+              <input type="number" value={numMax} onChange={(e) => setNumMax(Number(e.target.value))} className="input-base !py-2 text-center tabular-nums" />
+            </label>
+          </div>
+          <label className="block mb-3">
+            <span className="block text-sm font-medium mb-1">Doğru sayı</span>
+            <input type="number" value={correctNumber} min={numMin} max={numMax} onChange={(e) => setCorrectNumber(Number(e.target.value))} className="input-base !py-2 text-center tabular-nums" />
+          </label>
+          <label className="block">
+            <span className="block text-sm font-medium mb-1">Birim (opsiyonel)</span>
+            <input value={unit} onChange={(e) => setUnit(e.target.value)} maxLength={12} placeholder="₺, kg, %…" className="input-base !py-2" />
+          </label>
+        </div>
+      )}
+
+      {/* 2x2 Izgara eksen etiketleri */}
+      {slide.type === "grid-2x2" && (
+        <div className="border-t border-line pt-4 mb-4">
+          <p className="eyebrow mb-3">Eksen uçları</p>
+          {([["Sol", 0], ["Sağ", 1], ["Alt", 2], ["Üst", 3]] as const).map(([lbl, i]) => (
+            <label key={i} className="flex items-center gap-3 mb-2">
+              <span className="text-sm font-semibold w-10 shrink-0">{lbl}</span>
+              <input
+                value={gridLabels[i]}
+                onChange={(e) =>
+                  setGridLabels(gridLabels.map((g, j) => (j === i ? e.target.value : g)) as [string, string, string, string])
+                }
+                className="input-base flex-1 !py-2"
+              />
+            </label>
+          ))}
+        </div>
       )}
 
       {/* Quiz ayarları (Menti "Quiz settings") */}

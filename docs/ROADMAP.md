@@ -60,7 +60,7 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
       hız bonusu), 🏆 skor tablosu (avatar + nickname, madalyalar)
 - [x] Kazanan konfetisi (skor tablosu açılınca)
 - [x] **Q&A**: izleyici soru gönderir + upvote (tek oy); moderasyon (gizle/göster/sil)
-- [ ] **Guess the Number** slayt tipi (tahmin + dağılım gösterimi)
+- [x] **Guess the Number** (Sayı Tahmini) slayt tipi (histogram + doğru sayı + ortalama)
 - [ ] Audience-pace (anket modu): izleyici kendi ilerler, bitiş ekranı
 - [x] Quiz kişisel sonucu: izleyici kendi doğru/yanlış + puanını telefonunda görür
 
@@ -83,6 +83,23 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 - [x] **Quiz müziği** 🎵: WebAudio sentez (dosya/dış servis yok), slayt başına
 - [x] Dashboard: arama, 📁 klasörler, grid/liste, temalı kart önizlemesi,
       yeniden adlandırma, son düzenlenene göre sıralama (updatedAt)
+
+## Faz 3.6 — Kademe 2-3 (Menti derinleştirme) ✅
+
+- [x] Editör "Edit" sheet: slayt tipini **yerinde değiştirme** dropdown'u
+      (changeSlideType), katlanır "More settings" accordion'ları
+- [x] Quiz **Score allocation**: Zamana göre / Sabit puan seçimi
+- [x] **Pin on Image "Doğru alanı seç"**: editörde daire seçici, puanlı (isPinInArea),
+      present'te doğru/yanlış renkli pin + alan dairesi; leaderboard'a katılır
+- [x] **Leaderboard bar-race + spotlight**: açılışta en çok kazananı büyük gösterir,
+      Podyum/Sıralama görünüm geçişi, önceki puandan büyüyen animasyonlu barlar
+- [x] Yeni slayt tipleri: **Sayı Tahmini** (histogram), **100 Puan** (dağıtım),
+      **2x2 Izgara** (nokta bulutu)
+- [x] **Şablon galerisi** (Buz Kırıcı / Quiz Paketi / Geri Bildirim) + **sunum kopyalama**
+- [x] Editör **👆 Etkileşim paneli**: canlı sohbet toggle + Q&A yönlendirmesi
+
+Kalanlar: Audience-pace anket modu, slayt kopyala/yapıştır (Mentiler arası),
+profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 
 ## Faz 4 — Yayınlama & Cila
 

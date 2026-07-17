@@ -7,13 +7,16 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuthUser } from "@/lib/hooks";
 import {
+  createFromTemplate,
   createPresentation,
   deletePresentation,
+  duplicatePresentation,
   getFirstSlide,
   listPresentations,
   renamePresentation,
   setPresentationFolder,
 } from "@/lib/presentations";
+import { TEMPLATES } from "@/lib/templates";
 import { themeStyle } from "@/lib/themes";
 import { Presentation, Slide } from "@/lib/types";
 
@@ -64,6 +67,7 @@ export default function DashboardPage() {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [folder, setFolder] = useState<string | null>(null); // null = tümü
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     if (user) setItems(await listPresentations(user.uid));
@@ -112,6 +116,20 @@ export default function DashboardPage() {
     refresh();
   }
 
+  async function duplicate(p: Presentation) {
+    if (!user) return;
+    const id = await duplicatePresentation(user.uid, p);
+    router.push(`/edit/${id}`);
+  }
+
+  async function startFromTemplate(templateId: string) {
+    if (!user) return;
+    const tpl = TEMPLATES.find((t) => t.id === templateId);
+    if (!tpl) return;
+    const id = await createFromTemplate(user.uid, tpl);
+    router.push(`/edit/${id}`);
+  }
+
   async function rename(p: Presentation) {
     const name = prompt("Yeni sunum adı:", p.title)?.trim();
     if (!name || name === p.title) return;
@@ -150,7 +168,7 @@ export default function DashboardPage() {
         <p className="eyebrow mb-2">Sunucu paneli</p>
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-6">Sunumlarım</h1>
 
-        <form onSubmit={create} className="card p-2 flex gap-2 mb-4">
+        <form onSubmit={create} className="card p-2 flex gap-2 mb-3">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -161,6 +179,12 @@ export default function DashboardPage() {
             + Oluştur
           </button>
         </form>
+        <button
+          onClick={() => setTemplatesOpen(true)}
+          className="btn-ghost mb-8 !py-2.5 text-sm"
+        >
+          ✨ Şablondan başla
+        </button>
 
         {/* Arama + görünüm */}
         <div className="flex items-center gap-2 mb-4">
@@ -273,6 +297,9 @@ export default function DashboardPage() {
                             <button onClick={() => rename(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
                               ✏️ Yeniden adlandır
                             </button>
+                            <button onClick={() => duplicate(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
+                              ⧉ Kopyala
+                            </button>
                             <button onClick={() => moveToFolder(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
                               📁 Klasöre taşı
                             </button>
@@ -301,6 +328,38 @@ export default function DashboardPage() {
           </ul>
         )}
       </section>
+
+      {/* Şablon galerisi */}
+      {templatesOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+          onClick={() => setTemplatesOpen(false)}
+        >
+          <div
+            className="card w-full max-w-2xl p-7 max-h-[85vh] overflow-y-auto animate-pop"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-display text-2xl font-semibold">✨ Şablon galerisi</h2>
+              <button onClick={() => setTemplatesOpen(false)} className="btn-ghost !px-3 !py-1.5 text-sm">Kapat</button>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => startFromTemplate(t.id)}
+                  className="text-left card !rounded-2xl p-5 hover:-translate-y-0.5 transition-transform cursor-pointer"
+                >
+                  <div className="text-4xl mb-3" aria-hidden>{t.emoji}</div>
+                  <p className="font-display font-semibold mb-1">{t.name}</p>
+                  <p className="text-muted text-sm mb-3">{t.description}</p>
+                  <p className="eyebrow">{t.slides.length} slayt</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

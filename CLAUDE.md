@@ -53,14 +53,17 @@ Sunucu (presenter) slaytlar oluşturur, izleyiciler (audience) telefonlarından
   ekranı**), isLive, ended, votingClosed, chatEnabled, folder,
   theme{preset,bgImage,logo}, mode, updatedAt.
 - **Slide** `type`: multiple-choice, word-cloud, open-ended, scales, ranking,
-  **quiz** (correctIndex, timeLimit, quizStartedAt), **quiz-type** (yazarak;
-  options = kabul edilen cevaplar), **pin-on-image**, **qna**, content, image,
-  video, instructions, **leaderboard** (podyum slaytı).
+  **quiz** (correctIndex, timeLimit, scoreMode, quizStartedAt), **quiz-type**
+  (yazarak; options = kabul edilen cevaplar), **pin-on-image** (correctArea ile
+  puanlı), **guess-number** (correctNumber/min/max/unit), **hundred-points**,
+  **grid-2x2** (gridLabels), **qna**, content, image, video, instructions,
+  **leaderboard** (podyum slaytı).
   Settings: allowMultiple, maxEntries, description, label, image, videoUrl,
-  music, skipped.
+  music, scoreMode, correctArea, correctNumber, min, max, unit, gridLabels, skipped.
 - **Response.value**: MC=number|number[]; WC/open-ended=string;
   scales/ranking=number[]; **quiz=[optionIndex, geçenMs]**;
-  **quiz-type=[metin, geçenMs]**; **pin-on-image=[x, y] (0–1)**.
+  **quiz-type=[metin, geçenMs]**; **pin-on-image / grid-2x2=[x, y] (0–1)**;
+  **guess-number=number**; **hundred-points=number[]** (seçenek başına puan).
 - **Participant**: doc id = voterId (localStorage UUID); nickname + avatarSeed.
 - **Quiz puanı (Menti formülü)**: `1000 × (1 − (t/T)/2)` → 500–1000 arası.
   Seri bonusu (Kahoot usulü): üst üste 2. doğrudan itibaren +50/soru, max +250.

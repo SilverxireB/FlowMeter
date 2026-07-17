@@ -59,12 +59,14 @@ export default function SlidePreview({
 
 function PreviewBody({ slide, mini, dark }: { slide: Slide; mini: boolean; dark: boolean }) {
   const soft = dark ? "text-white/60" : "text-muted";
+  const text = dark ? "text-white" : "text-ink";
   const options = slide.options.length ? slide.options : [];
 
   switch (slide.type) {
     case "multiple-choice":
     case "quiz":
     case "ranking":
+    case "hundred-points":
       // Menti editör önizlemesi: sıfır barlar — renkli alt çizgi + etiket
       return (
         <div className="w-full flex gap-2 md:gap-4 items-end">
@@ -80,6 +82,30 @@ function PreviewBody({ slide, mini, dark }: { slide: Slide; mini: boolean; dark:
           ))}
         </div>
       );
+    case "guess-number":
+      return (
+        <div className={`w-full text-center font-display font-semibold ${text} ${mini ? "text-sm" : "text-4xl"}`}>
+          {slide.settings?.correctNumber ?? "?"}
+          {slide.settings?.unit ? <span className={`${soft} ${mini ? "text-[8px]" : "text-base"} ml-1`}>{slide.settings.unit}</span> : null}
+        </div>
+      );
+    case "grid-2x2": {
+      const [gl, gr, gb, gt] = slide.settings?.gridLabels ?? ["", "", "", ""];
+      return (
+        <div className="w-full flex flex-col items-center">
+          {!mini && <span className={`text-[9px] ${soft} truncate max-w-full`}>{gt}</span>}
+          <div className="flex items-center gap-1 w-full justify-center">
+            {!mini && <span className={`text-[9px] ${soft} truncate max-w-[3rem]`}>{gl}</span>}
+            <div className={`relative ${mini ? "w-8 h-8" : "w-24 h-24"} rounded border ${dark ? "border-white/25" : "border-ink/15"}`}>
+              <span className="absolute left-1/2 inset-y-0 w-px" style={{ background: dark ? "rgba(255,255,255,.2)" : "rgba(0,0,0,.12)" }} aria-hidden />
+              <span className="absolute top-1/2 inset-x-0 h-px" style={{ background: dark ? "rgba(255,255,255,.2)" : "rgba(0,0,0,.12)" }} aria-hidden />
+            </div>
+            {!mini && <span className={`text-[9px] ${soft} truncate max-w-[3rem]`}>{gr}</span>}
+          </div>
+          {!mini && <span className={`text-[9px] ${soft} truncate max-w-full`}>{gb}</span>}
+        </div>
+      );
+    }
     case "word-cloud": {
       const words = ["fikir", "hızlı", "yaratıcı", "odak", "lider", "ilham"];
       return (

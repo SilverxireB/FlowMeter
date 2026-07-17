@@ -15,6 +15,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { PresentationTemplate } from "./templates";
 import { Presentation, Slide, SlideType } from "./types";
 
 function randomJoinCode(): string {
@@ -52,6 +53,31 @@ export async function createPresentation(ownerId: string, title: string): Promis
   return ref.id;
 }
 
+/** Hazır şablondan yeni sunum oluşturur (slaytlar + tema preset). */
+export async function createFromTemplate(
+  ownerId: string,
+  template: PresentationTemplate,
+  title?: string
+): Promise<string> {
+  const newId = await createPresentation(ownerId, title || template.name);
+  if (template.themePreset) {
+    await updateTheme(newId, { preset: template.themePreset });
+  }
+  const batch = writeBatch(db());
+  template.slides.forEach((s, i) => {
+    const ref = doc(collection(db(), "presentations", newId, "slides"));
+    batch.set(ref, {
+      type: s.type,
+      question: s.question,
+      options: s.options,
+      order: i,
+      settings: s.settings ?? {},
+    });
+  });
+  await batch.commit();
+  return newId;
+}
+
 export async function listPresentations(ownerId: string): Promise<Presentation[]> {
   const q = query(collection(db(), "presentations"), where("ownerId", "==", ownerId));
   const snap = await getDocs(q);
@@ -61,6 +87,33 @@ export async function listPresentations(ownerId: string): Promise<Presentation[]
 
 export async function renamePresentation(id: string, title: string): Promise<void> {
   await updateDoc(doc(db(), "presentations", id), { title, updatedAt: serverTimestamp() });
+}
+
+/** Bir sunumun tam kopyasını oluşturur (yeni join kodu + tüm slaytlar + tema). */
+export async function duplicatePresentation(
+  ownerId: string,
+  source: Presentation
+): Promise<string> {
+  const newId = await createPresentation(ownerId, `${source.title} (kopya)`);
+  if (source.theme) {
+    await updateTheme(newId, source.theme as Record<string, string | undefined>);
+  }
+  const slides = await listSlides(source.id);
+  if (slides.length) {
+    const batch = writeBatch(db());
+    slides.forEach((s) => {
+      const ref = doc(collection(db(), "presentations", newId, "slides"));
+      batch.set(ref, {
+        type: s.type,
+        question: s.question,
+        options: s.options,
+        order: s.order,
+        settings: s.settings ?? {},
+      });
+    });
+    await batch.commit();
+  }
+  return newId;
 }
 
 /** Dashboard klasörü (boş string = klasörsüz). */
@@ -219,6 +272,21 @@ export function slideDefaults(type: SlideType): SlideDefault {
       question: "Görselde işaretleyin",
       options: [],
       settings: {},
+    },
+    "guess-number": {
+      question: "Sizce sayı kaç?",
+      options: [],
+      settings: { correctNumber: 50, min: 0, max: 100 },
+    },
+    "hundred-points": {
+      question: "100 puanı dağıtın",
+      options: ["Seçenek 1", "Seçenek 2", "Seçenek 3"],
+      settings: {},
+    },
+    "grid-2x2": {
+      question: "İşaretleyin",
+      options: [],
+      settings: { gridLabels: ["Düşük", "Yüksek", "Kolay", "Zor"] },
     },
     qna: {
       question: "Sorularınızı alalım!",
