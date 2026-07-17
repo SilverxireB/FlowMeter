@@ -33,7 +33,6 @@ import {
 import {
   endPresentation,
   resetResponses,
-  resetSession,
   setCurrentSlide,
   setVotingClosed,
   startQuiz,
@@ -451,21 +450,6 @@ export default function PresentPage() {
             title="Tam ekran (aç/kapat)"
           >
             Tam ekran
-          </button>
-          <button
-            onClick={async () => {
-              if (
-                confirm(
-                  "Yeni oturum başlatılsın mı? Tüm cevaplar, katılımcılar ve sohbet silinir; sunum katılım ekranından yeni bir grupla baştan başlar."
-                )
-              ) {
-                await resetSession(id, slides);
-              }
-            }}
-            className="btn-ghost !py-1.5 !px-3.5 text-sm"
-            title="Aynı sunumu yeni bir grupla baştan çalıştır"
-          >
-            Yeni oturum
           </button>
           <button
             onClick={async () => {

@@ -14,6 +14,7 @@ import {
   addSlide,
   changeSlideType,
   deleteSlide,
+  duplicatePresentation,
   duplicateSlide,
   reorderSlides,
   resetResponses,
@@ -139,6 +140,18 @@ export default function EditPage() {
                 <Link href={`/results/${id}`} className="rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper">
                   Sonuçlar
                 </Link>
+                <button
+                  onClick={async () => {
+                    if (!user) return;
+                    setMenuOpen(false);
+                    const newId = await duplicatePresentation(user.uid, presentation);
+                    router.push(`/present/${newId}`);
+                  }}
+                  className="text-left rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper cursor-pointer"
+                  title="Sunumun taze bir kopyasını oluşturur (yeni kod); bu sunum sonuçlarıyla kalır"
+                >
+                  🔄 Yeni oturum (kopya)
+                </button>
                 <div className="border-t border-line my-1.5" />
                 <label className="flex items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper cursor-pointer">
                   💬 Canlı sohbet

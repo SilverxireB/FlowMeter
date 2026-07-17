@@ -118,8 +118,10 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
       önizlemesi liste=mini/grid=tam, kart menüsü artık kırpılmıyor (overflow)
 - [x] **Q&A "Cevaplandı"**: gizlemeden ayrı işaret (yeşil rozet + üstü çizili;
       cevaplananlar listenin altına iner), izleyici de rozeti görür
-- [x] **Yeni oturum düzeltmesi**: önce QR ekranına döner (flash biter), Q&A +
-      tepkiler dahil TÜM oturum verisi temizlenir
+- [x] **Yeni oturum = kopya**: sunum sırasındaki "yeni oturum" (yerinde temizle)
+      butonu kaldırıldı; yeni oturum artık editör menüsünden "🔄 Yeni oturum (kopya)"
+      ile taze bir kopya oluşturur (yeni kod), eski sunum sonuçlarıyla kalır.
+      (resetSession düzeltmesi de duruyor: önce QR'a dönüş + Q&A/tepki temizliği.)
 - [x] **Geri sayım sesi**: sürekli müzik yerine son 5 sn tık-tık + buzzer (WebAudio)
 - [x] **Tasarım tazeleme (sade & modern)**: tek uyumlu font (Plus Jakarta Sans),
       nötr/dingin palet (pembe tonlu nötrler kalktı), indigo vurgu, düz(daha az clay)
