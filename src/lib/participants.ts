@@ -57,11 +57,14 @@ export function storeSession(presentationId: string, sessionId: string): void {
 export async function joinPresentation(
   presentationId: string,
   nickname: string,
-  avatarSeed: string
+  avatarSeed: string,
+  sessionId?: string
 ): Promise<void> {
+  const data: Record<string, unknown> = { nickname, avatarSeed, joinedAt: serverTimestamp() };
+  if (sessionId) data.sessionId = sessionId;
   await setDoc(
     doc(db(), "presentations", presentationId, "participants", getVoterId()),
-    { nickname, avatarSeed, joinedAt: serverTimestamp() },
+    data,
     { merge: true }
   );
 }

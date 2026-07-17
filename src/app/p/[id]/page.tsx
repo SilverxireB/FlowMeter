@@ -32,7 +32,7 @@ import {
   storeSession,
 } from "@/lib/participants";
 import { REACTION_EMOJIS, sendReaction } from "@/lib/reactions";
-import { clearSlideVotes, getVoteCount } from "@/lib/responses";
+import { clearSlideVotes, getVoteCount, setActiveSession } from "@/lib/responses";
 import { themeStyle } from "@/lib/themes";
 import { Slide } from "@/lib/types";
 
@@ -79,10 +79,15 @@ export default function AudiencePage() {
     storeSession(id, sid);
   }, [presentation?.sessionId, slides, id]);
 
+  // Aktif oturumu ayarla → gönderilen oylar bununla etiketlenir
+  useEffect(() => {
+    setActiveSession(presentation?.sessionId);
+  }, [presentation?.sessionId]);
+
   // Katılımı kaydet + son sunumu hatırla
   useEffect(() => {
     if (nickname && presentation) {
-      joinPresentation(id, nickname, avatarSeed ?? "Luna").catch(() => {});
+      joinPresentation(id, nickname, avatarSeed ?? "Luna", presentation.sessionId).catch(() => {});
       storeLastPresentation({ id, title: presentation.title });
     }
   }, [nickname, avatarSeed, presentation, id]);

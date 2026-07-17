@@ -54,7 +54,8 @@ export default function PresentPage() {
   const { presentation, loading: presLoading } = usePresentation(id);
   const { slides } = useSlides(id);
   const [slow, setSlow] = useState(false);
-  const participants = useParticipants(id);
+  const sessionId = presentation?.sessionId;
+  const participants = useParticipants(id, sessionId);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
   const [host, setHost] = useState("flowmeter");
   const [hideResults, setHideResults] = useState(false);
@@ -69,7 +70,7 @@ export default function PresentPage() {
   const rawIndex = presentation?.currentSlideIndex ?? -1;
   const index = Math.min(rawIndex, slides.length - 1);
   const slide = rawIndex < 0 ? undefined : slides[index];
-  const responses = useLiveResponses(id, slide?.id ?? null);
+  const responses = useLiveResponses(id, slide?.id ?? null, sessionId);
 
   /** dir yönünde, atlanmayan bir sonraki slayt index'i (-1 = katılım ekranı). */
   function nextVisibleIndex(from: number, dir: -1 | 1): number | null {
@@ -322,6 +323,7 @@ export default function PresentPage() {
                       presentationId={id}
                       slides={slides}
                       participants={participants}
+                      sessionId={sessionId}
                       final={!slides.slice(index + 1).some(isScoringSlide)}
                     />
                   ) : slide.type === "image" ? (
@@ -529,6 +531,7 @@ export default function PresentPage() {
           presentationId={id}
           slides={slides}
           participants={participants}
+          sessionId={sessionId}
           onClose={() => setLeaderboardOpen(false)}
         />
       )}

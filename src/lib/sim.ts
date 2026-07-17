@@ -113,15 +113,22 @@ export function makeBots(n: number): Bot[] {
   });
 }
 
-/** Botları katılımcı olarak yazar (500'lük batch'ler). */
-export async function joinBots(presentationId: string, bots: Bot[]): Promise<void> {
+/** Botları katılımcı olarak yazar (500'lük batch'ler), aktif oturumla etiketli. */
+export async function joinBots(
+  presentationId: string,
+  bots: Bot[],
+  sessionId?: string
+): Promise<void> {
   for (let i = 0; i < bots.length; i += 450) {
     const batch = writeBatch(db());
     bots.slice(i, i + 450).forEach((b) => {
-      batch.set(
-        doc(db(), "presentations", presentationId, "participants", b.voterId),
-        { nickname: b.nickname, avatarSeed: b.avatarSeed, joinedAt: serverTimestamp() }
-      );
+      const data: Record<string, unknown> = {
+        nickname: b.nickname,
+        avatarSeed: b.avatarSeed,
+        joinedAt: serverTimestamp(),
+      };
+      if (sessionId) data.sessionId = sessionId;
+      batch.set(doc(db(), "presentations", presentationId, "participants", b.voterId), data);
     });
     await batch.commit();
   }
@@ -136,7 +143,12 @@ export function fireReaction(presentationId: string): Promise<unknown> {
   });
 }
 
-export function fireResponse(presentationId: string, slide: Slide, voterId: string) {
+export function fireResponse(
+  presentationId: string,
+  slide: Slide,
+  voterId: string,
+  sessionId?: string
+) {
   let value: ReturnType<typeof randomVoteValue>;
   try {
     value = randomVoteValue(slide);
@@ -144,9 +156,11 @@ export function fireResponse(presentationId: string, slide: Slide, voterId: stri
     value = 0;
   }
   if (value === undefined || value === null) value = 0;
+  const data: Record<string, unknown> = { voterId, value, createdAt: serverTimestamp() };
+  if (sessionId) data.sessionId = sessionId;
   return addDoc(
     collection(db(), "presentations", presentationId, "slides", slide.id, "responses"),
-    { voterId, value, createdAt: serverTimestamp() }
+    data
   );
 }
 

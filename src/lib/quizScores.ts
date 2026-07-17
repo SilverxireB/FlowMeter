@@ -1,4 +1,4 @@
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 import { Slide } from "./types";
 
@@ -54,7 +54,8 @@ export function isScoringSlide(slide: Slide): boolean {
  */
 export async function computeQuizScores(
   presentationId: string,
-  slides: Slide[]
+  slides: Slide[],
+  sessionId?: string
 ): Promise<ScoreRow[]> {
   const quizSlides = slides.filter(isScoringSlide);
   const scores = new Map<string, ScoreRow>();
@@ -68,9 +69,8 @@ export async function computeQuizScores(
     const correctArea = s.settings?.correctArea;
     // pin-on-image'ın zamanlaması yok → sabit puan; diğerleri scoreMode'a uyar
     const fixed = s.settings?.scoreMode === "fixed" || s.type === "pin-on-image";
-    const snap = await getDocs(
-      collection(db(), "presentations", presentationId, "slides", s.id, "responses")
-    );
+    const col = collection(db(), "presentations", presentationId, "slides", s.id, "responses");
+    const snap = await getDocs(sessionId ? query(col, where("sessionId", "==", sessionId)) : col);
     if (snap.empty) continue;
     for (const row of scores.values()) row.delta = 0;
     const answeredCorrect = new Set<string>();

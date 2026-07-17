@@ -231,20 +231,34 @@ export async function resetSession(presentationId: string, slides: Slide[]): Pro
 }
 
 /**
- * Yeni oturum + YENİ KOD: verileri temizler (resetSession) ve sunuma yepyeni
- * bir 6 haneli katılım kodu atar (eski kod serbest bırakılır). Sunumu her yeni
- * grupla çalıştırınca taze bir kodla başlamak için. Yeni kodu döndürür.
+ * Yeni oturum kimliği atar (SİLMEZ — anında, 1000'lerce katılımcıda bile).
+ * Canlı sonuç/katılımcı ekranları sessionId'ye göre filtrelendiği için yeni
+ * oturum "taze" başlar; eski cevaplar Firestore'da saklı kalır. Katılım (QR)
+ * ekranına döner. newCode=true ise yeni bir 6 haneli kod da atar (eski serbest).
  */
-export async function startNewSession(presentationId: string, slides: Slide[]): Promise<string> {
+export async function newSession(
+  presentationId: string,
+  opts?: { newCode?: boolean; live?: boolean }
+): Promise<string | undefined> {
   const ref = doc(db(), "presentations", presentationId);
-  const before = await getDoc(ref);
-  const oldCode = before.exists() ? (before.data().joinCode as string | undefined) : undefined;
-
-  await resetSession(presentationId, slides);
-
-  const newCode = await allocateJoinCode(presentationId);
-  await updateDoc(ref, { joinCode: newCode });
-  if (oldCode && oldCode !== newCode) {
+  let newCode: string | undefined;
+  let oldCode: string | undefined;
+  if (opts?.newCode) {
+    const before = await getDoc(ref);
+    oldCode = before.exists() ? (before.data().joinCode as string | undefined) : undefined;
+    newCode = await allocateJoinCode(presentationId);
+  }
+  const patch: Record<string, unknown> = {
+    currentSlideIndex: -1,
+    isLive: opts?.live ?? false,
+    ended: false,
+    votingClosed: false,
+    sessionId: randomSessionId(),
+    updatedAt: serverTimestamp(),
+  };
+  if (newCode) patch.joinCode = newCode;
+  await updateDoc(ref, patch);
+  if (opts?.newCode && oldCode && oldCode !== newCode) {
     await deleteDoc(doc(db(), "joinCodes", oldCode)).catch(() => {});
   }
   return newCode;

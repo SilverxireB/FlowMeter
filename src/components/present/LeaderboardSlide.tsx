@@ -17,11 +17,13 @@ export default function LeaderboardSlide({
   presentationId,
   slides,
   participants,
+  sessionId,
   final = false,
 }: {
   presentationId: string;
   slides: Slide[];
   participants: Participant[];
+  sessionId?: string;
   final?: boolean;
 }) {
   const [rows, setRows] = useState<ScoreRow[] | null>(null);
@@ -30,8 +32,8 @@ export default function LeaderboardSlide({
   const [reveal, setReveal] = useState(!final);
 
   const compute = useCallback(async () => {
-    setRows(await computeQuizScores(presentationId, slides));
-  }, [presentationId, slides]);
+    setRows(await computeQuizScores(presentationId, slides, sessionId));
+  }, [presentationId, slides, sessionId]);
 
   useEffect(() => {
     compute();
