@@ -194,7 +194,7 @@ export default function EditPage() {
             <Icon name="plus" size={24} />
           </button>
           <ToolButton label="Etkileşim" onClick={() => setSheet("interactivity")}>
-            <Icon name="cursor" />
+            <Icon name="chat" />
           </ToolButton>
           <ToolButton label="Tema" onClick={() => setThemeOpen(true)}>
             <Icon name="palette" />
@@ -360,7 +360,7 @@ function ToolButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="w-11 h-11 rounded-full text-lg hover:bg-paper cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-default"
+      className="w-11 h-11 rounded-full flex items-center justify-center text-ink hover:bg-paper cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-default"
     >
       {children}
     </button>
