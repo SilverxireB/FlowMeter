@@ -101,6 +101,16 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 Kalanlar: Audience-pace anket modu, slayt kopyala/yapıştır (Mentiler arası),
 profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 
+## ⚠️ Geçici TEST aracı — Simülasyon (kaldırılacak)
+
+- `/dev/sim/[id]?k=<SIM_SECRET>` (src/app/dev/sim/ + src/lib/sim.ts). Gizli link,
+  hiçbir yerden linklenmez, gerçek izleyici gibi anonim yazar (rules değişmez).
+- N bot + personalar (tepki canavarı / çok soran / sohbetçi / aktif / sessiz),
+  ayarlanabilir tepki & Q&A yoğunluğu, canlı yazma/sn → "tepkiler çokken" akıcılık
+  sınırını (N) bulmak için. Temizle = resetSession.
+- **KALDIRMAK:** `src/app/dev/` klasörünü + `src/lib/sim.ts`'i sil, ROADMAP'ten bu
+  bölümü çıkar. Başka hiçbir dosya etkilenmez (düzen bozulmaz).
+
 ## Faz 3.8 — Mobil düzeltmeler + PWA ✅
 
 - [x] Mobil üst bar çakışmaları: sonuçlar (logo↔başlık), dashboard (logo↔e-posta) —
