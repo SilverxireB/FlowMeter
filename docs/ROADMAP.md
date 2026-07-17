@@ -101,16 +101,6 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 Kalanlar: Audience-pace anket modu, slayt kopyala/yapıştır (Mentiler arası),
 profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 
-## ⚠️ Geçici TEST aracı — Simülasyon (kaldırılacak)
-
-- `/dev/sim/[id]?k=<SIM_SECRET>` (src/app/dev/sim/ + src/lib/sim.ts). Gizli link,
-  hiçbir yerden linklenmez, gerçek izleyici gibi anonim yazar (rules değişmez).
-- N bot + personalar (tepki canavarı / çok soran / sohbetçi / aktif / sessiz),
-  ayarlanabilir tepki & Q&A yoğunluğu, canlı yazma/sn → "tepkiler çokken" akıcılık
-  sınırını (N) bulmak için. Temizle = resetSession.
-- **KALDIRMAK:** `src/app/dev/` klasörünü + `src/lib/sim.ts`'i sil, ROADMAP'ten bu
-  bölümü çıkar. Başka hiçbir dosya etkilenmez (düzen bozulmaz).
-
 ## Faz 3.8 — Mobil düzeltmeler + PWA ✅
 
 - [x] Mobil üst bar çakışmaları: sonuçlar (logo↔başlık), dashboard (logo↔e-posta) —
@@ -145,23 +135,33 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 - [ ] i18n (TR/EN), kod süresi/temizliği, Cloud Function ile yetim veri temizliği
 - [ ] Performans: 100+ eşzamanlı izleyici için yazma/okuma gözden geçirme
 
-## ⚠️ GERİ DÖNÜŞ NOTU (d9af4fa'ya rollback) — ÖNCE BUNU OKU
+## ⚠️ GERİ DÖNÜŞ NOTU (f77cecc — simülasyon ÖNCESİ) — ÖNCE BUNU OKU
 
-**Şu anki durum:** Kod, `d9af4fa` commit'ine (son doğrulanmış çalışan sürüm)
-geri alındı. `feature` (`claude/project-structure-design-6pufzd`) ve production
-(`claude/practical-lamport-ls9miq`) bu ağaca eşitlendi. Sunum oluşturma ve
-izleyici slayt akışı yeniden çalışıyor.
+**Şu anki durum:** Kod, `f77cecc` commit'ine (simülasyon aracı eklenmeden
+HEMEN önce, son sağlam sürüm) geri alındı. `feature`
+(`claude/project-structure-design-6pufzd`) ve production
+(`claude/practical-lamport-ls9miq`) bu ağaca eşitlendi. Bu noktada tasarım/PWA/
+logo/mobil düzeltmeler + "geri bildirim turu" var; **simülasyon aracı YOK**,
+sessionId kapsamı YOK, "yeni oturum=yeni kod" YOK.
 
-**Ne denendi, neden geri alındı (tekrar YAPMA — böyle DEĞİL):**
-- `296afa8`: "Yeni oturum = yeni kod" + **sessionId kapsamı (scoping)**. Tüm
-  okumalar `where("sessionId","==",sessionId)` ile filtrelendi.
-- **Kırılma sebebi:** Mevcut (eski) katılımcı/cevap dokümanlarında `sessionId`
-  alanı YOK → canlı ekranlar onları filtreleyip dışladı. Sonuç: "eski sunuma
-  girsem de kullanıcı ekranı değişmiyor", "yeni sunum oluşturamıyorum",
-  ekrana isim/avatar geldi ama slayta geçmedi. `9ca00db` ile okuma/yazma geri
-  alındı, sonra tamamen `d9af4fa`'ya dönüldü.
-- **Ayrı sorun:** İzleyicileri toplu client-side silme (`resetSession`)
-  ~1110 katılımcıda TAKILIYOR. Ölçekte asla client'tan toplu silme yapma.
+**Neden buraya kadar geri gelindi:** Önce sadece `d9af4fa`'ya dönüldü ama
+**hâlâ çalışmıyordu**. Sorunun kökü sim + sonrasıydı; kullanıcı "simülasyonun
+tam öncesine dön" dedi. Aşağıdaki commit'lerin HİÇBİRİ tekrar aynen alınmamalı:
+- `b815ae1` /dev/sim test aracı (bot yazımı → Firestore'u kirletti)
+- `538b45a`, `d9af4fa` sim düzeltmeleri
+- `8a4665e`, `74fdbad` çoklu-kullanım + avatar bulutu + present'ten "yeni oturum" kaldırma
+- `296afa8` **sessionId kapsamı** (asıl kırılma): eski katılımcı/cevaplarda
+  `sessionId` alanı yok → canlı ekranlar onları filtreleyip boşalttı
+  ("eski sunuma girsem de değişmiyor", "yeni sunum oluşturamıyorum")
+- `6ad778d`, `9ca00db` bunları geri alma denemeleri (yetmedi)
+
+**Firestore temizliği (KOD DIŞI — kullanıcı elle yapacak):** Sim botları
+gerçek sunumlara `participants/responses/reactions/messages/questions`
+yazdı. Bu ortama Firestore admin erişimi YOK; temizlik konsoldan yapılmalı.
+En temiz yol: sim ile kirlenen **test sunumlarını dashboard'dan komple sil**
+(o sunumların tamamı zaten atılabilir). Gerçek/saklanacak sunum varsa sadece
+`sim-` ile başlayan voterId'li dokümanları silmek gerekir (bkz. eski sim.ts:
+bot voterId'leri `sim-<uuid>` formatındaydı).
 
 **Kullanıcının İSTEDİĞİ oturum modeli (birebir):** "bitir ile o sunum biter
 cevaplar kaydedilir. sonra yeniden aynısını yayınladığımda başka bir kod / id
@@ -169,21 +169,11 @@ ile başka bir sunum başlar; aynısını açmak istersem onun koduna tıklarım
 bunların sadece dashboard ekranında olması lazım."
 
 **ÖNERİLEN GÜVENLİ YOL (henüz yapılmadı): "Yeni oturum = taze KOPYA".**
-Mevcut `duplicatePresentation` ile yeni id + yeni joinCode üret, içerik boş
-başlasın, eski sunum olduğu gibi dursun. SİLME YOK, sessionId scoping YOK.
-Oturum yönetimi sadece dashboard'da. Bu, kullanıcının "başka bir kod ile
-başka bir sunum başlar" isteğiyle birebir uyuşur.
-
-**Rollback'te KAYBOLAN ama iyi olan özellikler (tekrar dikkatle ekle):**
-1. Katılım ekranı **avatar bulutu** (uçuşan, sayı arttıkça küçülen).
-2. Dashboard kartı **⋯ menüsü z-index** düzeltmesi (alttaki kart altında kalmıyordu).
-3. Quiz **süresi bitince oy engelleme** (audience + bot tarafı).
-4. Pin-on-image sonucu **tek tutarlı renk** (renk kaosu giderilmişti).
-5. Simülasyon botlarının **~15-20sn kademeli katılımı** + oran rampası.
-6. **/dev/sim** test aracı (gizli link `?k=fm-sim-...`) — sadece dev, kaldırılabilir.
-
-**Performans hedefleri (rollback öncesi gözlem):** quiz ~500 cevaptan, pin
-~70 cevaptan sonra tıkanıyordu → 100+ eşzamanlı için yazma/okuma optimizasyonu gerekli.
+`duplicatePresentation` ile yeni id + yeni joinCode üret; içerik boş başlasın;
+eski sunum olduğu gibi dursun. SİLME YOK, sessionId scoping YOK, toplu
+client-side silme YOK (1110 katılımcıda takılıyordu). Oturum yönetimi
+yalnızca dashboard'da. Not: 100+ eşzamanlı için quiz ~500 / pin ~70 cevaptan
+sonra tıkanma gözlendi → yazma/okuma optimizasyonu gerekli.
 
 ---
 
