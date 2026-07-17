@@ -26,6 +26,25 @@ export function isTypedAnswerCorrect(answer: string, accepted: string[]): boolea
   return n.length > 0 && accepted.some((a) => normalizeAnswer(a) === n);
 }
 
+/** Pin [x,y] doğru alan dairesinin (correctArea [cx,cy,r]) içinde mi. */
+export function isPinInArea(
+  pin: [number, number],
+  area: [number, number, number]
+): boolean {
+  const dx = pin[0] - area[0];
+  const dy = pin[1] - area[1];
+  return Math.hypot(dx, dy) <= area[2];
+}
+
+/** Bir slaytın skor tablosuna (leaderboard) katkı verip vermediği. */
+export function isScoringSlide(slide: Slide): boolean {
+  return (
+    slide.type === "quiz" ||
+    slide.type === "quiz-type" ||
+    (slide.type === "pin-on-image" && Array.isArray(slide.settings?.correctArea))
+  );
+}
+
 /**
  * Skor hesabı — Menti formülü + Kahoot usulü seri bonusu:
  * - Doğru cevap: 1000 × (1 − (geçen süre / toplam süre) / 2)
@@ -37,7 +56,7 @@ export async function computeQuizScores(
   presentationId: string,
   slides: Slide[]
 ): Promise<ScoreRow[]> {
-  const quizSlides = slides.filter((s) => s.type === "quiz" || s.type === "quiz-type");
+  const quizSlides = slides.filter(isScoringSlide);
   const scores = new Map<string, ScoreRow>();
   const streaks = new Map<string, number>();
 
@@ -46,6 +65,9 @@ export async function computeQuizScores(
   for (const s of quizSlides) {
     const timeLimitMs = (s.settings?.timeLimit ?? 20) * 1000;
     const correctIndex = s.settings?.correctIndex ?? 0;
+    const correctArea = s.settings?.correctArea;
+    // pin-on-image'ın zamanlaması yok → sabit puan; diğerleri scoreMode'a uyar
+    const fixed = s.settings?.scoreMode === "fixed" || s.type === "pin-on-image";
     const snap = await getDocs(
       collection(db(), "presentations", presentationId, "slides", s.id, "responses")
     );
@@ -58,7 +80,13 @@ export async function computeQuizScores(
       const isCorrect =
         s.type === "quiz"
           ? value[0] === correctIndex
-          : typeof value[0] === "string" && isTypedAnswerCorrect(value[0], s.options);
+          : s.type === "quiz-type"
+            ? typeof value[0] === "string" && isTypedAnswerCorrect(value[0], s.options)
+            : // pin-on-image
+              !!correctArea &&
+              typeof value[0] === "number" &&
+              typeof value[1] === "number" &&
+              isPinInArea([value[0], value[1]], correctArea);
       if (!isCorrect) {
         streaks.set(voterId, 0); // yanlış → seri sıfırlanır
         const row = scores.get(voterId);
@@ -66,12 +94,12 @@ export async function computeQuizScores(
         return;
       }
       answeredCorrect.add(voterId);
-      const elapsed = typeof value[1] === "number" ? value[1] : timeLimitMs;
-      // Puanlama: "fixed" → her doğru 1000; "time" → Menti formülü 1000×(1−(t/T)/2)
-      const speedPoints =
-        s.settings?.scoreMode === "fixed"
-          ? 1000
-          : Math.round(1000 * (1 - Math.min(1, Math.max(0, elapsed / timeLimitMs)) / 2));
+      const elapsed =
+        s.type !== "pin-on-image" && typeof value[1] === "number" ? value[1] : 0;
+      // Puanlama: "fixed"/pin → 1000; "time" → Menti formülü 1000×(1−(t/T)/2)
+      const speedPoints = fixed
+        ? 1000
+        : Math.round(1000 * (1 - Math.min(1, Math.max(0, elapsed / timeLimitMs)) / 2));
       const streak = (streaks.get(voterId) ?? 0) + 1;
       streaks.set(voterId, streak);
       const streakBonus = Math.min(streak - 1, 5) * 50;

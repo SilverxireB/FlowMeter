@@ -33,6 +33,7 @@ import {
   setVotingClosed,
   startQuiz,
 } from "@/lib/presentations";
+import { isScoringSlide } from "@/lib/quizScores";
 import { startQuizMusic, stopQuizMusic } from "@/lib/quizMusic";
 import { themeStyle } from "@/lib/themes";
 import { INTERACTIVE_SLIDE_TYPES, SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/lib/types";
@@ -394,7 +395,7 @@ export default function PresentPage() {
               {hideResults ? "🙈 Gizli" : "👁 Görünür"}
             </button>
           )}
-          {slides.some((s) => s.type === "quiz" || s.type === "quiz-type") && (
+          {slides.some(isScoringSlide) && (
             <button
               onClick={() => setLeaderboardOpen(true)}
               className="btn-ghost !py-1.5 !px-3.5 text-sm"

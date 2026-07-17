@@ -451,6 +451,57 @@ function TypeSwitcher({
   );
 }
 
+/** Doğru alan seçici: görsele tıkla → daire merkezi; kaydırıcı → yarıçap. */
+function CorrectAreaPicker({
+  image,
+  area,
+  onChange,
+}: {
+  image: string;
+  area: [number, number, number];
+  onChange: (a: [number, number, number]) => void;
+}) {
+  function place(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+    onChange([x, y, area[2]]);
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      <div onClick={place} className="relative rounded-xl overflow-hidden border-2 border-line cursor-crosshair select-none" role="button" aria-label="Doğru alanın merkezini seç">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={image} alt="" className="w-full h-auto block" draggable={false} />
+        <span
+          className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-green-500 bg-green-500/25"
+          style={{
+            left: `${area[0] * 100}%`,
+            top: `${area[1] * 100}%`,
+            width: `${area[2] * 200}%`,
+            height: `${area[2] * 200}%`,
+          }}
+          aria-hidden
+        />
+      </div>
+      <label className="flex items-center gap-3">
+        <span className="text-sm font-semibold shrink-0">Alan boyutu</span>
+        <input
+          type="range"
+          min={5}
+          max={40}
+          value={Math.round(area[2] * 100)}
+          onChange={(e) => onChange([area[0], area[1], Number(e.target.value) / 100])}
+          className="flex-1 accent-[#2563eb]"
+        />
+        <span className="text-sm tabular-nums text-muted w-10 text-right">%{Math.round(area[2] * 100)}</span>
+      </label>
+      <p className="text-muted text-xs">
+        Yeşil dairenin içine işaret koyan izleyiciler puan kazanır (sabit 1000 + seri bonusu).
+      </p>
+    </div>
+  );
+}
+
 /** Slayt ayar formu — otomatik kaydeder (600ms debounce, Kaydet butonu yok). */
 function SlideEditor({ presentationId, slide }: { presentationId: string; slide: Slide }) {
   const [question, setQuestion] = useState(slide.question);
@@ -464,6 +515,9 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
   const [music, setMusic] = useState(slide.settings?.music ?? false);
   const [videoUrl, setVideoUrl] = useState(slide.settings?.videoUrl ?? "");
   const [image, setImage] = useState<string | undefined>(slide.settings?.image);
+  const [correctArea, setCorrectArea] = useState<[number, number, number] | undefined>(
+    slide.settings?.correctArea
+  );
   const [maxEntries, setMaxEntries] = useState(
     slide.settings?.maxEntries ?? (slide.type === "word-cloud" ? 3 : 1)
   );
@@ -506,6 +560,10 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
         if (image) settings.image = image;
         else delete settings.image;
       }
+      if (slide.type === "pin-on-image") {
+        if (correctArea) settings.correctArea = correctArea;
+        else delete settings.correctArea;
+      }
       await updateSlide(presentationId, slide.id, {
         question: question.trim() || "Soru",
         options: options.map((o) => o.trim()).filter(Boolean),
@@ -515,7 +573,7 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
     }, 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [question, options, description, label, allowMultiple, correctIndex, timeLimit, scoreMode, music, videoUrl, image, maxEntries]);
+  }, [question, options, description, label, allowMultiple, correctIndex, timeLimit, scoreMode, music, videoUrl, image, correctArea, maxEntries]);
 
   async function uploadImage(file: File | undefined) {
     if (!file) return;
@@ -737,6 +795,27 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
             }}
           />
           {imgError && <p className="text-brand text-sm font-semibold mt-2">{imgError}</p>}
+        </Accordion>
+      )}
+
+      {/* Pin on Image: puanlı doğru alan (Menti "Choose correct area") */}
+      {slide.type === "pin-on-image" && (
+        <Accordion title="Doğru alanı seç (puanlı)" icon="🎯" defaultOpen={!!correctArea}>
+          <label className="flex items-center justify-between gap-3 mb-3 cursor-pointer select-none">
+            <span className="text-sm font-semibold">Doğru alan puanlaması</span>
+            <input
+              type="checkbox"
+              checked={!!correctArea}
+              onChange={(e) => setCorrectArea(e.target.checked ? [0.5, 0.5, 0.15] : undefined)}
+              className="w-5 h-5 accent-[#2563eb]"
+            />
+          </label>
+          {correctArea &&
+            (image ? (
+              <CorrectAreaPicker image={image} area={correctArea} onChange={setCorrectArea} />
+            ) : (
+              <p className="text-muted text-sm">Önce yukarıdan bir görsel yükleyin.</p>
+            ))}
         </Accordion>
       )}
 
