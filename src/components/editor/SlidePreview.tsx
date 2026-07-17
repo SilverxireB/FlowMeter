@@ -26,8 +26,12 @@ export default function SlidePreview({
 
   return (
     <div
-      className={`relative w-full aspect-video overflow-hidden ${
-        mini ? "rounded-lg" : bare ? "" : "rounded-2xl border border-line shadow-sm"
+      className={`overflow-hidden ${
+        bare
+          ? "absolute inset-0"
+          : `relative w-full aspect-video ${
+              mini ? "rounded-lg" : "rounded-2xl border border-line shadow-sm"
+            }`
       }`}
       style={style}
     >
