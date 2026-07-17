@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Avatar from "@/components/Avatar";
+import Icon from "@/components/Icon";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
 import ChatPanel from "@/components/present/ChatPanel";
@@ -32,6 +33,7 @@ import {
 import {
   endPresentation,
   resetResponses,
+  resetSession,
   setCurrentSlide,
   setVotingClosed,
   startQuiz,
@@ -295,7 +297,12 @@ export default function PresentPage() {
                   ) : slide.type === "qna" ? (
                     <QnaResult presentationId={id} />
                   ) : slide.type === "leaderboard" ? (
-                    <LeaderboardSlide presentationId={id} slides={slides} participants={participants} />
+                    <LeaderboardSlide
+                      presentationId={id}
+                      slides={slides}
+                      participants={participants}
+                      final={!slides.slice(index + 1).some(isScoringSlide)}
+                    />
                   ) : slide.type === "image" ? (
                     <div className="flex flex-col items-center gap-4">
                       {slide.settings?.image ? (
@@ -380,7 +387,7 @@ export default function PresentPage() {
             }`}
             title={presentation.votingClosed ? "Oylamayı aç" : "Oylamayı kapat"}
           >
-            {presentation.votingClosed ? "🔒 Oylama kapalı" : "🔓 Oylama açık"}
+            {presentation.votingClosed ? "Oylama kapalı" : "Oylama açık"}
           </button>
           {slide && collectsVotes && (
             <button
@@ -392,7 +399,7 @@ export default function PresentPage() {
               className="btn-ghost !py-1.5 !px-3.5 text-sm"
               title="Bu slaytın cevaplarını sıfırla"
             >
-              ↺ Sıfırla
+              Sıfırla
             </button>
           )}
           {slide && collectsVotes && (
@@ -401,7 +408,7 @@ export default function PresentPage() {
               className="btn-ghost !py-1.5 !px-3.5 text-sm"
               title={hideResults ? "Sonuçları göster" : "Sonuçları gizle"}
             >
-              {hideResults ? "🙈 Gizli" : "👁 Görünür"}
+              {hideResults ? "Sonuçlar gizli" : "Sonuçlar görünür"}
             </button>
           )}
           {slides.some(isScoringSlide) && (
@@ -410,7 +417,7 @@ export default function PresentPage() {
               className="btn-ghost !py-1.5 !px-3.5 text-sm"
               title="Skor tablosu"
             >
-              🏆
+              Skor
             </button>
           )}
           {presentation.chatEnabled && (
@@ -419,7 +426,7 @@ export default function PresentPage() {
               className="btn-ghost !py-1.5 !px-3.5 text-sm"
               title="Canlı sohbet"
             >
-              💬
+              Sohbet
             </button>
           )}
           <button
@@ -427,7 +434,22 @@ export default function PresentPage() {
             className="btn-ghost !py-1.5 !px-3.5 text-sm"
             title="Tam ekran (aç/kapat)"
           >
-            ⛶
+            Tam ekran
+          </button>
+          <button
+            onClick={async () => {
+              if (
+                confirm(
+                  "Yeni oturum başlatılsın mı? Tüm cevaplar, katılımcılar ve sohbet silinir; sunum katılım ekranından yeni bir grupla baştan başlar."
+                )
+              ) {
+                await resetSession(id, slides);
+              }
+            }}
+            className="btn-ghost !py-1.5 !px-3.5 text-sm"
+            title="Aynı sunumu yeni bir grupla baştan çalıştır"
+          >
+            Yeni oturum
           </button>
           <button
             onClick={async () => {
@@ -473,7 +495,7 @@ export default function PresentPage() {
             className="btn-ghost w-11 h-11 !p-0"
             aria-label="Önceki slayt"
           >
-            ←
+            <Icon name="chevronLeft" />
           </button>
           <span className="text-muted text-sm tabular-nums w-16 text-center font-semibold">
             {rawIndex < 0 ? "Katılım" : `${index + 1} / ${slides.length}`}
@@ -482,7 +504,7 @@ export default function PresentPage() {
           <button
             onClick={() => go(1)}
             disabled={nextIdx === null}
-            className="btn-ghost h-11 !px-4 flex items-center gap-2"
+            className="btn-ghost h-11 !px-4 flex items-center gap-1.5"
             aria-label={nextName ? `Sonraki: ${nextName}` : "Sonraki slayt"}
             title={nextName ?? undefined}
           >
@@ -491,7 +513,7 @@ export default function PresentPage() {
                 {nextName}
               </span>
             )}
-            →
+            <Icon name="chevronRight" />
           </button>
         </div>
       </footer>

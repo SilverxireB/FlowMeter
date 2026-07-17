@@ -186,6 +186,56 @@ export async function endPresentation(presentationId: string): Promise<void> {
   await updateDoc(doc(db(), "presentations", presentationId), { isLive: false, ended: true });
 }
 
+/**
+ * Yeni oturum: sunumu aynı deck ile baştan çalıştırmak için tüm cevapları,
+ * katılımcıları ve sohbet mesajlarını temizler; quiz geri sayımlarını sıfırlar
+ * ve katılım (QR) ekranına döner. "Birden fazla grupla aynı sunum" için.
+ */
+export async function resetSession(presentationId: string, slides: Slide[]): Promise<void> {
+  async function deleteAll(colPath: string[]) {
+    const snap = await getDocs(collection(db(), ...(colPath as [string, ...string[]])));
+    const docs = snap.docs;
+    for (let i = 0; i < docs.length; i += 450) {
+      const batch = writeBatch(db());
+      docs.slice(i, i + 450).forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+  }
+
+  for (const s of slides) {
+    await deleteAll(["presentations", presentationId, "slides", s.id, "responses"]);
+    if (s.quizStartedAt) {
+      await updateDoc(doc(db(), "presentations", presentationId, "slides", s.id), {
+        quizStartedAt: null,
+      });
+    }
+  }
+  await deleteAll(["presentations", presentationId, "participants"]);
+  await deleteAll(["presentations", presentationId, "messages"]);
+
+  await updateDoc(doc(db(), "presentations", presentationId), {
+    currentSlideIndex: -1,
+    isLive: true,
+    ended: false,
+    votingClosed: false,
+  });
+}
+
+/**
+ * Slaytları verilen id sırasına göre yeniden numaralar (film şeridi sürükle-bırak).
+ */
+export async function reorderSlides(
+  presentationId: string,
+  orderedIds: string[]
+): Promise<void> {
+  const batch = writeBatch(db());
+  orderedIds.forEach((id, i) => {
+    batch.update(doc(db(), "presentations", presentationId, "slides", id), { order: i });
+  });
+  await batch.commit();
+  await touchPresentation(presentationId);
+}
+
 /** Bir slaytın tüm cevaplarını siler (sadece sahibi — rules ile korunur). */
 export async function resetResponses(presentationId: string, slideId: string): Promise<void> {
   const snap = await getDocs(

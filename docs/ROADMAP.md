@@ -101,6 +101,18 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 Kalanlar: Audience-pace anket modu, slayt kopyala/yapıştır (Mentiler arası),
 profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 
+## Faz 3.7 — Geri bildirim turu ✅
+
+- [x] **Yeni oturum**: aynı deck'i birden fazla grupla baştan çalıştırma
+      (resetSession — cevap/katılımcı/sohbet temizler, quiz sıfırlar; present altbilgi)
+- [x] Film şeridinde **sürükle-bırak** slayt sıralama (reorderSlides)
+- [x] Leaderboard slaytı **konuma göre otomatik**: sunum arası → Sıralama (bar-race),
+      son quiz'den sonra → spotlight + Podyum (heyecanlı final)
+- [x] **Tasarım tazeleme (sade & modern)**: tek uyumlu font (Plus Jakarta Sans),
+      nötr/dingin palet (pembe tonlu nötrler kalktı), indigo vurgu, düz(daha az clay)
+      kartlar + yumuşak tek gölge, sade çizgi ikonlar (emoji yerine — Icon.tsx),
+      present/editör kontrollerinde net metin etiketleri
+
 ## Faz 4 — Yayınlama & Cila
 
 - [x] Sonuç sayfası `/results/[id]`: slayt slayt inceleme + CSV export

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import Icon from "@/components/Icon";
 import AddSlideSheet from "@/components/editor/AddSlideSheet";
 import Sheet from "@/components/editor/Sheet";
 import SlidePreview from "@/components/editor/SlidePreview";
@@ -14,6 +15,7 @@ import {
   changeSlideType,
   deleteSlide,
   duplicateSlide,
+  reorderSlides,
   resetResponses,
   setChatEnabled,
   setCurrentSlide,
@@ -48,6 +50,23 @@ export default function EditPage() {
   const [sheet, setSheet] = useState<SheetKind>(null);
   const [themeOpen, setThemeOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropId, setDropId] = useState<string | null>(null);
+
+  /** Sürükle-bırak biter bitmez yeni sırayı yazar. */
+  async function commitReorder() {
+    if (dragId && dropId && dragId !== dropId) {
+      const ids = slides.map((s) => s.id);
+      const from = ids.indexOf(dragId);
+      const to = ids.indexOf(dropId);
+      if (from !== -1 && to !== -1) {
+        ids.splice(to, 0, ids.splice(from, 1)[0]);
+        await reorderSlides(id, ids);
+      }
+    }
+    setDragId(null);
+    setDropId(null);
+  }
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
@@ -105,10 +124,10 @@ export default function EditPage() {
             aria-label="Sunum menüsü"
             aria-expanded={menuOpen}
           >
-            ⚙<span className="tracking-tighter">··</span>
+            <Icon name="dots" size={18} />
           </button>
           <Link href={`/present/${id}`} className="btn-accent !py-2 !px-5 text-sm">
-            ▶ Sun
+            Sun
           </Link>
           {menuOpen && (
             <>
@@ -163,39 +182,62 @@ export default function EditPage() {
         )}
 
         {/* Yüzen araç çubuğu */}
-        <div className="card !rounded-full px-3 py-2 flex items-center gap-1.5 shrink-0">
+        <div className="card !rounded-full px-3 py-2 flex items-center gap-1 shrink-0">
           <ToolButton label="Slaytı düzenle" onClick={() => selected && setSheet("edit")} disabled={!selected}>
-            ✏️
+            <Icon name="pencil" />
           </ToolButton>
           <button
             onClick={() => setSheet("add")}
             aria-label="Slayt ekle"
-            className="w-12 h-12 rounded-2xl bg-ink hover:bg-black text-white text-2xl font-bold cursor-pointer transition-transform active:scale-95"
+            className="w-12 h-12 rounded-2xl bg-ink hover:bg-black text-white cursor-pointer transition-transform active:scale-95 flex items-center justify-center"
           >
-            +
+            <Icon name="plus" size={24} />
           </button>
-          <ToolButton label="Etkileşim" onClick={() => setSheet("interactivity")}>👆</ToolButton>
-          <ToolButton label="Tema" onClick={() => setThemeOpen(true)}>🎨</ToolButton>
+          <ToolButton label="Etkileşim" onClick={() => setSheet("interactivity")}>
+            <Icon name="cursor" />
+          </ToolButton>
+          <ToolButton label="Tema" onClick={() => setThemeOpen(true)}>
+            <Icon name="palette" />
+          </ToolButton>
           <ToolButton label="Diğer işlemler" onClick={() => selected && setSheet("more")} disabled={!selected}>
-            ···
+            <Icon name="dots" />
           </ToolButton>
         </div>
       </section>
 
-      {/* ── Film şeridi ── */}
+      {/* ── Film şeridi (sürükle-bırak ile sırala) ── */}
       <footer className="shrink-0 bg-white/70 backdrop-blur border-t border-line px-3 pt-2 pb-3 overflow-x-auto">
         <div className="flex gap-3 items-end min-w-max">
           {slides.map((s, i) => (
-            <button key={s.id} onClick={() => select(s.id, i)} className="text-left shrink-0 w-32 cursor-pointer group">
+            <button
+              key={s.id}
+              onClick={() => select(s.id, i)}
+              draggable
+              onDragStart={() => setDragId(s.id)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (dragId && dragId !== s.id) setDropId(s.id);
+              }}
+              onDragEnd={commitReorder}
+              onDrop={(e) => {
+                e.preventDefault();
+                commitReorder();
+              }}
+              className={`text-left shrink-0 w-32 cursor-grab active:cursor-grabbing group transition-opacity ${
+                dragId === s.id ? "opacity-40" : ""
+              }`}
+            >
               <span className="text-xs text-muted font-semibold tabular-nums pl-0.5">
                 {i + 1}
-                {s.settings?.skipped && <span className="ml-1" title="Atlanıyor">🚫</span>}
+                {s.settings?.skipped && <span className="ml-1" title="Atlanıyor">·atlanıyor</span>}
               </span>
               <div
                 className={`rounded-xl overflow-hidden border-2 transition-all ${
-                  s.id === selectedId
-                    ? "border-accent ring-2 ring-accent-soft"
-                    : "border-line group-hover:border-muted"
+                  dropId === s.id && dragId !== s.id
+                    ? "border-accent ring-2 ring-accent-soft scale-[1.03]"
+                    : s.id === selectedId
+                      ? "border-accent ring-2 ring-accent-soft"
+                      : "border-line group-hover:border-muted"
                 } ${s.settings?.skipped ? "opacity-50" : ""}`}
               >
                 <SlidePreview slide={s} theme={presentation.theme} mini />

@@ -35,9 +35,11 @@ Sunucu (presenter) slaytlar oluşturur, izleyiciler (audience) telefonlarından
 
 ## Tasarım Sistemi (ui-ux-pro-max skill önerisi — .claude/skills/ altında kurulu)
 
-- **Renkler** (tailwind.config.ts): `brand` gül #e11d48, `accent` mavi #2563eb,
-  `ink` #1c1917, `paper` #fff7f6, `line`, `muted`. Logo lacisi: **#001e64** (Beko).
-- **Font**: Fredoka (`font-display`, başlıklar) + Nunito (`--font-sans`, metin).
+- **Renkler** (tailwind.config.ts): `brand` gül #e11d48, `accent` indigo #4f46e5,
+  `ink` #18181b, `paper` nötr #fafafa, `line` #ececeb, `muted` #78716c (nötr/dingin,
+  pembe tonlu değil). Logo lacisi: **#001e64** (Beko).
+- **Font**: Plus Jakarta Sans — başlık da metin de aynı aile (`--font-sans`,
+  `--font-display` ona eşitlenir; sade + tutarlı, modern).
 - **Bileşen sınıfları** (globals.css): `.card` (tombul köşe + çift gölge),
   `.btn-primary` (gül), `.btn-accent` (mavi), `.btn-ghost`, `.input-base`,
   `.eyebrow`, `.chip`, `.bg-wash`. Animasyonlar: `.animate-pop`, `.animate-float-up`,

@@ -12,14 +12,16 @@ service cloud.firestore {
         && resource.data.ownerId == request.auth.uid;
 
       // Katılımcılar: izleyici kendi voterId dokümanını oluşturur/günceller
-      // (nickname). Silme yok.
+      // (nickname). Silme sadece sunum sahibinde ("yeni oturum" ile temizleme).
       match /participants/{participantId} {
         allow read: if true;
         allow create, update: if request.resource.data.keys()
             .hasOnly(['nickname', 'emoji', 'avatarSeed', 'joinedAt'])
           && request.resource.data.nickname is string
           && request.resource.data.nickname.size() <= 30;
-        allow delete: if false;
+        allow delete: if request.auth != null
+          && get(/databases/$(database)/documents/presentations/$(presentationId))
+             .data.ownerId == request.auth.uid;
       }
 
       // Tepkiler (uçuşan emojiler): herkes ekleyebilir, sadece izinli emojiler.
