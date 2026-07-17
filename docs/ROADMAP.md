@@ -145,6 +145,48 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 - [ ] i18n (TR/EN), kod süresi/temizliği, Cloud Function ile yetim veri temizliği
 - [ ] Performans: 100+ eşzamanlı izleyici için yazma/okuma gözden geçirme
 
+## ⚠️ GERİ DÖNÜŞ NOTU (d9af4fa'ya rollback) — ÖNCE BUNU OKU
+
+**Şu anki durum:** Kod, `d9af4fa` commit'ine (son doğrulanmış çalışan sürüm)
+geri alındı. `feature` (`claude/project-structure-design-6pufzd`) ve production
+(`claude/practical-lamport-ls9miq`) bu ağaca eşitlendi. Sunum oluşturma ve
+izleyici slayt akışı yeniden çalışıyor.
+
+**Ne denendi, neden geri alındı (tekrar YAPMA — böyle DEĞİL):**
+- `296afa8`: "Yeni oturum = yeni kod" + **sessionId kapsamı (scoping)**. Tüm
+  okumalar `where("sessionId","==",sessionId)` ile filtrelendi.
+- **Kırılma sebebi:** Mevcut (eski) katılımcı/cevap dokümanlarında `sessionId`
+  alanı YOK → canlı ekranlar onları filtreleyip dışladı. Sonuç: "eski sunuma
+  girsem de kullanıcı ekranı değişmiyor", "yeni sunum oluşturamıyorum",
+  ekrana isim/avatar geldi ama slayta geçmedi. `9ca00db` ile okuma/yazma geri
+  alındı, sonra tamamen `d9af4fa`'ya dönüldü.
+- **Ayrı sorun:** İzleyicileri toplu client-side silme (`resetSession`)
+  ~1110 katılımcıda TAKILIYOR. Ölçekte asla client'tan toplu silme yapma.
+
+**Kullanıcının İSTEDİĞİ oturum modeli (birebir):** "bitir ile o sunum biter
+cevaplar kaydedilir. sonra yeniden aynısını yayınladığımda başka bir kod / id
+ile başka bir sunum başlar; aynısını açmak istersem onun koduna tıklarım;
+bunların sadece dashboard ekranında olması lazım."
+
+**ÖNERİLEN GÜVENLİ YOL (henüz yapılmadı): "Yeni oturum = taze KOPYA".**
+Mevcut `duplicatePresentation` ile yeni id + yeni joinCode üret, içerik boş
+başlasın, eski sunum olduğu gibi dursun. SİLME YOK, sessionId scoping YOK.
+Oturum yönetimi sadece dashboard'da. Bu, kullanıcının "başka bir kod ile
+başka bir sunum başlar" isteğiyle birebir uyuşur.
+
+**Rollback'te KAYBOLAN ama iyi olan özellikler (tekrar dikkatle ekle):**
+1. Katılım ekranı **avatar bulutu** (uçuşan, sayı arttıkça küçülen).
+2. Dashboard kartı **⋯ menüsü z-index** düzeltmesi (alttaki kart altında kalmıyordu).
+3. Quiz **süresi bitince oy engelleme** (audience + bot tarafı).
+4. Pin-on-image sonucu **tek tutarlı renk** (renk kaosu giderilmişti).
+5. Simülasyon botlarının **~15-20sn kademeli katılımı** + oran rampası.
+6. **/dev/sim** test aracı (gizli link `?k=fm-sim-...`) — sadece dev, kaldırılabilir.
+
+**Performans hedefleri (rollback öncesi gözlem):** quiz ~500 cevaptan, pin
+~70 cevaptan sonra tıkanıyordu → 100+ eşzamanlı için yazma/okuma optimizasyonu gerekli.
+
+---
+
 ## YENİ SOHBET İÇİN BAŞLANGIÇ NOTU
 
 Proje durumu: Faz 1-2-3 büyük ölçüde tamam ve canlıda. Marka logosu entegre
