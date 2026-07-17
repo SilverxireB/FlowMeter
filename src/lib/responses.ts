@@ -1,6 +1,7 @@
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 import { ResponseValue } from "./types";
+import { withTimeout } from "./withTimeout";
 
 const VOTER_ID_KEY = "flowmeter.voterId";
 
@@ -48,9 +49,11 @@ export async function submitResponse(
   slideId: string,
   value: ResponseValue
 ): Promise<void> {
-  await addDoc(
-    collection(db(), "presentations", presentationId, "slides", slideId, "responses"),
-    { voterId: getVoterId(), value, createdAt: serverTimestamp() }
+  await withTimeout(
+    addDoc(
+      collection(db(), "presentations", presentationId, "slides", slideId, "responses"),
+      { voterId: getVoterId(), value, createdAt: serverTimestamp() }
+    )
   );
   localStorage.setItem(votedKey(slideId), String(getVoteCount(slideId) + 1));
 }

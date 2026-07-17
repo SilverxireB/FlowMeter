@@ -19,6 +19,7 @@ import {
 } from "@/lib/presentations";
 import { TEMPLATES } from "@/lib/templates";
 import { themeStyle } from "@/lib/themes";
+import { withTimeout } from "@/lib/withTimeout";
 import { Presentation, Slide } from "@/lib/types";
 
 /** Kart önizlemesi — sunumun gerçek 1. slaytını render eder (yoksa başlık). */
@@ -104,9 +105,12 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!user || !title.trim() || busy) return;
     setBusy(true);
+    setFlash(null);
     try {
-      const id = await createPresentation(user.uid, title.trim());
+      const id = await withTimeout(createPresentation(user.uid, title.trim()));
       router.push(`/edit/${id}`);
+    } catch (err) {
+      setFlash({ msg: err instanceof Error ? err.message : "Sunum oluşturulamadı, tekrar dene.", err: true });
     } finally {
       setBusy(false);
     }
@@ -114,14 +118,25 @@ export default function DashboardPage() {
 
   async function remove(p: Presentation) {
     if (!confirm(`"${p.title}" silinsin mi? Bu işlem geri alınamaz.`)) return;
-    await deletePresentation(p);
-    refresh();
+    setFlash({ msg: `"${p.title}" siliniyor…` });
+    try {
+      await deletePresentation(p);
+      setFlash(null);
+      refresh();
+    } catch (err) {
+      setFlash({ msg: err instanceof Error ? err.message : "Silme başarısız, tekrar dene.", err: true });
+    }
   }
 
   async function duplicate(p: Presentation) {
     if (!user) return;
-    const id = await duplicatePresentation(user.uid, p);
-    router.push(`/edit/${id}`);
+    setFlash(null);
+    try {
+      const id = await withTimeout(duplicatePresentation(user.uid, p));
+      router.push(`/edit/${id}`);
+    } catch (err) {
+      setFlash({ msg: err instanceof Error ? err.message : "Kopyalanamadı, tekrar dene.", err: true });
+    }
   }
 
   async function newRun(p: Presentation) {
@@ -147,8 +162,14 @@ export default function DashboardPage() {
     if (!user) return;
     const tpl = TEMPLATES.find((t) => t.id === templateId);
     if (!tpl) return;
-    const id = await createFromTemplate(user.uid, tpl);
-    router.push(`/edit/${id}`);
+    setFlash(null);
+    try {
+      const id = await withTimeout(createFromTemplate(user.uid, tpl));
+      router.push(`/edit/${id}`);
+    } catch (err) {
+      setFlash({ msg: err instanceof Error ? err.message : "Şablondan oluşturulamadı, tekrar dene.", err: true });
+      setTemplatesOpen(false);
+    }
   }
 
   async function rename(p: Presentation) {
