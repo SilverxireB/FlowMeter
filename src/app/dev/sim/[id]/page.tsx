@@ -11,7 +11,7 @@
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePresentation, useQuestions, useSlides } from "@/lib/hooks";
-import { resetSession } from "@/lib/presentations";
+import { resetSession, resolveJoinCode } from "@/lib/presentations";
 import {
   Bot,
   SIM_SECRET,
@@ -31,16 +31,27 @@ const VOTE_WINDOW = 7000;
 const REACTIONS_PER_TICK_CAP = 700; // tarayıcı kilitlenmesin
 
 export default function SimPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id: rawId } = useParams<{ id: string }>();
   const [authed, setAuthed] = useState<boolean | null>(null);
   useEffect(() => {
     const k = new URLSearchParams(window.location.search).get("k");
     setAuthed(k === SIM_SECRET);
   }, []);
 
-  const { presentation } = usePresentation(id);
-  const { slides } = useSlides(id);
-  const questions = useQuestions(id);
+  // 6 haneli kod da kabul et: koddan sunum id'sini çöz. undefined=çözülüyor, null=yok.
+  const [pid, setPid] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (/^\d{6}$/.test(rawId)) {
+      resolveJoinCode(rawId).then((r) => setPid(r)).catch(() => setPid(null));
+    } else {
+      setPid(rawId);
+    }
+  }, [rawId]);
+  const id = pid ?? "";
+
+  const { presentation } = usePresentation(id || null);
+  const { slides } = useSlides(id || null);
+  const questions = useQuestions(id || null);
 
   const [n, setN] = useState(100);
   const [reactionMul, setReactionMul] = useState(1);
@@ -93,22 +104,22 @@ export default function SimPage() {
 
   // Ana döngü
   useEffect(() => {
-    if (!running) return;
+    if (!running || !id) return;
     const bots = botsRef.current;
     const reactorRateSum = bots.reduce((a, b) => a + b.reactionRate, 0);
     const questioners = bots.filter((b) => b.questionEvery > 0);
     const chatters = bots.filter((b) => b.chatEvery > 0);
     const dt = TICK_MS / 1000;
 
+    const tid = id;
     const iv = window.setInterval(() => {
       const cfg = cfgRef.current;
-      const pid = id;
 
       // 1) Tepkiler (asıl yük) — beklenen sayı kadar fırlat
       let rc = Math.round(reactorRateSum * cfg.reactionMul * dt);
       rc = Math.min(REACTIONS_PER_TICK_CAP, rc + (Math.random() < (reactorRateSum * cfg.reactionMul * dt) % 1 ? 1 : 0));
       for (let i = 0; i < rc; i++) {
-        fireReaction(pid).catch(() => {});
+        fireReaction(tid).catch(() => {});
         bump("reactions");
       }
 
@@ -121,7 +132,7 @@ export default function SimPage() {
           voteQueueRef.current = voteQueueRef.current.filter((v) => v.at > elapsed);
           for (const v of due) {
             if (v.willVote) {
-              fireResponse(pid, slide, v.bot.voterId).catch(() => {});
+              fireResponse(tid, slide, v.bot.voterId).catch(() => {});
               bump("votes");
             }
           }
@@ -133,7 +144,7 @@ export default function SimPage() {
       let qn = Math.floor(qExpected) + (Math.random() < qExpected % 1 ? 1 : 0);
       qn = Math.min(30, qn);
       for (let i = 0; i < qn && questioners.length; i++) {
-        fireQuestion(pid, questioners[Math.floor(Math.random() * questioners.length)].voterId).catch(() => {});
+        fireQuestion(tid, questioners[Math.floor(Math.random() * questioners.length)].voterId).catch(() => {});
         bump("questions");
       }
       const ids = questionIdsRef.current;
@@ -142,7 +153,7 @@ export default function SimPage() {
         let un = Math.floor(upExpected) + (Math.random() < upExpected % 1 ? 1 : 0);
         un = Math.min(30, un);
         for (let i = 0; i < un; i++) {
-          upvoteQuestion(pid, ids[Math.floor(Math.random() * ids.length)], 0).catch(() => {});
+          upvoteQuestion(tid, ids[Math.floor(Math.random() * ids.length)], 0).catch(() => {});
         }
       }
 
@@ -152,7 +163,7 @@ export default function SimPage() {
         let cn = Math.floor(cExpected) + (Math.random() < cExpected % 1 ? 1 : 0);
         cn = Math.min(20, cn);
         for (let i = 0; i < cn; i++) {
-          fireMessage(pid, chatters[Math.floor(Math.random() * chatters.length)]).catch(() => {});
+          fireMessage(tid, chatters[Math.floor(Math.random() * chatters.length)]).catch(() => {});
           bump("messages");
         }
       }
@@ -208,6 +219,19 @@ export default function SimPage() {
     return (
       <main className="min-h-screen grid place-items-center bg-wash">
         <p className="text-muted">404 — sayfa bulunamadı.</p>
+      </main>
+    );
+  }
+  if (pid === undefined) {
+    return <main className="min-h-screen grid place-items-center bg-wash"><p className="text-muted animate-pulse">Sunum çözülüyor…</p></main>;
+  }
+  if (pid === null || !id) {
+    return (
+      <main className="min-h-screen grid place-items-center bg-wash text-center px-6">
+        <div>
+          <p className="text-xl font-bold mb-1">Sunum bulunamadı</p>
+          <p className="text-muted">Bu kod/id ({rawId}) geçerli bir sunuma karşılık gelmiyor.</p>
+        </div>
       </main>
     );
   }
