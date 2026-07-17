@@ -40,6 +40,7 @@ import {
 import { isScoringSlide } from "@/lib/quizScores";
 import { startQuizMusic, stopQuizMusic } from "@/lib/quizMusic";
 import { themeStyle } from "@/lib/themes";
+import { withTimeout } from "@/lib/withTimeout";
 import { INTERACTIVE_SLIDE_TYPES, SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/lib/types";
 
 /**
@@ -54,6 +55,7 @@ export default function PresentPage() {
   const { presentation, loading: presLoading } = usePresentation(id);
   const { slides } = useSlides(id);
   const [slow, setSlow] = useState(false);
+  const [writeError, setWriteError] = useState<string | null>(null);
   const sessionId = presentation?.sessionId;
   const participants = useParticipants(id, sessionId);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
@@ -83,7 +85,12 @@ export default function PresentPage() {
 
   function go(dir: -1 | 1) {
     const next = nextVisibleIndex(rawIndex, dir);
-    if (next !== null) setCurrentSlide(id, next);
+    if (next === null) return;
+    setWriteError(null);
+    withTimeout(setCurrentSlide(id, next)).catch((err) => {
+      setWriteError(err instanceof Error ? err.message : "Slayt değiştirilemedi, tekrar dene.");
+      setTimeout(() => setWriteError(null), 8000);
+    });
   }
 
   useEffect(() => {
@@ -198,6 +205,14 @@ export default function PresentPage() {
   return (
     <main className="min-h-screen flex flex-col" style={themeBg}>
       <ReactionOverlay presentationId={id} />
+      {writeError && (
+        <div
+          role="alert"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-lg animate-pop"
+        >
+          {writeError}
+        </div>
+      )}
       <header
         className={`px-6 py-3.5 flex items-center justify-between border-b backdrop-blur ${
           dark ? "border-white/10 bg-black/20" : "border-line bg-white/80"
