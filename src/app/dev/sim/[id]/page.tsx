@@ -66,7 +66,8 @@ export default function SimPage() {
   const botsRef = useRef<Bot[]>([]);
   const questionIdsRef = useRef<string[]>([]);
   const slideRef = useRef<Slide | null>(null);
-  const voteQueueRef = useRef<{ bot: Bot; at: number; willVote: boolean }[]>([]);
+  const voteQueueRef = useRef<{ bot: Bot; dueAt: number; willVote: boolean }[]>([]);
+  const votedRef = useRef<Set<string>>(new Set()); // bu slaytta oyu işlenen botlar
   const slideStartRef = useRef(0);
   const cfgRef = useRef({ reactionMul, qnaMul, chatOn });
   const countRef = useRef({ reactions: 0, votes: 0, questions: 0, messages: 0 });
@@ -82,19 +83,25 @@ export default function SimPage() {
   const rawIndex = presentation?.currentSlideIndex ?? -1;
   const activeSlide: Slide | undefined = rawIndex < 0 ? undefined : slides[Math.min(rawIndex, slides.length - 1)];
 
-  // Aktif slayt değişince oy kuyruğunu kur (personaya göre zamanlanmış)
+  /** Verilen (henüz oy vermemiş) botlar için mutlak-zamanlı oy kuyruğu üretir. */
+  const buildQueue = useCallback((bots: Bot[]) => {
+    const now = Date.now();
+    return bots
+      .filter((b) => !votedRef.current.has(b.voterId))
+      .map((b) => ({
+        bot: b,
+        dueAt: now + Math.min(VOTE_WINDOW, b.voteDelay * (0.5 + Math.random())),
+        willVote: Math.random() < b.voteProb,
+      }));
+  }, []);
+
+  // Aktif slayt değişince: işaretleri sıfırla + mevcut botlar için kuyruğu kur
   useEffect(() => {
     slideRef.current = activeSlide ?? null;
     slideStartRef.current = Date.now();
-    if (activeSlide && isVotingSlide(activeSlide)) {
-      voteQueueRef.current = botsRef.current.map((bot) => ({
-        bot,
-        at: Math.min(VOTE_WINDOW, bot.voteDelay * (0.5 + Math.random())),
-        willVote: Math.random() < bot.voteProb,
-      }));
-    } else {
-      voteQueueRef.current = [];
-    }
+    votedRef.current = new Set();
+    voteQueueRef.current =
+      activeSlide && isVotingSlide(activeSlide) ? buildQueue(botsRef.current) : [];
   }, [activeSlide?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const bump = (k: keyof typeof countRef.current, by = 1) => {
@@ -123,14 +130,23 @@ export default function SimPage() {
         bump("reactions");
       }
 
-      // 2) Oylar — kuyruktaki zamanı gelenler
+      // 2) Oylar — aktif oy slaytında kuyruk (kendini onarır) + zamanı gelenler
       const slide = slideRef.current;
-      if (slide) {
-        const elapsed = Date.now() - slideStartRef.current;
-        const due = voteQueueRef.current.filter((v) => v.at <= elapsed);
+      if (slide && isVotingSlide(slide)) {
+        const now = Date.now();
+        // kuyruğa hiç girmemiş & oyu işlenmemiş botları ekle (botlar sonradan eklenmiş olabilir)
+        const inFlight = new Set(voteQueueRef.current.map((v) => v.bot.voterId));
+        const missing = botsRef.current.filter(
+          (b) => !votedRef.current.has(b.voterId) && !inFlight.has(b.voterId)
+        );
+        if (missing.length) voteQueueRef.current.push(...buildQueue(missing));
+        // zamanı gelenleri oyla (skip edenleri de işaretle ki tekrar kuyruğa girmesin)
+        const due = voteQueueRef.current.filter((v) => v.dueAt <= now);
         if (due.length) {
-          voteQueueRef.current = voteQueueRef.current.filter((v) => v.at > elapsed);
+          voteQueueRef.current = voteQueueRef.current.filter((v) => v.dueAt > now);
           for (const v of due) {
+            if (votedRef.current.has(v.bot.voterId)) continue;
+            votedRef.current.add(v.bot.voterId);
             if (v.willVote) {
               fireResponse(tid, slide, v.bot.voterId).catch(() => {});
               bump("votes");
