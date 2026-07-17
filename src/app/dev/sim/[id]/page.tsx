@@ -29,6 +29,7 @@ import { Slide } from "@/lib/types";
 const TICK_MS = 250;
 const VOTE_WINDOW = 7000;
 const REACTIONS_PER_TICK_CAP = 700; // tarayıcı kilitlenmesin
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function SimPage() {
   const { id: rawId } = useParams<{ id: string }>();
@@ -83,15 +84,30 @@ export default function SimPage() {
   const rawIndex = presentation?.currentSlideIndex ?? -1;
   const activeSlide: Slide | undefined = rawIndex < 0 ? undefined : slides[Math.min(rawIndex, slides.length - 1)];
 
+  /** Quiz slaytında bitiş anı (ms) — süre bittiyse/başlamadıysa null. */
+  const quizDeadline = (slide: Slide): number | null => {
+    if (slide.type !== "quiz" && slide.type !== "quiz-type") return Infinity;
+    const started = slide.quizStartedAt?.toMillis?.();
+    if (!started) return null; // quiz başlamadı → oy yok
+    return started + (slide.settings?.timeLimit ?? 20) * 1000;
+  };
+
   /** Verilen (henüz oy vermemiş) botlar için mutlak-zamanlı oy kuyruğu üretir. */
   const buildQueue = useCallback((bots: Bot[]) => {
+    const slide = slideRef.current;
     const now = Date.now();
+    let cap = 3200;
+    if (slide) {
+      const dl = quizDeadline(slide);
+      if (dl === null) return []; // quiz başlamadı
+      if (now >= dl - 250) return []; // süre bitti → oy yok
+      if (dl !== Infinity) cap = Math.max(300, Math.min(cap, dl - now - 250));
+    }
     return bots
       .filter((b) => !votedRef.current.has(b.voterId))
       .map((b) => ({
         bot: b,
-        // hızlı ve fark edilir: ilk oylar ~0.3sn, çoğu ~2.5sn içinde
-        dueAt: now + 300 + Math.random() * Math.min(VOTE_WINDOW, 2400),
+        dueAt: now + 400 + Math.random() * cap,
         willVote: Math.random() < b.voteProb,
       }));
   }, []);
@@ -100,6 +116,8 @@ export default function SimPage() {
   const voteAllNow = useCallback(() => {
     const slide = slideRef.current;
     if (!slide || !isVotingSlide(slide) || !id) return;
+    const dl = quizDeadline(slide);
+    if (dl === null || Date.now() >= dl) return; // quiz süresi dolduysa oy yok
     let fired = 0;
     for (const b of botsRef.current) {
       if (votedRef.current.has(b.voterId)) continue;
@@ -129,15 +147,16 @@ export default function SimPage() {
   // Ana döngü
   useEffect(() => {
     if (!running || !id) return;
-    const bots = botsRef.current;
-    const reactorRateSum = bots.reduce((a, b) => a + b.reactionRate, 0);
-    const questioners = bots.filter((b) => b.questionEvery > 0);
-    const chatters = bots.filter((b) => b.chatEvery > 0);
     const dt = TICK_MS / 1000;
-
     const tid = id;
+
     const iv = window.setInterval(() => {
       const cfg = cfgRef.current;
+      // Oranları her tick canlı hesapla → kademeli gelen botlar rampalanır
+      const bots = botsRef.current;
+      const reactorRateSum = bots.reduce((a, b) => a + b.reactionRate, 0);
+      const questioners = bots.filter((b) => b.questionEvery > 0);
+      const chatters = bots.filter((b) => b.chatEvery > 0);
 
       // 1) Tepkiler (asıl yük) — beklenen sayı kadar fırlat
       let rc = Math.round(reactorRateSum * cfg.reactionMul * dt);
@@ -219,13 +238,21 @@ export default function SimPage() {
     };
   }, [running, id]);
 
+  // Kademeli katılım: botlar ~15-20 sn'ye yayılarak gelir (gerçekçi + izlenebilir)
   const join = useCallback(async () => {
     setBusy(true);
     try {
       const bots = makeBots(n);
-      botsRef.current = [...botsRef.current, ...bots];
-      await joinBots(id, bots);
-      setJoined(botsRef.current.length);
+      const windowMs = 15000 + Math.random() * 5000;
+      const chunks = Math.min(bots.length, 20);
+      const size = Math.ceil(bots.length / chunks);
+      for (let i = 0; i < bots.length; i += size) {
+        const slice = bots.slice(i, i + size);
+        await joinBots(id, slice);
+        botsRef.current = [...botsRef.current, ...slice];
+        setJoined(botsRef.current.length);
+        if (i + size < bots.length) await sleep((windowMs / chunks) * (0.5 + Math.random()));
+      }
     } finally {
       setBusy(false);
     }
