@@ -25,11 +25,15 @@ service cloud.firestore {
       }
 
       // Tepkiler (uçuşan emojiler): herkes ekleyebilir, sadece izinli emojiler.
+      // Değiştirilemez; silme sadece sunum sahibinde (temizlik / yeni oturum).
       match /reactions/{reactionId} {
         allow read: if true;
         allow create: if request.resource.data.keys().hasOnly(['emoji', 'createdAt'])
           && request.resource.data.emoji in ['❤️', '👍', '😂', '😮', '🎉'];
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if request.auth != null
+          && get(/databases/$(database)/documents/presentations/$(presentationId))
+             .data.ownerId == request.auth.uid;
       }
 
       // Canlı sohbet: izleyici mesaj ekler (create-only, 200 karakter),
