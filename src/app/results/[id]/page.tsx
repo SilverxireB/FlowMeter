@@ -108,10 +108,12 @@ export default function ResultsPage() {
     <main className="min-h-screen flex flex-col bg-wash">
       <header className="bg-white/80 backdrop-blur border-b border-line px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <Link href="/dashboard" className="text-muted hover:text-ink shrink-0">←</Link>
-          <Logo size="sm" />
-          <span className="font-display font-semibold truncate">{presentation.title}</span>
-          <span className="eyebrow shrink-0 hidden sm:inline">Sonuçlar</span>
+          <Link href="/dashboard" className="text-muted hover:text-ink shrink-0 text-lg">←</Link>
+          <span className="hidden sm:inline-flex shrink-0">
+            <Logo size="sm" />
+          </span>
+          <span className="font-display font-semibold truncate min-w-0">{presentation.title}</span>
+          <span className="eyebrow shrink-0 hidden md:inline">Sonuçlar</span>
         </div>
         <button onClick={exportCsv} disabled={exporting} className="btn-primary !py-2 !px-4 text-sm shrink-0">
           {exporting ? "Hazırlanıyor…" : "⬇ CSV indir"}
