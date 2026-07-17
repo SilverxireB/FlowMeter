@@ -231,40 +231,6 @@ export async function resetSession(presentationId: string, slides: Slide[]): Pro
 }
 
 /**
- * Yeni oturum kimliği atar (SİLMEZ — anında, 1000'lerce katılımcıda bile).
- * Canlı sonuç/katılımcı ekranları sessionId'ye göre filtrelendiği için yeni
- * oturum "taze" başlar; eski cevaplar Firestore'da saklı kalır. Katılım (QR)
- * ekranına döner. newCode=true ise yeni bir 6 haneli kod da atar (eski serbest).
- */
-export async function newSession(
-  presentationId: string,
-  opts?: { newCode?: boolean; live?: boolean }
-): Promise<string | undefined> {
-  const ref = doc(db(), "presentations", presentationId);
-  let newCode: string | undefined;
-  let oldCode: string | undefined;
-  if (opts?.newCode) {
-    const before = await getDoc(ref);
-    oldCode = before.exists() ? (before.data().joinCode as string | undefined) : undefined;
-    newCode = await allocateJoinCode(presentationId);
-  }
-  const patch: Record<string, unknown> = {
-    currentSlideIndex: -1,
-    isLive: opts?.live ?? false,
-    ended: false,
-    votingClosed: false,
-    sessionId: randomSessionId(),
-    updatedAt: serverTimestamp(),
-  };
-  if (newCode) patch.joinCode = newCode;
-  await updateDoc(ref, patch);
-  if (opts?.newCode && oldCode && oldCode !== newCode) {
-    await deleteDoc(doc(db(), "joinCodes", oldCode)).catch(() => {});
-  }
-  return newCode;
-}
-
-/**
  * Slaytları verilen id sırasına göre yeniden numaralar (film şeridi sürükle-bırak).
  */
 export async function reorderSlides(

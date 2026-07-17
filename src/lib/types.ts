@@ -135,8 +135,6 @@ export interface ResponseDoc {
   id: string;
   voterId: string;
   value: ResponseValue;
-  /** Yazıldığı oturum — canlı sonuçlar bununla filtrelenir (eski oturumlar saklı) */
-  sessionId?: string;
   createdAt: Timestamp | null;
 }
 
@@ -147,8 +145,6 @@ export interface Participant {
   /** DiceBear avatar seed'i (yeni); eski kayıtlarda emoji olabilir */
   avatarSeed?: string;
   emoji?: string;
-  /** Katıldığı oturum — katılımcı listesi/sayacı bununla filtrelenir */
-  sessionId?: string;
   joinedAt: Timestamp | null;
 }
 

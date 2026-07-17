@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Avatar from "@/components/Avatar";
 import Icon from "@/components/Icon";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
 import ChatPanel from "@/components/present/ChatPanel";
 import Leaderboard from "@/components/present/Leaderboard";
 import LeaderboardSlide from "@/components/present/LeaderboardSlide";
-import ParticipantCloud from "@/components/present/ParticipantCloud";
 import ReactionOverlay from "@/components/present/ReactionOverlay";
 import BarChartResult from "@/components/results/BarChartResult";
 import Grid2x2Result from "@/components/results/Grid2x2Result";
@@ -33,6 +33,7 @@ import {
 import {
   endPresentation,
   resetResponses,
+  resetSession,
   setCurrentSlide,
   setVotingClosed,
   startQuiz,
@@ -51,11 +52,9 @@ export default function PresentPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading: authLoading } = useAuthUser();
-  const { presentation, loading: presLoading } = usePresentation(id);
+  const { presentation } = usePresentation(id);
   const { slides } = useSlides(id);
-  const [slow, setSlow] = useState(false);
-  const sessionId = presentation?.sessionId;
-  const participants = useParticipants(id, sessionId);
+  const participants = useParticipants(id);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
   const [host, setHost] = useState("flowmeter");
   const [hideResults, setHideResults] = useState(false);
@@ -70,7 +69,7 @@ export default function PresentPage() {
   const rawIndex = presentation?.currentSlideIndex ?? -1;
   const index = Math.min(rawIndex, slides.length - 1);
   const slide = rawIndex < 0 ? undefined : slides[index];
-  const responses = useLiveResponses(id, slide?.id ?? null, sessionId);
+  const responses = useLiveResponses(id, slide?.id ?? null);
 
   /** dir yönünde, atlanmayan bir sonraki slayt index'i (-1 = katılım ekranı). */
   function nextVisibleIndex(from: number, dir: -1 | 1): number | null {
@@ -89,16 +88,6 @@ export default function PresentPage() {
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
   }, [authLoading, user, router]);
-
-  // Doküman uzun süre gelmezse "bağlantı kurulamıyor" ipucu göster
-  useEffect(() => {
-    if (presentation) {
-      setSlow(false);
-      return;
-    }
-    const t = setTimeout(() => setSlow(true), 8000);
-    return () => clearTimeout(t);
-  }, [presentation]);
 
   // Sunum ekranı açılınca canlı yayına al — katılım (QR) ekranından başla
   useEffect(() => {
@@ -153,29 +142,9 @@ export default function PresentPage() {
   }, [id, rawIndex, slides]);
 
   if (!presentation) {
-    const stillLoading = presLoading || authLoading;
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center bg-wash text-center px-6">
-        {stillLoading ? (
-          <>
-            <p className="text-muted animate-pulse">Yükleniyor…</p>
-            {slow && (
-              <p className="text-muted text-sm mt-4 max-w-xs">
-                Bağlantı kurulamıyor olabilir. İnternetini kontrol et; kurulu uygulamada
-                sorun sürerse tarayıcıda açmayı dene.
-              </p>
-            )}
-          </>
-        ) : (
-          <>
-            <p className="text-5xl mb-3" aria-hidden>🔍</p>
-            <p className="text-xl font-bold mb-1">Sunum bulunamadı</p>
-            <p className="text-muted mb-6 max-w-xs">
-              Bu sunum silinmiş olabilir ya da adres hatalı.
-            </p>
-            <a href="/dashboard" className="btn-primary">Panele dön</a>
-          </>
-        )}
+      <main className="min-h-screen flex items-center justify-center bg-wash">
+        <p className="text-muted animate-pulse">Yükleniyor…</p>
       </main>
     );
   }
@@ -255,7 +224,23 @@ export default function PresentPage() {
               <p className={`text-sm mb-3 tabular-nums font-semibold ${dark ? "text-white/70" : "text-muted"}`}>
                 {participants.length} kişi katıldı
               </p>
-              <ParticipantCloud participants={participants} dark={dark} />
+              <div className="flex flex-wrap gap-2 justify-center md:justify-start max-h-36 overflow-hidden">
+                {participants.slice(0, 21).map((p) => (
+                  <span key={p.id} className="chip !pl-1">
+                    {p.avatarSeed ? (
+                      <Avatar seed={p.avatarSeed} size={26} />
+                    ) : (
+                      <span aria-hidden>{p.emoji ?? "😀"}</span>
+                    )}
+                    {p.nickname}
+                  </span>
+                ))}
+                {participants.length > 21 && (
+                  <span className="text-muted text-sm px-2 py-1 font-semibold">
+                    +{participants.length - 21} kişi
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         ) : slide ? (
@@ -323,7 +308,6 @@ export default function PresentPage() {
                       presentationId={id}
                       slides={slides}
                       participants={participants}
-                      sessionId={sessionId}
                       final={!slides.slice(index + 1).some(isScoringSlide)}
                     />
                   ) : slide.type === "image" ? (
@@ -461,9 +445,24 @@ export default function PresentPage() {
           </button>
           <button
             onClick={async () => {
-              if (confirm("Sunum bitirilsin mi? Cevaplar kaydedilir; izleyiciler bekleme ekranına döner.")) {
+              if (
+                confirm(
+                  "Yeni oturum başlatılsın mı? Tüm cevaplar, katılımcılar ve sohbet silinir; sunum katılım ekranından yeni bir grupla baştan başlar."
+                )
+              ) {
+                await resetSession(id, slides);
+              }
+            }}
+            className="btn-ghost !py-1.5 !px-3.5 text-sm"
+            title="Aynı sunumu yeni bir grupla baştan çalıştır"
+          >
+            Yeni oturum
+          </button>
+          <button
+            onClick={async () => {
+              if (confirm("Sunum bitirilsin mi? İzleyiciler bekleme ekranına döner.")) {
                 await endPresentation(id);
-                router.push(`/dashboard`);
+                router.push(`/edit/${id}`);
               }
             }}
             className="btn-ghost !py-1.5 !px-3.5 text-sm text-muted"
@@ -531,7 +530,6 @@ export default function PresentPage() {
           presentationId={id}
           slides={slides}
           participants={participants}
-          sessionId={sessionId}
           onClose={() => setLeaderboardOpen(false)}
         />
       )}

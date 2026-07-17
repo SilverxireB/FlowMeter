@@ -67,21 +67,17 @@ export function useSlides(presentationId: string | null) {
   return { slides, loading };
 }
 
-/**
- * Sunuma katılanları canlı dinler. sessionId verilirse yalnızca o oturumun
- * katılımcıları gelir (eski oturumlar saklı kalır ama sayaca/listeye girmez).
- */
-export function useParticipants(presentationId: string | null, sessionId?: string) {
+/** Sunuma katılanları canlı dinler — sunum ekranındaki sayaç ve isimler. */
+export function useParticipants(presentationId: string | null) {
   const [participants, setParticipants] = useState<Participant[]>([]);
 
   useEffect(() => {
     if (!presentationId || !isFirebaseConfigured()) return;
-    void sessionId; // kapsam geçici devre dışı — tüm katılımcılar (çalışan davranış)
-    const col = collection(db(), "presentations", presentationId, "participants");
-    return onSnapshot(col, (snap) => {
+    const q = collection(db(), "presentations", presentationId, "participants");
+    return onSnapshot(q, (snap) => {
       setParticipants(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Participant));
     });
-  }, [presentationId, sessionId]);
+  }, [presentationId]);
 
   return participants;
 }
@@ -129,25 +125,17 @@ export function useChatMessages(presentationId: string | null, enabled: boolean)
   return messages;
 }
 
-/**
- * Bir slaytın cevaplarını canlı dinler. sessionId verilirse yalnızca o oturumun
- * cevapları gelir (canlı sonuç ekranı böylece taze başlar; eski cevaplar saklı).
- */
-export function useLiveResponses(
-  presentationId: string | null,
-  slideId: string | null,
-  sessionId?: string
-) {
+/** Bir slaytın cevaplarını canlı dinler — sonuç ekranlarının kalbi. */
+export function useLiveResponses(presentationId: string | null, slideId: string | null) {
   const [responses, setResponses] = useState<ResponseDoc[]>([]);
 
   useEffect(() => {
     if (!presentationId || !slideId || !isFirebaseConfigured()) return;
-    void sessionId; // kapsam geçici devre dışı — tüm cevaplar (çalışan davranış)
-    const col = collection(db(), "presentations", presentationId, "slides", slideId, "responses");
-    return onSnapshot(col, (snap) => {
+    const q = collection(db(), "presentations", presentationId, "slides", slideId, "responses");
+    return onSnapshot(q, (snap) => {
       setResponses(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ResponseDoc));
     });
-  }, [presentationId, slideId, sessionId]);
+  }, [presentationId, slideId]);
 
   return responses;
 }

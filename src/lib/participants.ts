@@ -57,10 +57,8 @@ export function storeSession(presentationId: string, sessionId: string): void {
 export async function joinPresentation(
   presentationId: string,
   nickname: string,
-  avatarSeed: string,
-  sessionId?: string
+  avatarSeed: string
 ): Promise<void> {
-  void sessionId; // (kapsam geçici olarak devre dışı — bkz. oturum modeli planı)
   await setDoc(
     doc(db(), "presentations", presentationId, "participants", getVoterId()),
     { nickname, avatarSeed, joinedAt: serverTimestamp() },
