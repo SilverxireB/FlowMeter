@@ -29,6 +29,17 @@ function randomSessionId(): string {
   return `s-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/** Bir koleksiyondaki tüm dokümanları 450'lik parçalarla siler (büyük veride bile takılmaz). */
+async function deleteAllDocs(colPath: [string, ...string[]]): Promise<void> {
+  const snap = await getDocs(collection(db(), ...colPath));
+  const docs = snap.docs;
+  for (let i = 0; i < docs.length; i += 450) {
+    const batch = writeBatch(db());
+    docs.slice(i, i + 450).forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+}
+
 /** Benzersiz 6 haneli join kodu üretir (joinCodes/{code} lookup dokümanıyla). */
 async function allocateJoinCode(presentationId: string): Promise<string> {
   for (let attempt = 0; attempt < 10; attempt++) {
@@ -139,12 +150,21 @@ async function touchPresentation(id: string): Promise<void> {
 }
 
 export async function deletePresentation(p: Presentation): Promise<void> {
-  // Client-side kademeli silme: slaytlar + joinCode + sunum.
-  // (Slayt altındaki responses alt koleksiyonu MVP'de yetim kalır; Faz 4'te
-  // Cloud Function ile temizlenecek.)
-  const slides = await getDocs(collection(db(), "presentations", p.id, "slides"));
+  // Tam temizlik (yetim veri bırakmaz): önce her slaytın cevap alt koleksiyonu,
+  // sonra sunum altındaki izleyici koleksiyonları (katılımcı/tepki/mesaj/soru),
+  // en son slaytlar + joinCode + sunum dokümanı. 450'lik parçalarla ilerler →
+  // binlerce katılımcı/tepkili (ör. sim) sunumda bile takılmadan siler.
+  const slidesSnap = await getDocs(collection(db(), "presentations", p.id, "slides"));
+  for (const s of slidesSnap.docs) {
+    await deleteAllDocs(["presentations", p.id, "slides", s.id, "responses"]);
+  }
+  await deleteAllDocs(["presentations", p.id, "participants"]);
+  await deleteAllDocs(["presentations", p.id, "reactions"]);
+  await deleteAllDocs(["presentations", p.id, "messages"]);
+  await deleteAllDocs(["presentations", p.id, "questions"]);
+
   const batch = writeBatch(db());
-  slides.docs.forEach((d) => batch.delete(d.ref));
+  slidesSnap.docs.forEach((d) => batch.delete(d.ref));
   if (p.joinCode) batch.delete(doc(db(), "joinCodes", p.joinCode));
   batch.delete(doc(db(), "presentations", p.id));
   await batch.commit();
@@ -199,26 +219,17 @@ export async function endPresentation(presentationId: string): Promise<void> {
  * ve katılım (QR) ekranına döner. "Birden fazla grupla aynı sunum" için.
  */
 export async function resetSession(presentationId: string, slides: Slide[]): Promise<void> {
-  async function deleteAll(colPath: string[]) {
-    const snap = await getDocs(collection(db(), ...(colPath as [string, ...string[]])));
-    const docs = snap.docs;
-    for (let i = 0; i < docs.length; i += 450) {
-      const batch = writeBatch(db());
-      docs.slice(i, i + 450).forEach((d) => batch.delete(d.ref));
-      await batch.commit();
-    }
-  }
-
   for (const s of slides) {
-    await deleteAll(["presentations", presentationId, "slides", s.id, "responses"]);
+    await deleteAllDocs(["presentations", presentationId, "slides", s.id, "responses"]);
     if (s.quizStartedAt) {
       await updateDoc(doc(db(), "presentations", presentationId, "slides", s.id), {
         quizStartedAt: null,
       });
     }
   }
-  await deleteAll(["presentations", presentationId, "participants"]);
-  await deleteAll(["presentations", presentationId, "messages"]);
+  await deleteAllDocs(["presentations", presentationId, "participants"]);
+  await deleteAllDocs(["presentations", presentationId, "reactions"]);
+  await deleteAllDocs(["presentations", presentationId, "messages"]);
 
   await updateDoc(doc(db(), "presentations", presentationId), {
     currentSlideIndex: -1,
