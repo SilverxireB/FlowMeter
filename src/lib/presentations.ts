@@ -23,6 +23,12 @@ function randomJoinCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+/** Oturum kimliği — yeni oturum başlatınca yenilenir (izleyici sıfırlaması için). */
+function randomSessionId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return `s-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 /** Benzersiz 6 haneli join kodu üretir (joinCodes/{code} lookup dokümanıyla). */
 async function allocateJoinCode(presentationId: string): Promise<string> {
   for (let attempt = 0; attempt < 10; attempt++) {
@@ -46,6 +52,7 @@ export async function createPresentation(ownerId: string, title: string): Promis
     currentSlideIndex: -1, // -1 = katılım (QR) ekranı
 
     isLive: false,
+    sessionId: randomSessionId(),
     createdAt: serverTimestamp(),
   });
   const joinCode = await allocateJoinCode(ref.id);
@@ -218,6 +225,8 @@ export async function resetSession(presentationId: string, slides: Slide[]): Pro
     isLive: true,
     ended: false,
     votingClosed: false,
+    // Yeni oturum kimliği → izleyici telefonları yerel oy/kimliğini sıfırlar
+    sessionId: randomSessionId(),
   });
 }
 

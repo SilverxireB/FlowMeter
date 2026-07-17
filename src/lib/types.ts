@@ -38,6 +38,12 @@ export interface Presentation {
   chatEnabled?: boolean;
   /** Dashboard klasörü (boş = klasörsüz) */
   folder?: string;
+  /**
+   * Oturum kimliği — "Yeni oturum" her başlatıldığında değişir. İzleyici
+   * telefonu bunun değiştiğini görünce yerel oylarını + kimliğini sıfırlar
+   * (aynı 6 haneli kod, yeni grup → taze başlangıç).
+   */
+  sessionId?: string;
   /** Görsel kimlik: hazır tema + arka plan görseli + logo */
   theme?: PresentationTheme;
   createdAt: Timestamp | null;

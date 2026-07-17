@@ -21,15 +21,18 @@ import Avatar from "@/components/Avatar";
 import Logo from "@/components/Logo";
 import {
   AVATAR_SEEDS,
+  clearIdentity,
   getStoredAvatarSeed,
   getStoredNickname,
+  getStoredSession,
   joinPresentation,
   randomAvatarSeed,
   storeIdentity,
   storeLastPresentation,
+  storeSession,
 } from "@/lib/participants";
 import { REACTION_EMOJIS, sendReaction } from "@/lib/reactions";
-import { getVoteCount } from "@/lib/responses";
+import { clearSlideVotes, getVoteCount } from "@/lib/responses";
 import { themeStyle } from "@/lib/themes";
 import { Slide } from "@/lib/types";
 
@@ -56,6 +59,25 @@ export default function AudiencePage() {
     if (n) setDraft(n);
     setIdentityLoaded(true);
   }, []);
+
+  // Yeni oturum tespiti: sunumun sessionId'si telefondakinden farklıysa
+  // (sunucu "Yeni oturum" başlattı) → yerel oyları temizle; gerçek oturum
+  // değişiminde kimliği de sıfırla (avatar/ad yeniden seçilsin).
+  useEffect(() => {
+    const sid = presentation?.sessionId;
+    if (!sid || slides.length === 0) return;
+    const stored = getStoredSession(id);
+    if (stored === sid) return;
+    clearSlideVotes(slides.map((s) => s.id));
+    setVotedSlideIds(new Set());
+    if (stored !== null) {
+      clearIdentity();
+      setNickname(null);
+      setAvatarSeed(null);
+      setDraft("");
+    }
+    storeSession(id, sid);
+  }, [presentation?.sessionId, slides, id]);
 
   // Katılımı kaydet + son sunumu hatırla
   useEffect(() => {

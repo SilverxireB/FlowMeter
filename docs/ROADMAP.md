@@ -104,7 +104,10 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 ## Faz 3.7 — Geri bildirim turu ✅
 
 - [x] **Yeni oturum**: aynı deck'i birden fazla grupla baştan çalıştırma
-      (resetSession — cevap/katılımcı/sohbet temizler, quiz sıfırlar; present altbilgi)
+      (resetSession — cevap/katılımcı/sohbet temizler, quiz sıfırlar; present altbilgi).
+      Sunum `sessionId` taşır; her yeni oturumda yenilenir → izleyici telefonu
+      farkı görünce yerel oylarını (ve gerçek oturum değişiminde avatar/ad kimliğini)
+      sıfırlar. Böylece "Cevabınız alındı" takılması biter, yeni grup taze oy verir.
 - [x] Film şeridinde **sürükle-bırak** slayt sıralama (reorderSlides)
 - [x] Leaderboard slaytı **konuma göre otomatik**: sunum arası → Sıralama (bar-race),
       son quiz'den sonra → spotlight + Podyum (heyecanlı final)
