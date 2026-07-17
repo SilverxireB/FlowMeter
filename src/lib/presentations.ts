@@ -209,6 +209,19 @@ export async function resetSession(presentationId: string, slides: Slide[]): Pro
     }
   }
 
+  // 1) Önce katılım (QR) ekranına dön + yeni oturum kimliği ver. Böylece sunum
+  //    ve izleyici ekranı ANINDA temizlenmiş görünür; silmeler arkada olur
+  //    (eski sonuçların 1 sn ekranda kalıp sonra silinmesi sorunu biter).
+  await updateDoc(doc(db(), "presentations", presentationId), {
+    currentSlideIndex: -1,
+    isLive: true,
+    ended: false,
+    votingClosed: false,
+    // Yeni oturum kimliği → izleyici telefonları yerel oy/kimliğini sıfırlar
+    sessionId: randomSessionId(),
+  });
+
+  // 2) Tüm oturum verisini temizle: cevaplar, katılımcılar, sohbet, Q&A, tepkiler
   for (const s of slides) {
     await deleteAll(["presentations", presentationId, "slides", s.id, "responses"]);
     if (s.quizStartedAt) {
@@ -219,15 +232,8 @@ export async function resetSession(presentationId: string, slides: Slide[]): Pro
   }
   await deleteAll(["presentations", presentationId, "participants"]);
   await deleteAll(["presentations", presentationId, "messages"]);
-
-  await updateDoc(doc(db(), "presentations", presentationId), {
-    currentSlideIndex: -1,
-    isLive: true,
-    ended: false,
-    votingClosed: false,
-    // Yeni oturum kimliği → izleyici telefonları yerel oy/kimliğini sıfırlar
-    sessionId: randomSessionId(),
-  });
+  await deleteAll(["presentations", presentationId, "questions"]);
+  await deleteAll(["presentations", presentationId, "reactions"]);
 }
 
 /**

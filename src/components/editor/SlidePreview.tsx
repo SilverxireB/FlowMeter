@@ -113,14 +113,14 @@ function PreviewBody({ slide, mini, dark }: { slide: Slide; mini: boolean; dark:
     case "word-cloud": {
       const words = ["fikir", "hızlı", "yaratıcı", "odak", "lider", "ilham"];
       return (
-        <div className={`w-full text-center ${mini ? "text-[7px]" : "text-xs md:text-sm"} leading-tight`}>
+        <div className={`w-full text-center ${mini ? "text-[8px]" : "text-base md:text-xl"} leading-tight`}>
           {words.slice(0, mini ? 3 : 6).map((w, i) => (
             <span
               key={w}
-              className="inline-block mx-1 font-display font-semibold"
+              className="inline-block mx-1.5 font-display font-semibold"
               style={{
                 color: `var(--series-${(i % 8) + 1})`,
-                fontSize: `${(mini ? 0.5 : 1) * (1.4 - i * 0.15)}em`,
+                fontSize: `${(mini ? 0.5 : 1) * (1.45 - i * 0.11)}em`,
               }}
             >
               {w}

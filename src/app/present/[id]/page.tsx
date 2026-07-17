@@ -39,7 +39,7 @@ import {
   startQuiz,
 } from "@/lib/presentations";
 import { isScoringSlide } from "@/lib/quizScores";
-import { startQuizMusic, stopQuizMusic } from "@/lib/quizMusic";
+import { startQuizCountdown, stopQuizCountdown } from "@/lib/quizMusic";
 import { themeStyle } from "@/lib/themes";
 import { INTERACTIVE_SLIDE_TYPES, SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/lib/types";
 
@@ -110,23 +110,30 @@ export default function PresentPage() {
     }
   }, [id, slide]);
 
-  // Quiz müziği: geri sayım sürerken çal, süre dolunca / slayt değişince sus
+  // Quiz geri sayım sesi: yalnızca SON 5 saniyede çalar (tık tık + buzzer)
   useEffect(() => {
     const isQuiz = slide?.type === "quiz" || slide?.type === "quiz-type";
     if (!isQuiz || !slide?.settings?.music || !slide.quizStartedAt) {
-      stopQuizMusic();
+      stopQuizCountdown();
       return;
     }
     const endMs = slide.quizStartedAt.toMillis() + (slide.settings?.timeLimit ?? 20) * 1000;
-    if (Date.now() >= endMs) {
-      stopQuizMusic();
+    const now = Date.now();
+    if (now >= endMs) {
+      stopQuizCountdown();
       return;
     }
-    startQuizMusic();
-    const t = window.setTimeout(stopQuizMusic, endMs - Date.now());
+    const COUNTDOWN_MS = 5000;
+    const beginDelay = Math.max(0, endMs - COUNTDOWN_MS - now); // son 5 sn'ye kadar bekle
+    const startT = window.setTimeout(() => {
+      const ticks = Math.max(1, Math.min(5, Math.ceil((endMs - Date.now()) / 1000)));
+      startQuizCountdown(ticks);
+    }, beginDelay);
+    const stopT = window.setTimeout(stopQuizCountdown, endMs - now + 700);
     return () => {
-      window.clearTimeout(t);
-      stopQuizMusic();
+      window.clearTimeout(startT);
+      window.clearTimeout(stopT);
+      stopQuizCountdown();
     };
   }, [slide]);
 

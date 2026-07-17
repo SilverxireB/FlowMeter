@@ -115,7 +115,12 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
       alan genişletildi; sunum logosu üst bar sağına alındı; çoktan seçmeli & quiz
       için **dikey/yatay sonuç grafiği** seçimi (editör; quiz varsayılan dikey);
       arka plan görseli büyük ekran için 2560px/~900KB'a çıkarıldı; dashboard kart
-      önizlemesi mini yoğunlukla çakışmasız
+      önizlemesi liste=mini/grid=tam, kart menüsü artık kırpılmıyor (overflow)
+- [x] **Q&A "Cevaplandı"**: gizlemeden ayrı işaret (yeşil rozet + üstü çizili;
+      cevaplananlar listenin altına iner), izleyici de rozeti görür
+- [x] **Yeni oturum düzeltmesi**: önce QR ekranına döner (flash biter), Q&A +
+      tepkiler dahil TÜM oturum verisi temizlenir
+- [x] **Geri sayım sesi**: sürekli müzik yerine son 5 sn tık-tık + buzzer (WebAudio)
 - [x] **Tasarım tazeleme (sade & modern)**: tek uyumlu font (Plus Jakarta Sans),
       nötr/dingin palet (pembe tonlu nötrler kalktı), indigo vurgu, düz(daha az clay)
       kartlar + yumuşak tek gölge, sade çizgi ikonlar (emoji yerine — Icon.tsx),

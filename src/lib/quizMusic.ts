@@ -1,17 +1,19 @@
 /**
- * Quiz gerilim müziği — WebAudio ile sentezlenir (dosya/dış servis YOK).
- * Basit bir minör arpej döngüsü; süre azaldıkça tempo hafifçe artar hissi
- * için iki katmanlı kısa osilatör notaları çalar.
+ * Quiz geri sayım sesi — WebAudio ile sentezlenir (dosya/dış servis YOK).
+ * Sürekli müzik yerine yalnızca SON birkaç saniyeyi belirginleştiren bir
+ * geri sayım: her saniye yükselen perdede bir "tık", süre bitince kısa buzzer.
  */
 
 let ctx: AudioContext | null = null;
-let stopFlag = { stopped: true };
+let nodes: OscillatorNode[] = [];
 
 function ensureContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
   try {
     if (!ctx) {
-      const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const AC =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!AC) return null;
       ctx = new AC();
     }
@@ -22,48 +24,58 @@ function ensureContext(): AudioContext | null {
   }
 }
 
-function note(ac: AudioContext, freq: number, at: number, dur: number, gainVal: number) {
+function beep(
+  ac: AudioContext,
+  at: number,
+  freq: number,
+  dur: number,
+  gainVal: number,
+  type: OscillatorType
+) {
   const osc = ac.createOscillator();
   const gain = ac.createGain();
-  osc.type = "triangle";
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0, at);
-  gain.gain.linearRampToValueAtTime(gainVal, at + 0.02);
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, at);
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(gainVal, at + 0.008);
   gain.gain.exponentialRampToValueAtTime(0.0001, at + dur);
   osc.connect(gain).connect(ac.destination);
   osc.start(at);
-  osc.stop(at + dur + 0.05);
+  osc.stop(at + dur + 0.03);
+  nodes.push(osc);
 }
 
-// A minör arpej (A3 C4 E4 A4) + bas — Kahoot benzeri gerilim döngüsü
-const ARP = [220, 261.63, 329.63, 440, 329.63, 261.63];
-const BASS = [110, 110, 98, 98, 87.31, 87.31, 98, 98];
-
-/** Döngüyü başlatır. Tekrar çağrılırsa öncekini durdurur. */
-export function startQuizMusic(): void {
+/**
+ * `seconds` kadar geri sayım tıkı çalar (her saniye bir tane, yükselen perde),
+ * ardından süre bitince iki tonlu buzzer. Tekrar çağrılırsa öncekini durdurur.
+ */
+export function startQuizCountdown(seconds: number): void {
   const ac = ensureContext();
   if (!ac) return;
-  stopQuizMusic();
-  const flag = { stopped: false };
-  stopFlag = flag;
-
-  let bar = 0;
-  const scheduleBar = () => {
-    if (flag.stopped || !ctx) return;
-    const t0 = ac.currentTime + 0.05;
-    const step = 0.16; // ~94 BPM onaltılıklar
-    ARP.forEach((f, i) => note(ac, f, t0 + i * step, step * 0.9, 0.045));
-    note(ac, BASS[bar % BASS.length], t0, step * ARP.length, 0.06);
-    bar += 1;
-    timer = window.setTimeout(scheduleBar, ARP.length * step * 1000 - 30);
-  };
-  let timer = window.setTimeout(scheduleBar, 0);
-  flagTimers.set(flag, () => window.clearTimeout(timer));
+  stopQuizCountdown();
+  const n = Math.max(1, Math.min(5, Math.round(seconds)));
+  const t0 = ac.currentTime + 0.03;
+  for (let i = 0; i < n; i++) {
+    const at = t0 + i; // saniyede bir tık
+    const stepsLeft = n - i; // n…1
+    const last = stepsLeft === 1;
+    // Sona yaklaştıkça yükselen perde + son tık biraz daha gür
+    const freq = 620 + (n - stepsLeft) * 70;
+    beep(ac, at, freq, last ? 0.16 : 0.11, last ? 0.15 : 0.1, "square");
+  }
+  // Süre bitti → kısa "buzzer"
+  const end = t0 + n;
+  beep(ac, end, 330, 0.5, 0.15, "sawtooth");
+  beep(ac, end, 247, 0.5, 0.11, "sawtooth");
 }
 
-const flagTimers = new WeakMap<{ stopped: boolean }, () => void>();
-
-export function stopQuizMusic(): void {
-  stopFlag.stopped = true;
-  flagTimers.get(stopFlag)?.();
+export function stopQuizCountdown(): void {
+  nodes.forEach((o) => {
+    try {
+      o.stop();
+    } catch {
+      /* zaten durmuş olabilir */
+    }
+  });
+  nodes = [];
 }

@@ -36,7 +36,7 @@ function CardThumb({ presentation, view }: { presentation: Presentation; view: "
   }, [presentation.id]);
 
   if (slide) {
-    return <SlidePreview slide={slide} theme={presentation.theme} mini bare />;
+    return <SlidePreview slide={slide} theme={presentation.theme} mini={view === "list"} bare />;
   }
   // Yükleniyor / slayt yok → temalı başlık
   return (
@@ -252,7 +252,7 @@ export default function DashboardPage() {
               return (
                 <li
                   key={p.id}
-                  className={`card overflow-hidden hover:-translate-y-0.5 transition-transform relative ${
+                  className={`card hover:-translate-y-0.5 transition-transform relative ${
                     view === "list" ? "flex items-stretch" : ""
                   }`}
                 >
@@ -260,7 +260,7 @@ export default function DashboardPage() {
                   <Link
                     href={`/edit/${p.id}`}
                     className={`block relative shrink-0 overflow-hidden ${
-                      view === "grid" ? "aspect-video" : "w-36 self-stretch"
+                      view === "grid" ? "aspect-video rounded-t-2xl" : "w-36 self-stretch rounded-l-2xl"
                     }`}
                   >
                     <CardThumb presentation={p} view={view} />

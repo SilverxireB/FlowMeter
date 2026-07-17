@@ -63,7 +63,14 @@ export default function QnaVote({ presentationId }: { presentationId: string }) 
                   <span className="text-sm font-bold">▲</span>
                   <span className="text-sm font-bold tabular-nums">{q.upvotes}</span>
                 </button>
-                <p className="flex-1 break-words pt-1">{q.text}</p>
+                <div className="flex-1 min-w-0 pt-1">
+                  {q.answered && (
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700 bg-green-100 rounded-full px-2 py-0.5 mb-1">
+                      ✓ Cevaplandı
+                    </span>
+                  )}
+                  <p className={`break-words ${q.answered ? "text-muted line-through" : ""}`}>{q.text}</p>
+                </div>
               </div>
             );
           })}

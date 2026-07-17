@@ -867,7 +867,7 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
             </div>
           </div>
           <label className="flex items-center justify-between gap-3 cursor-pointer select-none">
-            <span className="text-sm font-semibold">🎵 Quiz müziği (geri sayımda)</span>
+            <span className="text-sm font-semibold">🔔 Son 5 sn geri sayım sesi</span>
             <input
               type="checkbox"
               checked={music}
