@@ -4,7 +4,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { auth, db, isFirebaseConfigured } from "./firebase";
-import { AudienceQuestion, Participant, Presentation, ResponseDoc, Slide } from "./types";
+import { AudienceQuestion, ChatMessage, Participant, Presentation, ResponseDoc, Slide } from "./types";
 
 /** Presenter oturumu. loading=true iken yönlendirme yapma. */
 export function useAuthUser() {
@@ -101,6 +101,28 @@ export function useQuestions(presentationId: string | null) {
   }, [presentationId]);
 
   return questions;
+}
+
+/** Canlı sohbet mesajlarını dinler (zamana göre sıralı, son 100). */
+export function useChatMessages(presentationId: string | null, enabled: boolean) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  useEffect(() => {
+    if (!presentationId || !enabled || !isFirebaseConfigured()) {
+      setMessages([]);
+      return;
+    }
+    const q = query(
+      collection(db(), "presentations", presentationId, "messages"),
+      orderBy("createdAt", "asc")
+    );
+    return onSnapshot(q, (snap) => {
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ChatMessage);
+      setMessages(items.slice(-100));
+    });
+  }, [presentationId, enabled]);
+
+  return messages;
 }
 
 /** Bir slaytın cevaplarını canlı dinler — sonuç ekranlarının kalbi. */

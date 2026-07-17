@@ -6,10 +6,14 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Logo from "@/components/Logo";
 import BarChartResult from "@/components/results/BarChartResult";
+import Grid2x2Result from "@/components/results/Grid2x2Result";
 import GuessNumberResult from "@/components/results/GuessNumberResult";
+import HundredPointsResult from "@/components/results/HundredPointsResult";
 import OpenEndedResult from "@/components/results/OpenEndedResult";
+import PinOnImageResult from "@/components/results/PinOnImageResult";
 import QnaResult from "@/components/results/QnaResult";
 import QuizResult from "@/components/results/QuizResult";
+import QuizTypeResult from "@/components/results/QuizTypeResult";
 import RankingResult from "@/components/results/RankingResult";
 import ScalesResult from "@/components/results/ScalesResult";
 import WordCloudResult from "@/components/results/WordCloudResult";
@@ -151,8 +155,16 @@ export default function ResultsPage() {
                 <RankingResult slide={selected} responses={responses} />
               ) : selected.type === "quiz" ? (
                 <QuizResult slide={selected} responses={responses} />
+              ) : selected.type === "quiz-type" ? (
+                <QuizTypeResult slide={selected} responses={responses} />
+              ) : selected.type === "pin-on-image" ? (
+                <PinOnImageResult slide={selected} responses={responses} />
               ) : selected.type === "guess-number" ? (
                 <GuessNumberResult slide={selected} responses={responses} />
+              ) : selected.type === "hundred-points" ? (
+                <HundredPointsResult slide={selected} responses={responses} />
+              ) : selected.type === "grid-2x2" ? (
+                <Grid2x2Result slide={selected} responses={responses} />
               ) : selected.type === "qna" ? (
                 <QnaResult presentationId={id} />
               ) : (

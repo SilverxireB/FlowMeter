@@ -71,11 +71,8 @@ export default function LandingPage() {
         )}
       </section>
 
-      <footer className="px-6 py-5 flex items-center justify-between text-xs text-muted">
+      <footer className="px-6 py-5 text-xs text-muted">
         <span>FlowMeter</span>
-        <Link href="/dashboard" className="hover:text-ink transition-colors">
-          Sunucu girişi
-        </Link>
       </footer>
     </main>
   );

@@ -5,6 +5,7 @@ import { getVoterId } from "./responses";
 const NICKNAME_KEY = "flowmeter.nickname";
 const AVATAR_KEY = "flowmeter.avatarSeed";
 const LAST_PRESENTATION_KEY = "flowmeter.lastPresentation";
+const SESSION_KEY_PREFIX = "flowmeter.session.";
 
 /** Galeride gösterilen hazır avatar seed'leri (DiceBear deterministik üretir). */
 export const AVATAR_SEEDS = [
@@ -32,6 +33,24 @@ export function getStoredAvatarSeed(): string | null {
 export function storeIdentity(nickname: string, avatarSeed: string): void {
   localStorage.setItem(NICKNAME_KEY, nickname);
   localStorage.setItem(AVATAR_KEY, avatarSeed);
+}
+
+/** Kimliği siler (yeni oturumda avatar/ad yeniden seçilsin diye). */
+export function clearIdentity(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(NICKNAME_KEY);
+  localStorage.removeItem(AVATAR_KEY);
+}
+
+/** Bu cihazın bu sunum için en son gördüğü oturum kimliği. */
+export function getStoredSession(presentationId: string): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(SESSION_KEY_PREFIX + presentationId);
+}
+
+export function storeSession(presentationId: string, sessionId: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(SESSION_KEY_PREFIX + presentationId, sessionId);
 }
 
 /** Katılımcıyı sunuma kaydeder (voterId başına tek doküman, tekrar girişte günceller). */

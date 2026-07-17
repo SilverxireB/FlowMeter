@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 :root {
+  /* Başlıklar da metin de aynı ailede — tutarlı, sade */
+  --font-display: var(--font-sans);
+
   /* dataviz kategorik paleti (light, doğrulanmış sıra) */
   --series-1: #2a78d6;
   --series-2: #008300;
@@ -17,6 +20,7 @@
 body {
   @apply bg-paper text-ink antialiased;
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: -0.011em;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -77,57 +81,71 @@ body {
   animation: confetti-fall linear forwards;
 }
 
+@keyframes podium-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.podium-pedestal {
+  transform-origin: bottom;
+  animation: podium-rise 0.6s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
 @layer components {
-  /* Sayfa arkasındaki yumuşak renk yıkaması: gül + mavi */
+  /* Sayfa zemini: sakin, tek tonlu nötr yıkama (dikkat dağıtmayan) */
   .bg-wash {
     background:
-      radial-gradient(56rem 30rem at 12% -8%, rgba(225, 29, 72, 0.07), transparent 60%),
-      radial-gradient(48rem 28rem at 96% 4%, rgba(37, 99, 235, 0.07), transparent 55%),
+      radial-gradient(60rem 32rem at 50% -12%, rgba(24, 24, 27, 0.03), transparent 60%),
       theme("colors.paper");
   }
 
-  /* Claymorphism kart: tombul köşe + çift yumuşak gölge */
+  /* Sade kart: yumuşak tek gölge + ince kenar (flat, modern) */
   .card {
-    @apply bg-white rounded-blob border border-line;
+    @apply bg-white rounded-2xl border border-line;
     box-shadow:
-      0 2px 4px rgba(28, 25, 23, 0.04),
-      0 16px 40px -16px rgba(225, 29, 72, 0.10);
+      0 1px 2px rgba(24, 24, 27, 0.04),
+      0 10px 30px -18px rgba(24, 24, 27, 0.15);
   }
 
+  /* Birincil aksiyon = indigo (marka aksanı). Gül yalnızca uyarı/durum için. */
   .btn-primary {
     @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
     @apply inline-flex items-center justify-center gap-2 cursor-pointer select-none
-      bg-brand text-white font-bold rounded-full px-6 py-3.5
+      bg-accent text-white font-semibold rounded-full px-5 py-3
       transition-all duration-200 ease-out
-      hover:bg-brand-dark hover:shadow-lg hover:shadow-brand/25 active:scale-[0.97]
-      disabled:opacity-30 disabled:shadow-none disabled:active:scale-100 disabled:cursor-default;
+      hover:bg-accent-dark active:scale-[0.98]
+      disabled:opacity-30 disabled:active:scale-100 disabled:cursor-default;
   }
 
   .btn-accent {
     @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
     @apply inline-flex items-center justify-center gap-2 cursor-pointer select-none
-      bg-accent text-white font-bold rounded-full px-6 py-3.5
+      bg-accent text-white font-semibold rounded-full px-5 py-3
       transition-all duration-200 ease-out
-      hover:bg-accent-dark hover:shadow-lg hover:shadow-accent/25 active:scale-[0.97]
-      disabled:opacity-30 disabled:shadow-none disabled:active:scale-100 disabled:cursor-default;
+      hover:bg-accent-dark active:scale-[0.98]
+      disabled:opacity-30 disabled:active:scale-100 disabled:cursor-default;
   }
 
   .btn-ghost {
     @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
     @apply inline-flex items-center justify-center gap-2 cursor-pointer select-none
       border border-line bg-white font-semibold rounded-full px-5 py-2.5
-      transition-all duration-200 hover:border-muted active:scale-[0.97]
+      transition-all duration-200 hover:bg-paper hover:border-muted/50 active:scale-[0.98]
       disabled:opacity-30 disabled:cursor-default disabled:active:scale-100;
   }
 
   .input-base {
-    @apply w-full bg-white border-2 border-line rounded-2xl px-4 py-3.5
+    @apply w-full bg-white border border-line rounded-xl px-4 py-3
       transition-all duration-200
       focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent-soft;
   }
 
   .eyebrow {
-    @apply text-[11px] font-extrabold uppercase tracking-[0.16em] text-muted;
+    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-muted;
   }
 
   .chip {

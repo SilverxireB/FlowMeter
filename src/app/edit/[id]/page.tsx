@@ -2,27 +2,44 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Icon from "@/components/Icon";
+import AddSlideSheet from "@/components/editor/AddSlideSheet";
+import Sheet from "@/components/editor/Sheet";
+import SlidePreview from "@/components/editor/SlidePreview";
 import ThemePanel from "@/components/editor/ThemePanel";
-import { fileToCompressedDataUrl } from "@/lib/images";
 import { useAuthUser, usePresentation, useSlides } from "@/lib/hooks";
+import { fileToCompressedDataUrl } from "@/lib/images";
 import {
   addSlide,
+  changeSlideType,
   deleteSlide,
   duplicateSlide,
+  reorderSlides,
+  resetResponses,
+  setChatEnabled,
   setCurrentSlide,
+  setSlideSkipped,
   swapSlideOrder,
   updateSlide,
 } from "@/lib/presentations";
 import {
   AVAILABLE_SLIDE_TYPES,
+  Presentation,
   Slide,
   SLIDE_TYPE_ICONS,
   SLIDE_TYPE_LABELS,
   SlideType,
 } from "@/lib/types";
 
-/** Slayt editörü: solda slayt listesi, sağda seçili slaytın ayarları. */
+type SheetKind = "edit" | "add" | "more" | "interactivity" | null;
+
+/**
+ * Slayt editörü — Menti mobil düzeni: ortada canlı önizleme, altında yüzen
+ * araç çubuğu (✏️ ➕ 🎨 ⋯), en altta yatay slayt film şeridi. Düzenleme
+ * panelleri bottom-sheet (geniş ekranda sağ çekmece) olarak açılır,
+ * değişiklikler otomatik kaydedilir.
+ */
 export default function EditPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -30,7 +47,26 @@ export default function EditPage() {
   const { presentation } = usePresentation(id);
   const { slides } = useSlides(id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<SheetKind>(null);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropId, setDropId] = useState<string | null>(null);
+
+  /** Sürükle-bırak biter bitmez yeni sırayı yazar. */
+  async function commitReorder() {
+    if (dragId && dropId && dragId !== dropId) {
+      const ids = slides.map((s) => s.id);
+      const from = ids.indexOf(dragId);
+      const to = ids.indexOf(dropId);
+      if (from !== -1 && to !== -1) {
+        ids.splice(to, 0, ids.splice(from, 1)[0]);
+        await reorderSlides(id, ids);
+      }
+    }
+    setDragId(null);
+    setDropId(null);
+  }
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
@@ -44,6 +80,7 @@ export default function EditPage() {
   }, [slides, selectedId]);
 
   const selected = slides.find((s) => s.id === selectedId) ?? null;
+  const selectedIndex = selected ? slides.findIndex((s) => s.id === selected.id) : -1;
   const isLive = presentation?.isLive ?? false;
 
   /** Slayt seçimi: sunum canlıysa izleyicileri de bu slayta taşı (canlı senkron). */
@@ -55,25 +92,24 @@ export default function EditPage() {
   async function add(type: SlideType) {
     const newId = await addSlide(id, type, slides.length);
     setSelectedId(newId);
+    setSheet("edit");
   }
 
   if (!presentation) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
+      <main className="min-h-screen flex items-center justify-center bg-wash">
         <p className="text-muted animate-pulse">Yükleniyor…</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen flex flex-col">
-      <header className="bg-white/80 backdrop-blur border-b border-line px-4 py-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link href="/dashboard" className="text-muted hover:text-ink shrink-0">←</Link>
+    <main className="h-dvh flex flex-col bg-wash">
+      {/* ── Üst bar ── */}
+      <header className="bg-white/80 backdrop-blur border-b border-line px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Link href="/dashboard" className="text-muted hover:text-ink shrink-0 text-lg px-1" aria-label="Panele dön">←</Link>
           <span className="font-display font-semibold truncate">{presentation.title}</span>
-          <span className="text-muted text-sm shrink-0 hidden sm:inline">
-            Kod: <span className="font-mono">{presentation.joinCode}</span>
-          </span>
           {isLive && (
             <span className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-brand bg-brand-soft rounded-full px-2.5 py-1">
               <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
@@ -81,79 +117,220 @@ export default function EditPage() {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => setThemeOpen(true)} className="btn-ghost !py-2 !px-4 text-sm">
-            🎨 Tema
+        <div className="flex items-center gap-1.5 shrink-0 relative">
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="btn-ghost !py-2 !px-3 text-sm"
+            aria-label="Sunum menüsü"
+            aria-expanded={menuOpen}
+          >
+            <Icon name="dots" size={18} />
           </button>
-          <Link href={`/present/${id}`} className="btn-primary !py-2 !px-4 text-sm">
-            ▶ Sun
+          <Link href={`/present/${id}`} className="btn-accent !py-2 !px-5 text-sm">
+            Sun
           </Link>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 top-full mt-2 z-40 card !rounded-2xl p-2 w-56 flex flex-col animate-pop">
+                <Link href={`/present/${id}`} className="rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper">
+                  Önizle / Sun
+                </Link>
+                <Link href={`/results/${id}`} className="rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper">
+                  Sonuçlar
+                </Link>
+                <div className="border-t border-line my-1.5" />
+                <label className="flex items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper cursor-pointer">
+                  💬 Canlı sohbet
+                  <input
+                    type="checkbox"
+                    checked={presentation.chatEnabled ?? false}
+                    onChange={(e) => setChatEnabled(id, e.target.checked)}
+                    className="w-5 h-5 accent-[#2563eb]"
+                  />
+                </label>
+                <p className="px-4 py-2 text-xs text-muted">
+                  Katılım kodu:{" "}
+                  <span className="font-display font-semibold tracking-[0.15em] text-accent">
+                    {presentation.joinCode}
+                  </span>
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col md:flex-row">
-        {/* Slayt listesi */}
-        <aside className="md:w-64 bg-white border-b md:border-b-0 md:border-r border-line p-3 flex md:flex-col gap-2 overflow-auto">
+      {/* ── Önizleme sahnesi ── */}
+      <section className="flex-1 min-h-0 flex flex-col items-center justify-center px-4 py-3 gap-4 overflow-hidden">
+        {selected ? (
+          <div className="w-full max-w-3xl min-h-0 flex items-center">
+            <div className="w-full relative">
+              <SlidePreview slide={selected} theme={presentation.theme} />
+              {selected.settings?.skipped && (
+                <span className="absolute top-2 left-2 chip !bg-ink !text-white !border-ink text-xs">
+                  🚫 Atlanıyor
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center">
+            <p className="text-5xl mb-3" aria-hidden>🎬</p>
+            <p className="text-muted">İlk slaytını ekleyerek başla.</p>
+          </div>
+        )}
+
+        {/* Yüzen araç çubuğu */}
+        <div className="card !rounded-full px-3 py-2 flex items-center gap-1 shrink-0">
+          <ToolButton label="Slaytı düzenle" onClick={() => selected && setSheet("edit")} disabled={!selected}>
+            <Icon name="pencil" />
+          </ToolButton>
+          <button
+            onClick={() => setSheet("add")}
+            aria-label="Slayt ekle"
+            className="w-12 h-12 rounded-2xl bg-ink hover:bg-black text-white cursor-pointer transition-transform active:scale-95 flex items-center justify-center"
+          >
+            <Icon name="plus" size={24} />
+          </button>
+          <ToolButton label="Etkileşim" onClick={() => setSheet("interactivity")}>
+            <Icon name="chat" />
+          </ToolButton>
+          <ToolButton label="Tema" onClick={() => setThemeOpen(true)}>
+            <Icon name="palette" />
+          </ToolButton>
+          <ToolButton label="Diğer işlemler" onClick={() => selected && setSheet("more")} disabled={!selected}>
+            <Icon name="dots" />
+          </ToolButton>
+        </div>
+      </section>
+
+      {/* ── Film şeridi (sürükle-bırak ile sırala) ── */}
+      <footer className="shrink-0 bg-white/70 backdrop-blur border-t border-line px-3 pt-2 pb-3 overflow-x-auto">
+        <div className="flex gap-3 items-end min-w-max">
           {slides.map((s, i) => (
             <button
               key={s.id}
               onClick={() => select(s.id, i)}
-              className={`shrink-0 md:shrink text-left rounded-xl border px-3 py-2 w-40 md:w-full transition-colors ${
-                s.id === selectedId
-                  ? "border-accent bg-accent-soft/50"
-                  : "border-line hover:border-muted"
+              draggable
+              onDragStart={() => setDragId(s.id)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (dragId && dragId !== s.id) setDropId(s.id);
+              }}
+              onDragEnd={commitReorder}
+              onDrop={(e) => {
+                e.preventDefault();
+                commitReorder();
+              }}
+              className={`text-left shrink-0 w-32 cursor-grab active:cursor-grabbing group transition-opacity ${
+                dragId === s.id ? "opacity-40" : ""
               }`}
             >
-              <p className="text-xs text-muted">
-                {i + 1} · {SLIDE_TYPE_ICONS[s.type]} {SLIDE_TYPE_LABELS[s.type]}
-              </p>
-              <p className="text-sm font-medium truncate">{s.question}</p>
+              <span className="text-xs text-muted font-semibold tabular-nums pl-0.5">
+                {i + 1}
+                {s.settings?.skipped && <span className="ml-1" title="Atlanıyor">·atlanıyor</span>}
+              </span>
+              <div
+                className={`rounded-xl overflow-hidden border-2 transition-all ${
+                  dropId === s.id && dragId !== s.id
+                    ? "border-accent ring-2 ring-accent-soft scale-[1.03]"
+                    : s.id === selectedId
+                      ? "border-accent ring-2 ring-accent-soft"
+                      : "border-line group-hover:border-muted"
+                } ${s.settings?.skipped ? "opacity-50" : ""}`}
+              >
+                <SlidePreview slide={s} theme={presentation.theme} mini />
+              </div>
             </button>
           ))}
-          <div className="shrink-0 md:mt-2 flex md:flex-col gap-2">
-            {AVAILABLE_SLIDE_TYPES.map((t) => (
-              <button
-                key={t}
-                onClick={() => add(t)}
-                className="border border-dashed border-line hover:border-accent hover:text-accent rounded-xl px-3 py-2 text-sm text-muted transition-colors"
-              >
-                + {SLIDE_TYPE_ICONS[t]} {SLIDE_TYPE_LABELS[t]}
-              </button>
-            ))}
-          </div>
-        </aside>
+          <button
+            onClick={() => setSheet("add")}
+            aria-label="Slayt ekle"
+            className="shrink-0 w-32 aspect-video mb-0.5 rounded-xl border-2 border-dashed border-line hover:border-accent hover:text-accent text-muted text-2xl cursor-pointer transition-colors"
+          >
+            +
+          </button>
+        </div>
+      </footer>
 
-        {/* Slayt ayarları */}
-        <section className="flex-1 p-4 md:p-8">
-          {selected ? (
-            <SlideEditor
-              key={selected.id}
-              presentationId={id}
-              slide={selected}
-              index={slides.findIndex((s) => s.id === selected.id)}
-              count={slides.length}
-              onMove={async (dir) => {
-                const i = slides.findIndex((s) => s.id === selected.id);
-                const j = i + dir;
-                if (j < 0 || j >= slides.length) return;
-                await swapSlideOrder(id, slides[i], slides[j]);
-              }}
-              onDuplicate={async () => {
-                const newId = await duplicateSlide(id, selected);
-                setSelectedId(newId);
-              }}
-              onDelete={async () => {
-                await deleteSlide(id, selected.id);
-                setSelectedId(null);
-              }}
-            />
-          ) : (
-            <p className="text-muted text-center py-16">
-              Soldan bir slayt tipi ekleyerek başla.
-            </p>
-          )}
-        </section>
-      </div>
+      {/* ── Paneller ── */}
+      {sheet === "add" && (
+        <AddSlideSheet
+          onPick={(t) => {
+            add(t);
+          }}
+          onClose={() => setSheet(null)}
+        />
+      )}
+
+      {sheet === "interactivity" && (
+        <Sheet title="Etkileşim" onClose={() => setSheet(null)}>
+          <div className="flex flex-col gap-6">
+            <div>
+              <p className="eyebrow mb-3">💬 Canlı sohbet</p>
+              <label className="flex items-center justify-between gap-3 cursor-pointer select-none">
+                <span className="text-sm font-semibold">Canlı sohbeti aç</span>
+                <input
+                  type="checkbox"
+                  checked={presentation.chatEnabled ?? false}
+                  onChange={(e) => setChatEnabled(id, e.target.checked)}
+                  className="w-5 h-5 accent-[#2563eb]"
+                />
+              </label>
+              <p className="text-muted text-xs mt-2">
+                Açıkken izleyiciler telefonlarındaki 💬 ile mesaj yazar; sunucu ekranından
+                moderasyon yapıp mesaj silebilirsin.
+              </p>
+            </div>
+            <div className="border-t border-line pt-5">
+              <p className="eyebrow mb-3">🙋 Soru & Cevap</p>
+              <p className="text-muted text-sm">
+                Soru & Cevap, bir <strong>slayt tipi</strong> olarak eklenir: <b>+</b> → Etkileşimli
+                sorular → Soru & Cevap. İzleyiciler soru gönderip birbirininkini oylar; sunum
+                ekranından gizleyip silebilirsin.
+              </p>
+              <button
+                onClick={() => add("qna")}
+                className="btn-ghost mt-3 !py-2 !px-4 text-sm"
+              >
+                + Soru & Cevap slaytı ekle
+              </button>
+            </div>
+          </div>
+        </Sheet>
+      )}
+
+      {sheet === "edit" && selected && (
+        <Sheet title="Düzenle" onClose={() => setSheet(null)}>
+          <SlideEditor key={`${selected.id}:${selected.type}`} presentationId={id} slide={selected} />
+        </Sheet>
+      )}
+
+      {sheet === "more" && selected && (
+        <MoreSheet
+          presentation={presentation}
+          slide={selected}
+          index={selectedIndex}
+          count={slides.length}
+          onMove={async (dir) => {
+            const j = selectedIndex + dir;
+            if (j < 0 || j >= slides.length) return;
+            await swapSlideOrder(id, slides[selectedIndex], slides[j]);
+          }}
+          onDuplicate={async () => {
+            const newId = await duplicateSlide(id, selected);
+            setSelectedId(newId);
+            setSheet(null);
+          }}
+          onDelete={async () => {
+            await deleteSlide(id, selected.id);
+            setSelectedId(null);
+            setSheet(null);
+          }}
+          onClose={() => setSheet(null)}
+        />
+      )}
 
       {themeOpen && (
         <ThemePanel
@@ -166,91 +343,359 @@ export default function EditPage() {
   );
 }
 
-// Seçenek listesi düzenlenen tipler ve etiketleri
-const OPTION_LABELS: Partial<Record<SlideType, string>> = {
-  "multiple-choice": "Seçenekler",
-  scales: "İfadeler (her biri 1–5 puanlanır)",
-  ranking: "Sıralanacak seçenekler",
-  quiz: "Seçenekler (doğru cevabı işaretle)",
-};
+function ToolButton({
+  label,
+  onClick,
+  disabled,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className="w-11 h-11 rounded-full flex items-center justify-center text-ink hover:bg-paper cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-default"
+    >
+      {children}
+    </button>
+  );
+}
 
-function SlideEditor({
-  presentationId,
+/** ⋯ menüsü: taşı, çoğalt, atla, cevapları temizle, sil (Menti slide menu). */
+function MoreSheet({
+  presentation,
   slide,
   index,
   count,
   onMove,
   onDuplicate,
   onDelete,
+  onClose,
 }: {
-  presentationId: string;
+  presentation: Presentation;
   slide: Slide;
   index: number;
   count: number;
   onMove: (dir: -1 | 1) => Promise<void>;
   onDuplicate: () => Promise<void>;
   onDelete: () => Promise<void>;
+  onClose: () => void;
 }) {
+  const Item = ({
+    onClick,
+    danger,
+    children,
+    disabled,
+  }: {
+    onClick: () => void;
+    danger?: boolean;
+    disabled?: boolean;
+    children: React.ReactNode;
+  }) => (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`w-full text-left rounded-xl px-4 py-3 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default ${
+        danger ? "text-brand hover:bg-brand-soft/50" : "hover:bg-paper"
+      }`}
+    >
+      {children}
+    </button>
+  );
+
+  return (
+    <Sheet title={`Slayt ${index + 1} / ${count}`} onClose={onClose}>
+      <div className="flex flex-col gap-0.5 -mx-2">
+        <Item onClick={() => onMove(-1)} disabled={index <= 0}>↑ Yukarı taşı</Item>
+        <Item onClick={() => onMove(1)} disabled={index >= count - 1}>↓ Aşağı taşı</Item>
+        <Item onClick={onDuplicate}>⧉ Slaytı çoğalt</Item>
+        <Item
+          onClick={async () => {
+            await setSlideSkipped(presentation.id, slide, !slide.settings?.skipped);
+            onClose();
+          }}
+        >
+          {slide.settings?.skipped ? "👁 Atlamayı geri al" : "🚫 Slaytı atla"}
+        </Item>
+        <div className="border-t border-line my-2" />
+        <Item
+          onClick={async () => {
+            if (confirm("Bu slaytın tüm cevapları silinsin mi?")) {
+              await resetResponses(presentation.id, slide.id);
+              onClose();
+            }
+          }}
+        >
+          ↺ Cevapları temizle
+        </Item>
+        <Item
+          danger
+          onClick={async () => {
+            if (confirm("Slayt silinsin mi? Bu işlem geri alınamaz.")) await onDelete();
+          }}
+        >
+          🗑 Slaytı sil
+        </Item>
+      </div>
+    </Sheet>
+  );
+}
+
+// Seçenek listesi düzenlenen tipler ve etiketleri
+const OPTION_LABELS: Partial<Record<SlideType, string>> = {
+  "multiple-choice": "Seçenekler",
+  scales: "İfadeler (her biri 1–5 puanlanır)",
+  ranking: "Sıralanacak seçenekler",
+  quiz: "Seçenekler (doğru cevabı işaretle)",
+  "quiz-type": "Kabul edilen cevaplar",
+  "hundred-points": "Puan dağıtılacak seçenekler",
+  instructions: "Adımlar",
+};
+
+/** Soru görseli eklenebilen tipler (Menti "Design > Content image"). */
+const IMAGE_TYPES: SlideType[] = [
+  "multiple-choice",
+  "word-cloud",
+  "open-ended",
+  "scales",
+  "ranking",
+  "quiz",
+  "quiz-type",
+  "pin-on-image",
+  "content",
+  "image",
+];
+
+/** Katlanır bölüm (Menti "More settings" accordion'u). */
+function Accordion({
+  title,
+  icon,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  icon?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-t border-line">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between gap-2 py-4 text-left cursor-pointer"
+        aria-expanded={open}
+      >
+        <span className="eyebrow flex items-center gap-2">
+          {icon && <span aria-hidden>{icon}</span>}
+          {title}
+        </span>
+        <span className={`text-muted transition-transform ${open ? "rotate-180" : ""}`} aria-hidden>⌄</span>
+      </button>
+      {open && <div className="pb-4">{children}</div>}
+    </div>
+  );
+}
+
+/** Slaytın tipini yerinde değiştiren dropdown (Menti "Edit" sheet başındaki). */
+function TypeSwitcher({
+  presentationId,
+  slide,
+}: {
+  presentationId: string;
+  slide: Slide;
+}) {
+  return (
+    <label className="block mb-5">
+      <span className="block text-sm font-medium mb-1">Slayt tipi</span>
+      <div className="relative">
+        <select
+          value={slide.type}
+          onChange={(e) => changeSlideType(presentationId, slide, e.target.value as SlideType)}
+          className="input-base !py-3 font-semibold appearance-none pr-10 cursor-pointer"
+        >
+          {AVAILABLE_SLIDE_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {SLIDE_TYPE_ICONS[t]} {SLIDE_TYPE_LABELS[t]}
+            </option>
+          ))}
+        </select>
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none" aria-hidden>⌄</span>
+      </div>
+    </label>
+  );
+}
+
+/** Doğru alan seçici: görsele tıkla → daire merkezi; kaydırıcı → yarıçap. */
+function CorrectAreaPicker({
+  image,
+  area,
+  onChange,
+}: {
+  image: string;
+  area: [number, number, number];
+  onChange: (a: [number, number, number]) => void;
+}) {
+  function place(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+    onChange([x, y, area[2]]);
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      <div onClick={place} className="relative rounded-xl overflow-hidden border-2 border-line cursor-crosshair select-none" role="button" aria-label="Doğru alanın merkezini seç">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={image} alt="" className="w-full h-auto block" draggable={false} />
+        <span
+          className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-green-500 bg-green-500/25"
+          style={{
+            left: `${area[0] * 100}%`,
+            top: `${area[1] * 100}%`,
+            width: `${area[2] * 200}%`,
+            height: `${area[2] * 200}%`,
+          }}
+          aria-hidden
+        />
+      </div>
+      <label className="flex items-center gap-3">
+        <span className="text-sm font-semibold shrink-0">Alan boyutu</span>
+        <input
+          type="range"
+          min={5}
+          max={40}
+          value={Math.round(area[2] * 100)}
+          onChange={(e) => onChange([area[0], area[1], Number(e.target.value) / 100])}
+          className="flex-1 accent-[#2563eb]"
+        />
+        <span className="text-sm tabular-nums text-muted w-10 text-right">%{Math.round(area[2] * 100)}</span>
+      </label>
+      <p className="text-muted text-xs">
+        Yeşil dairenin içine işaret koyan izleyiciler puan kazanır (sabit 1000 + seri bonusu).
+      </p>
+    </div>
+  );
+}
+
+/** Slayt ayar formu — otomatik kaydeder (600ms debounce, Kaydet butonu yok). */
+function SlideEditor({ presentationId, slide }: { presentationId: string; slide: Slide }) {
   const [question, setQuestion] = useState(slide.question);
   const [options, setOptions] = useState<string[]>(slide.options);
   const [description, setDescription] = useState(slide.settings?.description ?? "");
+  const [label, setLabel] = useState(slide.settings?.label ?? "");
   const [allowMultiple, setAllowMultiple] = useState(slide.settings?.allowMultiple ?? false);
   const [correctIndex, setCorrectIndex] = useState(slide.settings?.correctIndex ?? 0);
   const [timeLimit, setTimeLimit] = useState(slide.settings?.timeLimit ?? 20);
-  const [correctNumber, setCorrectNumber] = useState<string>(
-    slide.settings?.correctNumber?.toString() ?? ""
+  const [scoreMode, setScoreMode] = useState<"time" | "fixed">(slide.settings?.scoreMode ?? "time");
+  const [music, setMusic] = useState(slide.settings?.music ?? false);
+  const [videoUrl, setVideoUrl] = useState(slide.settings?.videoUrl ?? "");
+  const [image, setImage] = useState<string | undefined>(slide.settings?.image);
+  const [correctArea, setCorrectArea] = useState<[number, number, number] | undefined>(
+    slide.settings?.correctArea
   );
-  const [image, setImage] = useState<string | null>(slide.settings?.image ?? null);
-  const [imgBusy, setImgBusy] = useState(false);
+  const [correctNumber, setCorrectNumber] = useState(slide.settings?.correctNumber ?? 50);
+  const [numMin, setNumMin] = useState(slide.settings?.min ?? 0);
+  const [numMax, setNumMax] = useState(slide.settings?.max ?? 100);
+  const [unit, setUnit] = useState(slide.settings?.unit ?? "");
+  const [gridLabels, setGridLabels] = useState<[string, string, string, string]>(
+    slide.settings?.gridLabels ?? ["Düşük", "Yüksek", "Kolay", "Zor"]
+  );
   const [maxEntries, setMaxEntries] = useState(
     slide.settings?.maxEntries ?? (slide.type === "word-cloud" ? 3 : 1)
   );
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [imgBusy, setImgBusy] = useState(false);
+  const [imgError, setImgError] = useState<string | null>(null);
+  const imgInput = useRef<HTMLInputElement>(null);
+  const firstRender = useRef(true);
 
   const optionLabel = OPTION_LABELS[slide.type];
-  const minOptions = slide.type === "multiple-choice" ? 2 : 1;
+  const minOptions = ["multiple-choice", "quiz", "hundred-points"].includes(slide.type) ? 2 : 1;
   const hasMaxEntries = slide.type === "word-cloud" || slide.type === "open-ended";
+  const isQuiz = slide.type === "quiz" || slide.type === "quiz-type";
+  const hasImage = IMAGE_TYPES.includes(slide.type);
 
-  async function save() {
-    setSaving(true);
-    setSaved(false);
-    const settings: Record<string, unknown> = {
-      ...slide.settings,
-      ...(slide.type === "content" ? { description } : {}),
-      ...(slide.type === "multiple-choice" ? { allowMultiple } : {}),
-      ...(hasMaxEntries ? { maxEntries: Math.min(10, Math.max(1, maxEntries)) } : {}),
-      ...(slide.type === "quiz"
-        ? {
-            correctIndex: Math.min(correctIndex, options.length - 1),
-            timeLimit: Math.min(120, Math.max(5, timeLimit)),
-          }
-        : {}),
-    };
-    // Görsel ve doğru sayı: boşsa alanı tamamen kaldır (Firestore undefined kabul etmez)
-    if (image) settings.image = image; else delete settings.image;
-    const cn = Number(correctNumber.replace(",", "."));
-    if (slide.type === "guess-number") {
-      if (correctNumber.trim() && Number.isFinite(cn)) settings.correctNumber = cn;
-      else delete settings.correctNumber;
+  // Otomatik kayıt: alanlar değişince 600ms sonra yaz
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
     }
-    await updateSlide(presentationId, slide.id, {
-      question: question.trim() || "Soru",
-      options: options.map((o) => o.trim()).filter(Boolean),
-      settings,
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setStatus("saving");
+    const t = setTimeout(async () => {
+      const settings: Record<string, unknown> = {
+        ...slide.settings,
+        description: description.trim(),
+        label: label.trim(),
+      };
+      if (slide.type === "multiple-choice") settings.allowMultiple = allowMultiple;
+      if (hasMaxEntries) settings.maxEntries = Math.min(10, Math.max(1, maxEntries));
+      if (isQuiz) {
+        settings.timeLimit = Math.min(120, Math.max(5, timeLimit));
+        settings.scoreMode = scoreMode;
+        settings.music = music;
+      }
+      if (slide.type === "quiz")
+        settings.correctIndex = Math.max(0, Math.min(correctIndex, options.length - 1));
+      if (slide.type === "video") settings.videoUrl = videoUrl.trim();
+      if (hasImage) {
+        if (image) settings.image = image;
+        else delete settings.image;
+      }
+      if (slide.type === "pin-on-image") {
+        if (correctArea) settings.correctArea = correctArea;
+        else delete settings.correctArea;
+      }
+      if (slide.type === "guess-number") {
+        settings.min = numMin;
+        settings.max = Math.max(numMin + 1, numMax);
+        settings.correctNumber = Math.min(numMax, Math.max(numMin, correctNumber));
+        settings.unit = unit.trim();
+      }
+      if (slide.type === "grid-2x2") settings.gridLabels = gridLabels;
+      await updateSlide(presentationId, slide.id, {
+        question: question.trim() || "Soru",
+        options: options.map((o) => o.trim()).filter(Boolean),
+        settings: settings as Slide["settings"],
+      });
+      setStatus("saved");
+    }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question, options, description, label, allowMultiple, correctIndex, timeLimit, scoreMode, music, videoUrl, image, correctArea, correctNumber, numMin, numMax, unit, gridLabels, maxEntries]);
+
+  async function uploadImage(file: File | undefined) {
+    if (!file) return;
+    setImgBusy(true);
+    setImgError(null);
+    try {
+      setImage(await fileToCompressedDataUrl(file, 1200, 300_000));
+    } catch (e) {
+      setImgError(e instanceof Error ? e.message : "Yükleme başarısız.");
+    } finally {
+      setImgBusy(false);
+    }
   }
 
   return (
-    <div className="max-w-xl mx-auto card p-6">
-      <p className="eyebrow mb-4">
-        {SLIDE_TYPE_LABELS[slide.type]}
+    <div className="flex flex-col">
+      {/* Kayıt durumu */}
+      <p className="text-xs font-semibold text-right h-4 mb-1" aria-live="polite">
+        {status === "saving" && <span className="text-muted animate-pulse">Kaydediliyor…</span>}
+        {status === "saved" && <span style={{ color: "var(--series-2)" }}>Kaydedildi ✓</span>}
       </p>
 
-      <label className="block text-sm font-medium mb-1">Soru</label>
+      <TypeSwitcher presentationId={presentationId} slide={slide} />
+
+      <label className="block text-sm font-medium mb-1">
+        {slide.type === "content" || slide.type === "image" ? "Başlık" : "Soru"}
+      </label>
       <input
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
@@ -271,6 +716,14 @@ function SlideEditor({
                     onChange={() => setCorrectIndex(i)}
                     title="Doğru cevap"
                     className="w-5 h-5 accent-[#008300] cursor-pointer shrink-0"
+                  />
+                )}
+                {/* Menti'deki gibi seri rengi noktası */}
+                {["multiple-choice", "scales", "ranking"].includes(slide.type) && (
+                  <span
+                    aria-hidden
+                    className="w-3.5 h-3.5 rounded-full shrink-0"
+                    style={{ background: `var(--series-${(i % 8) + 1})` }}
                   />
                 )}
                 <input
@@ -294,14 +747,14 @@ function SlideEditor({
           <button
             onClick={() => setOptions([...options, `Seçenek ${options.length + 1}`])}
             disabled={options.length >= 8}
-            className="text-accent text-sm font-medium mb-4 disabled:opacity-40"
+            className="text-accent text-sm font-medium mb-5 text-left disabled:opacity-40"
           >
-            + Seçenek ekle
+            + Ekle
           </button>
         </>
       )}
 
-      {slide.type === "content" && (
+      {(slide.type === "content" || slide.type === "image") && (
         <>
           <label className="block text-sm font-medium mb-1">Açıklama</label>
           <textarea
@@ -313,73 +766,111 @@ function SlideEditor({
         </>
       )}
 
-      {slide.type === "guess-number" && (
-        <label className="flex items-center gap-3 mb-4">
-          <span className="text-sm font-semibold">Doğru sayı (opsiyonel)</span>
+      {slide.type === "video" && (
+        <>
+          <label className="block text-sm font-medium mb-1">Video URL (mp4/webm)</label>
           <input
-            type="number"
-            step="any"
-            value={correctNumber}
-            onChange={(e) => setCorrectNumber(e.target.value)}
-            placeholder="—"
-            className="input-base !w-32 !py-1.5 text-center tabular-nums"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder="https://…/video.mp4"
+            className="input-base mb-1.5"
           />
-        </label>
+          <p className="text-muted text-xs mb-4">
+            Not: dış sunucudaki videolar bazı kurumsal ağlarda engellenebilir.
+          </p>
+        </>
       )}
 
-      {/* Slayt görseli (content hariç tüm tipler) */}
-      {slide.type !== "content" && (
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Görsel (opsiyonel)</label>
-          {image ? (
-            <div className="flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={image} alt="Slayt görseli" className="h-16 w-auto rounded-xl object-cover" />
-              <button
-                onClick={() => setImage(null)}
-                className="text-brand text-sm font-bold cursor-pointer"
-              >
-                Kaldır
-              </button>
-            </div>
-          ) : (
-            <label className="btn-ghost !py-2 !px-4 text-sm cursor-pointer inline-flex">
-              {imgBusy ? "Sıkıştırılıyor…" : "+ Görsel yükle"}
-              <input
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
-                  if (!f) return;
-                  setImgBusy(true);
-                  try {
-                    setImage(await fileToCompressedDataUrl(f, 1200, 350_000));
-                  } catch {
-                    alert("Görsel çok büyük — daha küçük bir görsel deneyin.");
-                  } finally {
-                    setImgBusy(false);
-                  }
-                }}
-              />
+      {/* Sayı tahmini ayarları */}
+      {slide.type === "guess-number" && (
+        <div className="border-t border-line pt-4 mb-4">
+          <p className="eyebrow mb-3">Tahmin ayarları</p>
+          <div className="flex gap-2 mb-3">
+            <label className="flex-1">
+              <span className="block text-sm font-medium mb-1">En az</span>
+              <input type="number" value={numMin} onChange={(e) => setNumMin(Number(e.target.value))} className="input-base !py-2 text-center tabular-nums" />
             </label>
-          )}
-          <p className="text-muted text-xs mt-1">Kaydet'e basınca uygulanır.</p>
+            <label className="flex-1">
+              <span className="block text-sm font-medium mb-1">En çok</span>
+              <input type="number" value={numMax} onChange={(e) => setNumMax(Number(e.target.value))} className="input-base !py-2 text-center tabular-nums" />
+            </label>
+          </div>
+          <label className="block mb-3">
+            <span className="block text-sm font-medium mb-1">Doğru sayı</span>
+            <input type="number" value={correctNumber} min={numMin} max={numMax} onChange={(e) => setCorrectNumber(Number(e.target.value))} className="input-base !py-2 text-center tabular-nums" />
+          </label>
+          <label className="block">
+            <span className="block text-sm font-medium mb-1">Birim (opsiyonel)</span>
+            <input value={unit} onChange={(e) => setUnit(e.target.value)} maxLength={12} placeholder="₺, kg, %…" className="input-base !py-2" />
+          </label>
         </div>
       )}
 
-      {slide.type === "quiz" && (
-        <label className="flex items-center gap-3 mb-4">
-          <span className="text-sm font-semibold">Süre (saniye)</span>
-          <input
-            type="number"
-            min={5}
-            max={120}
-            value={timeLimit}
-            onChange={(e) => setTimeLimit(Number(e.target.value))}
-            className="input-base !w-24 !py-1.5 text-center tabular-nums"
-          />
-        </label>
+      {/* 2x2 Izgara eksen etiketleri */}
+      {slide.type === "grid-2x2" && (
+        <div className="border-t border-line pt-4 mb-4">
+          <p className="eyebrow mb-3">Eksen uçları</p>
+          {([["Sol", 0], ["Sağ", 1], ["Alt", 2], ["Üst", 3]] as const).map(([lbl, i]) => (
+            <label key={i} className="flex items-center gap-3 mb-2">
+              <span className="text-sm font-semibold w-10 shrink-0">{lbl}</span>
+              <input
+                value={gridLabels[i]}
+                onChange={(e) =>
+                  setGridLabels(gridLabels.map((g, j) => (j === i ? e.target.value : g)) as [string, string, string, string])
+                }
+                className="input-base flex-1 !py-2"
+              />
+            </label>
+          ))}
+        </div>
+      )}
+
+      {/* Quiz ayarları (Menti "Quiz settings") */}
+      {isQuiz && (
+        <div className="border-t border-line pt-4 mb-4">
+          <p className="eyebrow mb-3">Quiz ayarları</p>
+          <label className="flex items-center justify-between gap-3 mb-3">
+            <span className="text-sm font-semibold">Cevap süresi (saniye)</span>
+            <input
+              type="number"
+              min={5}
+              max={120}
+              value={timeLimit}
+              onChange={(e) => setTimeLimit(Number(e.target.value))}
+              className="input-base !w-24 !py-1.5 text-center tabular-nums"
+            />
+          </label>
+          {/* Puanlama (Menti "Score allocation") */}
+          <div className="mb-3">
+            <span className="text-sm font-semibold block mb-1.5">Puanlama</span>
+            <div className="flex gap-1 p-1 bg-paper rounded-xl border border-line">
+              {([
+                ["time", "⏱ Zamana göre", "Hızlı cevap daha çok puan (500–1000)"],
+                ["fixed", "🎯 Sabit puan", "Her doğru 1000 puan"],
+              ] as const).map(([val, lbl, hint]) => (
+                <button
+                  key={val}
+                  onClick={() => setScoreMode(val)}
+                  title={hint}
+                  className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors cursor-pointer ${
+                    scoreMode === val ? "bg-white shadow-sm text-ink" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="flex items-center justify-between gap-3 cursor-pointer select-none">
+            <span className="text-sm font-semibold">🎵 Quiz müziği (geri sayımda)</span>
+            <input
+              type="checkbox"
+              checked={music}
+              onChange={(e) => setMusic(e.target.checked)}
+              className="w-5 h-5 accent-[#2563eb]"
+            />
+          </label>
+        </div>
       )}
 
       {slide.type === "multiple-choice" && (
@@ -395,7 +886,7 @@ function SlideEditor({
       )}
 
       {hasMaxEntries && (
-        <label className="flex items-center gap-3 mb-4">
+        <label className="flex items-center justify-between gap-3 mb-4">
           <span className="text-sm font-semibold">Kişi başı cevap hakkı</span>
           <input
             type="number"
@@ -408,28 +899,89 @@ function SlideEditor({
         </label>
       )}
 
-      <div className="flex items-center gap-1.5 mb-4 pt-4 border-t border-line">
-        <button onClick={() => onMove(-1)} disabled={index <= 0} className="btn-ghost !py-1.5 !px-3 text-sm" title="Yukarı taşı">↑</button>
-        <button onClick={() => onMove(1)} disabled={index >= count - 1} className="btn-ghost !py-1.5 !px-3 text-sm" title="Aşağı taşı">↓</button>
-        <button onClick={onDuplicate} className="btn-ghost !py-1.5 !px-3 text-sm">⧉ Çoğalt</button>
-        <span className="text-muted text-xs ml-auto tabular-nums">Slayt {index + 1} / {count}</span>
-      </div>
+      {/* Tasarım: soru görseli (Menti "Design > Content image") */}
+      {hasImage && (
+        <Accordion
+          title={slide.type === "pin-on-image" ? "İşaretlenecek görsel (zorunlu)" : "Görsel"}
+          icon="🖼️"
+          defaultOpen={slide.type === "pin-on-image" || slide.type === "image"}
+        >
+          {image ? (
+            <div className="flex items-center gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={image} alt="Slayt görseli" className="h-20 w-auto rounded-xl border border-line" />
+              <button onClick={() => setImage(undefined)} className="text-brand text-sm font-bold cursor-pointer">
+                Görseli kaldır
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => imgInput.current?.click()}
+              disabled={imgBusy}
+              className="btn-ghost w-full py-5 border-dashed"
+            >
+              {imgBusy ? "Sıkıştırılıyor…" : "+ Görsel yükle (~300KB'a sıkıştırılır)"}
+            </button>
+          )}
+          <input
+            ref={imgInput}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              uploadImage(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          {imgError && <p className="text-brand text-sm font-semibold mt-2">{imgError}</p>}
+        </Accordion>
+      )}
 
-      <div className="flex items-center justify-between pt-4 border-t border-line">
-        <button onClick={onDelete} className="text-muted hover:text-brand hover:bg-brand-soft/50 rounded-full px-3 py-2 text-sm font-semibold cursor-pointer">
-          Slaytı sil
-        </button>
-        <div className="flex items-center gap-3">
-          {saved && <span className="text-sm font-semibold" style={{ color: "var(--series-2)" }}>Kaydedildi ✓</span>}
-          <button
-            onClick={save}
-            disabled={saving}
-            className="bg-ink hover:bg-black disabled:opacity-40 text-white font-semibold rounded-lg px-5 py-2"
-          >
-            {saving ? "Kaydediliyor…" : "Kaydet"}
-          </button>
-        </div>
-      </div>
+      {/* Pin on Image: puanlı doğru alan (Menti "Choose correct area") */}
+      {slide.type === "pin-on-image" && (
+        <Accordion title="Doğru alanı seç (puanlı)" icon="🎯" defaultOpen={!!correctArea}>
+          <label className="flex items-center justify-between gap-3 mb-3 cursor-pointer select-none">
+            <span className="text-sm font-semibold">Doğru alan puanlaması</span>
+            <input
+              type="checkbox"
+              checked={!!correctArea}
+              onChange={(e) => setCorrectArea(e.target.checked ? [0.5, 0.5, 0.15] : undefined)}
+              className="w-5 h-5 accent-[#2563eb]"
+            />
+          </label>
+          {correctArea &&
+            (image ? (
+              <CorrectAreaPicker image={image} area={correctArea} onChange={setCorrectArea} />
+            ) : (
+              <p className="text-muted text-sm">Önce yukarıdan bir görsel yükleyin.</p>
+            ))}
+        </Accordion>
+      )}
+
+      {/* Diğer ayarlar (Menti "More settings") */}
+      <Accordion title="Diğer ayarlar" icon="⚙️">
+        <label className="block text-sm font-medium mb-1">Başlık etiketi (eyebrow)</label>
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          maxLength={40}
+          placeholder={SLIDE_TYPE_LABELS[slide.type]}
+          className="input-base mb-4 !py-2"
+        />
+        {slide.type !== "content" && slide.type !== "image" && (
+          <>
+            <label className="block text-sm font-medium mb-1">Katılımcıya açıklama</label>
+            <p className="text-muted text-xs mb-1.5">İzleyicinin telefonunda soru altında görünür.</p>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              placeholder="Bağlam veya yönerge ekle…"
+              className="input-base resize-none"
+            />
+          </>
+        )}
+      </Accordion>
     </div>
   );
 }

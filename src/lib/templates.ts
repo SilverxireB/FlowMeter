@@ -1,50 +1,59 @@
-import { SlideType } from "./types";
+import { Slide } from "./types";
 
-export interface Template {
+/** Bir şablon slaytı: id/order hariç slayt tanımı. */
+export type TemplateSlide = Pick<Slide, "type" | "question" | "options" | "settings">;
+
+export interface PresentationTemplate {
   id: string;
-  emoji: string;
   name: string;
-  title: string;
-  slides: Array<{ type: SlideType; question: string; options: string[]; settings: object }>;
+  emoji: string;
+  description: string;
+  themePreset?: string;
+  slides: TemplateSlide[];
 }
 
-/** Hazır sunum şablonları — dashboard'daki "şablondan başla" için. */
-export const TEMPLATES: Template[] = [
+/** Hazır sunum şablonları (Menti "Templates"). Tamamı repo içi, dış servis yok. */
+export const TEMPLATES: PresentationTemplate[] = [
   {
-    id: "icebreaker",
-    emoji: "🧊",
+    id: "buzkirici",
     name: "Buz Kırıcı",
-    title: "Buz Kırıcı",
+    emoji: "🧊",
+    description: "Toplantı/ders açılışı için ısınma soruları",
+    themePreset: "morsis",
     slides: [
-      { type: "word-cloud", question: "Bugün nasıl hissediyorsun? Tek kelimeyle", options: [], settings: { maxEntries: 1 } },
-      { type: "multiple-choice", question: "Kahve mi çay mı?", options: ["Kahve ☕", "Çay 🫖", "İkisi de", "Hiçbiri"], settings: { allowMultiple: false } },
-      { type: "guess-number", question: "Bu salonda toplam kaç yıllık deneyim var sence?", options: [], settings: {} },
-      { type: "open-ended", question: "Bu hafta seni gülümseten bir şey?", options: [], settings: { maxEntries: 1 } },
+      { type: "word-cloud", question: "Bugün kendini tek kelimeyle nasıl tanımlarsın?", options: [], settings: { maxEntries: 2 } },
+      { type: "scales", question: "Bu hafta enerjin nasıl?", options: ["Motivasyon", "Yorgunluk", "Heyecan"], settings: {} },
+      { type: "open-ended", question: "Bu oturumdan beklentin ne?", options: [], settings: { maxEntries: 1 } },
+      { type: "leaderboard", question: "Skor Tablosu", options: [], settings: {} },
     ],
   },
   {
-    id: "feedback",
-    emoji: "💬",
-    name: "Geri Bildirim",
-    title: "Geri Bildirim Anketi",
-    slides: [
-      { type: "scales", question: "Ne kadar katılıyorsun?", options: ["Sunum faydalıydı", "Süre iyi kullanıldı", "Tekrar katılırım"], settings: {} },
-      { type: "multiple-choice", question: "En çok hangi bölümü beğendin?", options: ["Açılış", "Ana bölüm", "Soru-cevap"], settings: { allowMultiple: false } },
-      { type: "word-cloud", question: "Bu oturumu üç kelimeyle özetle", options: [], settings: { maxEntries: 3 } },
-      { type: "open-ended", question: "Neyi daha iyi yapabilirdik?", options: [], settings: { maxEntries: 1 } },
-      { type: "qna", question: "Aklına takılan soruları yaz!", options: [], settings: {} },
-    ],
-  },
-  {
-    id: "quiz",
-    emoji: "⚡",
+    id: "quizpaket",
     name: "Quiz Paketi",
-    title: "Hızlı Quiz",
+    emoji: "⚡",
+    description: "Hazır 3 soruluk yarışma + skor tablosu",
+    themePreset: "gece",
     slides: [
-      { type: "content", question: "Quiz zamanı! 🏁", options: [], settings: { description: "Telefonlar hazır! Hızlı cevap = daha çok puan. Üst üste doğrularda seri bonusu var." } },
-      { type: "quiz", question: "Örnek soru 1 — doğru cevabı editörden işaretle", options: ["Seçenek A", "Seçenek B", "Seçenek C"], settings: { correctIndex: 0, timeLimit: 20 } },
-      { type: "quiz", question: "Örnek soru 2", options: ["Seçenek A", "Seçenek B", "Seçenek C", "Seçenek D"], settings: { correctIndex: 1, timeLimit: 15 } },
-      { type: "content", question: "Skor tablosu zamanı 🏆", options: [], settings: { description: "Sunucu: alttaki 🏆 butonuyla skor tablosunu aç!" } },
+      { type: "quiz", question: "1. Soru buraya", options: ["A", "B", "C", "D"], settings: { correctIndex: 0, timeLimit: 20, scoreMode: "time" } },
+      { type: "quiz", question: "2. Soru buraya", options: ["A", "B", "C", "D"], settings: { correctIndex: 1, timeLimit: 20, scoreMode: "time" } },
+      { type: "quiz-type", question: "3. Cevabı yaz", options: ["cevap"], settings: { timeLimit: 30, scoreMode: "time" } },
+      { type: "leaderboard", question: "Skor Tablosu", options: [], settings: {} },
+    ],
+  },
+  {
+    id: "geribildirim",
+    name: "Geri Bildirim",
+    emoji: "💬",
+    description: "Etkinlik sonu değerlendirme anketi",
+    themePreset: "okyanus",
+    slides: [
+      { type: "scales", question: "Aşağıdakileri değerlendir", options: ["İçerik", "Sunum", "Süre", "Genel"], settings: {} },
+      { type: "hundred-points", question: "100 puanı en beğendiğin bölümlere dağıt", options: ["Açılış", "Ana konu", "Atölye", "Kapanış"], settings: {} },
+      { type: "open-ended", question: "Bir cümlede geri bildirimin?", options: [], settings: { maxEntries: 1 } },
     ],
   },
 ];
+
+export function getTemplate(id: string): PresentationTemplate | undefined {
+  return TEMPLATES.find((t) => t.id === id);
+}

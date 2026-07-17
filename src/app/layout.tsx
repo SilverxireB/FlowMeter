@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
-import { Fredoka, Nunito } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "@/styles/globals.css";
 
-const nunito = Nunito({ subsets: ["latin"], variable: "--font-sans" });
-const fredoka = Fredoka({ subsets: ["latin"], variable: "--font-display" });
+// Tek, uyumlu ve modern aile: başlıklar da metin de aynı ailede (sade + tutarlı).
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "FlowMeter — İnteraktif Sunumlar",
@@ -13,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr" className={`${nunito.variable} ${fredoka.variable}`}>
+    <html lang="tr" className={jakarta.variable}>
       <body>{children}</body>
     </html>
   );

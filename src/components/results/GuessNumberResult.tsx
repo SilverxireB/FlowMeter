@@ -2,10 +2,7 @@
 
 import { ResponseDoc, Slide } from "@/lib/types";
 
-/**
- * Sayı tahmini sonucu: ortalama + aralık + 12 kovalı mini histogram.
- * settings.correctNumber girildiyse doğru cevap ve en yakın tahmin vurgulanır.
- */
+/** Sayı tahmini sonucu: ortalama + doğru sayı + histogram dağılımı. */
 export default function GuessNumberResult({
   slide,
   responses,
@@ -13,78 +10,65 @@ export default function GuessNumberResult({
   slide: Slide;
   responses: ResponseDoc[];
 }) {
-  const nums = responses
-    .map((r) => (typeof r.value === "number" ? r.value : NaN))
-    .filter((n) => Number.isFinite(n));
-
-  if (nums.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-4xl mb-3 animate-pulse" aria-hidden>🔢</p>
-        <p className="text-muted text-lg">Tahminler bekleniyor…</p>
-      </div>
-    );
-  }
-
-  const min = Math.min(...nums);
-  const max = Math.max(...nums);
-  const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+  const min = slide.settings?.min ?? 0;
+  const max = slide.settings?.max ?? 100;
+  const unit = slide.settings?.unit ?? "";
   const correct = slide.settings?.correctNumber;
 
-  // 12 kovalı histogram
-  const B = 12;
-  const span = max - min || 1;
-  const buckets = new Array<number>(B).fill(0);
+  const nums = responses
+    .map((r) => (typeof r.value === "number" ? r.value : NaN))
+    .filter((n) => !Number.isNaN(n));
+  const total = nums.length;
+  const avg = total ? nums.reduce((a, b) => a + b, 0) / total : 0;
+
+  // Histogram: 10 kova
+  const buckets = 10;
+  const span = Math.max(1, max - min);
+  const hist = Array.from({ length: buckets }, () => 0);
   nums.forEach((n) => {
-    const i = Math.min(B - 1, Math.floor(((n - min) / span) * B));
-    buckets[i]++;
+    const idx = Math.min(buckets - 1, Math.floor(((n - min) / span) * buckets));
+    hist[Math.max(0, idx)] += 1;
   });
-  const bucketMax = Math.max(...buckets);
+  const maxBar = Math.max(1, ...hist);
+
+  const fmt = (n: number) => `${Math.round(n * 10) / 10}${unit ? " " + unit : ""}`;
 
   return (
-    <div className="w-full flex flex-col gap-6">
-      <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
-        <div>
-          <p className="eyebrow">Ortalama</p>
-          <p className="font-display text-5xl font-semibold" style={{ color: "var(--series-1)" }}>
-            {avg.toLocaleString("tr-TR", { maximumFractionDigits: 1 })}
-          </p>
+    <div className="w-full flex flex-col gap-5">
+      <div className="flex flex-wrap gap-3">
+        <div className="flex-1 min-w-[8rem] rounded-2xl bg-paper border border-line px-5 py-4 text-center">
+          <p className="eyebrow mb-1">Ortalama</p>
+          <p className="font-display text-3xl font-semibold tabular-nums">{fmt(avg)}</p>
         </div>
-        {typeof correct === "number" && (
-          <div>
-            <p className="eyebrow">Doğru cevap</p>
-            <p className="font-display text-5xl font-semibold text-brand">
-              {correct.toLocaleString("tr-TR")}
-            </p>
+        {correct !== undefined && (
+          <div className="flex-1 min-w-[8rem] rounded-2xl bg-green-600/10 border border-green-600/30 px-5 py-4 text-center">
+            <p className="eyebrow mb-1 text-green-700">Doğru cevap</p>
+            <p className="font-display text-3xl font-semibold tabular-nums text-green-700">{fmt(correct)}</p>
           </div>
         )}
-        <p className="text-muted text-sm tabular-nums ml-auto self-end font-semibold">
-          {nums.length} tahmin · aralık {min.toLocaleString("tr-TR")}–{max.toLocaleString("tr-TR")}
-        </p>
       </div>
 
       {/* Histogram */}
-      <div>
-        <div className="flex items-end gap-1 h-36">
-          {buckets.map((count, i) => (
+      <div className="flex items-end gap-1.5 h-40">
+        {hist.map((count, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
+            <span className="text-xs tabular-nums text-muted mb-1">{count || ""}</span>
             <div
-              key={i}
-              className="flex-1 rounded-t-md transition-[height] duration-500"
-              title={`${count} tahmin`}
+              className="w-full rounded-t-md transition-[height] duration-700 ease-out"
               style={{
-                height: `${(count / bucketMax) * 100}%`,
-                minHeight: count > 0 ? "6px" : "2px",
-                background: count > 0 ? "var(--series-1)" : "var(--series-1)",
-                opacity: count > 0 ? 1 : 0.15,
+                height: `${(count / maxBar) * 100}%`,
+                minHeight: count > 0 ? "6px" : "0",
+                background: `var(--series-1)`,
               }}
             />
-          ))}
-        </div>
-        <div className="flex justify-between text-xs text-muted font-semibold mt-1 tabular-nums">
-          <span>{min.toLocaleString("tr-TR")}</span>
-          <span>{max.toLocaleString("tr-TR")}</span>
-        </div>
+          </div>
+        ))}
       </div>
+      <div className="flex justify-between text-xs text-muted font-semibold tabular-nums">
+        <span>{min}{unit ? " " + unit : ""}</span>
+        <span>{max}{unit ? " " + unit : ""}</span>
+      </div>
+      <p className="text-muted text-sm font-semibold tabular-nums">{total} tahmin</p>
     </div>
   );
 }

@@ -9,25 +9,25 @@ const config: Config = {
         display: ["var(--font-display)", "var(--font-sans)", "system-ui", "sans-serif"],
       },
       colors: {
-        // FlowMeter tasarım sistemi: "vibrant rose + engagement blue"
-        // (ui-ux-pro-max önerisi), sade zemin + beyaz kartlar
-        ink: "#1c1917",
-        paper: "#fff7f6",
-        line: "#f0e4e4",
-        muted: "#8a8086",
+        // Sade & modern: nötr zemin + tek karakterli vurgu. Pembe tonlu
+        // nötrler yerine gerçek gri nötrler (daha dingin, daha çağdaş).
+        ink: "#18181b",
+        paper: "#fafafa",
+        line: "#ececeb",
+        muted: "#78716c",
         brand: {
           DEFAULT: "#e11d48",
           dark: "#be123c",
           soft: "#ffe4e6",
         },
         accent: {
-          DEFAULT: "#2563eb",
-          dark: "#1d4ed8",
-          soft: "#dbeafe",
+          DEFAULT: "#4f46e5",
+          dark: "#4338ca",
+          soft: "#e0e7ff",
         },
       },
       borderRadius: {
-        blob: "1.75rem",
+        blob: "1.25rem",
       },
     },
   },

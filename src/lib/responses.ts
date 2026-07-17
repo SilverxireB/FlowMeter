@@ -25,6 +25,15 @@ export function getVoteCount(slideId: string): number {
   return Number(localStorage.getItem(votedKey(slideId)) ?? 0);
 }
 
+/** Verilen slaytların yerel oy + quiz cevap kayıtlarını siler (yeni oturum). */
+export function clearSlideVotes(slideIds: string[]): void {
+  if (typeof window === "undefined") return;
+  slideIds.forEach((id) => {
+    localStorage.removeItem(votedKey(id));
+    localStorage.removeItem(`flowmeter.quizAnswer.${id}`);
+  });
+}
+
 export async function submitResponse(
   presentationId: string,
   slideId: string,
