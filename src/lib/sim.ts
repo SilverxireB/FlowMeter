@@ -113,21 +113,15 @@ export function makeBots(n: number): Bot[] {
   });
 }
 
-/** Botları katılımcı olarak yazar (500'lük batch'ler), aktif oturumla etiketli. */
-export async function joinBots(
-  presentationId: string,
-  bots: Bot[],
-  sessionId?: string
-): Promise<void> {
+/** Botları katılımcı olarak yazar (500'lük batch'ler). */
+export async function joinBots(presentationId: string, bots: Bot[]): Promise<void> {
   for (let i = 0; i < bots.length; i += 450) {
     const batch = writeBatch(db());
     bots.slice(i, i + 450).forEach((b) => {
-      void sessionId;
-      batch.set(doc(db(), "presentations", presentationId, "participants", b.voterId), {
-        nickname: b.nickname,
-        avatarSeed: b.avatarSeed,
-        joinedAt: serverTimestamp(),
-      });
+      batch.set(
+        doc(db(), "presentations", presentationId, "participants", b.voterId),
+        { nickname: b.nickname, avatarSeed: b.avatarSeed, joinedAt: serverTimestamp() }
+      );
     });
     await batch.commit();
   }
@@ -142,12 +136,7 @@ export function fireReaction(presentationId: string): Promise<unknown> {
   });
 }
 
-export function fireResponse(
-  presentationId: string,
-  slide: Slide,
-  voterId: string,
-  sessionId?: string
-) {
+export function fireResponse(presentationId: string, slide: Slide, voterId: string) {
   let value: ReturnType<typeof randomVoteValue>;
   try {
     value = randomVoteValue(slide);
@@ -155,7 +144,6 @@ export function fireResponse(
     value = 0;
   }
   if (value === undefined || value === null) value = 0;
-  void sessionId;
   return addDoc(
     collection(db(), "presentations", presentationId, "slides", slide.id, "responses"),
     { voterId, value, createdAt: serverTimestamp() }

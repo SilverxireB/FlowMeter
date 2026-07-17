@@ -4,15 +4,6 @@ import { ResponseValue } from "./types";
 
 const VOTER_ID_KEY = "flowmeter.voterId";
 
-/** Aktif oturum (presentation.sessionId) — oylar bununla etiketlenir. */
-let activeSessionId: string | undefined;
-export function setActiveSession(id: string | undefined): void {
-  activeSessionId = id;
-}
-export function getActiveSession(): string | undefined {
-  return activeSessionId;
-}
-
 /** Anonim izleyici kimliği — cihaz başına bir UUID, localStorage'da tutulur. */
 export function getVoterId(): string {
   if (typeof window === "undefined") return "server";
@@ -50,7 +41,11 @@ export async function submitResponse(
 ): Promise<void> {
   await addDoc(
     collection(db(), "presentations", presentationId, "slides", slideId, "responses"),
-    { voterId: getVoterId(), value, createdAt: serverTimestamp() }
+    {
+      voterId: getVoterId(),
+      value,
+      createdAt: serverTimestamp(),
+    }
   );
   localStorage.setItem(votedKey(slideId), String(getVoteCount(slideId) + 1));
 }

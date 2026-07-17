@@ -16,13 +16,11 @@ export default function Leaderboard({
   presentationId,
   slides,
   participants,
-  sessionId,
   onClose,
 }: {
   presentationId: string;
   slides: Slide[];
   participants: Participant[];
-  sessionId?: string;
   onClose: () => void;
 }) {
   const [rows, setRows] = useState<ScoreRow[] | null>(null);
@@ -30,8 +28,8 @@ export default function Leaderboard({
   const [spotlightDone, setSpotlightDone] = useState(false);
 
   const compute = useCallback(async () => {
-    setRows(await computeQuizScores(presentationId, slides, sessionId));
-  }, [presentationId, slides, sessionId]);
+    setRows(await computeQuizScores(presentationId, slides));
+  }, [presentationId, slides]);
 
   useEffect(() => {
     compute();
