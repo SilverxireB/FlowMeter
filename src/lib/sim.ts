@@ -137,9 +137,16 @@ export function fireReaction(presentationId: string): Promise<unknown> {
 }
 
 export function fireResponse(presentationId: string, slide: Slide, voterId: string) {
+  let value: ReturnType<typeof randomVoteValue>;
+  try {
+    value = randomVoteValue(slide);
+  } catch {
+    value = 0;
+  }
+  if (value === undefined || value === null) value = 0;
   return addDoc(
     collection(db(), "presentations", presentationId, "slides", slide.id, "responses"),
-    { voterId, value: randomVoteValue(slide), createdAt: serverTimestamp() }
+    { voterId, value, createdAt: serverTimestamp() }
   );
 }
 

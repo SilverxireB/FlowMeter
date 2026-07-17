@@ -90,10 +90,27 @@ export default function SimPage() {
       .filter((b) => !votedRef.current.has(b.voterId))
       .map((b) => ({
         bot: b,
-        dueAt: now + Math.min(VOTE_WINDOW, b.voteDelay * (0.5 + Math.random())),
+        // hızlı ve fark edilir: ilk oylar ~0.3sn, çoğu ~2.5sn içinde
+        dueAt: now + 300 + Math.random() * Math.min(VOTE_WINDOW, 2400),
         willVote: Math.random() < b.voteProb,
       }));
   }, []);
+
+  /** Tüm mevcut botları aktif slaytta HEMEN oylat (anında sonuç / teşhis). */
+  const voteAllNow = useCallback(() => {
+    const slide = slideRef.current;
+    if (!slide || !isVotingSlide(slide) || !id) return;
+    let fired = 0;
+    for (const b of botsRef.current) {
+      if (votedRef.current.has(b.voterId)) continue;
+      votedRef.current.add(b.voterId);
+      fireResponse(id, slide, b.voterId).catch(() => {});
+      fired++;
+    }
+    voteQueueRef.current = [];
+    countRef.current.votes += fired;
+    setStats((s) => ({ ...s, votes: countRef.current.votes }));
+  }, [id]);
 
   // Aktif slayt değişince: işaretleri sıfırla + mevcut botlar için kuyruğu kur
   useEffect(() => {
@@ -266,7 +283,9 @@ export default function SimPage() {
             <h1 className="font-display text-2xl font-semibold">{presentation?.title ?? id}</h1>
             <p className="text-muted text-sm">
               Kod {presentation?.joinCode} · slayt {rawIndex < 0 ? "Katılım" : `${rawIndex + 1}/${slides.length}`}
-              {activeSlide ? ` · ${activeSlide.type}` : ""}
+              {activeSlide
+                ? ` · ${activeSlide.type} ${isVotingSlide(activeSlide) ? "✓ oy alır" : "✗ oy YOK"}`
+                : " · katılım ekranı (oy YOK)"}
             </p>
           </div>
           <a href={`/present/${id}`} target="_blank" className="btn-ghost !py-2 !px-4 text-sm">
@@ -307,7 +326,7 @@ export default function SimPage() {
             <input type="checkbox" checked={chatOn} onChange={(e) => setChatOn(e.target.checked)} className="w-5 h-5 accent-[#4f46e5]" />
             <span className="text-sm font-semibold">Canlı sohbeti doldur (chatEnabled açıksa)</span>
           </label>
-          <div className="flex items-center gap-3 pt-1">
+          <div className="flex items-center gap-3 pt-1 flex-wrap">
             <button
               onClick={() => setRunning((r) => !r)}
               disabled={joined === 0}
@@ -315,10 +334,24 @@ export default function SimPage() {
             >
               {running ? "■ Durdur" : "▶ Başlat"}
             </button>
+            <button
+              onClick={voteAllNow}
+              disabled={joined === 0 || !activeSlide || !isVotingSlide(activeSlide)}
+              className="btn-accent !py-2.5 !px-5 text-sm"
+              title="Tüm botları aktif slaytta hemen oylat"
+            >
+              ⚡ Şimdi oylat
+            </button>
             <button onClick={clearAll} disabled={busy} className="btn-ghost !py-2.5 !px-5 text-sm">
               Temizle (Yeni oturum)
             </button>
           </div>
+          {activeSlide && !isVotingSlide(activeSlide) && (
+            <p className="text-brand text-xs font-semibold">
+              Aktif slayt oy toplamayan bir tip ({activeSlide.type}). Present&apos;te bir <b>soru</b>
+              slaytına geçince oylar düşer.
+            </p>
+          )}
         </div>
 
         {/* Canlı sayaçlar */}
