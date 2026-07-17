@@ -69,6 +69,7 @@ export default function DashboardPage() {
   const [folder, setFolder] = useState<string | null>(null); // null = tümü
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [flash, setFlash] = useState<{ msg: string; err?: boolean } | null>(null);
 
   const refresh = useCallback(async () => {
     if (user) setItems(await listPresentations(user.uid));
@@ -130,9 +131,16 @@ export default function DashboardPage() {
       )
     )
       return;
-    const code = await newSession(p.id, { newCode: true });
-    await refresh();
-    alert(`Yeni oturum hazır. Yeni katılım kodu: ${code}\n\nSunmak için "Sun"a bas.`);
+    setMenuFor(null);
+    setFlash(null);
+    try {
+      const code = await newSession(p.id, { newCode: true });
+      await refresh();
+      setFlash({ msg: `✓ Yeni oturum hazır — yeni katılım kodu: ${code}. Sunmak için karttaki “Sun”a bas.` });
+      setTimeout(() => setFlash(null), 10000);
+    } catch (e) {
+      setFlash({ msg: `Yeni oturum başarısız: ${e instanceof Error ? e.message : String(e)}`, err: true });
+    }
   }
 
   async function startFromTemplate(templateId: string) {
@@ -182,6 +190,16 @@ export default function DashboardPage() {
       <section className="max-w-4xl mx-auto px-4 py-10">
         <p className="eyebrow mb-2">Sunucu paneli</p>
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-6">Sunumlarım</h1>
+
+        {flash && (
+          <div
+            className={`mb-5 rounded-2xl px-4 py-3 text-sm font-semibold ${
+              flash.err ? "bg-brand-soft text-brand" : "bg-accent-soft text-accent-dark"
+            }`}
+          >
+            {flash.msg}
+          </div>
+        )}
 
         <form onSubmit={create} className="card p-2 flex gap-2 mb-3">
           <input
