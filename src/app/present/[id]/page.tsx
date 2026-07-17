@@ -52,8 +52,9 @@ export default function PresentPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading: authLoading } = useAuthUser();
-  const { presentation } = usePresentation(id);
+  const { presentation, loading: presLoading } = usePresentation(id);
   const { slides } = useSlides(id);
+  const [slow, setSlow] = useState(false);
   const participants = useParticipants(id);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
   const [host, setHost] = useState("flowmeter");
@@ -88,6 +89,16 @@ export default function PresentPage() {
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
   }, [authLoading, user, router]);
+
+  // Doküman uzun süre gelmezse "bağlantı kurulamıyor" ipucu göster
+  useEffect(() => {
+    if (presentation) {
+      setSlow(false);
+      return;
+    }
+    const t = setTimeout(() => setSlow(true), 8000);
+    return () => clearTimeout(t);
+  }, [presentation]);
 
   // Sunum ekranı açılınca canlı yayına al — katılım (QR) ekranından başla
   useEffect(() => {
@@ -142,9 +153,29 @@ export default function PresentPage() {
   }, [id, rawIndex, slides]);
 
   if (!presentation) {
+    const stillLoading = presLoading || authLoading;
     return (
-      <main className="min-h-screen flex items-center justify-center bg-wash">
-        <p className="text-muted animate-pulse">Yükleniyor…</p>
+      <main className="min-h-screen flex flex-col items-center justify-center bg-wash text-center px-6">
+        {stillLoading ? (
+          <>
+            <p className="text-muted animate-pulse">Yükleniyor…</p>
+            {slow && (
+              <p className="text-muted text-sm mt-4 max-w-xs">
+                Bağlantı kurulamıyor olabilir. İnternetini kontrol et; kurulu uygulamada
+                sorun sürerse tarayıcıda açmayı dene.
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <p className="text-5xl mb-3" aria-hidden>🔍</p>
+            <p className="text-xl font-bold mb-1">Sunum bulunamadı</p>
+            <p className="text-muted mb-6 max-w-xs">
+              Bu sunum silinmiş olabilir ya da adres hatalı.
+            </p>
+            <a href="/dashboard" className="btn-primary">Panele dön</a>
+          </>
+        )}
       </main>
     );
   }
