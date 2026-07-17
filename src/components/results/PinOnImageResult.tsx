@@ -43,16 +43,25 @@ export default function PinOnImageResult({
             aria-hidden
           />
         )}
+        {/* Çok işaret olduğunda okunur kalması için TEK tutarlı renk + yarı saydam
+            (yoğunluk üst üste binerek "sıcaklık" gibi görünür). Doğru alan varsa
+            yeşil/kırmızı. Renk döngüsü YOK. */}
         {pins.map((p, i) => {
-          const ok = area ? isPinInArea([p[0], p[1]], area) : true;
+          const ok = area ? isPinInArea([p[0], p[1]], area) : false;
+          const bg = area ? (ok ? "#16a34a" : "#f43f5e") : "#4f46e5";
+          const size = pins.length > 120 ? 10 : pins.length > 40 ? 12 : 15;
           return (
             <span
               key={i}
-              className="absolute w-4 h-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow animate-pop"
+              className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/70"
               style={{
                 left: `${p[0] * 100}%`,
                 top: `${p[1] * 100}%`,
-                background: area ? (ok ? "#16a34a" : "#f43f5e") : `var(--series-${(i % 8) + 1})`,
+                width: size,
+                height: size,
+                background: bg,
+                opacity: 0.62,
+                mixBlendMode: "normal",
               }}
               aria-hidden
             />
