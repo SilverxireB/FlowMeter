@@ -1,4 +1,4 @@
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import { Slide } from "./types";
 
@@ -69,8 +69,9 @@ export async function computeQuizScores(
     const correctArea = s.settings?.correctArea;
     // pin-on-image'ın zamanlaması yok → sabit puan; diğerleri scoreMode'a uyar
     const fixed = s.settings?.scoreMode === "fixed" || s.type === "pin-on-image";
+    void sessionId; // kapsam geçici devre dışı
     const col = collection(db(), "presentations", presentationId, "slides", s.id, "responses");
-    const snap = await getDocs(sessionId ? query(col, where("sessionId", "==", sessionId)) : col);
+    const snap = await getDocs(col);
     if (snap.empty) continue;
     for (const row of scores.values()) row.delta = 0;
     const answeredCorrect = new Set<string>();

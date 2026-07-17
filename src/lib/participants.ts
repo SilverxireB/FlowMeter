@@ -60,11 +60,10 @@ export async function joinPresentation(
   avatarSeed: string,
   sessionId?: string
 ): Promise<void> {
-  const data: Record<string, unknown> = { nickname, avatarSeed, joinedAt: serverTimestamp() };
-  if (sessionId) data.sessionId = sessionId;
+  void sessionId; // (kapsam geçici olarak devre dışı — bkz. oturum modeli planı)
   await setDoc(
     doc(db(), "presentations", presentationId, "participants", getVoterId()),
-    data,
+    { nickname, avatarSeed, joinedAt: serverTimestamp() },
     { merge: true }
   );
 }
