@@ -1,10 +1,25 @@
 "use client";
 
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  getRedirectResult,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+} from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Logo from "@/components/Logo";
 import { auth } from "@/lib/firebase";
+
+/** Kurulu PWA (standalone) veya iOS ana ekran modunda mıyız? */
+function isStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    // iOS Safari
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
 
 /** Sunucu girişi — sadece Google (izleyiciler hiç giriş yapmaz). */
 export default function LoginPage() {
@@ -12,14 +27,39 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Redirect ile dönüşte oturumu tamamla (PWA akışı)
+  useEffect(() => {
+    getRedirectResult(auth())
+      .then((res) => {
+        if (res?.user) router.push("/dashboard");
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Giriş başarısız."));
+  }, [router]);
+
   async function signIn() {
     setBusy(true);
     setError(null);
     try {
-      await signInWithPopup(auth(), new GoogleAuthProvider());
+      const provider = new GoogleAuthProvider();
+      // Kurulu uygulamada popup engellenir → tam sayfa redirect kullan
+      if (isStandalone()) {
+        await signInWithRedirect(auth(), provider);
+        return; // sayfa Google'a yönlenir; dönüşte yukarıdaki effect tamamlar
+      }
+      await signInWithPopup(auth(), provider);
       router.push("/dashboard");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Giriş başarısız.");
+      // Popup başarısızsa (engellendi/kapatıldı) redirect'e düş
+      const msg = e instanceof Error ? e.message : "Giriş başarısız.";
+      if (/popup/i.test(msg)) {
+        try {
+          await signInWithRedirect(auth(), new GoogleAuthProvider());
+          return;
+        } catch {
+          /* aşağıda hata gösterilir */
+        }
+      }
+      setError(msg);
       setBusy(false);
     }
   }

@@ -13,6 +13,7 @@ import {
   duplicatePresentation,
   getFirstSlide,
   listPresentations,
+  newSession,
   renamePresentation,
   setPresentationFolder,
 } from "@/lib/presentations";
@@ -68,6 +69,7 @@ export default function DashboardPage() {
   const [folder, setFolder] = useState<string | null>(null); // null = tümü
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [flash, setFlash] = useState<{ msg: string; err?: boolean } | null>(null);
 
   const refresh = useCallback(async () => {
     if (user) setItems(await listPresentations(user.uid));
@@ -122,6 +124,25 @@ export default function DashboardPage() {
     router.push(`/edit/${id}`);
   }
 
+  async function newRun(p: Presentation) {
+    if (
+      !confirm(
+        `"${p.title}" için yeni oturum başlat?\nYENİ bir katılım kodu oluşur, ekran sıfırdan başlar. Eski oturumun cevapları silinmez, saklı kalır.`
+      )
+    )
+      return;
+    setMenuFor(null);
+    setFlash(null);
+    try {
+      const code = await newSession(p.id, { newCode: true });
+      await refresh();
+      setFlash({ msg: `✓ Yeni oturum hazır — yeni katılım kodu: ${code}. Sunmak için karttaki “Sun”a bas.` });
+      setTimeout(() => setFlash(null), 10000);
+    } catch (e) {
+      setFlash({ msg: `Yeni oturum başarısız: ${e instanceof Error ? e.message : String(e)}`, err: true });
+    }
+  }
+
   async function startFromTemplate(templateId: string) {
     if (!user) return;
     const tpl = TEMPLATES.find((t) => t.id === templateId);
@@ -169,6 +190,16 @@ export default function DashboardPage() {
       <section className="max-w-4xl mx-auto px-4 py-10">
         <p className="eyebrow mb-2">Sunucu paneli</p>
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-6">Sunumlarım</h1>
+
+        {flash && (
+          <div
+            className={`mb-5 rounded-2xl px-4 py-3 text-sm font-semibold ${
+              flash.err ? "bg-brand-soft text-brand" : "bg-accent-soft text-accent-dark"
+            }`}
+          >
+            {flash.msg}
+          </div>
+        )}
 
         <form onSubmit={create} className="card p-2 flex gap-2 mb-3">
           <input
@@ -256,7 +287,7 @@ export default function DashboardPage() {
                   key={p.id}
                   className={`card hover:-translate-y-0.5 transition-transform relative ${
                     view === "list" ? "flex items-stretch" : ""
-                  }`}
+                  } ${menuFor === p.id ? "z-30" : "z-0"}`}
                 >
                   {/* Gerçek 1. slayt önizlemesi (köşe yuvarlaması kartla uyumlu) */}
                   <Link
@@ -298,6 +329,9 @@ export default function DashboardPage() {
                           >
                             <button onClick={() => rename(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
                               ✏️ Yeniden adlandır
+                            </button>
+                            <button onClick={() => newRun(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
+                              ♻ Yeni oturum (yeni kod)
                             </button>
                             <button onClick={() => duplicate(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
                               ⧉ Kopyala

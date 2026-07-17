@@ -5,6 +5,19 @@ Referans: Menti'de slayt tipleri (Multiple Choice, Word Cloud, Open Ended, Scale
 Ranking, Q&A, Quiz Select/Type Answer, Guess the Number, 100 Points, 2x2 Grid,
 Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exportu.
 
+## 🔑 KÖK SORUN NOTU (önce oku) — "buton donuyor / oy gelmiyor" = Firebase KOTASI
+
+Bir dönem "yeni sunum oluşturulamıyor, izleyicide slayt ilerlemiyor, buton
+pasif kalıp hiçbir şey olmuyor" yaşandı. **Sebep kod DEĞİLDİ** (iki kez eski
+commit'e dönüldü, düzelmedi). Gerçek sebep: simülasyon aracı Firestore'a
+binlerce yazma basıp **Spark (ücretsiz) planın günlük yazma kotasını**
+(20K/gün) doldurdu. Kota dolunca Firestore yazmaları reddetmez, **askıya alır**
+→ promise hiç dönmez → buton sonsuza kadar "pasif". Okumalar ayrı kotada
+olduğu için kod girme/isim ekranı çalışmaya devam eder (yanıltıcı).
+**Çözüm: Blaze planına geçildi** (günlük yazma tavanı kalkar). Bu yüzden tüm
+geliştirmeler `9ca00db`'den geri getirildi. Ders: yazma donuyorsa önce
+**Firebase Console → Firestore → Usage** bak; kodu geri alma.
+
 ## Faz 1 — MVP ✅ TAMAMLANDI
 
 - [x] Next.js + Tailwind + Firebase iskeleti, Vercel'e deploy
@@ -101,6 +114,16 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 Kalanlar: Audience-pace anket modu, slayt kopyala/yapıştır (Mentiler arası),
 profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 
+## ⚠️ Geçici TEST aracı — Simülasyon (kaldırılacak)
+
+- `/dev/sim/[id]?k=<SIM_SECRET>` (src/app/dev/sim/ + src/lib/sim.ts). Gizli link,
+  hiçbir yerden linklenmez, gerçek izleyici gibi anonim yazar (rules değişmez).
+- N bot + personalar (tepki canavarı / çok soran / sohbetçi / aktif / sessiz),
+  ayarlanabilir tepki & Q&A yoğunluğu, canlı yazma/sn → "tepkiler çokken" akıcılık
+  sınırını (N) bulmak için. Temizle = resetSession.
+- **KALDIRMAK:** `src/app/dev/` klasörünü + `src/lib/sim.ts`'i sil, ROADMAP'ten bu
+  bölümü çıkar. Başka hiçbir dosya etkilenmez (düzen bozulmaz).
+
 ## Faz 3.8 — Mobil düzeltmeler + PWA ✅
 
 - [x] Mobil üst bar çakışmaları: sonuçlar (logo↔başlık), dashboard (logo↔e-posta) —
@@ -134,48 +157,6 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 - [ ] Profanity filtresi (word cloud / open-ended)
 - [ ] i18n (TR/EN), kod süresi/temizliği, Cloud Function ile yetim veri temizliği
 - [ ] Performans: 100+ eşzamanlı izleyici için yazma/okuma gözden geçirme
-
-## ⚠️ GERİ DÖNÜŞ NOTU (f77cecc — simülasyon ÖNCESİ) — ÖNCE BUNU OKU
-
-**Şu anki durum:** Kod, `f77cecc` commit'ine (simülasyon aracı eklenmeden
-HEMEN önce, son sağlam sürüm) geri alındı. `feature`
-(`claude/project-structure-design-6pufzd`) ve production
-(`claude/practical-lamport-ls9miq`) bu ağaca eşitlendi. Bu noktada tasarım/PWA/
-logo/mobil düzeltmeler + "geri bildirim turu" var; **simülasyon aracı YOK**,
-sessionId kapsamı YOK, "yeni oturum=yeni kod" YOK.
-
-**Neden buraya kadar geri gelindi:** Önce sadece `d9af4fa`'ya dönüldü ama
-**hâlâ çalışmıyordu**. Sorunun kökü sim + sonrasıydı; kullanıcı "simülasyonun
-tam öncesine dön" dedi. Aşağıdaki commit'lerin HİÇBİRİ tekrar aynen alınmamalı:
-- `b815ae1` /dev/sim test aracı (bot yazımı → Firestore'u kirletti)
-- `538b45a`, `d9af4fa` sim düzeltmeleri
-- `8a4665e`, `74fdbad` çoklu-kullanım + avatar bulutu + present'ten "yeni oturum" kaldırma
-- `296afa8` **sessionId kapsamı** (asıl kırılma): eski katılımcı/cevaplarda
-  `sessionId` alanı yok → canlı ekranlar onları filtreleyip boşalttı
-  ("eski sunuma girsem de değişmiyor", "yeni sunum oluşturamıyorum")
-- `6ad778d`, `9ca00db` bunları geri alma denemeleri (yetmedi)
-
-**Firestore temizliği (KOD DIŞI — kullanıcı elle yapacak):** Sim botları
-gerçek sunumlara `participants/responses/reactions/messages/questions`
-yazdı. Bu ortama Firestore admin erişimi YOK; temizlik konsoldan yapılmalı.
-En temiz yol: sim ile kirlenen **test sunumlarını dashboard'dan komple sil**
-(o sunumların tamamı zaten atılabilir). Gerçek/saklanacak sunum varsa sadece
-`sim-` ile başlayan voterId'li dokümanları silmek gerekir (bkz. eski sim.ts:
-bot voterId'leri `sim-<uuid>` formatındaydı).
-
-**Kullanıcının İSTEDİĞİ oturum modeli (birebir):** "bitir ile o sunum biter
-cevaplar kaydedilir. sonra yeniden aynısını yayınladığımda başka bir kod / id
-ile başka bir sunum başlar; aynısını açmak istersem onun koduna tıklarım;
-bunların sadece dashboard ekranında olması lazım."
-
-**ÖNERİLEN GÜVENLİ YOL (henüz yapılmadı): "Yeni oturum = taze KOPYA".**
-`duplicatePresentation` ile yeni id + yeni joinCode üret; içerik boş başlasın;
-eski sunum olduğu gibi dursun. SİLME YOK, sessionId scoping YOK, toplu
-client-side silme YOK (1110 katılımcıda takılıyordu). Oturum yönetimi
-yalnızca dashboard'da. Not: 100+ eşzamanlı için quiz ~500 / pin ~70 cevaptan
-sonra tıkanma gözlendi → yazma/okuma optimizasyonu gerekli.
-
----
 
 ## YENİ SOHBET İÇİN BAŞLANGIÇ NOTU
 
