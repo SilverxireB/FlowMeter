@@ -151,7 +151,7 @@ export default function EditPage() {
                 </label>
                 <p className="px-4 py-2 text-xs text-muted">
                   Katılım kodu:{" "}
-                  <span className="font-display font-semibold tracking-[0.15em] text-brand">
+                  <span className="font-display font-semibold tracking-[0.15em] text-accent">
                     {presentation.joinCode}
                   </span>
                 </p>

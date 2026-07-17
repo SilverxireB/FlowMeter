@@ -40,8 +40,11 @@ Sunucu (presenter) slaytlar oluşturur, izleyiciler (audience) telefonlarından
   pembe tonlu değil). Logo lacisi: **#001e64** (Beko).
 - **Font**: Plus Jakarta Sans — başlık da metin de aynı aile (`--font-sans`,
   `--font-display` ona eşitlenir; sade + tutarlı, modern).
-- **Bileşen sınıfları** (globals.css): `.card` (tombul köşe + çift gölge),
-  `.btn-primary` (gül), `.btn-accent` (mavi), `.btn-ghost`, `.input-base`,
+- **Renk kullanımı**: birincil aksiyonlar **indigo** (`.btn-primary` = `.btn-accent`,
+  kodlar, ilerleme noktaları); **gül YALNIZCA uyarı/durum** (hata, sil/danger, CANLI
+  rozeti, oylama kapalı, quiz geri sayım aciliyeti). "Niye kırmızı" tutarsızlığı böyle çözüldü.
+- **Bileşen sınıfları** (globals.css): `.card` (yumuşak tek gölge, düz-modern),
+  `.btn-primary`/`.btn-accent` (indigo), `.btn-ghost`, `.input-base`,
   `.eyebrow`, `.chip`, `.bg-wash`. Animasyonlar: `.animate-pop`, `.animate-float-up`,
   `.animate-confetti`. `prefers-reduced-motion` destekli.
 - **Grafik paleti**: `--series-1..8` CSS değişkenleri (dataviz doğrulanmış sıra).

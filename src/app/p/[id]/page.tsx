@@ -228,17 +228,21 @@ export default function AudiencePage() {
 
   return (
     <main className="min-h-screen flex flex-col" style={themeBg}>
-      <header className="px-4 py-3 flex items-center justify-between border-b border-line bg-white/80 backdrop-blur">
+      <header
+        className={`px-4 py-3 flex items-center justify-between border-b backdrop-blur ${
+          dark ? "border-white/10 bg-black/20" : "border-line bg-white/80"
+        }`}
+      >
         <span className="flex items-center gap-3">
           {logo && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logo} alt="Sunum logosu" className="h-6 w-auto" />
           )}
-          <Logo size="sm" />
+          <Logo size="sm" onDark={dark} />
         </span>
-        <span className="flex items-center gap-2 bg-paper border border-line rounded-full pl-1 pr-3 py-1 text-sm font-semibold">
+        <span className="flex items-center gap-2 bg-white border border-line rounded-full pl-1 pr-3 py-1 text-sm font-semibold">
           <Avatar seed={avatarSeed ?? "Luna"} size={24} />
-          <span className="truncate max-w-[9rem]">{nickname}</span>
+          <span className="truncate max-w-[9rem] text-ink">{nickname}</span>
         </span>
       </header>
 

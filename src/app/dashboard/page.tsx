@@ -272,7 +272,7 @@ export default function DashboardPage() {
                         <p className="font-display font-semibold truncate">{p.title}</p>
                         <p className="text-muted text-sm mt-0.5">
                           Kod:{" "}
-                          <span className="font-display font-semibold tracking-[0.15em] text-brand">
+                          <span className="font-display font-semibold tracking-[0.15em] text-accent">
                             {p.joinCode || "—"}
                           </span>
                           {p.folder && <span className="ml-2 text-xs">📁 {p.folder}</span>}

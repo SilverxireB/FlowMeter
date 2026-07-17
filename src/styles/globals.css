@@ -111,12 +111,13 @@ body {
       0 10px 30px -18px rgba(24, 24, 27, 0.15);
   }
 
+  /* Birincil aksiyon = indigo (marka aksanı). Gül yalnızca uyarı/durum için. */
   .btn-primary {
-    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-soft;
+    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
     @apply inline-flex items-center justify-center gap-2 cursor-pointer select-none
-      bg-brand text-white font-semibold rounded-full px-5 py-3
+      bg-accent text-white font-semibold rounded-full px-5 py-3
       transition-all duration-200 ease-out
-      hover:bg-brand-dark active:scale-[0.98]
+      hover:bg-accent-dark active:scale-[0.98]
       disabled:opacity-30 disabled:active:scale-100 disabled:cursor-default;
   }
 

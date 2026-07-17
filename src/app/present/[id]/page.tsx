@@ -167,25 +167,32 @@ export default function PresentPage() {
   return (
     <main className="min-h-screen flex flex-col" style={themeBg}>
       <ReactionOverlay presentationId={id} />
-      <header className="px-6 py-3.5 flex items-center justify-between border-b border-line bg-white/80 backdrop-blur">
+      <header
+        className={`px-6 py-3.5 flex items-center justify-between border-b backdrop-blur ${
+          dark ? "border-white/10 bg-black/20" : "border-line bg-white/80"
+        }`}
+      >
         <div className="flex items-center gap-3">
           {logo && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logo} alt="Sunum logosu" className="h-7 w-auto" />
           )}
-          <Logo size="sm" />
+          <Logo size="sm" onDark={dark} />
         </div>
-        <p className="hidden sm:block text-sm text-muted">
-          <span className="font-semibold text-ink">{host}</span> · kod{" "}
-          <span className="font-display font-semibold text-ink tracking-[0.2em]">
+        <p className={`hidden sm:block text-sm ${dark ? "text-white/70" : "text-muted"}`}>
+          <span className={`font-semibold ${dark ? "text-white" : "text-ink"}`}>{host}</span> · kod{" "}
+          <span className={`font-display font-semibold tracking-[0.2em] ${dark ? "text-white" : "text-ink"}`}>
             {presentation.joinCode}
           </span>
         </p>
         <div className="flex items-center gap-4">
           <span className="chip tabular-nums" title="Katılımcı sayısı">
-            <span aria-hidden>👥</span> {participants.length}
+            {participants.length} kişi
           </span>
-          <Link href={`/edit/${id}`} className="text-muted hover:text-ink text-sm font-semibold">
+          <Link
+            href={`/edit/${id}`}
+            className={`text-sm font-semibold ${dark ? "text-white/70 hover:text-white" : "text-muted hover:text-ink"}`}
+          >
             Editör
           </Link>
         </div>
@@ -211,7 +218,7 @@ export default function PresentPage() {
                 QR kodu okut veya <span className={`font-semibold ${dark ? "text-white" : "text-ink"}`}>{host}</span>
                 &apos;a gir, kodu yaz:
               </p>
-              <p className={`font-display text-6xl md:text-7xl font-semibold tracking-[0.18em] mb-8 ${dark ? "text-white" : "text-brand"}`}>
+              <p className={`font-display text-6xl md:text-7xl font-semibold tracking-[0.18em] mb-8 ${dark ? "text-white" : "text-accent"}`}>
                 {presentation.joinCode}
               </p>
               <p className={`text-sm mb-3 tabular-nums font-semibold ${dark ? "text-white/70" : "text-muted"}`}>
@@ -357,7 +364,7 @@ export default function PresentPage() {
             {joinUrl && (
               <div className="absolute top-6 right-6 hidden lg:flex flex-col items-center gap-1.5 bg-white border border-line rounded-2xl p-3 shadow-sm">
                 <QrCode text={joinUrl} size={92} />
-                <span className="font-display text-sm font-semibold tracking-[0.15em] text-brand">
+                <span className="font-display text-sm font-semibold tracking-[0.15em] text-accent">
                   {presentation.joinCode}
                 </span>
               </div>
@@ -471,7 +478,7 @@ export default function PresentPage() {
         <div className="hidden md:flex items-center gap-1.5" aria-hidden>
           <span
             className={`w-2 h-2 rounded-full transition-colors ${
-              rawIndex < 0 ? "bg-brand" : "bg-line"
+              rawIndex < 0 ? "bg-accent" : "bg-line"
             }`}
           />
           {slides.map((s, i) => (
@@ -481,7 +488,7 @@ export default function PresentPage() {
                 s.settings?.skipped
                   ? "bg-line/40 scale-75"
                   : i === index && rawIndex >= 0
-                    ? "bg-brand"
+                    ? "bg-accent"
                     : "bg-line"
               }`}
             />
