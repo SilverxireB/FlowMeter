@@ -48,15 +48,9 @@ export async function submitResponse(
   slideId: string,
   value: ResponseValue
 ): Promise<void> {
-  const data: Record<string, unknown> = {
-    voterId: getVoterId(),
-    value,
-    createdAt: serverTimestamp(),
-  };
-  if (activeSessionId) data.sessionId = activeSessionId;
   await addDoc(
     collection(db(), "presentations", presentationId, "slides", slideId, "responses"),
-    data
+    { voterId: getVoterId(), value, createdAt: serverTimestamp() }
   );
   localStorage.setItem(votedKey(slideId), String(getVoteCount(slideId) + 1));
 }

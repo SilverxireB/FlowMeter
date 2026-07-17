@@ -122,13 +122,12 @@ export async function joinBots(
   for (let i = 0; i < bots.length; i += 450) {
     const batch = writeBatch(db());
     bots.slice(i, i + 450).forEach((b) => {
-      const data: Record<string, unknown> = {
+      void sessionId;
+      batch.set(doc(db(), "presentations", presentationId, "participants", b.voterId), {
         nickname: b.nickname,
         avatarSeed: b.avatarSeed,
         joinedAt: serverTimestamp(),
-      };
-      if (sessionId) data.sessionId = sessionId;
-      batch.set(doc(db(), "presentations", presentationId, "participants", b.voterId), data);
+      });
     });
     await batch.commit();
   }
@@ -156,11 +155,10 @@ export function fireResponse(
     value = 0;
   }
   if (value === undefined || value === null) value = 0;
-  const data: Record<string, unknown> = { voterId, value, createdAt: serverTimestamp() };
-  if (sessionId) data.sessionId = sessionId;
+  void sessionId;
   return addDoc(
     collection(db(), "presentations", presentationId, "slides", slide.id, "responses"),
-    data
+    { voterId, value, createdAt: serverTimestamp() }
   );
 }
 
