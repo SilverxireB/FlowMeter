@@ -594,6 +594,9 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
   const [timeLimit, setTimeLimit] = useState(slide.settings?.timeLimit ?? 20);
   const [scoreMode, setScoreMode] = useState<"time" | "fixed">(slide.settings?.scoreMode ?? "time");
   const [music, setMusic] = useState(slide.settings?.music ?? false);
+  const [chartOrientation, setChartOrientation] = useState<"horizontal" | "vertical">(
+    slide.settings?.chartOrientation ?? (slide.type === "quiz" ? "vertical" : "horizontal")
+  );
   const [videoUrl, setVideoUrl] = useState(slide.settings?.videoUrl ?? "");
   const [image, setImage] = useState<string | undefined>(slide.settings?.image);
   const [correctArea, setCorrectArea] = useState<[number, number, number] | undefined>(
@@ -643,6 +646,8 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
       }
       if (slide.type === "quiz")
         settings.correctIndex = Math.max(0, Math.min(correctIndex, options.length - 1));
+      if (slide.type === "multiple-choice" || slide.type === "quiz")
+        settings.chartOrientation = chartOrientation;
       if (slide.type === "video") settings.videoUrl = videoUrl.trim();
       if (hasImage) {
         if (image) settings.image = image;
@@ -668,7 +673,7 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
     }, 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [question, options, description, label, allowMultiple, correctIndex, timeLimit, scoreMode, music, videoUrl, image, correctArea, correctNumber, numMin, numMax, unit, gridLabels, maxEntries]);
+  }, [question, options, description, label, allowMultiple, correctIndex, timeLimit, scoreMode, music, chartOrientation, videoUrl, image, correctArea, correctNumber, numMin, numMax, unit, gridLabels, maxEntries]);
 
   async function uploadImage(file: File | undefined) {
     if (!file) return;
@@ -883,6 +888,30 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
           />
           <span className="text-sm font-semibold">Birden fazla seçime izin ver</span>
         </label>
+      )}
+
+      {/* Sonuç grafiği yönü (sunumda) — çoktan seçmeli & quiz */}
+      {(slide.type === "multiple-choice" || slide.type === "quiz") && (
+        <div className="mb-4">
+          <span className="text-sm font-semibold block mb-1.5">Grafik yönü (sunumda)</span>
+          <div className="flex gap-1 p-1 bg-paper rounded-xl border border-line">
+            {([
+              ["vertical", "📊 Dikey", "Sütunlar yukarı doğru"],
+              ["horizontal", "📶 Yatay", "Çubuklar yana doğru"],
+            ] as const).map(([val, lbl, hint]) => (
+              <button
+                key={val}
+                onClick={() => setChartOrientation(val)}
+                title={hint}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors cursor-pointer ${
+                  chartOrientation === val ? "bg-white shadow-sm text-ink" : "text-muted hover:text-ink"
+                }`}
+              >
+                {lbl}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {hasMaxEntries && (

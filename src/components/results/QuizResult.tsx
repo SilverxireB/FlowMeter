@@ -6,6 +6,7 @@ import { ResponseDoc, Slide } from "@/lib/types";
 /**
  * Quiz canlı sonucu: süre dolana kadar sadece cevap sayıları,
  * süre dolunca doğru seçenek vurgulanır.
+ * settings.chartOrientation ile dikey (sütun) / yatay (çubuk); quiz varsayılanı dikey.
  */
 export default function QuizResult({
   slide,
@@ -32,23 +33,108 @@ export default function QuizResult({
   );
   const max = Math.max(1, ...counts);
   const total = responses.length;
+  const vertical = (slide.settings?.chartOrientation ?? "vertical") === "vertical";
+
+  const countdown = remaining !== null && !revealed && (
+    <div className="flex items-center gap-4">
+      <div className="flex-1 h-3 bg-line/50 rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full bg-brand transition-[width] duration-300 ease-linear"
+          style={{ width: `${(remaining / (timeLimit * 1000)) * 100}%` }}
+        />
+      </div>
+      <span className="font-display font-semibold text-brand text-4xl tabular-nums w-16 text-right">
+        {Math.ceil(remaining / 1000)}
+      </span>
+    </div>
+  );
+
+  const footer = (
+    <p className="text-muted text-sm font-semibold tabular-nums">
+      {total} cevap {revealed ? "· doğru cevap açıklandı" : ""}
+    </p>
+  );
+
+  if (vertical) {
+    return (
+      <div className="w-full flex flex-col gap-5">
+        {countdown}
+        {/* Sütunlar */}
+        <div className="flex items-end justify-center gap-3 md:gap-6 h-64 md:h-80">
+          {slide.options.map((option, i) => {
+            const count = counts[i];
+            const isCorrect = revealed && i === correctIndex;
+            const dimmed = revealed && i !== correctIndex;
+            return (
+              <div
+                key={i}
+                className={`flex-1 max-w-[9rem] h-full flex flex-col items-center justify-end gap-2 ${
+                  dimmed ? "opacity-45" : ""
+                }`}
+              >
+                <span
+                  className={`tabular-nums text-sm flex items-center gap-1.5 ${
+                    isCorrect ? "font-bold text-ink" : "text-muted"
+                  }`}
+                >
+                  {revealed ? count : total > 0 ? count : 0}
+                  {revealed && (
+                    <span
+                      className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] text-white ${
+                        isCorrect ? "bg-green-600" : "bg-rose-400"
+                      }`}
+                      aria-label={isCorrect ? "doğru cevap" : "yanlış"}
+                    >
+                      {isCorrect ? "✓" : "✕"}
+                    </span>
+                  )}
+                </span>
+                <div
+                  className="w-full rounded-t-lg transition-[height] duration-700 ease-out"
+                  style={{
+                    height: `${(count / max) * 100}%`,
+                    minHeight: count > 0 ? "8px" : "0",
+                    background: `var(--series-${(i % 8) + 1})`,
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+        {/* Etiketler (harf rozeti + seçenek) */}
+        <div className="flex justify-center gap-3 md:gap-6">
+          {slide.options.map((option, i) => {
+            const isCorrect = revealed && i === correctIndex;
+            const dimmed = revealed && i !== correctIndex;
+            return (
+              <div
+                key={i}
+                className={`flex-1 max-w-[9rem] flex items-center justify-center gap-1.5 min-w-0 ${
+                  dimmed ? "opacity-45" : ""
+                }`}
+              >
+                <span
+                  aria-hidden
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-xs font-bold shrink-0"
+                  style={{ background: `var(--series-${(i % 8) + 1})` }}
+                >
+                  {String.fromCharCode(65 + i)}
+                </span>
+                <span className={`truncate text-sm text-center ${isCorrect ? "font-bold" : "font-medium"}`}>
+                  {option}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        {footer}
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex flex-col gap-5">
-      {/* Geri sayım */}
-      {remaining !== null && !revealed && (
-        <div className="flex items-center gap-4">
-          <div className="flex-1 h-3 bg-line/50 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full bg-brand transition-[width] duration-300 ease-linear"
-              style={{ width: `${(remaining / (timeLimit * 1000)) * 100}%` }}
-            />
-          </div>
-          <span className="font-display font-semibold text-brand text-4xl tabular-nums w-16 text-right">
-            {Math.ceil(remaining / 1000)}
-          </span>
-        </div>
-      )}
+      {countdown}
 
       {slide.options.map((option, i) => {
         const count = counts[i];
@@ -97,9 +183,7 @@ export default function QuizResult({
           </div>
         );
       })}
-      <p className="text-muted text-sm font-semibold tabular-nums">
-        {total} cevap {revealed ? "· doğru cevap açıklandı" : ""}
-      </p>
+      {footer}
     </div>
   );
 }

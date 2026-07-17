@@ -173,10 +173,6 @@ export default function PresentPage() {
         }`}
       >
         <div className="flex items-center gap-3">
-          {logo && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt="Sunum logosu" className="h-7 w-auto" />
-          )}
           <Logo size="sm" onDark={dark} />
         </div>
         <p className={`hidden sm:block text-sm ${dark ? "text-white/70" : "text-muted"}`}>
@@ -186,6 +182,10 @@ export default function PresentPage() {
           </span>
         </p>
         <div className="flex items-center gap-4">
+          {logo && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logo} alt="Sunum logosu" className="h-9 w-auto" />
+          )}
           <span className="chip tabular-nums" title="Katılımcı sayısı">
             {participants.length} kişi
           </span>
@@ -201,7 +201,7 @@ export default function PresentPage() {
       <section className="relative flex-1 flex flex-col items-center justify-center px-6 py-6">
         {rawIndex < 0 ? (
           /* ── Katılım ekranı: büyük QR + kod + canlı gelen isimler ── */
-          <div className="w-full max-w-5xl flex flex-col md:flex-row items-center gap-10 md:gap-16">
+          <div className="w-full max-w-6xl flex flex-col md:flex-row items-center gap-10 md:gap-16">
             <div className="card p-7 shrink-0">
               {joinUrl && <QrCode text={joinUrl} size={300} />}
             </div>
@@ -245,7 +245,7 @@ export default function PresentPage() {
           </div>
         ) : slide ? (
           <>
-            <div key={slide.id} className="w-full max-w-5xl card p-8 md:p-12 animate-pop">
+            <div key={slide.id} className="w-full max-w-7xl card p-8 md:p-14 animate-pop flex flex-col min-h-[72vh]">
               <div className="flex items-start justify-between gap-4">
                 <p className="eyebrow mb-3">
                   {slide.settings?.label?.trim() ||
@@ -258,10 +258,11 @@ export default function PresentPage() {
                   </span>
                 )}
               </div>
-              <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-tight mb-10 lg:pr-32">
+              <h1 className="font-display text-4xl md:text-6xl font-semibold tracking-tight mb-10 lg:pr-32">
                 {slide.question}
               </h1>
-              <div className={slideImage ? "grid md:grid-cols-[minmax(0,320px)_1fr] gap-8 items-start" : ""}>
+              <div className="flex-1 flex flex-col justify-center">
+              <div className={slideImage ? "grid md:grid-cols-[minmax(0,380px)_1fr] gap-8 items-start" : ""}>
                 {slideImage && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -280,7 +281,7 @@ export default function PresentPage() {
                   ) : slide.type === "multiple-choice" ? (
                     <BarChartResult slide={slide} responses={responses} />
                   ) : slide.type === "word-cloud" ? (
-                    <div className="min-h-[18rem] flex items-center justify-center">
+                    <div className="min-h-[24rem] flex items-center justify-center">
                       <WordCloudResult responses={responses} />
                     </div>
                   ) : slide.type === "open-ended" ? (
@@ -357,6 +358,7 @@ export default function PresentPage() {
                     </p>
                   ) : null}
                 </div>
+              </div>
               </div>
             </div>
 

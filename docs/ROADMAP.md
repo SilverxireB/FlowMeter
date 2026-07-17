@@ -111,6 +111,11 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 - [x] Film şeridinde **sürükle-bırak** slayt sıralama (reorderSlides)
 - [x] Leaderboard slaytı **konuma göre otomatik**: sunum arası → Sıralama (bar-race),
       son quiz'den sonra → spotlight + Podyum (heyecanlı final)
+- [x] **Sunum cilası**: present slaytı büyütüldü (max-w-7xl + min-h), interaktif
+      alan genişletildi; sunum logosu üst bar sağına alındı; çoktan seçmeli & quiz
+      için **dikey/yatay sonuç grafiği** seçimi (editör; quiz varsayılan dikey);
+      arka plan görseli büyük ekran için 2560px/~900KB'a çıkarıldı; dashboard kart
+      önizlemesi mini yoğunlukla çakışmasız
 - [x] **Tasarım tazeleme (sade & modern)**: tek uyumlu font (Plus Jakarta Sans),
       nötr/dingin palet (pembe tonlu nötrler kalktı), indigo vurgu, düz(daha az clay)
       kartlar + yumuşak tek gölge, sade çizgi ikonlar (emoji yerine — Icon.tsx),

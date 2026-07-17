@@ -69,6 +69,11 @@ export interface SlideSettings {
   /** quiz / quiz-type: geri sayım sırasında gerilim müziği (WebAudio, dış servis yok) */
   music?: boolean;
   /**
+   * multiple-choice / quiz: sonuç grafiği yönü. "vertical" = sütun (yukarı),
+   * "horizontal" = çubuk (yana). Boşsa quiz varsayılan dikey, diğerleri yatay.
+   */
+  chartOrientation?: "horizontal" | "vertical";
+  /**
    * pin-on-image: puanlı "doğru alan" — normalize daire [x, y, yarıçap] (0–1).
    * Tanımlıysa pin bu daireye düşen izleyiciler puan kazanır.
    */

@@ -36,7 +36,7 @@ function CardThumb({ presentation, view }: { presentation: Presentation; view: "
   }, [presentation.id]);
 
   if (slide) {
-    return <SlidePreview slide={slide} theme={presentation.theme} mini={view === "list"} bare />;
+    return <SlidePreview slide={slide} theme={presentation.theme} mini bare />;
   }
   // Yükleniyor / slayt yok → temalı başlık
   return (

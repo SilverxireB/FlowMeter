@@ -96,6 +96,8 @@ quiz (seçmeli), **quiz-type (yazarak)**, **pin-on-image (görselde işaretle)**
 Ortak slayt ayarları: `label` (eyebrow), `description` (izleyici cihazında),
 `image` (soru görseli), `skipped` (sunumda atla). Quiz'lerde: `timeLimit`,
 `music`; quiz'de `correctIndex`; quiz-type'ta options = kabul edilen cevaplar.
+Çoktan seçmeli & quiz: `chartOrientation` (dikey/yatay sonuç grafiği —
+editörden seçilir; quiz varsayılan dikey).
 
 ## 4. Veri Akışı Özeti
 

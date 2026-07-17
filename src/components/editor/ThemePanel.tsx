@@ -33,7 +33,7 @@ export default function ThemePanel({
       const dataUrl =
         kind === "logo"
           ? await fileToCompressedDataUrl(file, 240, 90_000)
-          : await fileToCompressedDataUrl(file, 1600, 550_000);
+          : await fileToCompressedDataUrl(file, 2560, 950_000);
       await apply({ [kind]: dataUrl });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Yükleme başarısız.");
@@ -92,7 +92,7 @@ export default function ThemePanel({
               disabled={busy === "bgImage"}
               className="btn-ghost w-full py-6 border-dashed"
             >
-              {busy === "bgImage" ? "Sıkıştırılıyor…" : "+ Görsel yükle (max ~500KB'a sıkıştırılır)"}
+              {busy === "bgImage" ? "Sıkıştırılıyor…" : "+ Görsel yükle (büyük ekran için 2560px / ~900KB)"}
             </button>
             <input
               ref={bgInput}
