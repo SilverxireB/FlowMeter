@@ -101,6 +101,17 @@ Pin on Image), tema/marka sistemi, emoji reactions, şablon galerisi, sonuç exp
 Kalanlar: Audience-pace anket modu, slayt kopyala/yapıştır (Mentiler arası),
 profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 
+## Faz 3.8 — Mobil düzeltmeler + PWA ✅
+
+- [x] Mobil üst bar çakışmaları: sonuçlar (logo↔başlık), dashboard (logo↔e-posta) —
+      shrink/truncate/min-w-0 ile düzeltildi
+- [x] Dashboard kart ⋯ menüsü kırpılması: `overflow-hidden` karttan alınıp
+      thumbnail'e taşındı (köşe yuvarlaması rounded-t/l-2xl ile) → menü tam görünür
+- [x] **PWA**: `public/manifest.webmanifest` (display: standalone → tam ekran),
+      marka ikonları (icon-192/512, apple-touch-icon; "Fo" + renkli halka, lacivert
+      zemin — HTML→PNG üretildi), layout metadata (manifest/icons/appleWebApp) +
+      viewport themeColor. "Ana ekrana ekle" → FlowMeter ikonu + tarayıcı çubuğu yok
+
 ## Faz 3.7 — Geri bildirim turu ✅
 
 - [x] **Yeni oturum**: aynı deck'i birden fazla grupla baştan çalıştırma

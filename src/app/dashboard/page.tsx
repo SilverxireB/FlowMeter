@@ -157,11 +157,13 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-wash" onClick={() => setMenuFor(null)}>
-      <header className="bg-white/80 backdrop-blur border-b border-line px-6 py-4 flex items-center justify-between">
-        <Link href="/">
+      <header className="bg-white/80 backdrop-blur border-b border-line px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+        <Link href="/" className="shrink-0">
           <Logo />
         </Link>
-        <span className="chip text-muted">{user.email}</span>
+        <span className="chip text-muted min-w-0 max-w-[55vw]">
+          <span className="truncate">{user.email}</span>
+        </span>
       </header>
 
       <section className="max-w-4xl mx-auto px-4 py-10">
@@ -252,15 +254,15 @@ export default function DashboardPage() {
               return (
                 <li
                   key={p.id}
-                  className={`card overflow-hidden hover:-translate-y-0.5 transition-transform relative ${
+                  className={`card hover:-translate-y-0.5 transition-transform relative ${
                     view === "list" ? "flex items-stretch" : ""
                   }`}
                 >
-                  {/* Gerçek 1. slayt önizlemesi */}
+                  {/* Gerçek 1. slayt önizlemesi (köşe yuvarlaması kartla uyumlu) */}
                   <Link
                     href={`/edit/${p.id}`}
                     className={`block relative shrink-0 overflow-hidden ${
-                      view === "grid" ? "aspect-video" : "w-36 self-stretch"
+                      view === "grid" ? "aspect-video rounded-t-2xl" : "w-36 self-stretch rounded-l-2xl"
                     }`}
                   >
                     <CardThumb presentation={p} view={view} />
