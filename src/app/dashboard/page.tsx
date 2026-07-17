@@ -13,6 +13,7 @@ import {
   duplicatePresentation,
   getFirstSlide,
   listPresentations,
+  newSession,
   renamePresentation,
   setPresentationFolder,
 } from "@/lib/presentations";
@@ -120,6 +121,18 @@ export default function DashboardPage() {
     if (!user) return;
     const id = await duplicatePresentation(user.uid, p);
     router.push(`/edit/${id}`);
+  }
+
+  async function newRun(p: Presentation) {
+    if (
+      !confirm(
+        `"${p.title}" için yeni oturum başlat?\nYENİ bir katılım kodu oluşur, ekran sıfırdan başlar. Eski oturumun cevapları silinmez, saklı kalır.`
+      )
+    )
+      return;
+    const code = await newSession(p.id, { newCode: true });
+    await refresh();
+    alert(`Yeni oturum hazır. Yeni katılım kodu: ${code}\n\nSunmak için "Sun"a bas.`);
   }
 
   async function startFromTemplate(templateId: string) {
@@ -298,6 +311,9 @@ export default function DashboardPage() {
                           >
                             <button onClick={() => rename(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
                               ✏️ Yeniden adlandır
+                            </button>
+                            <button onClick={() => newRun(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
+                              ♻ Yeni oturum (yeni kod)
                             </button>
                             <button onClick={() => duplicate(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
                               ⧉ Kopyala

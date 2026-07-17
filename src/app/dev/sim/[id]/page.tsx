@@ -11,7 +11,7 @@
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePresentation, useQuestions, useSlides } from "@/lib/hooks";
-import { resetSession, resolveJoinCode } from "@/lib/presentations";
+import { newSession, resolveJoinCode } from "@/lib/presentations";
 import {
   Bot,
   SIM_SECRET,
@@ -71,6 +71,7 @@ export default function SimPage() {
   const votedRef = useRef<Set<string>>(new Set()); // bu slaytta oyu işlenen botlar
   const slideStartRef = useRef(0);
   const cfgRef = useRef({ reactionMul, qnaMul, chatOn });
+  const sidRef = useRef<string | undefined>(undefined);
   const countRef = useRef({ reactions: 0, votes: 0, questions: 0, messages: 0 });
   const wpsRef = useRef({ last: 0, acc: 0 });
 
@@ -80,6 +81,9 @@ export default function SimPage() {
   useEffect(() => {
     questionIdsRef.current = questions.filter((q) => !q.hidden).map((q) => q.id);
   }, [questions]);
+  useEffect(() => {
+    sidRef.current = presentation?.sessionId;
+  }, [presentation?.sessionId]);
 
   const rawIndex = presentation?.currentSlideIndex ?? -1;
   const activeSlide: Slide | undefined = rawIndex < 0 ? undefined : slides[Math.min(rawIndex, slides.length - 1)];
@@ -122,7 +126,7 @@ export default function SimPage() {
     for (const b of botsRef.current) {
       if (votedRef.current.has(b.voterId)) continue;
       votedRef.current.add(b.voterId);
-      fireResponse(id, slide, b.voterId).catch(() => {});
+      fireResponse(id, slide, b.voterId, sidRef.current).catch(() => {});
       fired++;
     }
     voteQueueRef.current = [];
@@ -184,7 +188,7 @@ export default function SimPage() {
             if (votedRef.current.has(v.bot.voterId)) continue;
             votedRef.current.add(v.bot.voterId);
             if (v.willVote) {
-              fireResponse(tid, slide, v.bot.voterId).catch(() => {});
+              fireResponse(tid, slide, v.bot.voterId, sidRef.current).catch(() => {});
               bump("votes");
             }
           }
@@ -248,7 +252,7 @@ export default function SimPage() {
       const size = Math.ceil(bots.length / chunks);
       for (let i = 0; i < bots.length; i += size) {
         const slice = bots.slice(i, i + size);
-        await joinBots(id, slice);
+        await joinBots(id, slice, sidRef.current);
         botsRef.current = [...botsRef.current, ...slice];
         setJoined(botsRef.current.length);
         if (i + size < bots.length) await sleep((windowMs / chunks) * (0.5 + Math.random()));
@@ -259,11 +263,11 @@ export default function SimPage() {
   }, [id, n]);
 
   const clearAll = useCallback(async () => {
-    if (!confirm("Yeni oturum: tüm katılımcılar, oylar, tepkiler, sohbet ve sorular silinsin mi?")) return;
+    if (!confirm("Yeni oturum (taze kapsam) başlatılsın mı? Silme yapılmaz; eski veri saklı kalır, ekran sıfırdan başlar.")) return;
     setRunning(false);
     setBusy(true);
     try {
-      await resetSession(id, slides);
+      await newSession(id, { live: true }); // silmez, anında; kodu korur
       botsRef.current = [];
       voteQueueRef.current = [];
       countRef.current = { reactions: 0, votes: 0, questions: 0, messages: 0 };
@@ -272,7 +276,7 @@ export default function SimPage() {
     } finally {
       setBusy(false);
     }
-  }, [id, slides]);
+  }, [id]);
 
   if (authed === null) return <main className="min-h-screen grid place-items-center text-muted">…</main>;
   if (!authed) {
