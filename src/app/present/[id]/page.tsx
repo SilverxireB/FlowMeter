@@ -33,9 +33,9 @@ import {
 import {
   endPresentation,
   resetResponses,
-  resetSession,
   setCurrentSlide,
   setVotingClosed,
+  startNewSession,
   startQuiz,
 } from "@/lib/presentations";
 import { isScoringSlide } from "@/lib/quizScores";
@@ -478,14 +478,15 @@ export default function PresentPage() {
             onClick={async () => {
               if (
                 confirm(
-                  "Yeni oturum başlatılsın mı? Tüm cevaplar, katılımcılar ve sohbet silinir; sunum katılım ekranından yeni bir grupla baştan başlar."
+                  "Yeni oturum başlatılsın mı? YENİ bir katılım kodu oluşturulur; tüm cevaplar, katılımcılar ve sohbet silinir. Yeni bir grup yeni kodla katılır."
                 )
               ) {
-                await resetSession(id, slides);
+                const code = await startNewSession(id, slides);
+                alert(`Yeni oturum hazır. Yeni katılım kodu: ${code}`);
               }
             }}
             className="btn-ghost !py-1.5 !px-3.5 text-sm"
-            title="Aynı sunumu yeni bir grupla baştan çalıştır"
+            title="Yeni kodla taze oturum başlat (yeni grup için)"
           >
             Yeni oturum
           </button>

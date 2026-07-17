@@ -231,6 +231,26 @@ export async function resetSession(presentationId: string, slides: Slide[]): Pro
 }
 
 /**
+ * Yeni oturum + YENİ KOD: verileri temizler (resetSession) ve sunuma yepyeni
+ * bir 6 haneli katılım kodu atar (eski kod serbest bırakılır). Sunumu her yeni
+ * grupla çalıştırınca taze bir kodla başlamak için. Yeni kodu döndürür.
+ */
+export async function startNewSession(presentationId: string, slides: Slide[]): Promise<string> {
+  const ref = doc(db(), "presentations", presentationId);
+  const before = await getDoc(ref);
+  const oldCode = before.exists() ? (before.data().joinCode as string | undefined) : undefined;
+
+  await resetSession(presentationId, slides);
+
+  const newCode = await allocateJoinCode(presentationId);
+  await updateDoc(ref, { joinCode: newCode });
+  if (oldCode && oldCode !== newCode) {
+    await deleteDoc(doc(db(), "joinCodes", oldCode)).catch(() => {});
+  }
+  return newCode;
+}
+
+/**
  * Slaytları verilen id sırasına göre yeniden numaralar (film şeridi sürükle-bırak).
  */
 export async function reorderSlides(
