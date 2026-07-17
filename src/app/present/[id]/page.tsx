@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Avatar from "@/components/Avatar";
 import Icon from "@/components/Icon";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
 import ChatPanel from "@/components/present/ChatPanel";
 import Leaderboard from "@/components/present/Leaderboard";
 import LeaderboardSlide from "@/components/present/LeaderboardSlide";
+import ParticipantCloud from "@/components/present/ParticipantCloud";
 import ReactionOverlay from "@/components/present/ReactionOverlay";
 import BarChartResult from "@/components/results/BarChartResult";
 import Grid2x2Result from "@/components/results/Grid2x2Result";
@@ -35,7 +35,6 @@ import {
   resetResponses,
   setCurrentSlide,
   setVotingClosed,
-  startNewSession,
   startQuiz,
 } from "@/lib/presentations";
 import { isScoringSlide } from "@/lib/quizScores";
@@ -255,23 +254,7 @@ export default function PresentPage() {
               <p className={`text-sm mb-3 tabular-nums font-semibold ${dark ? "text-white/70" : "text-muted"}`}>
                 {participants.length} kişi katıldı
               </p>
-              <div className="flex flex-wrap gap-2 justify-center md:justify-start max-h-36 overflow-hidden">
-                {participants.slice(0, 21).map((p) => (
-                  <span key={p.id} className="chip !pl-1">
-                    {p.avatarSeed ? (
-                      <Avatar seed={p.avatarSeed} size={26} />
-                    ) : (
-                      <span aria-hidden>{p.emoji ?? "😀"}</span>
-                    )}
-                    {p.nickname}
-                  </span>
-                ))}
-                {participants.length > 21 && (
-                  <span className="text-muted text-sm px-2 py-1 font-semibold">
-                    +{participants.length - 21} kişi
-                  </span>
-                )}
-              </div>
+              <ParticipantCloud participants={participants} dark={dark} />
             </div>
           </div>
         ) : slide ? (
@@ -476,25 +459,9 @@ export default function PresentPage() {
           </button>
           <button
             onClick={async () => {
-              if (
-                confirm(
-                  "Yeni oturum başlatılsın mı? YENİ bir katılım kodu oluşturulur; tüm cevaplar, katılımcılar ve sohbet silinir. Yeni bir grup yeni kodla katılır."
-                )
-              ) {
-                const code = await startNewSession(id, slides);
-                alert(`Yeni oturum hazır. Yeni katılım kodu: ${code}`);
-              }
-            }}
-            className="btn-ghost !py-1.5 !px-3.5 text-sm"
-            title="Yeni kodla taze oturum başlat (yeni grup için)"
-          >
-            Yeni oturum
-          </button>
-          <button
-            onClick={async () => {
-              if (confirm("Sunum bitirilsin mi? İzleyiciler bekleme ekranına döner.")) {
+              if (confirm("Sunum bitirilsin mi? Cevaplar kaydedilir; izleyiciler bekleme ekranına döner.")) {
                 await endPresentation(id);
-                router.push(`/edit/${id}`);
+                router.push(`/dashboard`);
               }
             }}
             className="btn-ghost !py-1.5 !px-3.5 text-sm text-muted"

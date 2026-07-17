@@ -95,6 +95,20 @@ body {
   animation: podium-rise 0.6s cubic-bezier(0.22, 1.2, 0.36, 1) both;
 }
 
+@keyframes cloud-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+.cloud-float {
+  animation: cloud-float 5s ease-in-out infinite;
+}
+
 @layer components {
   /* Sayfa zemini: sakin, tek tonlu nötr yıkama (dikkat dağıtmayan) */
   .bg-wash {

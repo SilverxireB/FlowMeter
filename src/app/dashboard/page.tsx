@@ -256,7 +256,7 @@ export default function DashboardPage() {
                   key={p.id}
                   className={`card hover:-translate-y-0.5 transition-transform relative ${
                     view === "list" ? "flex items-stretch" : ""
-                  }`}
+                  } ${menuFor === p.id ? "z-30" : "z-0"}`}
                 >
                   {/* Gerçek 1. slayt önizlemesi (köşe yuvarlaması kartla uyumlu) */}
                   <Link
