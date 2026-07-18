@@ -157,6 +157,28 @@ moderasyon kapalıysa 'approved' — wall dokümanından okunur), update (status
 sadece owner. Dosya byte'ları Firestore'da değil Cloudinary'de → Storage rules
 yerine imzalı yükleme + Vercel API route (silme/arşiv) güvenliği.
 
+## Ana sayfa / giriş (karar taslağı)
+
+Üç yüzey ayrı tutulur: **karşılama `/wall`**, **duvar ekranı `/wall/[id]`**,
+**yükleme `/u/[id]`**.
+
+**Görsel kimlik = asıl farklılaştırıcı.** FlowMeter temiz/açık/kurumsal (indigo);
+FlowWall **etkinlik** ürünü (yılbaşı/düğün/gece) → ana sayfa **koyu, festival
+havasında**: koyu lacivert-siyah zemin, renkli halka ışıltılı aksan, arka planda
+akan foto-şerit kolajı (demo karolar). Girer girmez "ayrı ürün" hissi.
+
+**Hero = ürünün kendisi.** Ortada perdede görülecek şeyin mini canlı önizlemesi
+(akan şeritler + orta kare); üstüne "Duvara katıl · fotoğraf paylaş" + kod kutusu.
+Menti mantığı ama gösterir: "etkinliğin böyle görünecek."
+
+**Akıllı tek kod kutusu.** `joinCodes` tek havuz + `kind` → misafir kodu girer,
+sistem doğru yere yollar (deck→`/p`, wall→`/u`). QR doğru URL'yi taşıdığı için
+bağlam (düğün vs kurumsal) otomatik doğru markaya düşer.
+
+**Organizatör tek yerden.** Paylaşılan `/dashboard`'a sekme **Sunumlar | Duvarlar**;
+"+ Yeni duvar" → `walls/{id}`. Ayrı login yok (aynı Google hesabı). Mevcut `/`
+landing değişmez (kod çözümü zaten `kind`e göre yönlendirir).
+
 ## Rotalar (taslak)
 
 | Rota | İş |
