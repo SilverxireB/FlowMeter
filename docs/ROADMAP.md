@@ -114,13 +114,24 @@ geliştirmeler `9ca00db`'den geri getirildi. Ders: yazma donuyorsa önce
 Kalanlar: Audience-pace anket modu, slayt kopyala/yapıştır (Mentiler arası),
 profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 
-## ⚠️ Geçici TEST aracı — Simülasyon (kaldırılacak)
+## Faz 3.9 — Oturum arşivi + isimli katılım bulutu ✅
+
+- [x] **Geçmiş oturumlar**: izleyici yazıları (katılımcı + cevap) `sessionId` ile
+      etiketlenir; hooks/quizScores oturum filtresi geri açıldı (canlı ekranlar
+      yalnızca aktif oturumu gösterir, eski veri Firestore'da saklı).
+- [x] `newSession` biten oturumu `presentations/{id}/sessions/{sessionId}` altına
+      arşivler (startedAt/endedAt); sunum `sessionStartedAt` taşır.
+- [x] Sonuçlar sayfasında **oturum seçici** (Tüm oturumlar / Şu anki / geçmişler,
+      tarih-saat etiketli) — CSV de seçime uyar. Rules: `sessions` owner-write.
+- [x] Katılım ekranı avatar bulutunda **isim rozetleri** (avatar altında).
+
+## ⚠️ Geçici TEST aracı — Simülasyon (gerçekçi oturum)
 
 - `/dev/sim/[id]?k=<SIM_SECRET>` (src/app/dev/sim/ + src/lib/sim.ts). Gizli link,
   hiçbir yerden linklenmez, gerçek izleyici gibi anonim yazar (rules değişmez).
-- N bot + personalar (tepki canavarı / çok soran / sohbetçi / aktif / sessiz),
-  ayarlanabilir tepki & Q&A yoğunluğu, canlı yazma/sn → "tepkiler çokken" akıcılık
-  sınırını (N) bulmak için. Temizle = resetSession.
+- N bot + personalar (hevesli / meraklı / sohbetçi / aktif / sessiz), insanca
+  oranlar (dakikada birkaç yazma) + "an" dalgalı tepkiler; yoğunluk ×0–3.
+  Temizle = newSession (silmez, taze kapsam).
 - **KALDIRMAK:** `src/app/dev/` klasörünü + `src/lib/sim.ts`'i sil, ROADMAP'ten bu
   bölümü çıkar. Başka hiçbir dosya etkilenmez (düzen bozulmaz).
 

@@ -49,10 +49,16 @@ export async function submitResponse(
   slideId: string,
   value: ResponseValue
 ): Promise<void> {
+  const sessionId = getActiveSession();
   await withTimeout(
     addDoc(
       collection(db(), "presentations", presentationId, "slides", slideId, "responses"),
-      { voterId: getVoterId(), value, createdAt: serverTimestamp() }
+      {
+        voterId: getVoterId(),
+        value,
+        createdAt: serverTimestamp(),
+        ...(sessionId ? { sessionId } : {}),
+      }
     )
   );
   localStorage.setItem(votedKey(slideId), String(getVoteCount(slideId) + 1));

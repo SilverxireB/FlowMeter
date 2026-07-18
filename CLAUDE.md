@@ -80,14 +80,15 @@ Sunucu (presenter) slaytlar oluşturur, izleyiciler (audience) telefonlarından
 ```
 presentations/{id}: ownerId, title, joinCode, mode, currentSlideIndex,
                     isLive, ended, votingClosed, theme{}, createdAt
-  ├─ participants/{voterId}: nickname, avatarSeed, (eski: emoji), joinedAt
+  ├─ sessions/{sessionId}: startedAt, endedAt   [geçmiş oturum arşivi; owner-write]
+  ├─ participants/{voterId}: nickname, avatarSeed, sessionId, (eski: emoji), joinedAt
   ├─ reactions/{autoId}: emoji (❤️👍🎉), createdAt   [create-only]
   ├─ messages/{autoId}: text, voterId, nickname, createdAt
   │                      [create-only; silme sadece owner (moderasyon)]
   ├─ questions/{autoId}: text, voterId, upvotes, hidden?, createdAt
   │                      [upvote sadece +1; moderasyon owner]
   └─ slides/{slideId}: type, question, options[], order, settings{}, quizStartedAt?
-       └─ responses/{autoId}: voterId, value, createdAt
+       └─ responses/{autoId}: voterId, value, sessionId, createdAt
                               [create-only; delete sadece owner]
 joinCodes/{code}: presentationId
 ```

@@ -57,6 +57,7 @@ export default function ParticipantCloud({
         const { x, y, delay } = pos(p.id);
         const isNew = newest.has(p.id);
         const size = isNew ? base * 1.7 : base;
+        const ease = "cubic-bezier(.22,1,.36,1)";
         return (
           <span
             key={p.id}
@@ -64,17 +65,36 @@ export default function ParticipantCloud({
             style={{
               left: `${x * 100}%`,
               top: `${y * 100}%`,
-              transform: `translate(-50%, -50%) scale(${size / RENDER})`,
-              transition: "transform .6s cubic-bezier(.22,1,.36,1)",
+              transform: "translate(-50%, -50%)",
               zIndex: isNew ? 20 : 1,
             }}
           >
-            <span className="block cloud-float" style={{ animationDelay: `${delay}s` }}>
-              {p.avatarSeed ? (
-                <Avatar seed={p.avatarSeed} size={RENDER} className="ring-2 ring-white/80 shadow-md" />
-              ) : (
-                <span className="grid place-items-center rounded-full bg-white shadow-md" style={{ width: RENDER, height: RENDER, fontSize: RENDER * 0.55 }}>
-                  {p.emoji ?? "😀"}
+            <span className="flex flex-col items-center cloud-float" style={{ animationDelay: `${delay}s` }}>
+              <span
+                className="grid place-items-center"
+                style={{ width: size, height: size, transition: `width .6s ${ease}, height .6s ${ease}` }}
+              >
+                <span
+                  className="block"
+                  style={{ transform: `scale(${size / RENDER})`, transition: `transform .6s ${ease}` }}
+                >
+                  {p.avatarSeed ? (
+                    <Avatar seed={p.avatarSeed} size={RENDER} className="ring-2 ring-white/80 shadow-md" />
+                  ) : (
+                    <span className="grid place-items-center rounded-full bg-white shadow-md" style={{ width: RENDER, height: RENDER, fontSize: RENDER * 0.55 }}>
+                      {p.emoji ?? "😀"}
+                    </span>
+                  )}
+                </span>
+              </span>
+              {p.nickname && (
+                <span
+                  className={`mt-1 px-1.5 py-px rounded-full text-[10px] font-semibold leading-tight truncate ${
+                    dark ? "bg-black/35 text-white" : "bg-white/90 text-ink shadow-sm"
+                  }`}
+                  style={{ maxWidth: Math.max(52, size * 2.2) }}
+                >
+                  {p.nickname}
                 </span>
               )}
             </span>

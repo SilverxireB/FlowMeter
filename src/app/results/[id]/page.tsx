@@ -25,7 +25,21 @@ import {
   usePresentation,
   useSlides,
 } from "@/lib/hooks";
-import { SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/lib/types";
+import { listSessions } from "@/lib/presentations";
+import { SessionRecord, SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/lib/types";
+
+/** Oturum kaydını "12 Tem 14:30–15:10" biçiminde etiketler. */
+function sessionLabel(s: SessionRecord, index: number): string {
+  const start = s.startedAt?.toDate?.();
+  const end = s.endedAt?.toDate?.();
+  const anchor = start ?? end;
+  if (!anchor) return `Geçmiş oturum ${index + 1}`;
+  const date = anchor.toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
+  const t = (d?: Date) =>
+    d ? d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : "";
+  const range = [t(start), t(end)].filter(Boolean).join("–");
+  return `${date} ${range}`.trim();
+}
 
 /** Sunum sonrası sonuç inceleme: slayt slayt gezin + CSV export. */
 export default function ResultsPage() {
@@ -34,9 +48,17 @@ export default function ResultsPage() {
   const { user, loading: authLoading } = useAuthUser();
   const { presentation } = usePresentation(id);
   const { slides } = useSlides(id);
-  const participants = useParticipants(id);
+  const participants = useParticipants(id); // filtresiz: CSV'de eski oturum adları da çözülsün
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+
+  // Oturum seçici: "all" = tüm oturumlar; aksi halde bir sessionId.
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [sessionSel, setSessionSel] = useState<string>("all");
+  useEffect(() => {
+    listSessions(id).then(setSessions).catch(() => {});
+  }, [id, presentation?.sessionId]); // yeni oturum açılınca arşiv listesi tazelenir
+  const sessionFilter = sessionSel === "all" ? undefined : sessionSel;
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
@@ -49,7 +71,7 @@ export default function ResultsPage() {
   }, [slides, selectedId]);
 
   const selected = slides.find((s) => s.id === selectedId) ?? null;
-  const responses = useLiveResponses(id, selected?.id ?? null);
+  const responses = useLiveResponses(id, selected?.id ?? null, sessionFilter);
 
   /** Tüm cevapları CSV olarak indir. */
   async function exportCsv() {
@@ -68,6 +90,7 @@ export default function ResultsPage() {
         );
         snap.docs.forEach((d) => {
           const r = d.data();
+          if (sessionFilter && r.sessionId !== sessionFilter) return;
           const value = Array.isArray(r.value)
             ? r.value.join(" | ")
             : typeof r.value === "number"
@@ -115,9 +138,29 @@ export default function ResultsPage() {
           <span className="font-display font-semibold truncate min-w-0 flex-1">{presentation.title}</span>
           <span className="eyebrow shrink-0 hidden md:inline">Sonuçlar</span>
         </div>
-        <button onClick={exportCsv} disabled={exporting} className="btn-primary !py-2 !px-4 text-sm shrink-0">
-          {exporting ? "Hazırlanıyor…" : "⬇ CSV indir"}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <select
+            value={sessionSel}
+            onChange={(e) => setSessionSel(e.target.value)}
+            className="input-base !py-2 !px-3 text-sm !w-auto max-w-[13rem]"
+            title="Oturum seç"
+          >
+            <option value="all">Tüm oturumlar</option>
+            {presentation?.sessionId && (
+              <option value={presentation.sessionId}>Şu anki oturum</option>
+            )}
+            {sessions
+              .filter((s) => s.id !== presentation?.sessionId)
+              .map((s, i) => (
+                <option key={s.id} value={s.id}>
+                  {sessionLabel(s, i)}
+                </option>
+              ))}
+          </select>
+          <button onClick={exportCsv} disabled={exporting} className="btn-primary !py-2 !px-4 text-sm">
+            {exporting ? "Hazırlanıyor…" : "⬇ CSV indir"}
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 flex flex-col md:flex-row">
