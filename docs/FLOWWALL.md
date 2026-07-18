@@ -7,10 +7,16 @@
 
 ## Konsept
 
+**Bu bir SUNUM-ARASI özellik DEĞİL** — bağımsız bir **canlı etkinlik duvarı**
+ürünü. Hedef senaryo: yılbaşı, düğün, parti, kurumsal organizasyon → "anında
+çek, patlat, yayınla" + aynı anda tüm anıları topla. Etkinlik boyunca perdede
+canlı akan bir foto/video duvarı döner, katılımcılar telefonlarından anında
+katkı yapar; etkinlik sonunda sahibi tüm medyayı tek dosyada indirir.
+
 Canlı **fotoğraf/video duvarı**: perdede bir paylaşım ekranı (arka plana
-yazı/görsel eklenebilir) + QR. İzleyici QR'ı okutunca yükleme sayfasına gelir,
+yazı/görsel eklenebilir) + QR. Katılımcı QR'ı okutunca yükleme sayfasına gelir,
 fotoğraf ya da video yükler. Onay alan (veya moderasyon kapalıysa tüm) medya
-duvar ekranına düşer.
+**saniyeler içinde** duvar ekranına düşer (anında yayın hissi önemli).
 
 ### Yükleme deneyimi (izleyici)
 
@@ -67,6 +73,28 @@ Cloudinary yalnızca ağır video transcode ihtiyacı doğarsa yeniden değerlen
 
 Limitler (öneri, kesinleşmedi): görsel ≤ 10 MB (client'ta ~1600px'e sıkıştır),
 video ≤ 60 sn / ≤ 50 MB, formatlar: jpg/png/webp + mp4/webm.
+
+### Depolama kotası (Firebase Storage ücretsiz/Spark katmanı)
+
+| Kaynak | Ücretsiz limit | Not |
+|---|---|---|
+| Toplam depolama | **5 GB** | ~0.5–1 MB/foto (sıkıştırınca) → binlerce foto |
+| **Günlük indirme (egress)** | **1 GB/gün** | ⚠️ ASIL DARBOĞAZ — depolama değil |
+| Yükleme işlemi | 20.000/gün | foto = 2 işlem (thumb+asıl) |
+| İndirme işlemi | 50.000/gün | rahat |
+
+**Egress = en kritik kısıt.** Duvar ekranı bir görseli her gösterdiğinde
+indirir; büyük perdede saatlerce dönen duvarda aynı fotoğrafı tekrar indirmek
+1 GB/gün'ü hızla bitirir. **Zorunlu tasarım kuralları:**
+- Duvar ekranı her medyayı **bir kez indirip bellekte tutar** (Object URL /
+  blob cache); tekrar gösterimde yeniden indirmez → egress ~%95 düşer.
+- Film şeritlerinde **thumbnail**, orta sahnede asıl dosya.
+- Client sıkıştırma (mevcut `images.ts` deseni) hem depolama hem egress'i küçültür.
+
+Bu kurallarla ücretsiz katman bir etkinliğe fazlasıyla yeter. Yoğun/çok günlü
+kullanımda Blaze (kullandıkça öde) — aynı limitler ücretsiz, üstü kuruşla.
+⚠️ Yeni projelerde Storage'ı ilk açış Blaze (kart) isteyebilir; kullanım yine
+ücretsiz katmanda kalır. `flowmeter-938a3`'te açarken görülecek.
 
 ## Veri modeli (taslak)
 
