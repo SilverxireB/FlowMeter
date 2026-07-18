@@ -124,6 +124,8 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 - [x] Sonuçlar sayfasında **oturum seçici** (Tüm oturumlar / Şu anki / geçmişler,
       tarih-saat etiketli) — CSV de seçime uyar. Rules: `sessions` owner-write.
 - [x] Katılım ekranı avatar bulutunda **isim rozetleri** (avatar altında).
+- [x] **Q&A "cevaplandı"**: sunucu ✓ ile işaretler (geri alınabilir); sunucu
+      görünümünde ayrı "Cevaplananlar" bölümü, izleyicide ✓ rozet + upvote kapalı.
 
 ## ⚠️ Geçici TEST aracı — Simülasyon (gerçekçi oturum)
 

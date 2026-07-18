@@ -1,12 +1,13 @@
 "use client";
 
 import { useQuestions } from "@/lib/hooks";
-import { deleteQuestion, setQuestionHidden } from "@/lib/questions";
+import { deleteQuestion, setQuestionAnswered, setQuestionHidden } from "@/lib/questions";
 
-/** Q&A sunum görünümü: upvote sırasına göre sorular + moderasyon. */
+/** Q&A sunum görünümü: upvote sırasına göre sorular + moderasyon + ✓ cevaplandı. */
 export default function QnaResult({ presentationId }: { presentationId: string }) {
   const questions = useQuestions(presentationId);
-  const visible = questions.filter((q) => !q.hidden);
+  const visible = questions.filter((q) => !q.hidden && !q.answered);
+  const answered = questions.filter((q) => !q.hidden && q.answered);
   const hidden = questions.filter((q) => q.hidden);
 
   if (questions.length === 0) {
@@ -36,6 +37,13 @@ export default function QnaResult({ presentationId }: { presentationId: string }
           </p>
           <span className="flex gap-1 shrink-0">
             <button
+              onClick={() => setQuestionAnswered(presentationId, q.id, true)}
+              className="text-muted hover:text-accent text-sm px-2 py-1 cursor-pointer"
+              title="Cevaplandı olarak işaretle"
+            >
+              ✓
+            </button>
+            <button
               onClick={() => setQuestionHidden(presentationId, q.id, true)}
               className="text-muted hover:text-ink text-sm px-2 py-1 cursor-pointer"
               title="Gizle"
@@ -52,6 +60,27 @@ export default function QnaResult({ presentationId }: { presentationId: string }
           </span>
         </div>
       ))}
+      {answered.length > 0 && (
+        <div className="flex flex-col gap-2 mt-1">
+          <p className="eyebrow text-accent">✓ Cevaplananlar</p>
+          {answered.map((q) => (
+            <div key={q.id} className="flex items-start gap-4 rounded-2xl px-5 py-3 bg-paper opacity-70">
+              <span className="flex flex-col items-center shrink-0 pt-0.5 text-accent">
+                <span className="font-bold">✓</span>
+                <span className="font-display font-semibold tabular-nums text-sm">{q.upvotes}</span>
+              </span>
+              <p className="flex-1 break-words line-clamp-2">{q.text}</p>
+              <button
+                onClick={() => setQuestionAnswered(presentationId, q.id, false)}
+                className="text-muted hover:text-ink text-xs px-2 py-1 cursor-pointer shrink-0 font-semibold"
+                title="Cevaplandı işaretini geri al"
+              >
+                ↩ Geri al
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       {hidden.length > 0 && (
         <details className="text-sm text-muted">
           <summary className="cursor-pointer font-semibold">

@@ -122,6 +122,8 @@ export interface AudienceQuestion {
   voterId: string;
   upvotes: number;
   hidden?: boolean;
+  /** Sunucu "cevaplandı" olarak işaretledi (listede ayrı bölümde, soluk) */
+  answered?: boolean;
   createdAt: Timestamp | null;
 }
 
