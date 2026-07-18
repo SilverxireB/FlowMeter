@@ -137,9 +137,14 @@ export default function SimPage() {
     setStats((s) => ({ ...s, votes: countRef.current.votes }));
   }, [id]);
 
-  // Aktif slayt değişince: işaretleri sıfırla + mevcut botlar için kuyruğu kur
+  // Slaytın GÜNCEL halini her snapshot'ta taşı: quizStartedAt sunum sırasında
+  // aynı slayt id'siyle sonradan gelir; sadece id'ye bakmak quiz oylarını kilitler.
   useEffect(() => {
     slideRef.current = activeSlide ?? null;
+  }, [activeSlide]);
+
+  // Aktif slayt DEĞİŞİNCE: işaretleri sıfırla + mevcut botlar için kuyruğu kur
+  useEffect(() => {
     slideStartRef.current = Date.now();
     votedRef.current = new Set();
     voteQueueRef.current =
