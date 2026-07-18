@@ -69,18 +69,39 @@ bir "sunum tipi" ya da slayt seçeneği DEĞİL.
 Uzak gelecek (opsiyonel, düşük öncelik): FlowMeter sunumu içine "wall slaytı"
 köprüsü — ama bu FlowWall'ın kimliğini değiştirmez, sadece bir entegrasyon.
 
-## Medya depolama: Firebase Storage (Cloudinary DEĞİL — şimdilik)
+## Medya depolama: takılabilir adaptör (Firebase Storage + Cloudinary)
 
-CLAUDE.md kural 4: **dış servis yok** (kurumsal ağlar 3. parti CDN engeller;
-Cloudinary daha önce bu yüzden elendi). `firebasestorage.googleapis.com`,
-Firestore ile aynı domain ailesi → Firestore çalışan ağda Storage da çalışır.
-Storage ayrıca isteneni doğrudan karşılar:
-- `uploadBytesResumable` → **canlı % ilerleme + duraklat/devam** (istenen UX)
-- Thumbnail ayrı dosya olarak yüklenir (client-side canvas ile üretim;
-  görsel sıkıştırma için mevcut `src/lib/images.ts` deseni genişletilir)
-- İndirme URL'leri, silme, lifecycle kuralları
-Cloudinary yalnızca ağır video transcode ihtiyacı doğarsa yeniden değerlendirilir
-(o durumda da kurumsal ağ riski KABUL edilerek).
+**Karar:** Medya arka ucu tek bir **adaptör arayüzü** olarak yazılır
+(`upload(file, onProgress) → {storagePath, thumbPath, url}`, `remove()`,
+`getUrl()`). Sağlayıcı **config/env ile** seçilir — her duvar için UI seçeneği
+DEĞİL (gereksiz karmaşıklık). İki adaptör:
+
+### Neden kural 4 FlowWall'da esner
+CLAUDE.md kural 4 (**dış servis yok**) *kurumsal ağların* 3. parti CDN'leri
+engellemesi yüzündendi ve FlowMeter (kurumsal sunum) için geçerli. FlowWall
+senaryosu etkinlik (ev/mekan Wi-Fi + mobil data) → bu kısıt YOK. Yani Cloudinary
+FlowWall için meşru bir seçenek (ama FlowMeter tarafında hâlâ kullanılmaz).
+
+### Firebase Storage — P1 varsayılanı (görsel MVP)
+- `firebasestorage.googleapis.com`, Firestore ile aynı domain ailesi; tek çatı
+  (auth/rules aynı), yeni hesap yok.
+- `uploadBytesResumable` → **canlı % ilerleme + duraklat/devam**.
+- Thumbnail client-side canvas ile üretilir (mevcut `src/lib/images.ts` deseni).
+- ⚠️ Ücretsiz egress **1 GB/gün** dar → duvar ekranı bellek cache'i ZORUNLU.
+- ⚠️ **Video'da zayıf: transcode YOK** — telefon `.mov`/HEVC'si oynamayabilir,
+  dosya büyük gelir. Bu yüzden video P2'de Cloudinary tercih edilir.
+
+### Cloudinary — P2 (video-ağırlıklı etkinlik) için önerilen
+- **Otomatik video transcode** (web-uyumlu mp4 + poster kare) + görsel
+  optimizasyon (webp/avif, sunucuda thumbnail) + global CDN.
+- Ücretsiz katman ~25 kredi/ay (≈ depolama+bant paylaşımlı havuz; tek günlük
+  etkinlik patlamasında Firebase'in 1 GB/gün egress'inden rahat). *Rakamlar
+  yaklaşık — başlamadan doğrulanacak.*
+- Maliyet: ayrı hesap/API key, imzalı yükleme (upload preset), vendor lock-in.
+- Ağ riski etkinlik bağlamında kabul edilebilir; FlowMeter'a sıçramaz.
+
+Özet: P1 Firebase Storage ile başla, adaptörü baştan soyutla, video (P2)
+gelince Cloudinary'yi ikinci adaptör olarak ekle.
 
 Limitler (öneri, kesinleşmedi): görsel ≤ 10 MB (client'ta ~1600px'e sıkıştır),
 video ≤ 60 sn / ≤ 50 MB, formatlar: jpg/png/webp + mp4/webm.
@@ -164,3 +185,5 @@ Not: FlowWall kendi giriş kapısına sahip olur (kendi landing / dashboard böl
 - Moderasyon varsayılanı: açık mı kapalı mı başlasın?
 - Medya saklama süresi (otomatik silme?) ve Storage kota bütçesi?
 - Duvarda izleyici adı gösterilsin mi (yükleyen kişinin nickname'i)?
+- Medya sağlayıcı: P1 Firebase Storage kesin; P2 video için Cloudinary'ye
+  geçilsin mi yoksa Firebase'de mi kalınsın? (Cloudinary hesabı/kredi bütçesi.)
