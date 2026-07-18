@@ -16,7 +16,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { PresentationTemplate } from "./templates";
-import { Presentation, Slide, SlideType } from "./types";
+import { Presentation, SessionRecord, Slide, SlideType } from "./types";
 
 function randomJoinCode(): string {
   // 100000–999999 arası 6 haneli kod
@@ -64,6 +64,7 @@ export async function createPresentation(ownerId: string, title: string): Promis
 
     isLive: false,
     sessionId: randomSessionId(),
+    sessionStartedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
   });
   const joinCode = await allocateJoinCode(ref.id);
@@ -162,6 +163,7 @@ export async function deletePresentation(p: Presentation): Promise<void> {
   await deleteAllDocs(["presentations", p.id, "reactions"]);
   await deleteAllDocs(["presentations", p.id, "messages"]);
   await deleteAllDocs(["presentations", p.id, "questions"]);
+  await deleteAllDocs(["presentations", p.id, "sessions"]);
 
   const batch = writeBatch(db());
   slidesSnap.docs.forEach((d) => batch.delete(d.ref));
@@ -238,6 +240,7 @@ export async function resetSession(presentationId: string, slides: Slide[]): Pro
     votingClosed: false,
     // Yeni oturum kimliği → izleyici telefonları yerel oy/kimliğini sıfırlar
     sessionId: randomSessionId(),
+    sessionStartedAt: serverTimestamp(),
   });
 }
 
@@ -252,11 +255,26 @@ export async function newSession(
   opts?: { newCode?: boolean; live?: boolean }
 ): Promise<string | undefined> {
   const ref = doc(db(), "presentations", presentationId);
+  const before = await getDoc(ref);
+  const beforeData = before.exists() ? before.data() : undefined;
+
+  // Biten oturumu arşive yaz: sonuçlar sayfasındaki "Geçmiş oturumlar"
+  // seçicisi bu kayıtları listeler (veri sessionId etiketiyle saklı kalır).
+  const oldSessionId = beforeData?.sessionId as string | undefined;
+  if (oldSessionId) {
+    await setDoc(
+      doc(db(), "presentations", presentationId, "sessions", oldSessionId),
+      {
+        startedAt: beforeData?.sessionStartedAt ?? beforeData?.createdAt ?? null,
+        endedAt: serverTimestamp(),
+      },
+      { merge: true }
+    ).catch(() => {});
+  }
+
   let newCode: string | undefined;
-  let oldCode: string | undefined;
+  const oldCode = beforeData?.joinCode as string | undefined;
   if (opts?.newCode) {
-    const before = await getDoc(ref);
-    oldCode = before.exists() ? (before.data().joinCode as string | undefined) : undefined;
     newCode = await allocateJoinCode(presentationId);
   }
   const patch: Record<string, unknown> = {
@@ -265,6 +283,7 @@ export async function newSession(
     ended: false,
     votingClosed: false,
     sessionId: randomSessionId(),
+    sessionStartedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
   if (newCode) patch.joinCode = newCode;
@@ -273,6 +292,13 @@ export async function newSession(
     await deleteDoc(doc(db(), "joinCodes", oldCode)).catch(() => {});
   }
   return newCode;
+}
+
+/** Geçmiş oturum kayıtlarını (en yeni önce) getirir. */
+export async function listSessions(presentationId: string): Promise<SessionRecord[]> {
+  const snap = await getDocs(collection(db(), "presentations", presentationId, "sessions"));
+  const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SessionRecord);
+  return items.sort((a, b) => (b.endedAt?.toMillis() ?? 0) - (a.endedAt?.toMillis() ?? 0));
 }
 
 /**

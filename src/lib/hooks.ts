@@ -1,7 +1,7 @@
 "use client";
 
 import { onAuthStateChanged, User } from "firebase/auth";
-import { collection, doc, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, doc, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { auth, db, isFirebaseConfigured } from "./firebase";
 import { AudienceQuestion, ChatMessage, Participant, Presentation, ResponseDoc, Slide } from "./types";
@@ -76,9 +76,9 @@ export function useParticipants(presentationId: string | null, sessionId?: strin
 
   useEffect(() => {
     if (!presentationId || !isFirebaseConfigured()) return;
-    void sessionId; // kapsam geçici devre dışı — tüm katılımcılar (çalışan davranış)
     const col = collection(db(), "presentations", presentationId, "participants");
-    return onSnapshot(col, (snap) => {
+    const q = sessionId ? query(col, where("sessionId", "==", sessionId)) : col;
+    return onSnapshot(q, (snap) => {
       setParticipants(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Participant));
     });
   }, [presentationId, sessionId]);
@@ -142,9 +142,9 @@ export function useLiveResponses(
 
   useEffect(() => {
     if (!presentationId || !slideId || !isFirebaseConfigured()) return;
-    void sessionId; // kapsam geçici devre dışı — tüm cevaplar (çalışan davranış)
     const col = collection(db(), "presentations", presentationId, "slides", slideId, "responses");
-    return onSnapshot(col, (snap) => {
+    const q = sessionId ? query(col, where("sessionId", "==", sessionId)) : col;
+    return onSnapshot(q, (snap) => {
       setResponses(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ResponseDoc));
     });
   }, [presentationId, slideId, sessionId]);

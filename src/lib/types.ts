@@ -44,11 +44,26 @@ export interface Presentation {
    * (aynı 6 haneli kod, yeni grup → taze başlangıç).
    */
   sessionId?: string;
+  /** Aktif oturumun başlangıcı (arşivde tarih aralığı için) */
+  sessionStartedAt?: Timestamp | null;
   /** Görsel kimlik: hazır tema + arka plan görseli + logo */
   theme?: PresentationTheme;
   createdAt: Timestamp | null;
   /** Son düzenleme (dashboard sıralaması) */
   updatedAt?: Timestamp | null;
+}
+
+/**
+ * Geçmiş oturum kaydı (presentations/{id}/sessions/{sessionId}).
+ * "Yeni oturum" başlatılınca biten oturum buraya yazılır; cevap/katılımcı
+ * verileri Firestore'da sessionId etiketiyle saklı kalır ve sonuçlar
+ * sayfasındaki oturum seçiciyle geri çağrılır.
+ */
+export interface SessionRecord {
+  /** Doküman ID = oturumun sessionId'si */
+  id: string;
+  startedAt: Timestamp | null;
+  endedAt: Timestamp | null;
 }
 
 export interface SlideSettings {
@@ -107,6 +122,8 @@ export interface AudienceQuestion {
   voterId: string;
   upvotes: number;
   hidden?: boolean;
+  /** Sunucu "cevaplandı" olarak işaretledi (listede ayrı bölümde, soluk) */
+  answered?: boolean;
   createdAt: Timestamp | null;
 }
 

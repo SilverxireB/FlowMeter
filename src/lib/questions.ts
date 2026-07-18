@@ -46,6 +46,15 @@ export async function setQuestionHidden(
   await updateDoc(doc(db(), "presentations", presentationId, "questions", questionId), { hidden });
 }
 
+/** Soruyu "cevaplandı" işaretler / geri alır (sadece sahibi — rules ile korunur). */
+export async function setQuestionAnswered(
+  presentationId: string,
+  questionId: string,
+  answered: boolean
+): Promise<void> {
+  await updateDoc(doc(db(), "presentations", presentationId, "questions", questionId), { answered });
+}
+
 export async function deleteQuestion(presentationId: string, questionId: string): Promise<void> {
   await deleteDoc(doc(db(), "presentations", presentationId, "questions", questionId));
 }

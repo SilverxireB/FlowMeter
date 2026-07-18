@@ -43,30 +43,42 @@ export default function QnaVote({ presentationId }: { presentationId: string }) 
       {questions.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="eyebrow">Sorular — beğendiğini oyla</p>
-          {questions.map((q) => {
-            const upvoted = hasUpvoted(q.id);
-            return (
-              <div key={q.id} className="flex items-start gap-3 bg-white border border-line rounded-2xl px-4 py-3">
-                <button
-                  onClick={async () => {
-                    await upvoteQuestion(presentationId, q.id);
-                    setVoted((v) => v + 1);
-                  }}
-                  disabled={upvoted}
-                  aria-label="Soruyu oyla"
-                  className={`flex flex-col items-center shrink-0 rounded-xl px-2.5 py-1 cursor-pointer transition-colors ${
-                    upvoted
-                      ? "bg-accent-soft text-accent-dark"
-                      : "bg-paper hover:bg-accent-soft/60"
+          {[...questions.filter((q) => !q.answered), ...questions.filter((q) => q.answered)].map(
+            (q) => {
+              const upvoted = hasUpvoted(q.id);
+              return (
+                <div
+                  key={q.id}
+                  className={`flex items-start gap-3 bg-white border border-line rounded-2xl px-4 py-3 ${
+                    q.answered ? "opacity-70" : ""
                   }`}
                 >
-                  <span className="text-sm font-bold">▲</span>
-                  <span className="text-sm font-bold tabular-nums">{q.upvotes}</span>
-                </button>
-                <p className="flex-1 break-words pt-1">{q.text}</p>
-              </div>
-            );
-          })}
+                  <button
+                    onClick={async () => {
+                      await upvoteQuestion(presentationId, q.id);
+                      setVoted((v) => v + 1);
+                    }}
+                    disabled={upvoted || q.answered}
+                    aria-label="Soruyu oyla"
+                    className={`flex flex-col items-center shrink-0 rounded-xl px-2.5 py-1 cursor-pointer transition-colors ${
+                      upvoted || q.answered
+                        ? "bg-accent-soft text-accent-dark"
+                        : "bg-paper hover:bg-accent-soft/60"
+                    }`}
+                  >
+                    <span className="text-sm font-bold">{q.answered ? "✓" : "▲"}</span>
+                    <span className="text-sm font-bold tabular-nums">{q.upvotes}</span>
+                  </button>
+                  <div className="flex-1 min-w-0 pt-1">
+                    <p className="break-words">{q.text}</p>
+                    {q.answered && (
+                      <span className="chip !py-0.5 text-xs text-accent mt-1.5">✓ Cevaplandı</span>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+          )}
         </div>
       )}
     </div>

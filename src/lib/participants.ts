@@ -60,10 +60,14 @@ export async function joinPresentation(
   avatarSeed: string,
   sessionId?: string
 ): Promise<void> {
-  void sessionId; // (kapsam geçici olarak devre dışı — bkz. oturum modeli planı)
   await setDoc(
     doc(db(), "presentations", presentationId, "participants", getVoterId()),
-    { nickname, avatarSeed, joinedAt: serverTimestamp() },
+    {
+      nickname,
+      avatarSeed,
+      joinedAt: serverTimestamp(),
+      ...(sessionId ? { sessionId } : {}),
+    },
     { merge: true }
   );
 }
