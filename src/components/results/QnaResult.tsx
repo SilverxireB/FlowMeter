@@ -1,26 +1,47 @@
 "use client";
 
-import { useQuestions } from "@/lib/hooks";
+import { usePresentation, useQuestions } from "@/lib/hooks";
 import { deleteQuestion, setQuestionAnswered, setQuestionHidden } from "@/lib/questions";
 
 /** Q&A sunum görünümü: upvote sırasına göre sorular + moderasyon + ✓ cevaplandı. */
 export default function QnaResult({ presentationId }: { presentationId: string }) {
-  const questions = useQuestions(presentationId);
+  const { presentation } = usePresentation(presentationId);
+  const allQuestions = useQuestions(presentationId);
+  // Moderasyon açıkken onaysız sorular ekranda görünmez (onay: /moderate/<kod>)
+  const moderation = !!presentation?.qnaModeration;
+  const questions = moderation ? allQuestions.filter((q) => q.approved) : allQuestions;
+  const pendingCount = moderation
+    ? allQuestions.filter((q) => !q.approved && !q.hidden).length
+    : 0;
   const visible = questions.filter((q) => !q.hidden && !q.answered);
   const answered = questions.filter((q) => !q.hidden && q.answered);
   const hidden = questions.filter((q) => q.hidden);
 
+  const pendingBadge =
+    pendingCount > 0 ? (
+      <a
+        href={`/moderate/${presentation?.joinCode || presentationId}`}
+        target="_blank"
+        className="chip !py-1 text-xs font-semibold text-accent self-start"
+        title="Moderasyon ekranını aç"
+      >
+        🛡 {pendingCount} soru onay bekliyor →
+      </a>
+    ) : null;
+
   if (questions.length === 0) {
     return (
-      <div className="text-center py-8">
-        <p className="text-4xl mb-3 animate-pulse" aria-hidden>🙋</p>
+      <div className="text-center py-8 flex flex-col items-center gap-3">
+        <p className="text-4xl animate-pulse" aria-hidden>🙋</p>
         <p className="text-muted text-lg">Sorular bekleniyor…</p>
+        {pendingBadge}
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-3 max-h-[26rem] overflow-y-auto pr-1">
+      {pendingBadge}
       {visible.map((q, i) => (
         <div
           key={q.id}

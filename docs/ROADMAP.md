@@ -130,6 +130,9 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
       reddi + aktif oturum (sessionId) eşleşmesi + quiz süre penceresi
       (request.time, +1.5 sn tolerans) — istemci saati/kurcalama aşamaz.
       Quiz vote sayfalarında gönderim anı süre kontrolü.
+- [x] **Q&A moderasyon**: `qnaModeration` açıkken sorular önce `/moderate/[kod]`
+      ekranında onay bekler (✓ Onayla / ✕ Reddet / ↩ geri al; sadece sahip).
+      Present'te "N soru onay bekliyor →" rozeti; izleyicide bilgi notu.
 
 ## ⚠️ Geçici TEST aracı — Simülasyon (gerçekçi oturum)
 

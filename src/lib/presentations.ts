@@ -145,6 +145,11 @@ export async function setChatEnabled(id: string, enabled: boolean): Promise<void
   await updateDoc(doc(db(), "presentations", id), { chatEnabled: enabled });
 }
 
+/** Q&A moderasyonunu aç/kapat (açıkken sorular /moderate onayı bekler). */
+export async function setQnaModeration(id: string, enabled: boolean): Promise<void> {
+  await updateDoc(doc(db(), "presentations", id), { qnaModeration: enabled });
+}
+
 /** Son düzenleme zamanını günceller (dashboard "son düzenlenen" sıralaması). */
 async function touchPresentation(id: string): Promise<void> {
   await updateDoc(doc(db(), "presentations", id), { updatedAt: serverTimestamp() }).catch(() => {});

@@ -1,12 +1,17 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useQuestions } from "@/lib/hooks";
+import { usePresentation, useQuestions } from "@/lib/hooks";
 import { hasUpvoted, submitQuestion, upvoteQuestion } from "@/lib/questions";
 
 /** Q&A izleyici: soru gönder + diğer soruları upvote et. */
 export default function QnaVote({ presentationId }: { presentationId: string }) {
-  const questions = useQuestions(presentationId).filter((q) => !q.hidden);
+  const { presentation } = usePresentation(presentationId);
+  // Moderasyon açıkken sadece onaylı sorular listelenir
+  const moderation = !!presentation?.qnaModeration;
+  const questions = useQuestions(presentationId).filter(
+    (q) => !q.hidden && (!moderation || q.approved)
+  );
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [voted, setVoted] = useState(0); // upvote sonrası yeniden çizim için
@@ -38,6 +43,11 @@ export default function QnaVote({ presentationId }: { presentationId: string }) 
         <button type="submit" disabled={!text.trim() || sending} className="btn-accent py-3">
           {sending ? "Gönderiliyor…" : "Soruyu gönder"}
         </button>
+        {moderation && (
+          <p className="text-muted text-xs text-center">
+            🛡 Sorular moderatör onayından sonra listede görünür.
+          </p>
+        )}
       </form>
 
       {questions.length > 0 && (

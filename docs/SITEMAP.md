@@ -19,6 +19,7 @@
 | `/edit/[id]` | Menti tarzı editör: ortada canlı önizleme, yüzen araç çubuğu (✏️ ➕ 🎨 ⋯), altta yatay film şeridi, bottom-sheet paneller, otomatik kayıt. ⋯ menü: taşı/çoğalt/🚫 atla/cevapları temizle/sil. ⚙ menü: önizle, sonuçlar, 💬 sohbet aç/kapat |
 | `/present/[id]` | Sunum: -1 = büyük QR katılım ekranı; slaytlarda mini QR + kalıcı "katıl" pili + "X/Y yanıtladı"; tepki uçuşları+sayaç; kontroller (oylama aç/kapat, sıfırla, 🙈 gizle, ⛶, 🏆 podyum, 💬 sohbet, Bitir); atlanan slaytları geçer; quiz müziği 🎵 |
 | `/results/[id]` | Sonuç inceleme + ⬇ CSV export + oturum seçici (Tüm/Şu anki/geçmiş oturumlar) |
+| `/moderate/[code]` | Q&A moderasyon ekranı (kod veya id; sadece sahip): bekleyenler ✓ Onayla / ✕ Reddet, onay geri alma, moderasyon aç/kapat |
 
 ## 2. Dosya Haritası
 

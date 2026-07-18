@@ -46,6 +46,15 @@ export async function setQuestionHidden(
   await updateDoc(doc(db(), "presentations", presentationId, "questions", questionId), { hidden });
 }
 
+/** Moderasyon onayı verir / geri alır (sadece sahibi — rules ile korunur). */
+export async function setQuestionApproved(
+  presentationId: string,
+  questionId: string,
+  approved: boolean
+): Promise<void> {
+  await updateDoc(doc(db(), "presentations", presentationId, "questions", questionId), { approved });
+}
+
 /** Soruyu "cevaplandı" işaretler / geri alır (sadece sahibi — rules ile korunur). */
 export async function setQuestionAnswered(
   presentationId: string,

@@ -36,6 +36,8 @@ export interface Presentation {
   ended?: boolean;
   /** Canlı sohbet (izleyici mesajları) açık mı */
   chatEnabled?: boolean;
+  /** Q&A moderasyonu: açıkken sorular önce /moderate ekranında onay bekler */
+  qnaModeration?: boolean;
   /** Dashboard klasörü (boş = klasörsüz) */
   folder?: string;
   /**
@@ -124,6 +126,8 @@ export interface AudienceQuestion {
   hidden?: boolean;
   /** Sunucu "cevaplandı" olarak işaretledi (listede ayrı bölümde, soluk) */
   answered?: boolean;
+  /** Moderasyon onayı (qnaModeration açıkken onaysızlar herkese görünmez) */
+  approved?: boolean;
   createdAt: Timestamp | null;
 }
 
