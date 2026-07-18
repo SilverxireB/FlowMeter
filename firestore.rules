@@ -88,11 +88,38 @@ service cloud.firestore {
 
         // Oylar: herkes ekleyebilir (anonim izleyici), ama asla
         // değiştirilemez/silinemez — sadece create.
+        // SUNUCU TARAFI KAPILAR (istemci saati/kurcalama aşamaz):
+        //  - sunum bitmişse / oylama kapalıysa oy YOK
+        //  - oy, sunumun AKTİF oturumuna ait olmalı (eski oturum telefonu yazamaz)
+        //  - quiz/quiz-type: geri sayım başlamamışsa ya da süre dolmuşsa oy YOK
+        //    (+1.5 sn ağ gecikmesi toleransı)
         match /responses/{responseId} {
+          function pres() {
+            return get(/databases/$(database)/documents/presentations/$(presentationId)).data;
+          }
+          function slideData() {
+            return get(/databases/$(database)/documents/presentations/$(presentationId)/slides/$(slideId)).data;
+          }
+          function sessionOk() {
+            return !('sessionId' in pres())
+              || request.resource.data.get('sessionId', '') == pres().sessionId;
+          }
+          function quizWindowOpen() {
+            let s = slideData();
+            return !(s.type in ['quiz', 'quiz-type'])
+              || (s.get('quizStartedAt', null) != null
+                  && request.time.toMillis() < s.quizStartedAt.toMillis()
+                     + s.get('settings', {}).get('timeLimit', s.type == 'quiz' ? 20 : 30) * 1000
+                     + 1500);
+          }
           allow read: if true;
           allow create: if request.resource.data.keys()
               .hasOnly(['voterId', 'value', 'createdAt', 'sessionId'])
-            && request.resource.data.voterId is string;
+            && request.resource.data.voterId is string
+            && pres().get('ended', false) != true
+            && pres().get('votingClosed', false) != true
+            && sessionOk()
+            && quizWindowOpen();
           allow update: if false;
           // Sadece sunum sahibi silebilir ("cevapları sıfırla")
           allow delete: if request.auth != null

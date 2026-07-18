@@ -55,6 +55,8 @@ export default function QuizTypeVote({
     e.preventDefault();
     const clean = text.trim().slice(0, 60);
     if (!clean || sending) return;
+    // Gönderim anında süre bitmiş olabilir — gönderme (asıl kilit rules'ta).
+    if (Date.now() >= startedMs! + timeLimit * 1000) return;
     setSending(true);
     try {
       const answer = [clean, Date.now() - startedMs!];

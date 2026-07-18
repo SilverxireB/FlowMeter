@@ -126,6 +126,10 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 - [x] Katılım ekranı avatar bulutunda **isim rozetleri** (avatar altında).
 - [x] **Q&A "cevaplandı"**: sunucu ✓ ile işaretler (geri alınabilir); sunucu
       görünümünde ayrı "Cevaplananlar" bölümü, izleyicide ✓ rozet + upvote kapalı.
+- [x] **Sunucu tarafı oy kapıları (rules)**: oy create'te ended/votingClosed
+      reddi + aktif oturum (sessionId) eşleşmesi + quiz süre penceresi
+      (request.time, +1.5 sn tolerans) — istemci saati/kurcalama aşamaz.
+      Quiz vote sayfalarında gönderim anı süre kontrolü.
 
 ## ⚠️ Geçici TEST aracı — Simülasyon (gerçekçi oturum)
 

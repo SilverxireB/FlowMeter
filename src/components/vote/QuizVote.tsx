@@ -51,6 +51,9 @@ export default function QuizVote({
 
   async function pick(i: number) {
     if (sending) return;
+    // Dokunma anında süre bitmiş olabilir (son sn yarışı) — gönderme.
+    // Asıl kilit sunucuda: firestore.rules süresi dolan quize oy kabul etmez.
+    if (Date.now() >= startedMs! + timeLimit * 1000) return;
     setSending(true);
     try {
       const answer = [i, Date.now() - startedMs!];
