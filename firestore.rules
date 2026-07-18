@@ -129,7 +129,36 @@ service cloud.firestore {
       }
     }
 
-    // Join kodu -> sunum ID lookup tablosu.
+    // ── FlowWall: canlı etkinlik foto/video duvarı ──────────────────────────
+    // Duvar: herkes okur (perde + misafir), sadece sahibi yazar.
+    match /walls/{wallId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && resource.data.ownerId == request.auth.uid;
+
+      // Medya: misafir (anonim) ekler; byte'lar Cloudinary'de, burada metadata.
+      // Moderasyon açıkken status 'pending' olmak ZORUNDA (kendi kendini onaylayamaz).
+      match /media/{mediaId} {
+        function wall() {
+          return get(/databases/$(database)/documents/walls/$(wallId)).data;
+        }
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(
+              ['voterId','nickname','type','cloudinaryId','url','w','h','durationMs','status','sessionId','createdAt'])
+          && request.resource.data.voterId is string
+          && request.resource.data.type in ['image','video']
+          && request.resource.data.url is string
+          && request.resource.data.status ==
+             (wall().get('moderation', false) == true ? 'pending' : 'approved');
+        // moderasyon (onayla/reddet/sil) sadece sahibinde
+        allow update, delete: if request.auth != null
+          && wall().ownerId == request.auth.uid;
+      }
+    }
+
+    // Join kodu -> sunum/duvar lookup tablosu ({presentationId} veya {id,kind:"wall"}).
     match /joinCodes/{code} {
       allow read: if true;
       allow create, delete: if request.auth != null;

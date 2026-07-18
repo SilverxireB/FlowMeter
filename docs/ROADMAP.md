@@ -114,11 +114,22 @@ geliştirmeler `9ca00db`'den geri getirildi. Ders: yazma donuyorsa önce
 Kalanlar: Audience-pace anket modu, slayt kopyala/yapıştır (Mentiler arası),
 profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 
-## FlowWall (planlanıyor — `docs/FLOWWALL.md`)
+## FlowWall — P1 iskeleti ✅ (`docs/FLOWWALL.md`)
 
-- [x] **Logo**: FlowWall marka kilidi — O halkası orijinalden birebir korundu,
-      içine fotoğraf makinesi glifi. `logo-flowwall(-white).png` + `Logo.tsx`
-      `variant="wall"`. (Ürün henüz yapılmadı; sadece marka varlığı hazır.)
+- [x] **Logo**: O halkası birebir korunarak fotoğraf makinesi glifi;
+      `logo-flowwall(-white).png` + `Logo.tsx` `variant="wall"`.
+- [x] **Model + kod**: `walls/{id}` koleksiyonu, `walls.ts` (CRUD, resolveCode
+      deck|wall tek havuz), `useWall`/`useWallMedia` hooks, `WallMedia` tipi.
+- [x] **Medya**: `cloudinary.ts` imzasız yükleme (canlı %), thumb/fit/poster
+      transformları. `.env.example`'a Cloudinary anahtarları.
+- [x] **Sayfalar**: `/wall` karşılama (koyu/festival), `/wall/[id]` perde
+      (akan şeritler + orta sahne + QR), `/u/[id]` yükleme (önizleme+ilerleme),
+      `/wall/[id]/manage` (moderasyon toggle, onayla/reddet, başlık).
+- [x] **Dashboard**: Sunumlar | Duvarlar sekmesi + "Yeni duvar".
+- [x] **Rules**: `walls` + `media` (moderasyon açıkken create status=pending zorunlu).
+- [ ] Cloudinary hesabı/env (kullanıcı) + rules konsola yapıştır.
+- [ ] Fast-follow: Cloudinary silme + "tümünü indir" ZIP (Vercel API route),
+      FlowWall PWA ikonları, imzalı yükleme.
 
 ## Faz 3.9 — Oturum arşivi + isimli katılım bulutu ✅
 

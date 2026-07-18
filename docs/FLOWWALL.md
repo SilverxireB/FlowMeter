@@ -1,4 +1,17 @@
-# FlowWall — Plan (HENÜZ YAPILMADI — sadece plan)
+# FlowWall — P1 İSKELETİ YAPILDI (Cloudinary env'i bekliyor)
+
+> **Durum (P1 kuruldu):** `walls/{id}` modeli + kod çözümü (walls.ts),
+> Cloudinary imzasız yükleme (cloudinary.ts), hooks (useWall/useWallMedia),
+> rules (walls + media), sayfalar: `/wall` (karşılama), `/wall/[id]` (perde),
+> `/u/[id]` (yükleme), `/wall/[id]/manage` (moderasyon), dashboard "Duvarlar"
+> sekmesi + "Yeni duvar". Logo `variant="wall"`.
+> **ÇALIŞMASI için gereken:** Cloudinary hesabı + unsigned upload preset →
+> `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` + `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`
+> Vercel'e eklenmeli. Firestore rules'un yeni hâli konsola yapıştırılmalı.
+> **TODO (fast-follow):** Cloudinary dosya silme + "tümünü indir" (ZIP) için
+> Vercel API route; FlowWall PWA ikonları; imzalı yükleme (opsiyonel sertleştirme).
+
+
 
 > Kullanıcının fikri (2026-07-18 oturumunda anlatıldı). Yeni bir session bu
 > dosyayı okuyarak projeyi baştan anlatmaya gerek kalmadan devam edebilmeli.

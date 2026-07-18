@@ -17,10 +17,11 @@ import {
   renamePresentation,
   setPresentationFolder,
 } from "@/lib/presentations";
+import { createWall, deleteWall, listWalls } from "@/lib/walls";
 import { TEMPLATES } from "@/lib/templates";
 import { themeStyle } from "@/lib/themes";
 import { withTimeout } from "@/lib/withTimeout";
-import { Presentation, Slide } from "@/lib/types";
+import { Presentation, Slide, Wall } from "@/lib/types";
 
 /** Kart önizlemesi — sunumun gerçek 1. slaytını render eder (yoksa başlık). */
 function CardThumb({ presentation, view }: { presentation: Presentation; view: "grid" | "list" }) {
@@ -71,10 +72,49 @@ export default function DashboardPage() {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [flash, setFlash] = useState<{ msg: string; err?: boolean } | null>(null);
+  // Ürün sekmesi: sunumlar (FlowMeter) | duvarlar (FlowWall)
+  const [product, setProduct] = useState<"decks" | "walls">("decks");
+  const [walls, setWalls] = useState<Wall[]>([]);
+  const [wallTitle, setWallTitle] = useState("");
 
   const refresh = useCallback(async () => {
     if (user) setItems(await listPresentations(user.uid));
   }, [user]);
+
+  const refreshWalls = useCallback(async () => {
+    if (user) setWalls(await listWalls(user.uid));
+  }, [user]);
+
+  useEffect(() => {
+    if (product === "walls") refreshWalls();
+  }, [product, refreshWalls]);
+
+  async function createWallHandler(e: FormEvent) {
+    e.preventDefault();
+    if (!user || !wallTitle.trim() || busy) return;
+    setBusy(true);
+    setFlash(null);
+    try {
+      const wid = await withTimeout(createWall(user.uid, wallTitle.trim()));
+      router.push(`/wall/${wid}/manage`);
+    } catch (err) {
+      setFlash({ msg: err instanceof Error ? err.message : "Duvar oluşturulamadı, tekrar dene.", err: true });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeWall(w: Wall) {
+    if (!confirm(`"${w.title}" duvarı ve tüm medyası silinsin mi? Bu işlem geri alınamaz.`)) return;
+    setFlash({ msg: `"${w.title}" siliniyor…` });
+    try {
+      await deleteWall(w);
+      setFlash(null);
+      refreshWalls();
+    } catch (err) {
+      setFlash({ msg: err instanceof Error ? err.message : "Silme başarısız, tekrar dene.", err: true });
+    }
+  }
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -210,7 +250,21 @@ export default function DashboardPage() {
 
       <section className="max-w-4xl mx-auto px-4 py-10">
         <p className="eyebrow mb-2">Sunucu paneli</p>
-        <h1 className="font-display text-3xl font-semibold tracking-tight mb-6">Sunumlarım</h1>
+        {/* Ürün sekmeleri: FlowMeter sunumları | FlowWall duvarları */}
+        <div className="inline-flex rounded-full border border-line bg-white p-1 mb-6">
+          <button
+            onClick={() => setProduct("decks")}
+            className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${product === "decks" ? "bg-ink text-white" : "text-muted hover:text-ink"}`}
+          >
+            🎤 Sunumlar
+          </button>
+          <button
+            onClick={() => setProduct("walls")}
+            className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${product === "walls" ? "bg-ink text-white" : "text-muted hover:text-ink"}`}
+          >
+            📷 Duvarlar
+          </button>
+        </div>
 
         {flash && (
           <div
@@ -222,6 +276,64 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {product === "walls" && (
+          <div>
+            <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">Duvarlarım</h1>
+            <p className="text-muted text-sm mb-6">
+              FlowWall — etkinlik canlı foto/video duvarı. Duvar oluştur, perdeyi aç, misafirler QR ile katılıp fotoğraf paylaşsın.
+            </p>
+            <form onSubmit={createWallHandler} className="card p-2 flex gap-2 mb-4">
+              <input
+                value={wallTitle}
+                onChange={(e) => setWallTitle(e.target.value)}
+                placeholder="Yeni duvar adı… (ör. Yılbaşı 2027)"
+                className="flex-1 bg-transparent px-4 py-3 focus:outline-none font-semibold placeholder:font-normal min-w-0"
+              />
+              <button type="submit" disabled={!wallTitle.trim() || busy} className="btn-primary px-6">
+                + Yeni duvar
+              </button>
+            </form>
+
+            {walls.length === 0 ? (
+              <div className="text-center py-16">
+                <p className="text-5xl mb-4" aria-hidden>📷</p>
+                <p className="text-muted">Henüz duvarın yok. Yukarıdan ilkini oluştur!</p>
+              </div>
+            ) : (
+              <ul className="grid gap-4 sm:grid-cols-2">
+                {walls.map((w) => (
+                  <li key={w.id} className="card p-4 flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-display font-semibold truncate">{w.title}</p>
+                        <p className="text-muted text-sm mt-0.5">
+                          Kod: <span className="font-display font-semibold tracking-[0.15em] text-accent">{w.joinCode || "—"}</span>
+                          {w.moderation && <span className="ml-2 text-xs">🛡 moderasyon</span>}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => removeWall(w)}
+                        className="btn-ghost !p-0 w-9 h-9 text-brand shrink-0"
+                        title="Duvarı sil"
+                        aria-label="Duvarı sil"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <a href={`/wall/${w.id}`} target="_blank" className="btn-primary !py-2 !px-4 text-sm">▶ Perde ↗</a>
+                      <Link href={`/wall/${w.id}/manage`} className="btn-ghost !py-2 !px-4 text-sm">Yönet</Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {product === "decks" && (
+        <>
+        <h1 className="font-display text-3xl font-semibold tracking-tight mb-6">Sunumlarım</h1>
         <form onSubmit={create} className="card p-2 flex gap-2 mb-3">
           <input
             value={title}
@@ -383,6 +495,8 @@ export default function DashboardPage() {
               );
             })}
           </ul>
+        )}
+        </>
         )}
       </section>
 

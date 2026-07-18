@@ -90,7 +90,13 @@ presentations/{id}: ownerId, title, joinCode, mode, currentSlideIndex,
   └─ slides/{slideId}: type, question, options[], order, settings{}, quizStartedAt?
        └─ responses/{autoId}: voterId, value, sessionId, createdAt
                               [create-only; delete sadece owner]
-joinCodes/{code}: presentationId
+joinCodes/{code}: presentationId   VEYA {id, kind:"wall"} (FlowWall duvarı)
+
+walls/{id}: ownerId, title, joinCode, moderation, headline, sessionId, createdAt
+  └─ media/{autoId}: voterId, nickname?, type(image|video), cloudinaryId, url,
+                     w, h, durationMs?, status(pending|approved|rejected),
+                     sessionId, createdAt   [create-only; moderasyon owner]
+       [byte'lar Cloudinary'de; bu doküman sadece metadata]
 ```
 
 ## Komutlar & Deploy

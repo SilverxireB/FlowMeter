@@ -4,7 +4,8 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, doc, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { auth, db, isFirebaseConfigured } from "./firebase";
-import { AudienceQuestion, ChatMessage, Participant, Presentation, ResponseDoc, Slide } from "./types";
+import { AudienceQuestion, ChatMessage, Participant, Presentation, ResponseDoc, Slide, Wall, WallMedia } from "./types";
+import { watchWall, watchWallMedia } from "./walls";
 
 /** Presenter oturumu. loading=true iken yönlendirme yapma. */
 export function useAuthUser() {
@@ -150,4 +151,33 @@ export function useLiveResponses(
   }, [presentationId, slideId, sessionId]);
 
   return responses;
+}
+
+// ── FlowWall ─────────────────────────────────────────────────────────────────
+
+/** Duvar dokümanını canlı dinler. */
+export function useWall(id: string | null) {
+  const [wall, setWall] = useState<Wall | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!id || !isFirebaseConfigured()) {
+      setLoading(false);
+      return;
+    }
+    return watchWall(id, (w) => {
+      setWall(w);
+      setLoading(false);
+    });
+  }, [id]);
+  return { wall, loading };
+}
+
+/** Duvar medyasını canlı dinler (zaman sırasına göre). */
+export function useWallMedia(id: string | null) {
+  const [media, setMedia] = useState<WallMedia[]>([]);
+  useEffect(() => {
+    if (!id || !isFirebaseConfigured()) return;
+    return watchWallMedia(id, setMedia);
+  }, [id]);
+  return media;
 }

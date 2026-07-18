@@ -68,6 +68,42 @@ export interface SessionRecord {
   endedAt: Timestamp | null;
 }
 
+// ── FlowWall (canlı etkinlik foto/video duvarı) ──────────────────────────────
+
+/** Bir FlowWall duvarı (walls/{id}). FlowMeter sunumlarından bağımsız koleksiyon. */
+export interface Wall {
+  id: string;
+  ownerId: string;
+  title: string;
+  joinCode: string;
+  /** Açıkken yüklenen medya önce onay bekler (status=pending) */
+  moderation?: boolean;
+  /** Perde arka planı üst yazısı (opsiyonel) */
+  headline?: string;
+  sessionId?: string;
+  sessionStartedAt?: Timestamp | null;
+  createdAt: Timestamp | null;
+  updatedAt?: Timestamp | null;
+}
+
+/** Duvara yüklenen medya (walls/{id}/media/{autoId}). Byte'lar Cloudinary'de. */
+export interface WallMedia {
+  id: string;
+  voterId: string;
+  nickname?: string;
+  type: "image" | "video";
+  /** Cloudinary public_id (silme/dönüşüm için) */
+  cloudinaryId: string;
+  /** Cloudinary secure_url (asıl dosya) */
+  url: string;
+  w?: number;
+  h?: number;
+  durationMs?: number;
+  status: "pending" | "approved" | "rejected";
+  sessionId?: string;
+  createdAt: Timestamp | null;
+}
+
 export interface SlideSettings {
   /** word-cloud / open-ended: kişi başı kaç cevap gönderilebilir */
   maxEntries?: number;
