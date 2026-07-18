@@ -107,3 +107,8 @@ Firebase projesi: `flowmeter-938a3`. Rules değişince tam halini kullanıcıya 
 Tamamlanan/kalan her şey: `docs/ROADMAP.md`. Kısaca kalanlar: Guess the Number,
 audience-pace anket modu, şablon galerisi, profanity filtresi, slayta görsel
 ekleme, editör canlı önizleme/otomatik kayıt, Cloud Function temizlik, i18n.
+
+**FlowWall** (canlı fotoğraf/video duvarı — henüz YAPILMADI, planı hazır):
+`docs/FLOWWALL.md`. Karar: ayrı uygulama değil, bu altyapı üzerine ikinci marka
+(mode="wall"). Medya: Firebase Storage (Cloudinary değil — kural 4). Kullanıcı
+"FlowWall'a başla" dediğinde önce o dosyayı oku.
