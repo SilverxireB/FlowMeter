@@ -46,17 +46,28 @@ fotoğraf ya da video yükler. Onay alan (veya moderasyon kapalıysa tüm) medya
 - Sahibi medyayı topluca **silebilir** (Storage + Firestore temizliği).
 - Oturum arşivi (sessions/) FlowMeter'daki gibi çalışır.
 
-## Mimari karar: neden aynı çatı?
+## Mimari karar: tek yer, ayrı ürün
 
-FlowMeter'da hazır olan ve aynen kullanılacaklar:
+**Net karar (kullanıcı onayı):** Aynı repo/deployment/Firebase projesi, AMA
+FlowWall kullanıcının gözünde **ayrı bir uygulama gibi** durur — FlowMeter'ın
+bir "sunum tipi" ya da slayt seçeneği DEĞİL.
+
+**Ortak (perde arkası) — aynen kullanılır:**
 - QR + 6 haneli kod (`joinCodes`), katılım akışı
-- `/moderate` moderasyon sayfası (medya sekmesi eklenecek)
-- `sessionId` + `sessions/` oturum arşivi deseni
-- `onSnapshot` canlı altyapı, Firebase Auth, rules desenleri
+- `sessions/` oturum arşivi deseni, `onSnapshot` canlı altyapı
+- Firebase Auth, rules desenleri
+- `/moderate` sayfası (Medya sekmesi eklenir)
 - Tasarım sistemi (Tailwind bileşen sınıfları), Vercel deploy hattı
 
-Gelecek sinerji: FlowMeter sunumu İÇİNE **"wall" slayt tipi** (sunum ortasında
-"fotoğraf atın" ekranı) — ayrı uygulamada bu imkânsız olurdu.
+**Ayrı (kullanıcı yüzü) — kendi ürünü gibi:**
+- Kendi giriş kapısı / landing, kendi marka (FlowWall logosu)
+- Kendi oluşturma akışı: **"Yeni duvar"** (asla "yeni sunum → tip: wall" değil)
+- FlowMeter slayt editörüne / deck mantığına hiç dokunmaz
+- **Ayrı Firestore koleksiyonu `walls/{id}`** (presentations'a `mode=wall`
+  GÖMÜLMEZ) → deck sorguları temiz kalır, FlowWall kendi domain'i olur.
+
+Uzak gelecek (opsiyonel, düşük öncelik): FlowMeter sunumu içine "wall slaytı"
+köprüsü — ama bu FlowWall'ın kimliğini değiştirmez, sadece bir entegrasyon.
 
 ## Medya depolama: Firebase Storage (Cloudinary DEĞİL — şimdilik)
 
@@ -96,20 +107,27 @@ kullanımda Blaze (kullandıkça öde) — aynı limitler ücretsiz, üstü kuru
 ⚠️ Yeni projelerde Storage'ı ilk açış Blaze (kart) isteyebilir; kullanım yine
 ücretsiz katmanda kalır. `flowmeter-938a3`'te açarken görülecek.
 
-## Veri modeli (taslak)
+## Veri modeli (taslak) — AYRI koleksiyon
 
 ```
-presentations/{id}: mode = "wall" (mevcut mode alanı; FlowMeter deck'lerinden ayrışır)
-                    + wallModeration, theme{}, joinCode, sessionId … (mevcut alanlar)
-  └─ media/{autoId}: voterId, type (image|video), storagePath, thumbPath,
-                     status (pending|approved|rejected), w, h, durationMs?,
-                     sessionId, createdAt        [create-only; moderasyon owner]
-Storage: walls/{presentationId}/{sessionId}/{mediaId}/original.<ext>
-         walls/{presentationId}/{sessionId}/{mediaId}/thumb.jpg
+walls/{id}: ownerId, title, joinCode, moderation, theme{}, sessionId,
+            sessionStartedAt, createdAt        [presentations'tan bağımsız]
+  ├─ sessions/{sessionId}: startedAt, endedAt  [FlowMeter ile aynı desen]
+  └─ media/{autoId}: voterId, nickname?, type (image|video), storagePath,
+                     thumbPath, status (pending|approved|rejected), w, h,
+                     durationMs?, sessionId, createdAt   [create-only; moderasyon owner]
+joinCodes/{code}: { wallId }   VEYA ortak lookup'a "kind" alanı
+                  (kod çakışmasın diye FlowMeter ile tek havuz önerilir)
+Storage: walls/{wallId}/{sessionId}/{mediaId}/original.<ext>
+         walls/{wallId}/{sessionId}/{mediaId}/thumb.jpg
 ```
+
+Not: `joinCodes` tek havuz kalırsa (FlowMeter + FlowWall aynı 6 haneli uzayı
+paylaşır) kod çakışması olmaz; lookup dokümanına `kind: "wall"|"deck"` eklenir,
+resolve eden taraf doğru koleksiyona gider.
 
 Rules (taslak): media create herkese (alan whitelist + status='pending' veya
-moderasyon kapalıysa 'approved' — sunum dokümanından okunur), update (status)
+moderasyon kapalıysa 'approved' — wall dokümanından okunur), update (status)
 sadece owner; Storage rules: boyut/content-type sınırı, silme sadece owner.
 
 ## Rotalar (taslak)
@@ -117,10 +135,13 @@ sadece owner; Storage rules: boyut/content-type sınırı, silme sadece owner.
 | Rota | İş |
 |---|---|
 | `/wall/[id]` | Perde ekranı (film şeritleri + orta sahne + QR köşede) |
-| `/w/[code]` veya mevcut `/join/[code]` | kod → yükleme sayfasına yönlendirme |
-| `/u/[id]` | İzleyici yükleme sayfası (thumb önizleme + % ilerleme + gönder) |
-| `/moderate/[code]` | Mevcut sayfa, sekmeli: Sorular \| Medya |
-| Dashboard | "Yeni FlowWall" kartı (mode="wall" sunum oluşturur) |
+| `/w/[code]` | kod → yükleme sayfasına yönlendirme (FlowWall kendi kısa yolu) |
+| `/u/[id]` | Katılımcı yükleme sayfası (thumb önizleme + % ilerleme + gönder) |
+| `/moderate/[code]` | Mevcut sayfa, sekmeli: Sorular \| Medya (kod kind'e göre) |
+| Dashboard | Ayrı **"Yeni duvar"** akışı — `walls/{id}` oluşturur (deck değil) |
+
+Not: FlowWall kendi giriş kapısına sahip olur (kendi landing / dashboard bölümü).
+"Yeni sunum" akışına bir dropdown olarak GİRMEZ.
 
 ## Marka
 
