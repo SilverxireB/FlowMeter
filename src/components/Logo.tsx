@@ -8,27 +8,38 @@ const SIZES = {
   lg: { img: "h-10", fontSize: 46 },
 } as const;
 
+const VARIANTS = {
+  meter: { img: "/logo-flow.png", imgDark: "/logo-flow-white.png", word: "METER", full: "FLOWMETER" },
+  wall: { img: "/logo-flowwall.png", imgDark: "/logo-flowwall-white.png", word: "WALL", full: "FLOWWALL" },
+} as const;
+
 /**
  * Marka logosu: FLOW görseli (renkli O halkası, harfler Beko lacisi) +
- * yanında benzer puntoda "METER" yazısı. Logo asla deforme edilmez
- * (yükseklik sabit, genişlik otomatik). Koyu zeminde beyaz sürüm kullanılır.
+ * yanında benzer puntoda ikinci kelime. `variant`:
+ *  - "meter" (varsayılan): O içinde bar-chart + "METER" → FlowMeter
+ *  - "wall": AYNI O halkası, içinde fotoğraf makinesi + "WALL" → FlowWall
+ * Logo asla deforme edilmez (yükseklik sabit, genişlik otomatik).
+ * Koyu zeminde beyaz sürüm kullanılır.
  */
 export default function Logo({
   size = "md",
   onDark = false,
+  variant = "meter",
 }: {
   size?: "sm" | "md" | "lg";
   onDark?: boolean;
+  variant?: "meter" | "wall";
 }) {
   const [imgOk, setImgOk] = useState(true);
   const { img, fontSize } = SIZES[size];
+  const v = VARIANTS[variant];
 
   return (
     <span className="inline-flex items-center">
       {imgOk && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={onDark ? "/logo-flow-white.png" : "/logo-flow.png"}
+          src={onDark ? v.imgDark : v.img}
           alt="Flow"
           className={`${img} w-auto`}
           onError={() => setImgOk(false)}
@@ -44,7 +55,7 @@ export default function Logo({
           marginLeft: imgOk ? "0.1em" : 0,
         }}
       >
-        {imgOk ? "METER" : "FLOWMETER"}
+        {imgOk ? v.word : v.full}
       </span>
     </span>
   );

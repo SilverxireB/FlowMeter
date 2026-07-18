@@ -172,8 +172,14 @@ Not: FlowWall kendi giriş kapısına sahip olur (kendi landing / dashboard böl
 
 ## Marka
 
-- Logo: FLOW (lacivert #001e64, O = renkli halka) + "WALL" — `Logo.tsx`'e
-  `variant="wall"` eklenir; halka kimliği asla bozulmaz.
+- Logo: **YAPILDI.** FLOW (lacivert #001e64, O = renkli halka) + "WALL".
+  Seçilen yön: **fotoğraf makinesi** (Deklanşör). O halkası orijinalden birebir
+  korundu — sadece içindeki bar-chart kamerayla değiştirildi (piksel doğrulaması:
+  0 halka pikseli değişti). Varlıklar: `public/logo-flowwall.png` (lacivert),
+  `public/logo-flowwall-white.png` (koyu zemin). Üretici script:
+  `scratchpad/make_flowwall_logo.py` (mevcut PNG üstüne halka-içi kompozit).
+- `Logo.tsx`'e `variant="wall"` eklendi (FlowMeter varsayılanı değişmedi).
+- TODO: FlowWall PWA ikonları (icon-192/512, apple-touch — şu an FlowMeter'ınki).
 - Landing/dashboard'da iki ürün ayrımı (FlowMeter | FlowWall).
 
 ## Fazlar (yapılacağında)

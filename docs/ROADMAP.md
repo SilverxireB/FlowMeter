@@ -114,6 +114,12 @@ geliştirmeler `9ca00db`'den geri getirildi. Ders: yazma donuyorsa önce
 Kalanlar: Audience-pace anket modu, slayt kopyala/yapıştır (Mentiler arası),
 profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 
+## FlowWall (planlanıyor — `docs/FLOWWALL.md`)
+
+- [x] **Logo**: FlowWall marka kilidi — O halkası orijinalden birebir korundu,
+      içine fotoğraf makinesi glifi. `logo-flowwall(-white).png` + `Logo.tsx`
+      `variant="wall"`. (Ürün henüz yapılmadı; sadece marka varlığı hazır.)
+
 ## Faz 3.9 — Oturum arşivi + isimli katılım bulutu ✅
 
 - [x] **Geçmiş oturumlar**: izleyici yazıları (katılımcı + cevap) `sessionId` ile
