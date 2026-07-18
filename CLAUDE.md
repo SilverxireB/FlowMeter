@@ -109,6 +109,8 @@ audience-pace anket modu, şablon galerisi, profanity filtresi, slayta görsel
 ekleme, editör canlı önizleme/otomatik kayıt, Cloud Function temizlik, i18n.
 
 **FlowWall** (canlı fotoğraf/video duvarı — henüz YAPILMADI, planı hazır):
-`docs/FLOWWALL.md`. Karar: ayrı uygulama değil, bu altyapı üzerine ikinci marka
-(mode="wall"). Medya: Firebase Storage (Cloudinary değil — kural 4). Kullanıcı
+`docs/FLOWWALL.md`. Karar: ayrı uygulama değil, bu altyapı üzerine ikinci ürün
+(ayrı `walls/{id}` koleksiyonu, kendi giriş kapısı). Medya deposu **Cloudinary**
+(yalnız FlowWall'a özel istisna — etkinlik ağında kural 4 esner; FlowMeter'a
+sıçramaz); metadata/moderasyon/auth/oturum/rules Firebase'de kalır. Kullanıcı
 "FlowWall'a başla" dediğinde önce o dosyayı oku.

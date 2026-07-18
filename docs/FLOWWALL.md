@@ -69,39 +69,46 @@ bir "sunum tipi" ya da slayt seçeneği DEĞİL.
 Uzak gelecek (opsiyonel, düşük öncelik): FlowMeter sunumu içine "wall slaytı"
 köprüsü — ama bu FlowWall'ın kimliğini değiştirmez, sadece bir entegrasyon.
 
-## Medya depolama: takılabilir adaptör (Firebase Storage + Cloudinary)
+## Medya depolama: KESİN KARAR — Cloudinary (yalnız dosya), gerisi Firebase
 
-**Karar:** Medya arka ucu tek bir **adaptör arayüzü** olarak yazılır
-(`upload(file, onProgress) → {storagePath, thumbPath, url}`, `remove()`,
-`getUrl()`). Sağlayıcı **config/env ile** seçilir — her duvar için UI seçeneği
-DEĞİL (gereksiz karmaşıklık). İki adaptör:
+**Net karar (kullanıcı):** Fotoğraf/video **byte'ları Cloudinary'de** durur ve
+oradan servis edilir (çekim/yükleme, thumbnail, transform, CDN). **Geri kalan
+HER ŞEY Firebase'de kalır:** metadata dokümanları (Firestore), moderasyon,
+auth, oturumlar, joinCodes, realtime `onSnapshot`, rules. Cloudinary sadece
+"dosya deposu + görüntü boru hattı"dır; iş mantığı Firestore'da. (Önceki
+projede çok iyi çalıştı; ücretsiz alan geniş — kullanıcı notu: ~25 GB.)
 
-### Neden kural 4 FlowWall'da esner
-CLAUDE.md kural 4 (**dış servis yok**) *kurumsal ağların* 3. parti CDN'leri
-engellemesi yüzündendi ve FlowMeter (kurumsal sunum) için geçerli. FlowWall
-senaryosu etkinlik (ev/mekan Wi-Fi + mobil data) → bu kısıt YOK. Yani Cloudinary
-FlowWall için meşru bir seçenek (ama FlowMeter tarafında hâlâ kullanılmaz).
+### Neden kural 4 burada esner
+CLAUDE.md kural 4 (**dış servis yok**) *kurumsal ağların* CDN engeli yüzündendi;
+FlowMeter (kurumsal sunum) için geçerli kalır. FlowWall etkinlik ağında
+(ev/mekan Wi-Fi + mobil data) çalışır → kısıt yok. **Cloudinary yalnız FlowWall'a
+özel; FlowMeter'a asla sıçramaz.**
 
-### Firebase Storage — P1 varsayılanı (görsel MVP)
-- `firebasestorage.googleapis.com`, Firestore ile aynı domain ailesi; tek çatı
-  (auth/rules aynı), yeni hesap yok.
-- `uploadBytesResumable` → **canlı % ilerleme + duraklat/devam**.
-- Thumbnail client-side canvas ile üretilir (mevcut `src/lib/images.ts` deseni).
-- ⚠️ Ücretsiz egress **1 GB/gün** dar → duvar ekranı bellek cache'i ZORUNLU.
-- ⚠️ **Video'da zayıf: transcode YOK** — telefon `.mov`/HEVC'si oynamayabilir,
-  dosya büyük gelir. Bu yüzden video P2'de Cloudinary tercih edilir.
+### Cloudinary tarafı
+- **Yükleme + canlı % ilerleme:** doğrudan Cloudinary upload API'sine XHR
+  (progress event) ya da upload widget. Önce thumb, sonra asıl dosya hissi
+  transform'la bedava (eager/named transformation).
+- **Görsel:** otomatik webp/avif, boyutlandırma, `c_fill` thumbnail — client
+  canvas'ına gerek yok.
+- **Video:** otomatik web-uyumlu mp4 + poster kare (Firebase'in yapamadığı).
+- **Güvenlik:** anonim katılımcı yüklemesi için **imzalı yükleme** tercih
+  (Vercel API route `/api/cloudinary-sign` imza üretir; API secret env'de).
+  Unsigned preset + klasör/format/boyut kısıtı da mümkün ama imzalı daha güvenli.
+- **Silme + "tümünü indir":** silme API secret ister → Vercel API route
+  (`/api/wall-delete`). Toplu indirme: Cloudinary **generate_archive** (ZIP)
+  API'si tek dosya üretir. İkisi de sunucu tarafı (secret) fonksiyon.
+- Env: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`,
+  `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` (client upload için).
 
-### Cloudinary — P2 (video-ağırlıklı etkinlik) için önerilen
-- **Otomatik video transcode** (web-uyumlu mp4 + poster kare) + görsel
-  optimizasyon (webp/avif, sunucuda thumbnail) + global CDN.
-- Ücretsiz katman ~25 kredi/ay (≈ depolama+bant paylaşımlı havuz; tek günlük
-  etkinlik patlamasında Firebase'in 1 GB/gün egress'inden rahat). *Rakamlar
-  yaklaşık — başlamadan doğrulanacak.*
-- Maliyet: ayrı hesap/API key, imzalı yükleme (upload preset), vendor lock-in.
-- Ağ riski etkinlik bağlamında kabul edilebilir; FlowMeter'a sıçramaz.
+### Firestore tarafı (kaynak-doğruluk)
+Medya dokümanı Cloudinary `public_id` + `secure_url`'i tutar; moderasyon
+`status` alanı Firestore'da; duvar ekranı Firestore'u dinler, byte'ları
+Cloudinary CDN'inden çeker (egress Cloudinary'de, Firebase kotasını yemez).
 
-Özet: P1 Firebase Storage ile başla, adaptörü baştan soyutla, video (P2)
-gelince Cloudinary'yi ikinci adaptör olarak ekle.
+### Duvar ekranı egress notu
+Cloudinary bandını korumak için duvar ekranı gösterdiği medyayı **bir kez
+indirip bellekte tutar** (tekrar gösterimde yeniden çekmez); film şeritlerinde
+küçük transform (thumbnail), orta sahnede daha büyük sürüm.
 
 Limitler (öneri, kesinleşmedi): görsel ≤ 10 MB (client'ta ~1600px'e sıkıştır),
 video ≤ 60 sn / ≤ 50 MB, formatlar: jpg/png/webp + mp4/webm.
@@ -134,22 +141,21 @@ kullanımda Blaze (kullandıkça öde) — aynı limitler ücretsiz, üstü kuru
 walls/{id}: ownerId, title, joinCode, moderation, theme{}, sessionId,
             sessionStartedAt, createdAt        [presentations'tan bağımsız]
   ├─ sessions/{sessionId}: startedAt, endedAt  [FlowMeter ile aynı desen]
-  └─ media/{autoId}: voterId, nickname?, type (image|video), storagePath,
-                     thumbPath, status (pending|approved|rejected), w, h,
-                     durationMs?, sessionId, createdAt   [create-only; moderasyon owner]
-joinCodes/{code}: { wallId }   VEYA ortak lookup'a "kind" alanı
-                  (kod çakışmasın diye FlowMeter ile tek havuz önerilir)
-Storage: walls/{wallId}/{sessionId}/{mediaId}/original.<ext>
-         walls/{wallId}/{sessionId}/{mediaId}/thumb.jpg
+  └─ media/{autoId}: voterId, nickname?, type (image|video),
+                     cloudinaryId (public_id), url (secure_url), thumbUrl,
+                     status (pending|approved|rejected), w, h, durationMs?,
+                     sessionId, createdAt   [create-only; moderasyon owner]
+joinCodes/{code}: { id, kind:"wall"|"deck" }   [FlowMeter ile tek havuz]
+Cloudinary: klasör walls/{wallId}/{sessionId}/  (asıl dosyalar; thumb = transform)
 ```
 
-Not: `joinCodes` tek havuz kalırsa (FlowMeter + FlowWall aynı 6 haneli uzayı
-paylaşır) kod çakışması olmaz; lookup dokümanına `kind: "wall"|"deck"` eklenir,
-resolve eden taraf doğru koleksiyona gider.
+Not: `joinCodes` tek havuz (FlowMeter + FlowWall aynı 6 haneli uzayı paylaşır) →
+kod çakışması olmaz; lookup `kind` alanıyla doğru koleksiyona yönlendirir.
 
 Rules (taslak): media create herkese (alan whitelist + status='pending' veya
 moderasyon kapalıysa 'approved' — wall dokümanından okunur), update (status)
-sadece owner; Storage rules: boyut/content-type sınırı, silme sadece owner.
+sadece owner. Dosya byte'ları Firestore'da değil Cloudinary'de → Storage rules
+yerine imzalı yükleme + Vercel API route (silme/arşiv) güvenliği.
 
 ## Rotalar (taslak)
 
@@ -185,5 +191,6 @@ Not: FlowWall kendi giriş kapısına sahip olur (kendi landing / dashboard böl
 - Moderasyon varsayılanı: açık mı kapalı mı başlasın?
 - Medya saklama süresi (otomatik silme?) ve Storage kota bütçesi?
 - Duvarda izleyici adı gösterilsin mi (yükleyen kişinin nickname'i)?
-- Medya sağlayıcı: P1 Firebase Storage kesin; P2 video için Cloudinary'ye
-  geçilsin mi yoksa Firebase'de mi kalınsın? (Cloudinary hesabı/kredi bütçesi.)
+- ~~Medya sağlayıcı~~ → KARAR VERİLDİ: Cloudinary (dosya) + Firebase (gerisi).
+- Cloudinary yükleme: imzalı (Vercel API route) mı, kısıtlı unsigned preset mi?
+- Cloudinary hesabı/env anahtarları Vercel'de tanımlanacak (henüz yok).
