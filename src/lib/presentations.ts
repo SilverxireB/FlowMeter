@@ -272,6 +272,19 @@ export async function newSession(
     ).catch(() => {});
   }
 
+  // Quiz geri sayımlarını sıfırla — aksi halde yeni oturumda quiz slaytı eski
+  // zaman damgasıyla "süre doldu" açılır ve kimse (gerçek izleyici dahil) oy veremez.
+  const slidesSnap = await getDocs(collection(db(), "presentations", presentationId, "slides"));
+  const quizBatch = writeBatch(db());
+  let hasQuizReset = false;
+  slidesSnap.docs.forEach((d) => {
+    if (d.data().quizStartedAt) {
+      quizBatch.update(d.ref, { quizStartedAt: null });
+      hasQuizReset = true;
+    }
+  });
+  if (hasQuizReset) await quizBatch.commit();
+
   let newCode: string | undefined;
   const oldCode = beforeData?.joinCode as string | undefined;
   if (opts?.newCode) {

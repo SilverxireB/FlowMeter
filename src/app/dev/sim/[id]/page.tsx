@@ -87,6 +87,14 @@ export default function SimPage() {
   useEffect(() => {
     sidRef.current = presentation?.sessionId;
   }, [presentation?.sessionId]);
+  // Gerçek izleyici gibi: oylama kapalıyken / sunum bittiyse oy atma
+  const flagsRef = useRef({ votingClosed: false, ended: false });
+  useEffect(() => {
+    flagsRef.current = {
+      votingClosed: !!presentation?.votingClosed,
+      ended: !!presentation?.ended,
+    };
+  }, [presentation?.votingClosed, presentation?.ended]);
 
   const rawIndex = presentation?.currentSlideIndex ?? -1;
   const activeSlide: Slide | undefined = rawIndex < 0 ? undefined : slides[Math.min(rawIndex, slides.length - 1)];
@@ -123,6 +131,7 @@ export default function SimPage() {
   const voteAllNow = useCallback(() => {
     const slide = slideRef.current;
     if (!slide || !isVotingSlide(slide) || !id) return;
+    if (flagsRef.current.votingClosed || flagsRef.current.ended) return;
     const dl = quizDeadline(slide);
     if (dl === null || Date.now() >= dl) return; // quiz süresi dolduysa oy yok
     let fired = 0;
@@ -185,26 +194,33 @@ export default function SimPage() {
         bump("reactions");
       }
 
-      // 2) Oylar — aktif oy slaytında kuyruk (kendini onarır) + zamanı gelenler
+      // 2) Oylar — aktif oy slaytında kuyruk (kendini onarır) + zamanı gelenler.
+      // Oylama kapalıysa / sunum bittiyse / quiz süresi dolduysa OY YOK (gerçek izleyici gibi).
       const slide = slideRef.current;
-      if (slide && isVotingSlide(slide)) {
+      if (slide && isVotingSlide(slide) && !flagsRef.current.votingClosed && !flagsRef.current.ended) {
         const now = Date.now();
-        // kuyruğa hiç girmemiş & oyu işlenmemiş botları ekle (botlar sonradan eklenmiş olabilir)
-        const inFlight = new Set(voteQueueRef.current.map((v) => v.bot.voterId));
-        const missing = botsRef.current.filter(
-          (b) => !votedRef.current.has(b.voterId) && !inFlight.has(b.voterId)
-        );
-        if (missing.length) voteQueueRef.current.push(...buildQueue(missing));
-        // zamanı gelenleri oyla (skip edenleri de işaretle ki tekrar kuyruğa girmesin)
-        const due = voteQueueRef.current.filter((v) => v.dueAt <= now);
-        if (due.length) {
-          voteQueueRef.current = voteQueueRef.current.filter((v) => v.dueAt > now);
-          for (const v of due) {
-            if (votedRef.current.has(v.bot.voterId)) continue;
-            votedRef.current.add(v.bot.voterId);
-            if (v.willVote) {
-              fireResponse(tid, slide, v.bot.voterId, sidRef.current).catch(() => {});
-              bump("votes");
+        const dl = quizDeadline(slide);
+        if (dl !== Infinity && (dl === null || now >= dl)) {
+          // quiz başlamadı ya da süresi doldu → bekleyen kuyruğu da boşalt
+          voteQueueRef.current = [];
+        } else {
+          // kuyruğa hiç girmemiş & oyu işlenmemiş botları ekle (botlar sonradan eklenmiş olabilir)
+          const inFlight = new Set(voteQueueRef.current.map((v) => v.bot.voterId));
+          const missing = botsRef.current.filter(
+            (b) => !votedRef.current.has(b.voterId) && !inFlight.has(b.voterId)
+          );
+          if (missing.length) voteQueueRef.current.push(...buildQueue(missing));
+          // zamanı gelenleri oyla (skip edenleri de işaretle ki tekrar kuyruğa girmesin)
+          const due = voteQueueRef.current.filter((v) => v.dueAt <= now);
+          if (due.length) {
+            voteQueueRef.current = voteQueueRef.current.filter((v) => v.dueAt > now);
+            for (const v of due) {
+              if (votedRef.current.has(v.bot.voterId)) continue;
+              votedRef.current.add(v.bot.voterId);
+              if (v.willVote) {
+                fireResponse(tid, slide, v.bot.voterId, sidRef.current).catch(() => {});
+                bump("votes");
+              }
             }
           }
         }
