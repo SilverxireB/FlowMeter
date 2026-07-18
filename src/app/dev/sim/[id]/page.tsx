@@ -5,8 +5,8 @@
  * ve src/lib/sim.ts'i sil. Kullanıcıya değmez: ?k=<SIM_SECRET> yoksa açılmaz,
  * hiçbir yerden linklenmez. Gerçek izleyici gibi anonim yazar (rules değişmez).
  *
- * Amaç: N katılımcı + gerçekçi personalarla (tepki canavarı, çok soran, sohbetçi,
- * aktif, sessiz) canlı yük üretip "tepkiler çokken" akıcılık sınırını bulmak.
+ * Amaç: N katılımcı + gerçekçi personalarla (hevesli, meraklı, sohbetçi,
+ * aktif, sessiz) GERÇEK bir oturumu insanca oranlarda taklit etmek.
  */
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -28,7 +28,8 @@ import { Slide } from "@/lib/types";
 
 const TICK_MS = 250;
 const VOTE_WINDOW = 7000;
-const REACTIONS_PER_TICK_CAP = 700; // tarayıcı kilitlenmesin
+// Güvenlik tavanı: gerçekçi modda normalde çok altında kalır; kaçak yükü keser.
+const REACTIONS_PER_TICK_CAP = 40; // ~160 tepki/sn tavan (250 ms tick)
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function SimPage() {
@@ -74,6 +75,8 @@ export default function SimPage() {
   const sidRef = useRef<string | undefined>(undefined);
   const countRef = useRef({ reactions: 0, votes: 0, questions: 0, messages: 0 });
   const wpsRef = useRef({ last: 0, acc: 0 });
+  // Tepki "an" zarfı: gerçek izleyicilerde tepkiler dalga dalga gelir.
+  const excitementRef = useRef(1);
 
   useEffect(() => {
     cfgRef.current = { reactionMul, qnaMul, chatOn };
@@ -162,9 +165,16 @@ export default function SimPage() {
       const questioners = bots.filter((b) => b.questionEvery > 0);
       const chatters = bots.filter((b) => b.chatEvery > 0);
 
-      // 1) Tepkiler (asıl yük) — beklenen sayı kadar fırlat
-      let rc = Math.round(reactorRateSum * cfg.reactionMul * dt);
-      rc = Math.min(REACTIONS_PER_TICK_CAP, rc + (Math.random() < (reactorRateSum * cfg.reactionMul * dt) % 1 ? 1 : 0));
+      // 1) Tepkiler — gerçek izleyici gibi: düşük taban + ara sıra "an" dalgaları.
+      // Zarf her tick 1'e doğru söner; ~20 sn'de bir kısa bir heyecan dalgası olur.
+      let ex = 1 + (excitementRef.current - 1) * 0.92;
+      if (Math.random() < 0.012) ex = 2.5 + Math.random() * 1.5;
+      excitementRef.current = ex;
+      const rExpected = reactorRateSum * cfg.reactionMul * ex * dt;
+      const rc = Math.min(
+        REACTIONS_PER_TICK_CAP,
+        Math.floor(rExpected) + (Math.random() < rExpected % 1 ? 1 : 0)
+      );
       for (let i = 0; i < rc; i++) {
         fireReaction(tid).catch(() => {});
         bump("reactions");
@@ -198,7 +208,7 @@ export default function SimPage() {
       // 3) Q&A — sorular + upvote
       const qExpected = questioners.reduce((a, b) => a + dt / (b.questionEvery / 1000), 0) * cfg.qnaMul;
       let qn = Math.floor(qExpected) + (Math.random() < qExpected % 1 ? 1 : 0);
-      qn = Math.min(30, qn);
+      qn = Math.min(6, qn);
       for (let i = 0; i < qn && questioners.length; i++) {
         fireQuestion(tid, questioners[Math.floor(Math.random() * questioners.length)].voterId).catch(() => {});
         bump("questions");
@@ -207,7 +217,7 @@ export default function SimPage() {
       if (ids.length) {
         const upExpected = questioners.length * dt * 0.4 * cfg.qnaMul;
         let un = Math.floor(upExpected) + (Math.random() < upExpected % 1 ? 1 : 0);
-        un = Math.min(30, un);
+        un = Math.min(6, un);
         for (let i = 0; i < un; i++) {
           upvoteQuestion(tid, ids[Math.floor(Math.random() * ids.length)], 0).catch(() => {});
         }
@@ -217,7 +227,7 @@ export default function SimPage() {
       if (cfg.chatOn && chatters.length) {
         const cExpected = chatters.reduce((a, b) => a + dt / (b.chatEvery / 1000), 0);
         let cn = Math.floor(cExpected) + (Math.random() < cExpected % 1 ? 1 : 0);
-        cn = Math.min(20, cn);
+        cn = Math.min(6, cn);
         for (let i = 0; i < cn; i++) {
           fireMessage(tid, chatters[Math.floor(Math.random() * chatters.length)]).catch(() => {});
           bump("messages");
@@ -310,7 +320,7 @@ export default function SimPage() {
       <div className="max-w-2xl mx-auto flex flex-col gap-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="eyebrow text-brand">⚠️ Simülasyon — TEST</p>
+            <p className="eyebrow text-accent">Gerçekçi oturum simülasyonu</p>
             <h1 className="font-display text-2xl font-semibold">{presentation?.title ?? id}</h1>
             <p className="text-muted text-sm">
               Kod {presentation?.joinCode} · slayt {rawIndex < 0 ? "Katılım" : `${rawIndex + 1}/${slides.length}`}
@@ -351,8 +361,8 @@ export default function SimPage() {
         {/* Yoğunluk kontrolleri */}
         <div className="card p-5 flex flex-col gap-4">
           <p className="eyebrow">Aktiflik</p>
-          <Slider label={`Tepki yoğunluğu ×${reactionMul}`} min={0} max={15} step={0.5} value={reactionMul} onChange={setReactionMul} />
-          <Slider label={`Q&A yoğunluğu ×${qnaMul}`} min={0} max={10} step={0.5} value={qnaMul} onChange={setQnaMul} />
+          <Slider label={`Tepki yoğunluğu ×${reactionMul}`} min={0} max={3} step={0.5} value={reactionMul} onChange={setReactionMul} />
+          <Slider label={`Q&A yoğunluğu ×${qnaMul}`} min={0} max={3} step={0.5} value={qnaMul} onChange={setQnaMul} />
           <label className="flex items-center gap-2.5 cursor-pointer select-none">
             <input type="checkbox" checked={chatOn} onChange={(e) => setChatOn(e.target.checked)} className="w-5 h-5 accent-[#4f46e5]" />
             <span className="text-sm font-semibold">Canlı sohbeti doldur (chatEnabled açıksa)</span>
@@ -396,8 +406,9 @@ export default function SimPage() {
             <Stat label="mesaj" value={stats.messages} />
           </div>
           <p className="text-muted text-xs mt-4">
-            Sınırı bulmak için: <b>Present ↗</b>'i aç, botları ekle, tepki yoğunluğunu kademeli artır ve present
-            ekranı takılana / yazma/sn platoya oturana kadar N&apos;i büyüt. Bitince <b>Temizle</b>.
+            Gerçek oturum gibi: <b>Present ↗</b>'i aç, botları ekle ve <b>Başlat</b>. Tepkiler dalga dalga,
+            insanca oranlarda gelir (×1 = normal katılım). Yoğunluğu abartmak Firebase kotasını hızlı tüketir.
+            Bitince <b>Temizle</b>.
           </p>
         </div>
       </div>

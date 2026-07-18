@@ -3,8 +3,9 @@
  * Gerçek izleyici gibi anonim yazar (rules değişmez). Kaldırmak için:
  * bu dosyayı + src/app/dev/sim/ klasörünü sil. Kullanıcıya değmez (gizli link).
  *
- * Amaç: birden çok katılımcıyı simüle edip "tepkilerin çok olduğu" durumda
- * akıcılık sınırını (N) bulmak. Botlar gerçek hayattaki gibi persona taşır.
+ * Amaç: GERÇEK bir oturumu olabildiğince gerçekçi taklit etmek. Botlar
+ * personaya göre insanca oranlarda tepki/oy/soru/mesaj üretir — yük bombası
+ * değil. Oranlar "dakikada birkaç" ölçeğindedir (bkz. PERSONAS yorumları).
  */
 import {
   addDoc,
@@ -52,17 +53,20 @@ interface PersonaSpec {
   chatEvery: number;
 }
 
+// Oranlar GERÇEKÇİdir: reactionRate = saniyedeki tepki (0.06 ≈ dakikada ~4).
+// questionEvery/chatEvery = ortalama periyot (ms). Bir "an" dalgası (present'te
+// heyecanlı bir slayt) tepkileri page.tsx'teki excitement zarfıyla kısa süre çarpar.
 const PERSONAS: Record<Persona, PersonaSpec> = {
-  // tepki canavarı: sürekli emoji, normal oy
-  reactor: { weight: 0.15, reactionRate: 1.4, voteDelay: 2500, voteProb: 0.9, questionEvery: 0, chatEvery: 25000 },
-  // çok soran: Q&A yağdırır + ara sıra tepki
-  questioner: { weight: 0.1, reactionRate: 0.3, voteDelay: 3000, voteProb: 0.85, questionEvery: 9000, chatEvery: 20000 },
-  // sohbetçi: canlı sohbeti doldurur
-  chatter: { weight: 0.08, reactionRate: 0.4, voteDelay: 3500, voteProb: 0.8, questionEvery: 30000, chatEvery: 6000 },
-  // aktif ortalama: hızlı oy, ara sıra tepki
-  active: { weight: 0.47, reactionRate: 0.35, voteDelay: 1600, voteProb: 0.97, questionEvery: 45000, chatEvery: 40000 },
-  // sessiz: yavaş/bazen oy, nadir tepki
-  lurker: { weight: 0.2, reactionRate: 0.05, voteDelay: 9000, voteProb: 0.55, questionEvery: 0, chatEvery: 0 },
+  // hevesli izleyici: dakikada ~4 tepki, ara sıra tek tük mesaj
+  reactor: { weight: 0.12, reactionRate: 0.06, voteDelay: 2500, voteProb: 0.9, questionEvery: 0, chatEvery: 90000 },
+  // meraklı: ~dakikada 1 soru + seyrek tepki
+  questioner: { weight: 0.08, reactionRate: 0.006, voteDelay: 3000, voteProb: 0.85, questionEvery: 60000, chatEvery: 120000 },
+  // sohbetçi: canlı sohbete ~25 sn'de bir yazar, az tepki
+  chatter: { weight: 0.08, reactionRate: 0.01, voteDelay: 3500, voteProb: 0.8, questionEvery: 180000, chatEvery: 25000 },
+  // aktif ortalama: hızlı oy, dakikada ~1 tepki, çok seyrek soru
+  active: { weight: 0.42, reactionRate: 0.012, voteDelay: 1600, voteProb: 0.97, questionEvery: 300000, chatEvery: 90000 },
+  // sessiz izleyici: çoğunlukla sadece oy, nadiren tepki
+  lurker: { weight: 0.3, reactionRate: 0.0015, voteDelay: 9000, voteProb: 0.55, questionEvery: 0, chatEvery: 0 },
 };
 
 const FIRST = ["Ada", "Deniz", "Ege", "Mira", "Kaan", "Elif", "Arda", "Nil", "Emir", "Zeynep", "Poyraz", "Lina", "Toprak", "Derin", "Bora", "Ceren", "Umut", "Yağmur", "Kuzey", "Aylin", "Efe", "Su", "Doruk", "İpek"];
