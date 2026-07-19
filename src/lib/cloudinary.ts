@@ -75,18 +75,24 @@ export function uploadToCloudinary(
   });
 }
 
+/** Gerçek Cloudinary URL'si mi? (Cloudinary-dışı test/örnek URL'lere dokunma.) */
+function isCld(url: string): boolean {
+  return url.includes("res.cloudinary.com") && url.includes("/upload/");
+}
+
 /** secure_url'e Cloudinary dönüşümü ekler (thumbnail — kare doldur). */
 export function cldThumb(url: string, w = 480, h = 480): string {
-  return url.replace("/upload/", `/upload/c_fill,g_auto,w_${w},h_${h},q_auto,f_auto/`);
+  return isCld(url) ? url.replace("/upload/", `/upload/c_fill,g_auto,w_${w},h_${h},q_auto,f_auto/`) : url;
 }
 
 /** Büyük sahne için sığdırılmış sürüm (en/boy korunur). */
 export function cldFit(url: string, w = 1400): string {
-  return url.replace("/upload/", `/upload/c_limit,w_${w},q_auto,f_auto/`);
+  return isCld(url) ? url.replace("/upload/", `/upload/c_limit,w_${w},q_auto,f_auto/`) : url;
 }
 
-/** Video için poster kare (ilk kare, jpg). */
+/** Video için poster kare (ilk kare, jpg). Cloudinary değilse "" → çağıran <video>'ya düşer. */
 export function cldVideoPoster(url: string, w = 480, h = 480): string {
+  if (!isCld(url)) return "";
   return url
     .replace("/upload/", `/upload/c_fill,g_auto,w_${w},h_${h},q_auto,so_0/`)
     .replace(/\.(mp4|mov|webm|m4v)$/i, ".jpg");
