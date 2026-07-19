@@ -11,6 +11,11 @@ export function isCloudinaryConfigured(): boolean {
   return Boolean(CLOUD && PRESET);
 }
 
+/** Teşhis: hangi değişken build'e girmiş? (değerleri sızdırmaz, sadece var/yok) */
+export function cloudinaryStatus(): { cloud: boolean; preset: boolean } {
+  return { cloud: Boolean(CLOUD), preset: Boolean(PRESET) };
+}
+
 export interface UploadResult {
   cloudinaryId: string;
   url: string;

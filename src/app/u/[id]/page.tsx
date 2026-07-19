@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import { useWall } from "@/lib/hooks";
 import { addWallMedia, resolveCode } from "@/lib/walls";
-import { isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
+import { cloudinaryStatus, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { getStoredNickname, storeIdentity, getStoredAvatarSeed } from "@/lib/participants";
 import { getVoterId } from "@/lib/responses";
 
@@ -120,8 +120,14 @@ export default function UploadPage() {
       <section className="flex-1 flex flex-col px-5 pb-8 max-w-md w-full mx-auto">
         {!isCloudinaryConfigured() && (
           <div className="mb-5 rounded-2xl bg-[#eda100]/15 border border-[#eda100]/40 px-4 py-3 text-sm text-[#ffdd99]">
-            ⚠️ Medya yükleme henüz yapılandırılmadı (Cloudinary anahtarları eksik).
-            Akışı görebilirsin ama gönderim çalışmaz.
+            ⚠️ Medya yükleme yapılandırılmadı. Eksik değişken(ler):
+            <span className="block mt-1 font-mono text-xs">
+              CLOUD_NAME: {cloudinaryStatus().cloud ? "✓ var" : "✗ EKSİK"} · UPLOAD_PRESET:{" "}
+              {cloudinaryStatus().preset ? "✓ var" : "✗ EKSİK"}
+            </span>
+            <span className="block mt-1 text-[#ffdd99]/80">
+              Vercel&apos;e ekledikten sonra <b>yeni build</b> (cache&apos;siz redeploy) gerekir.
+            </span>
           </div>
         )}
 
