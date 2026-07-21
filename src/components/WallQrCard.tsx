@@ -107,11 +107,6 @@ export async function downloadQrCard(wall: Wall, joinUrl: string): Promise<void>
   ctx.fillText(code, W / 2, codeY + 100);
   ctx.letterSpacing = "0px";
 
-  // ── URL ──
-  ctx.font = "28px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = colors.fg + "66";
-  ctx.fillText("flowmetermanisa.vercel.app", W / 2, codeY + 155);
-
   // ── Alt: FlowWall markası ──
   ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
   ctx.fillStyle = colors.fg + "44";
