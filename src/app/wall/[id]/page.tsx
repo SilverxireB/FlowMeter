@@ -179,12 +179,14 @@ function Stage({ media, isNew, onEnded }: { media: WallMedia; isNew: boolean; on
             autoPlay
             muted
             playsInline
+            preload="auto"
             onEnded={onEnded}
-            className="max-h-[72vh] max-w-[86vw] object-contain block bg-black"
+            onError={onEnded}
+            className="max-h-[58vh] sm:max-h-[68vh] max-w-full object-contain block bg-black"
           />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={cldFit(media.url, 1600)} alt="" className="max-h-[72vh] max-w-[86vw] object-contain block ww-ken" />
+          <img src={cldFit(media.url, 1600)} alt="" className="max-h-[58vh] sm:max-h-[68vh] max-w-full object-contain block ww-ken" />
         )}
       </div>
 
@@ -211,12 +213,12 @@ function Stage({ media, isNew, onEnded }: { media: WallMedia; isNew: boolean; on
 
 /** Dikey akan küçük resim şeridi (üst/alt fade maskeli). */
 function Strip({ items, side }: { items: WallMedia[]; side: "left" | "right" }) {
-  if (items.length === 0) return <div className="hidden lg:block w-40 xl:w-56 shrink-0" aria-hidden />;
+  if (items.length === 0) return <div className="w-14 sm:w-20 md:w-40 xl:w-56 shrink-0" aria-hidden />;
   const loop = [...items, ...items];
   const dur = Math.max(22, items.length * 6);
   return (
     <div
-      className="relative hidden lg:block w-40 xl:w-56 shrink-0 overflow-hidden"
+      className="relative block w-14 sm:w-20 md:w-40 xl:w-56 shrink-0 overflow-hidden"
       style={{ maskImage: "linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent)", WebkitMaskImage: "linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent)" }}
     >
       <div

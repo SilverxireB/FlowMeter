@@ -6,12 +6,13 @@
  */
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
 import { useAuthUser, useWall, useWallMedia } from "@/lib/hooks";
-import { deleteMedia, setMediaStatus, setWallHeadline, setWallModeration } from "@/lib/walls";
-import { cldThumb, cldVideoPoster } from "@/lib/cloudinary";
+import { addWallMedia, deleteMedia, setMediaStatus, setWallHeadline, setWallModeration } from "@/lib/walls";
+import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
+import { getVoterId } from "@/lib/responses";
 import { WallMedia } from "@/lib/types";
 
 export default function WallManage() {
@@ -34,6 +35,44 @@ export default function WallManage() {
 
   const pending = useMemo(() => allMedia.filter((m) => m.status === "pending"), [allMedia]);
   const approved = useMemo(() => allMedia.filter((m) => m.status === "approved"), [allMedia]);
+  const rejected = useMemo(() => allMedia.filter((m) => m.status === "rejected"), [allMedia]);
+
+  // Sunucunun kendi medya eklemesi
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [upPct, setUpPct] = useState(0);
+  const [upErr, setUpErr] = useState<string | null>(null);
+
+  async function ownerUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f || !wall) return;
+    setUploading(true);
+    setUpPct(0);
+    setUpErr(null);
+    try {
+      const res = await uploadToCloudinary(f, `walls/${id}/${wall.sessionId ?? "s"}`, setUpPct);
+      await addWallMedia(
+        id,
+        {
+          voterId: getVoterId(),
+          nickname: "Sunucu",
+          type: res.type,
+          cloudinaryId: res.cloudinaryId,
+          url: res.url,
+          w: res.w,
+          h: res.h,
+          durationMs: res.durationMs,
+        },
+        !!wall.moderation,
+        wall.sessionId
+      );
+    } catch (err) {
+      setUpErr(err instanceof Error ? err.message : "Yükleme başarısız.");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   if (authLoading || loading) {
     return <main className="min-h-screen grid place-items-center bg-wash text-muted animate-pulse">Yükleniyor…</main>;
@@ -96,6 +135,26 @@ export default function WallManage() {
           </div>
         </div>
 
+        {/* Sunucu kendi medyasını ekler (moderasyondan bağımsız kokpit) */}
+        <div className="card p-4 flex items-center gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm">Kendi fotoğraf/videonu ekle</p>
+            <p className="text-muted text-xs">
+              {wall.moderation ? "Moderasyon açık — eklediğin de onaya düşer, aşağıdan onayla." : "Direkt perdeye eklenir."}
+            </p>
+          </div>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading || !isCloudinaryConfigured()}
+            className="btn-primary !py-2 !px-4 text-sm shrink-0"
+          >
+            {uploading ? `Yükleniyor… ${upPct}%` : "＋ Medya ekle"}
+          </button>
+          <input ref={fileRef} type="file" accept="image/*,video/*" onChange={ownerUpload} className="hidden" />
+          {!isCloudinaryConfigured() && <p className="text-brand text-xs w-full">Cloudinary yapılandırılmadı.</p>}
+          {upErr && <p className="text-brand text-xs w-full">{upErr}</p>}
+        </div>
+
         {/* Onay bekleyenler */}
         {wall.moderation && (
           <section>
@@ -135,6 +194,23 @@ export default function WallManage() {
             </div>
           )}
         </section>
+
+        {/* Kaldırılanlar (geri alınabilir) */}
+        {rejected.length > 0 && (
+          <section>
+            <p className="eyebrow mb-3 text-muted">Kaldırılanlar ({rejected.length})</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {rejected.map((m) => (
+                <MediaCard key={m.id} m={m}>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 btn-accent !py-1.5 text-xs">↩ Geri al</button>
+                    <button onClick={() => deleteMedia(id, m.id)} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil">🗑</button>
+                  </div>
+                </MediaCard>
+              ))}
+            </div>
+          </section>
+        )}
 
         <p className="text-muted text-xs">
           Not: “Sil” şu an medyayı duvardan kaldırır (Firestore). Cloudinary'deki
