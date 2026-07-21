@@ -230,7 +230,11 @@ export default function WallManage() {
               return (
                 <button
                   key={p.id}
-                  onClick={() => setWallTheme(id, { ...wall?.theme, preset: p.id, bgImage: wall?.theme?.bgImage })}
+                  onClick={() => {
+                    const nextTheme: { preset: string; bgImage?: string } = { preset: p.id };
+                    if (wall?.theme?.bgImage) nextTheme.bgImage = wall.theme.bgImage;
+                    setWallTheme(id, nextTheme).catch(console.error);
+                  }}
                   className={`relative rounded-xl overflow-hidden border-2 transition-all ${
                     active ? "border-accent ring-2 ring-accent-soft scale-105" : "border-line hover:border-muted"
                   }`}
@@ -260,7 +264,7 @@ export default function WallManage() {
                   if (!f) return;
                   try {
                     const dataUri = await compressImage(f, 1600, 0.7);
-                    await setWallTheme(id, { ...wall?.theme, bgImage: dataUri });
+                    await setWallTheme(id, { preset: wall?.theme?.preset ?? "gece", bgImage: dataUri });
                   } catch {
                     // sıkıştırma hatası — sessiz
                   }
@@ -270,7 +274,7 @@ export default function WallManage() {
             </label>
             {wall?.theme?.bgImage && (
               <button
-                onClick={() => setWallTheme(id, { ...wall?.theme, bgImage: undefined })}
+                onClick={() => setWallTheme(id, { preset: wall?.theme?.preset ?? "gece" }).catch(console.error)}
                 className="btn-ghost !py-2 !px-4 text-sm !text-brand !border-brand"
               >
                 ✕ Görseli kaldır
