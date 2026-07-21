@@ -9,9 +9,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
+import { downloadQrCard } from "@/components/WallQrCard";
 import { useAuthUser, useWall, useWallMedia } from "@/lib/hooks";
-import { addWallMedia, deleteMedia, setMediaStatus, setWallHeadline, setWallModeration } from "@/lib/walls";
+import { addWallMedia, deleteMedia, setMediaStatus, setWallHeadline, setWallModeration, setWallTheme } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
+import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
+import { compressImage } from "@/lib/images";
 import { getVoterId } from "@/lib/responses";
 import { WallMedia } from "@/lib/types";
 
@@ -206,8 +209,76 @@ export default function WallManage() {
               <button onClick={downloadAll} disabled={zipping} className="btn-ghost !py-2 !px-4 text-sm">
                 {zipping ? "⏳ Paketleniyor…" : "⬇ Tümünü indir (ZIP)"}
               </button>
+              <button
+                onClick={() => wall && joinUrl && downloadQrCard(wall, joinUrl)}
+                disabled={!wall?.joinCode}
+                className="btn-ghost !py-2 !px-4 text-sm"
+              >
+                🖨 QR Kartı indir
+              </button>
               {zipMsg && <span className="text-muted text-xs">{zipMsg}</span>}
             </div>
+          </div>
+        </div>
+
+        {/* Tema seçici */}
+        <div className="card p-5">
+          <p className="eyebrow mb-3">Perde teması</p>
+          <div className="flex flex-wrap gap-2.5 mb-4">
+            {WALL_THEME_PRESETS.map((p) => {
+              const active = (wall?.theme?.preset ?? "gece") === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setWallTheme(id, { ...wall?.theme, preset: p.id, bgImage: wall?.theme?.bgImage })}
+                  className={`relative rounded-xl overflow-hidden border-2 transition-all ${
+                    active ? "border-accent ring-2 ring-accent-soft scale-105" : "border-line hover:border-muted"
+                  }`}
+                  style={{ width: 88, height: 56 }}
+                  title={p.name}
+                >
+                  <div className="absolute inset-0" style={{ background: p.bg }} />
+                  <span className={`relative z-10 text-[11px] font-bold ${
+                    p.dark ? "text-white/90" : "text-ink/80"
+                  }`}>
+                    {p.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Arka plan görseli */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <label className="btn-ghost !py-2 !px-4 text-sm cursor-pointer">
+              🖼 Arka plan görseli
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  try {
+                    const dataUri = await compressImage(f, 1600, 0.7);
+                    await setWallTheme(id, { ...wall?.theme, bgImage: dataUri });
+                  } catch {
+                    // sıkıştırma hatası — sessiz
+                  }
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {wall?.theme?.bgImage && (
+              <button
+                onClick={() => setWallTheme(id, { ...wall?.theme, bgImage: undefined })}
+                className="btn-ghost !py-2 !px-4 text-sm !text-brand !border-brand"
+              >
+                ✕ Görseli kaldır
+              </button>
+            )}
+            {wall?.theme?.bgImage && (
+              <span className="text-muted text-xs">Görsel yüklendi — perdede koyu katman ile görünür.</span>
+            )}
           </div>
         </div>
 

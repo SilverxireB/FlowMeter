@@ -87,6 +87,10 @@ export async function setWallHeadline(id: string, headline: string): Promise<voi
   await updateDoc(doc(db(), "walls", id), { headline, updatedAt: serverTimestamp() });
 }
 
+export async function setWallTheme(id: string, theme: { preset?: string; bgImage?: string }): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { theme, updatedAt: serverTimestamp() });
+}
+
 export async function deleteWall(w: Wall): Promise<void> {
   await deleteAllDocs(["walls", w.id, "media"]);
   const batch = writeBatch(db());

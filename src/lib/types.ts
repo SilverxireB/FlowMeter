@@ -97,6 +97,8 @@ export interface Wall {
   moderation?: boolean;
   /** Perde arka planı üst yazısı (opsiyonel) */
   headline?: string;
+  /** Duvar görsel teması (FlowMeter PresentationTheme ile aynı yapı) */
+  theme?: PresentationTheme;
   sessionId?: string;
   sessionStartedAt?: Timestamp | null;
   createdAt: Timestamp | null;

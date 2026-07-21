@@ -31,3 +31,13 @@ export async function fileToCompressedDataUrl(
   }
   throw new Error("Görsel çok büyük — daha küçük bir görsel deneyin.");
 }
+
+/** Kolaylık sarmalayıcı: dosyayı verilen boyuta sıkıştırıp data-URI döner. */
+export async function compressImage(
+  file: File,
+  maxDim = 1600,
+  _quality?: number, // ileride özel kalite; şu an Firestore limitine otomatik sığdırılır
+  maxBytes = 900_000
+): Promise<string> {
+  return fileToCompressedDataUrl(file, maxDim, maxBytes);
+}

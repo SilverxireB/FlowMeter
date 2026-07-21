@@ -15,6 +15,7 @@ import QrCode from "@/components/present/QrCode";
 import { useWall, useWallMedia } from "@/lib/hooks";
 import { resolveCode } from "@/lib/walls";
 import { cldFit, cldThumb, cldVideoPoster } from "@/lib/cloudinary";
+import { wallThemeStyle } from "@/lib/themes";
 import { WallMedia } from "@/lib/types";
 
 const IMAGE_MS = 6500; // fotoğraf sahne süresi
@@ -76,6 +77,10 @@ export default function WallScreen() {
     if (idx >= media.length && media.length) setIdx(idx % media.length);
   }, [media.length, idx]);
 
+  const { style: themeStyleObj, dark: themeDark } = wallThemeStyle(wall?.theme);
+  const textClass = themeDark ? "text-white" : "text-ink";
+  const mutedClass = themeDark ? "text-white/60" : "text-ink/55";
+
   if (wallId === null) {
     return <main className="min-h-screen grid place-items-center bg-[#05091c] text-white/70">Duvar bulunamadı.</main>;
   }
@@ -84,8 +89,8 @@ export default function WallScreen() {
   const backdrop = current ? (current.type === "video" ? cldVideoPoster(current.url, 400, 400) : cldThumb(current.url, 500, 500)) : "";
 
   return (
-    <main className="relative h-screen overflow-hidden bg-[#05091c] text-white">
-      {/* İmmersif bulanık arka plan (renk ambiyansı) */}
+    <main className={`relative h-screen overflow-hidden ${textClass}`} style={themeStyleObj}>
+      {/* İmmersif bulanık arka plan (renk ambiyansı — yalnızca medya varken) */}
       {backdrop && (
         <div
           key={"bg-" + current?.id}
@@ -100,7 +105,7 @@ export default function WallScreen() {
           }}
         />
       )}
-      <div aria-hidden className="absolute inset-0" style={{ background: "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(5,9,28,0.75) 100%)" }} />
+      {backdrop && <div aria-hidden className="absolute inset-0" style={{ background: "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(5,9,28,0.75) 100%)" }} />}
 
       <div className="relative z-10 h-full flex">
         {/* Sol şerit */}
@@ -132,11 +137,11 @@ export default function WallScreen() {
               </div>
             )}
             <div className="text-left">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-white/60">Katıl · paylaş</p>
+              <p className={`text-[11px] uppercase tracking-[0.2em] ${mutedClass}`}>Katıl · paylaş</p>
               <p className="font-display text-3xl font-bold tabular-nums tracking-[0.12em] leading-tight">
                 {wall?.joinCode || "——————"}
               </p>
-              <p className="text-white/55 text-xs">flowwall — fotoğrafını at, perdede parla</p>
+              <p className={`text-xs ${mutedClass}`}>flowwall — fotoğrafını at, perdede parla</p>
             </div>
           </div>
         </section>
@@ -147,7 +152,7 @@ export default function WallScreen() {
 
       {/* Köşe süsleri */}
       <div className="absolute top-5 left-5 z-20 opacity-90">
-        <Logo variant="wall" onDark size="sm" />
+        <Logo variant="wall" onDark={themeDark} size="sm" />
       </div>
       {media.length > 0 && (
         <div className="absolute top-5 right-5 z-20 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-semibold tabular-nums backdrop-blur">
