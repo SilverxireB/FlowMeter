@@ -105,11 +105,11 @@ export default function WallScreen() {
           }}
         />
       )}
-      {backdrop && <div aria-hidden className="absolute inset-0" style={{ background: "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(5,9,28,0.75) 100%)" }} />}
+      {backdrop && <div aria-hidden className="absolute inset-0" style={{ background: themeDark ? "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(5,9,28,0.75) 100%)" : "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(255,255,255,0.75) 100%)" }} />}
 
       <div className="relative z-10 h-full flex">
         {/* Sol şerit */}
-        <Strip items={strips.left} side="left" />
+        <Strip items={strips.left} side="left" themeDark={themeDark} />
 
         {/* Orta sahne */}
         <section className="flex-1 flex flex-col items-center justify-center px-4 min-w-0 relative">
@@ -120,19 +120,19 @@ export default function WallScreen() {
           </div>
 
           {current ? (
-            <Stage media={current} isNew={isNew} onEnded={advance} />
+            <Stage media={current} isNew={isNew} onEnded={advance} themeDark={themeDark} />
           ) : (
             <div className="text-center">
               <div className="text-7xl mb-6 ww-pulse" aria-hidden>📷</div>
               <p className="text-3xl font-bold mb-2">İlk anı sen paylaş</p>
-              <p className="text-white/60 text-lg">QR&apos;ı okut, fotoğrafını yükle — birazdan burada parlayacak.</p>
+              <p className={`text-lg ${mutedClass}`}>QR&apos;ı okut, fotoğrafını yükle — birazdan burada parlayacak.</p>
             </div>
           )}
 
           {/* Katılım kartı */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white/10 border border-white/15 rounded-2xl px-4 py-3 backdrop-blur-md shadow-xl">
+          <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 rounded-2xl px-4 py-3 backdrop-blur-md shadow-xl ${themeDark ? "bg-white/10 border border-white/15" : "bg-black/5 border border-black/10"}`}>
             {joinUrl && (
-              <div className="bg-white rounded-xl p-1.5 shrink-0">
+              <div className="bg-white rounded-xl p-1.5 shrink-0 shadow-sm border border-black/5">
                 <QrCode text={joinUrl} size={88} />
               </div>
             )}
@@ -147,7 +147,7 @@ export default function WallScreen() {
         </section>
 
         {/* Sağ şerit */}
-        <Strip items={strips.right} side="right" />
+        <Strip items={strips.right} side="right" themeDark={themeDark} />
       </div>
 
       {/* Köşe süsleri */}
@@ -155,7 +155,7 @@ export default function WallScreen() {
         <Logo variant="wall" onDark={themeDark} size="sm" />
       </div>
       {media.length > 0 && (
-        <div className="absolute top-5 right-5 z-20 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-semibold tabular-nums backdrop-blur">
+        <div className={`absolute top-5 right-5 z-20 rounded-full px-3 py-1 text-xs font-semibold tabular-nums backdrop-blur ${themeDark ? "bg-white/10 border border-white/15" : "bg-black/5 border border-black/10"}`}>
           {media.length} anı
         </div>
       )}
@@ -174,7 +174,7 @@ export default function WallScreen() {
 }
 
 /** Orta büyük sahne. */
-function Stage({ media, isNew, onEnded }: { media: WallMedia; isNew: boolean; onEnded: () => void }) {
+function Stage({ media, isNew, onEnded, themeDark }: { media: WallMedia; isNew: boolean; onEnded: () => void; themeDark: boolean }) {
   return (
     <figure key={media.id} className="relative flex flex-col items-center ww-pop">
       <div className="relative rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10" style={{ maxHeight: "72vh" }}>
@@ -201,7 +201,7 @@ function Stage({ media, isNew, onEnded }: { media: WallMedia; isNew: boolean; on
         </span>
       )}
       {media.nickname && (
-        <figcaption className="mt-4 px-4 py-1.5 rounded-full bg-white/12 border border-white/10 text-white/90 text-sm font-semibold backdrop-blur">
+        <figcaption className={`mt-4 px-4 py-1.5 rounded-full border text-sm font-semibold backdrop-blur ${themeDark ? "bg-white/12 border-white/10 text-white/90" : "bg-black/5 border-black/10 text-ink/90"}`}>
           {media.nickname}
         </figcaption>
       )}
@@ -217,7 +217,7 @@ function Stage({ media, isNew, onEnded }: { media: WallMedia; isNew: boolean; on
 }
 
 /** Dikey akan küçük resim şeridi (üst/alt fade maskeli). */
-function Strip({ items, side }: { items: WallMedia[]; side: "left" | "right" }) {
+function Strip({ items, side, themeDark }: { items: WallMedia[]; side: "left" | "right"; themeDark: boolean }) {
   if (items.length === 0) return <div className="w-14 sm:w-20 md:w-40 xl:w-56 shrink-0" aria-hidden />;
   const loop = [...items, ...items];
   const dur = Math.max(22, items.length * 6);
@@ -231,7 +231,7 @@ function Strip({ items, side }: { items: WallMedia[]; side: "left" | "right" }) 
         style={{ animationDuration: `${dur}s`, animationDirection: side === "right" ? "reverse" : "normal" }}
       >
         {loop.map((m, i) => (
-          <StripThumb key={m.id + "-" + i} m={m} />
+          <StripThumb key={m.id + "-" + i} m={m} themeDark={themeDark} />
         ))}
       </div>
       <style jsx>{`
@@ -242,10 +242,10 @@ function Strip({ items, side }: { items: WallMedia[]; side: "left" | "right" }) 
   );
 }
 
-function StripThumb({ m }: { m: WallMedia }) {
+function StripThumb({ m, themeDark }: { m: WallMedia; themeDark: boolean }) {
   const poster = m.type === "video" ? cldVideoPoster(m.url, 320, 320) : cldThumb(m.url, 320, 320);
   return (
-    <div className="relative w-full aspect-square rounded-xl overflow-hidden border border-white/10 bg-white/5 shadow-lg">
+    <div className={`relative w-full aspect-square rounded-xl overflow-hidden border shadow-lg ${themeDark ? "border-white/10 bg-white/5" : "border-black/10 bg-black/5"}`}>
       {m.type === "video" && !poster ? (
         <video src={m.url + "#t=0.5"} muted playsInline preload="metadata" className="absolute inset-0 w-full h-full object-cover" />
       ) : (
