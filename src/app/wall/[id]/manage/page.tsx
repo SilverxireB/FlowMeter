@@ -222,67 +222,272 @@ export default function WallManage() {
         </div>
 
         {/* Tema seçici */}
-        <div className="card p-5">
-          <p className="eyebrow mb-3">Perde teması</p>
-          <div className="flex flex-wrap gap-2.5 mb-4">
-            {WALL_THEME_PRESETS.map((p) => {
-              const active = (wall?.theme?.preset ?? "gece") === p.id;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    const nextTheme: { preset: string; bgImage?: string } = { preset: p.id };
-                    if (wall?.theme?.bgImage) nextTheme.bgImage = wall.theme.bgImage;
-                    setWallTheme(id, nextTheme).catch(console.error);
-                  }}
-                  className={`relative rounded-xl overflow-hidden border-2 transition-all ${
-                    active ? "border-accent ring-2 ring-accent-soft scale-105" : "border-line hover:border-muted"
-                  }`}
-                  style={{ width: 88, height: 56 }}
-                  title={p.name}
-                >
-                  <div className="absolute inset-0" style={{ background: p.bg }} />
-                  <span className={`relative z-10 text-[11px] font-bold ${
-                    p.dark ? "text-white/90" : "text-ink/80"
-                  }`}>
-                    {p.name}
-                  </span>
-                </button>
-              );
-            })}
+        <div className="card p-5 flex flex-col md:flex-row gap-6 items-start">
+          <div className="flex-1 min-w-0">
+            <p className="eyebrow mb-3">Perde teması</p>
+            <div className="flex flex-wrap gap-2.5 mb-4">
+              {WALL_THEME_PRESETS.map((p) => {
+                const active = (wall?.theme?.preset ?? "gece") === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      const nextTheme: { preset: string; bgImage?: string } = { preset: p.id };
+                      if (wall?.theme?.bgImage) nextTheme.bgImage = wall.theme.bgImage;
+                      setWallTheme(id, nextTheme).catch(console.error);
+                    }}
+                    className={`relative rounded-xl overflow-hidden border-2 transition-all ${
+                      active ? "border-accent ring-2 ring-accent-soft scale-105" : "border-line hover:border-muted"
+                    }`}
+                    style={{ width: 88, height: 56 }}
+                    title={p.name}
+                  >
+                    <div className="absolute inset-0" style={{ background: p.bg }} />
+                    <span className={`relative z-10 text-[11px] font-bold ${
+                      p.dark ? "text-white/90" : "text-ink/80"
+                    }`}>
+                      {p.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Arka plan görseli */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="btn-ghost !py-2 !px-4 text-sm cursor-pointer">
+                  🖼 Arka plan görseli
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      try {
+                        const dataUri = await compressImage(f, 1600, 0.7);
+                        await setWallTheme(id, { preset: wall?.theme?.preset ?? "gece", bgImage: dataUri });
+                      } catch {
+                        // sıkıştırma hatası — sessiz
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                {wall?.theme?.bgImage && (
+                  <button
+                    onClick={() => setWallTheme(id, { preset: wall?.theme?.preset ?? "gece" }).catch(console.error)}
+                    className="btn-ghost !py-2 !px-4 text-sm !text-brand !border-brand"
+                  >
+                    ✕ Görseli kaldır
+                  </button>
+                )}
+              </div>
+              {wall?.theme?.bgImage && (
+                <span className="text-muted text-xs">Görsel yüklendi — perdede koyu katman ile görünür.</span>
+              )}
+            </div>
           </div>
-          {/* Arka plan görseli */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <label className="btn-ghost !py-2 !px-4 text-sm cursor-pointer">
-              🖼 Arka plan görseli
+          
+          {/* Önizleme */}
+          <div className="w-full md:w-64 shrink-0">
+            <p className="eyebrow mb-3">Perde önizlemesi</p>
+            <WallPreview wall={wall} />
+          </div>
+        </div>
+
+        {/* Sunucu kendi medyasını ekler (moderasyondan bağımsız kokpit) */}
+        <div className="card p-4 flex items-center gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm">Kendi fotoğraf/videonu ekle</p>
+            <p className="text-muted text-xs">
+              {wall.moderation ? "Moderasyon açık — eklediğin de onaya düşer, aşağıdan onayla." : "Direkt perdeye eklenir."}
+            </p>
+          </div>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading || !isCloudinaryConfigured()}
+            className="btn-primary !py-2 !px-4 text-sm shrink-0"
+          >
+            {uploading ? `Yükleniyor… ${upPct}%` : "＋ Medya ekle"}
+          </button>
+          <input ref={fileRef} type="file" accept="image/*,video/*" onChange={ownerUpload} className="hidden" />
+          {!isCloudinaryConfigured() && <p className="text-brand text-xs w-full">Cloudinary yapılandırılmadı.</p>}
+          {upErr && <p className="text-brand text-xs w-full">{upErr}</p>}
+        </div>
+
+        {/* Onay bekleyenler */}
+        {wall.moderation && (
+          <section>
+            <p className="eyebrow mb-3">Onay bekleyen ({pending.length})</p>
+            {pending.length === 0 ? (
+              <p className="text-muted text-sm">Bekleyen medya yok.</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {pending.map((m) => (
+                  <MediaCard key={m.id} m={m}>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 btn-accent !py-1.5 text-xs">✓ Onayla</button>
+                      <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand">✕</button>
+                    </div>
+                  </MediaCard>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Perdedeki medya */}
+        <section>
+          <p className="eyebrow mb-3">Perdede ({approved.length})</p>
+          {approved.length === 0 ? (
+            <p className="text-muted text-sm">Henüz onaylı medya yok.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {approved.map((m) => (
+                <MediaCard key={m.id} m={m}>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="flex-1 btn-ghost !py-1.5 text-xs">Kaldır</button>
+                    <button onClick={() => hardDelete(m)} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil (Cloudinary dahil)">🗑</button>
+                  </div>
+                </MediaCard>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Kaldırılanlar (geri alınabilir) */}
+        {rejected.length > 0 && (
+          <section>
+            <p className="eyebrow mb-3 text-muted">Kaldırılanlar ({rejected.length})</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {rejected.map((m) => (
+                <MediaCard key={m.id} m={m}>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 btn-accent !py-1.5 text-xs">↩ Geri al</button>
+                    <button onClick={() => hardDelete(m)} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil (Cloudinary dahil)">🗑</button>
+                  </div>
+                </MediaCard>
+              ))}
+            </div>
+      </header>
+
+      <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
+        {/* Katılım + ayarlar */}
+        <div className="card p-5 flex flex-col sm:flex-row gap-5 items-center">
+          {joinUrl && (
+            <div className="bg-white rounded-2xl p-2 border border-line shrink-0">
+              <QrCode text={joinUrl} size={120} />
+            </div>
+          )}
+          <div className="flex-1 min-w-0 w-full">
+            <p className="eyebrow mb-1">Katılım kodu</p>
+            <p className="font-display text-4xl font-bold tracking-[0.15em] text-accent mb-3">{wall.joinCode}</p>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
-                  if (!f) return;
-                  try {
-                    const dataUri = await compressImage(f, 1600, 0.7);
-                    await setWallTheme(id, { preset: wall?.theme?.preset ?? "gece", bgImage: dataUri });
-                  } catch {
-                    // sıkıştırma hatası — sessiz
-                  }
-                  e.target.value = "";
-                }}
+                type="checkbox"
+                checked={!!wall.moderation}
+                onChange={(e) => setWallModeration(id, e.target.checked)}
+                className="w-5 h-5 accent-[#4f46e5]"
               />
+              <span className="text-sm font-semibold">
+                Moderasyon {wall.moderation ? "açık — yüklenenler onay bekler" : "kapalı — direkt perdede"}
+              </span>
             </label>
-            {wall?.theme?.bgImage && (
-              <button
-                onClick={() => setWallTheme(id, { preset: wall?.theme?.preset ?? "gece" }).catch(console.error)}
-                className="btn-ghost !py-2 !px-4 text-sm !text-brand !border-brand"
-              >
-                ✕ Görseli kaldır
+            <input
+              defaultValue={wall.headline ?? ""}
+              onBlur={(e) => setWallHeadline(id, e.target.value.slice(0, 80))}
+              placeholder="Perde başlığı (ör. Ayşe & Mehmet · 2026)"
+              className="input-base !py-2 mt-3 text-sm"
+            />
+            <div className="flex items-center gap-3 mt-3 flex-wrap">
+              <button onClick={downloadAll} disabled={zipping} className="btn-ghost !py-2 !px-4 text-sm">
+                {zipping ? "⏳ Paketleniyor…" : "⬇ Tümünü indir (ZIP)"}
               </button>
-            )}
-            {wall?.theme?.bgImage && (
-              <span className="text-muted text-xs">Görsel yüklendi — perdede koyu katman ile görünür.</span>
-            )}
+              <button
+                onClick={() => wall && joinUrl && downloadQrCard(wall, joinUrl)}
+                disabled={!wall?.joinCode}
+                className="btn-ghost !py-2 !px-4 text-sm"
+              >
+                🖨 QR Kartı indir
+              </button>
+              {zipMsg && <span className="text-muted text-xs">{zipMsg}</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Tema seçici */}
+        <div className="card p-5 flex flex-col md:flex-row gap-6 items-start">
+          <div className="flex-1 min-w-0">
+            <p className="eyebrow mb-3">Perde teması</p>
+            <div className="flex flex-wrap gap-2.5 mb-4">
+              {WALL_THEME_PRESETS.map((p) => {
+                const active = (wall?.theme?.preset ?? "gece") === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      const nextTheme: { preset: string; bgImage?: string } = { preset: p.id };
+                      if (wall?.theme?.bgImage) nextTheme.bgImage = wall.theme.bgImage;
+                      setWallTheme(id, nextTheme).catch(console.error);
+                    }}
+                    className={`relative rounded-xl overflow-hidden border-2 transition-all ${
+                      active ? "border-accent ring-2 ring-accent-soft scale-105" : "border-line hover:border-muted"
+                    }`}
+                    style={{ width: 88, height: 56 }}
+                    title={p.name}
+                  >
+                    <div className="absolute inset-0" style={{ background: p.bg }} />
+                    <span className={`relative z-10 text-[11px] font-bold ${
+                      p.dark ? "text-white/90" : "text-ink/80"
+                    }`}>
+                      {p.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Arka plan görseli */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="btn-ghost !py-2 !px-4 text-sm cursor-pointer">
+                  🖼 Arka plan görseli
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      try {
+                        const dataUri = await compressImage(f, 1600, 0.7);
+                        await setWallTheme(id, { preset: wall?.theme?.preset ?? "gece", bgImage: dataUri });
+                      } catch {
+                        // sıkıştırma hatası — sessiz
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                {wall?.theme?.bgImage && (
+                  <button
+                    onClick={() => setWallTheme(id, { preset: wall?.theme?.preset ?? "gece" }).catch(console.error)}
+                    className="btn-ghost !py-2 !px-4 text-sm !text-brand !border-brand"
+                  >
+                    ✕ Görseli kaldır
+                  </button>
+                )}
+              </div>
+              {wall?.theme?.bgImage && (
+                <span className="text-muted text-xs">Görsel yüklendi — perdede koyu katman ile görünür.</span>
+              )}
+            </div>
+          </div>
+          
+          {/* Önizleme */}
+          <div className="w-full md:w-64 shrink-0">
+            <p className="eyebrow mb-3">Perde önizlemesi</p>
+            <WallPreview wall={wall} />
           </div>
         </div>
 
@@ -387,6 +592,33 @@ function MediaCard({ m, children }: { m: WallMedia; children: React.ReactNode })
       <div className="p-2 flex flex-col gap-1.5">
         {m.nickname && <p className="text-xs text-muted truncate px-0.5">{m.nickname}</p>}
         {children}
+      </div>
+    </div>
+  );
+}
+
+function WallPreview({ wall }: { wall: Wall | null }) {
+  const { style, dark } = wallThemeStyle(wall?.theme);
+  const textClass = dark ? "text-white" : "text-ink";
+  const mutedClass = dark ? "text-white/60" : "text-ink/55";
+
+  return (
+    <div className={`w-full aspect-video rounded-xl overflow-hidden shadow-inner border border-line relative flex flex-col items-center justify-center ${textClass}`} style={style}>
+      {wall?.theme?.bgImage && (
+        <div aria-hidden className="absolute inset-0" style={{ background: dark ? "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(5,9,28,0.75) 100%)" : "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(255,255,255,0.75) 100%)" }} />
+      )}
+      <h3 className="font-display text-base font-bold text-center drop-shadow-md text-balance z-10 px-4">
+        {wall?.headline || wall?.title || "FlowWall"}
+      </h3>
+      <div className="mt-2 w-3/5 h-2/5 rounded-xl bg-black/30 border border-white/10 flex items-center justify-center shadow-lg z-10 backdrop-blur-sm">
+         <span className="text-2xl" aria-hidden>📷</span>
+      </div>
+      <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-lg px-2 py-1 backdrop-blur-md shadow-md z-10 ${dark ? "bg-white/10 border border-white/15" : "bg-black/5 border border-black/10"}`}>
+        <div className="bg-white rounded p-0.5"><div className="w-3 h-3 bg-black/80" /></div>
+        <div className="text-left leading-tight">
+          <p className={`text-[6px] uppercase tracking-widest ${mutedClass}`}>Katıl</p>
+          <p className="font-display text-[10px] font-bold tabular-nums tracking-wider">{wall?.joinCode || "------"}</p>
+        </div>
       </div>
     </div>
   );
