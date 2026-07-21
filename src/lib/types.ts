@@ -87,6 +87,18 @@ export interface UserRecord {
 
 // ── FlowWall (canlı etkinlik foto/video duvarı) ──────────────────────────────
 
+/** Perde gösterim modları (kokpit seçer, /wall/[id] uygular). */
+export type WallScreenMode = "stage" | "mosaic" | "spotlight" | "polaroid" | "cinema";
+
+/** Perde modu meta bilgisi (kokpit seçici + varsayılan). */
+export const WALL_SCREEN_MODES: { id: WallScreenMode; name: string; icon: string; hint: string }[] = [
+  { id: "stage", name: "Sahne", icon: "🎭", hint: "Ortada büyük anı + yanlarda akan şeritler" },
+  { id: "mosaic", name: "Mozaik", icon: "🧩", hint: "Tüm anılar canlı bir ızgarada" },
+  { id: "spotlight", name: "Spot", icon: "🔦", hint: "Rastgele bir anı öne çıkar, diğerleri soluk" },
+  { id: "polaroid", name: "Polaroid", icon: "📸", hint: "Masaya saçılan eğik polaroid kartlar" },
+  { id: "cinema", name: "Sinema", icon: "🎬", hint: "Tam ekran tek anı — sinematik geçişler" },
+];
+
 /** Bir FlowWall duvarı (walls/{id}). FlowMeter sunumlarından bağımsız koleksiyon. */
 export interface Wall {
   id: string;
@@ -99,6 +111,8 @@ export interface Wall {
   headline?: string;
   /** Duvar görsel teması (FlowMeter PresentationTheme ile aynı yapı) */
   theme?: PresentationTheme;
+  /** Perde gösterim modu — kokpitten seçilir (varsayılan: stage) */
+  screenMode?: WallScreenMode;
   sessionId?: string;
   sessionStartedAt?: Timestamp | null;
   createdAt: Timestamp | null;
@@ -119,6 +133,8 @@ export interface WallMedia {
   h?: number;
   durationMs?: number;
   status: "pending" | "approved" | "rejected";
+  /** Misafir beğenileri (❤ ile +1; perdede "en sevilen" anı) */
+  likes?: number;
   sessionId?: string;
   createdAt: Timestamp | null;
 }

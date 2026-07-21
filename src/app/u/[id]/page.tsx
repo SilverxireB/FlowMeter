@@ -6,13 +6,14 @@
  * (moderasyon açıksa onaya).
  */
 import { useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
-import { useWall } from "@/lib/hooks";
-import { addWallMedia, resolveCode } from "@/lib/walls";
-import { cloudinaryStatus, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
+import { useWall, useWallMedia } from "@/lib/hooks";
+import { addWallMedia, hasLikedMedia, likeMedia, resolveCode } from "@/lib/walls";
+import { cloudinaryStatus, cldFit, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { getStoredNickname, storeIdentity, getStoredAvatarSeed } from "@/lib/participants";
 import { getVoterId } from "@/lib/responses";
+import { WallMedia } from "@/lib/types";
 
 interface Item {
   id: string;
@@ -36,6 +37,8 @@ export default function UploadPage() {
   }, [raw]);
 
   const { wall } = useWall(wallId ?? null);
+
+  const [tab, setTab] = useState<"upload" | "browse">("upload");
 
   const [nickname, setNickname] = useState("");
   useEffect(() => setNickname(getStoredNickname() ?? ""), []);
@@ -140,7 +143,28 @@ export default function UploadPage() {
         {wall && <span className="text-white/50 text-sm truncate max-w-[45vw]">{wall.title}</span>}
       </header>
 
-      <section className="flex-1 flex flex-col px-5 pb-8 max-w-md w-full mx-auto">
+      {/* Sekme çubuğu */}
+      <div className="px-5 max-w-md w-full mx-auto">
+        <div className="flex gap-1 p-1 rounded-2xl bg-white/8 border border-white/10">
+          <button
+            onClick={() => setTab("upload")}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${tab === "upload" ? "bg-white text-[#070c22]" : "text-white/60"}`}
+          >
+            📤 Yükle
+          </button>
+          <button
+            onClick={() => setTab("browse")}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${tab === "browse" ? "bg-white text-[#070c22]" : "text-white/60"}`}
+          >
+            🖼 Duvarı gez
+          </button>
+        </div>
+      </div>
+
+      {tab === "browse" ? (
+        <BrowseGallery wallId={wallId ?? null} />
+      ) : (
+      <section className="flex-1 flex flex-col px-5 pb-8 pt-4 max-w-md w-full mx-auto">
         {!isCloudinaryConfigured() && (
           <div className="mb-5 rounded-2xl bg-[#eda100]/15 border border-[#eda100]/40 px-4 py-3 text-sm text-[#ffdd99]">
             ⚠️ Medya yükleme yapılandırılmadı. Eksik:
@@ -245,6 +269,106 @@ export default function UploadPage() {
           </>
         )}
       </section>
+      )}
     </main>
+  );
+}
+
+/** Duvarı gez — onaylı medya akışı; ❤ beğen, "Benimkiler" filtresi. */
+function BrowseGallery({ wallId }: { wallId: string | null }) {
+  const allMedia = useWallMedia(wallId);
+  const approved = useMemo(() => allMedia.filter((m) => m.status === "approved"), [allMedia]);
+  const [mineOnly, setMineOnly] = useState(false);
+  const [voterId, setVoterId] = useState("");
+  useEffect(() => setVoterId(getVoterId()), []);
+
+  const shown = useMemo(() => {
+    const list = mineOnly ? approved.filter((m) => m.voterId === voterId) : approved;
+    return [...list].reverse();
+  }, [approved, mineOnly, voterId]);
+
+  const mineCount = useMemo(() => approved.filter((m) => m.voterId === voterId).length, [approved, voterId]);
+
+  return (
+    <section className="flex-1 flex flex-col px-5 pb-10 pt-4 max-w-md w-full mx-auto">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-white/60 text-sm tabular-nums">{approved.length} anı duvarda</p>
+        <button
+          onClick={() => setMineOnly((v) => !v)}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+            mineOnly ? "bg-white text-[#070c22] border-white" : "text-white/70 border-white/20"
+          }`}
+        >
+          {mineOnly ? "← Tümü" : `Benimkiler (${mineCount})`}
+        </button>
+      </div>
+
+      {shown.length === 0 ? (
+        <div className="flex-1 grid place-items-center text-center text-white/50 py-20">
+          <div>
+            <div className="text-5xl mb-3" aria-hidden>{mineOnly ? "📷" : "🖼"}</div>
+            <p>{mineOnly ? "Henüz bir şey yüklemedin." : "Duvar henüz boş — ilk anıyı sen ekle!"}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="columns-2 gap-2.5 [column-fill:_balance]">
+          {shown.map((m) => (
+            <BrowseTile key={m.id} m={m} wallId={wallId} mine={m.voterId === voterId} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function BrowseTile({ m, wallId, mine }: { m: WallMedia; wallId: string | null; mine: boolean }) {
+  const [liked, setLiked] = useState(false);
+  const [bump, setBump] = useState(false);
+  useEffect(() => setLiked(hasLikedMedia(m.id)), [m.id]);
+
+  const ratio = m.w && m.h ? m.w / m.h : 1;
+  const poster = m.type === "video" ? cldVideoPoster(m.url, 500, Math.round(500 / (ratio || 1))) : cldFit(m.url, 500);
+
+  async function toggleLike() {
+    if (liked || !wallId) return;
+    setLiked(true);
+    setBump(true);
+    setTimeout(() => setBump(false), 400);
+    try {
+      await likeMedia(wallId, m.id);
+    } catch {
+      setLiked(false);
+    }
+  }
+
+  return (
+    <div className="mb-2.5 break-inside-avoid relative rounded-2xl overflow-hidden bg-white/8 border border-white/10">
+      <div className="relative w-full" style={{ aspectRatio: `${ratio || 1}` }}>
+        {m.type === "video" && !poster ? (
+          <video src={m.url + "#t=0.5"} muted playsInline preload="metadata" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={poster} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+        )}
+        {m.type === "video" && <span className="absolute bottom-1.5 right-1.5 grid place-items-center w-7 h-7 rounded-full bg-black/55 text-white text-xs">▶</span>}
+        {mine && <span className="absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/90 text-[#070c22]">senin</span>}
+      </div>
+      <div className="flex items-center justify-between gap-2 px-2.5 py-2">
+        <span className="text-white/70 text-xs truncate">{m.nickname || "—"}</span>
+        <button
+          onClick={toggleLike}
+          disabled={liked}
+          className={`flex items-center gap-1 text-sm font-bold tabular-nums shrink-0 ${liked ? "text-[#ff5a7a]" : "text-white/70"}`}
+          aria-label="Beğen"
+        >
+          <span className={bump ? "ww-like-bump" : ""} aria-hidden>{liked ? "❤" : "🤍"}</span>
+          {(m.likes ?? 0) > 0 && <span>{m.likes}</span>}
+        </button>
+      </div>
+      <style jsx>{`
+        .ww-like-bump { display: inline-block; animation: likebump 0.4s ease; }
+        @keyframes likebump { 30% { transform: scale(1.5); } 60% { transform: scale(0.9); } }
+      `}</style>
+    </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   onSnapshot,
   orderBy,
   query,
@@ -19,7 +20,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { Wall, WallMedia } from "./types";
+import { Wall, WallMedia, WallScreenMode } from "./types";
 
 function randomCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -91,6 +92,10 @@ export async function setWallTheme(id: string, theme: { preset?: string; bgImage
   await updateDoc(doc(db(), "walls", id), { theme, updatedAt: serverTimestamp() });
 }
 
+export async function setWallScreenMode(id: string, screenMode: WallScreenMode): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { screenMode, updatedAt: serverTimestamp() });
+}
+
 export async function deleteWall(w: Wall): Promise<void> {
   await deleteAllDocs(["walls", w.id, "media"]);
   const batch = writeBatch(db());
@@ -138,6 +143,7 @@ export async function addWallMedia(
     cloudinaryId: media.cloudinaryId,
     url: media.url,
     status: moderation ? "pending" : "approved",
+    likes: 0,
     createdAt: serverTimestamp(),
   };
   if (media.nickname) data.nickname = media.nickname;
@@ -160,6 +166,24 @@ export async function deleteMedia(wallId: string, mediaId: string): Promise<void
   // Not: Cloudinary'deki dosya silme API secret ister → ileride Vercel API route.
   // Şimdilik Firestore dokümanı silinir (duvardan kalkar).
   await deleteDoc(doc(db(), "walls", wallId, "media", mediaId));
+}
+
+// ── Beğeni (misafir ❤ — sunum Q&A upvote deseniyle aynı: +1, localStorage dedup) ─
+function likeKey(mediaId: string): string {
+  return `flowwall.liked.${mediaId}`;
+}
+
+/** Bu cihaz bu medyayı daha önce beğendi mi? (tek beğeni; kurallar da +1 sınırlar) */
+export function hasLikedMedia(mediaId: string): boolean {
+  if (typeof localStorage === "undefined") return false;
+  return localStorage.getItem(likeKey(mediaId)) === "1";
+}
+
+/** Medyayı beğen (+1). Tekrarları localStorage engeller; sunucuda +1 kuralı var. */
+export async function likeMedia(wallId: string, mediaId: string): Promise<void> {
+  if (hasLikedMedia(mediaId)) return;
+  localStorage.setItem(likeKey(mediaId), "1");
+  await updateDoc(doc(db(), "walls", wallId, "media", mediaId), { likes: increment(1) });
 }
 
 // ── Canlı dinleyiciler ───────────────────────────────────────────────────────

@@ -243,10 +243,17 @@ Not: FlowWall kendi giriş kapısına sahip olur (kendi landing / dashboard böl
    API route (şu an tek tek siliniyor).
 
 **Dalga 2 — Deneyimi büyüten:**
-5. **Perde modları**: Sahne (mevcut) · Mozaik/kolaj (tüm fotolar ızgarada) ·
-   Spotlight (rastgele büyüt) — kokpitten seçilir.
-6. **Misafir galerisi**: yükleme sayfasında "duvarı gez" sekmesi (onaylı
-   medya akışı) + kendi yüklediklerini görme/silme isteği.
+5. ✅ **Perde modları** (YAPILDI): kokpitten `wall.screenMode` — **Sahne** (mevcut
+   resital) · **Mozaik** (5 sütun kayan ızgara) · **Spot** (rastgele öne çıkan +
+   soluk arka halka) · **Polaroid** (masaya saçılan eğik kartlar, en yeni tepeye
+   düşer) · **Sinema** (tam ekran Ken Burns). İkonlu seçici + canlı geçiş.
+6. ✅ **Misafir galerisi + beğeni** (YAPILDI): `/u/[id]` sekmeli (Yükle | Duvarı
+   gez); gez'de onaylı medya masonry, ❤ beğen (`media.likes` +1, localStorage
+   dedup, rules herkese-açık +1), "Benimkiler" filtresi + "senin" rozeti. Perdede
+   tüm modlarda ❤ rozeti + 👑 **En sevilen** (en çok beğenilen anı öne çıkar).
+   *Açık: "kendi yüklediğini silme" — anonim misafirin kimliği sunucuda
+   doğrulanamaz (Altın Kural 1 + Firestore delete gövde taşımaz), güvenli değil;
+   çözüm anonim-auth (Dalga 3 #10) ya da sahibe "kaldırılmasını iste" akışı.*
 7. **Slayt köprüsü**: FlowMeter sunumuna "wall" slayt tipi (sunum ortasında
    canlı duvar) — iki ürünün kesişim vuruşu.
 8. **Video sesi** opsiyonu (perdede aç/kapat) + video süre limiti ayarı.

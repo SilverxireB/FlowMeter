@@ -167,14 +167,20 @@ service cloud.firestore {
         }
         allow read: if true;
         allow create: if request.resource.data.keys().hasOnly(
-              ['voterId','nickname','type','cloudinaryId','url','w','h','durationMs','status','sessionId','createdAt'])
+              ['voterId','nickname','type','cloudinaryId','url','w','h','durationMs','status','likes','sessionId','createdAt'])
           && request.resource.data.voterId is string
           && request.resource.data.type in ['image','video']
           && request.resource.data.url is string
+          && request.resource.data.get('likes', 0) == 0
           && request.resource.data.status ==
              (wall().get('moderation', false) == true ? 'pending' : 'approved');
-        // moderasyon (onayla/reddet/sil) sadece sahibinde
-        allow update, delete: if request.auth != null
+        // Beğeni: herkes yalnız 'likes' alanını +1 artırabilir (misafir ❤);
+        // diğer tüm değişiklikler (moderasyon/onayla/reddet) ve silme sadece sahibinde.
+        allow update: if
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
+            && request.resource.data.likes == resource.data.get('likes', 0) + 1)
+          || (request.auth != null && wall().ownerId == request.auth.uid);
+        allow delete: if request.auth != null
           && wall().ownerId == request.auth.uid;
       }
     }

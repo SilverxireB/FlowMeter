@@ -146,6 +146,20 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 - [x] **Yazdırılabilir QR kartı** (Dalga 1 #2): `WallQrCard.tsx` — temaya göre
       renklenen A6 (1050×1480) Canvas PNG ("📸 Anını paylaş" + QR + kod), kokpitten
       "🖨 QR Kartı indir". QR dinamik origin; kağıt URL statik. — *Gemini*
+- [x] **Perde modları** (Dalga 2 #5): kokpitten seçilen `wall.screenMode` ile 5
+      görünüm — **Sahne** (mevcut resital) · **Mozaik** (5 sütun kayan ızgara) ·
+      **Spot** (rastgele öne çıkan + soluk arka halka) · **Polaroid** (masaya
+      saçılan eğik kartlar, en yeni tepeye düşer) · **Sinema** (tam ekran Ken
+      Burns). Kokpitte ikonlu seçici, canlı geçiş. `WALL_SCREEN_MODES` (types.ts).
+- [x] **Beğeni + en sevilen** (Dalga 2 #6 parçası): `media.likes` (+1, Q&A upvote
+      deseni: localStorage dedup + rules'ta herkese-açık yalnız-+1 update). Misafir
+      "Duvarı gez"de ❤ ile beğenir; perdede tüm modlarda ❤ rozeti + 👑 "En sevilen".
+- [x] **Misafir galerisi** (Dalga 2 #6): `/u/[id]` sekmeli (Yükle | Duvarı gez);
+      gez sekmesinde onaylı medya masonry akışı, ❤ beğen, "Benimkiler" filtresi
+      (voterId), "senin" rozeti. *Kendi yüklediğini SİLME: anonim misafirin
+      kimliği sunucuda doğrulanamadığından (Altın Kural 1: audience auth yok +
+      delete gövde taşımaz) güvenli değil — sahibi siler; misafir-silme için
+      anonim-auth ayrı bir karar (bkz. FLOWWALL Dalga 3).*
 - [ ] Kalan (Dalga 1): **duvar yaşam döngüsü** (kapat/yeni oturum — sessionId
       rotasyonu), **Cloudinary toplu temizlik** (delete_by_prefix API route);
       ileride imzalı yükleme (sertleştirme).

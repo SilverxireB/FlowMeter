@@ -12,12 +12,12 @@ import QrCode from "@/components/present/QrCode";
 import { downloadQrCard } from "@/components/WallQrCard";
 import Snowflakes from "@/components/Snowflakes";
 import { useAuthUser, useWall, useWallMedia } from "@/lib/hooks";
-import { addWallMedia, deleteMedia, setMediaStatus, setWallHeadline, setWallModeration, setWallTheme } from "@/lib/walls";
+import { addWallMedia, deleteMedia, setMediaStatus, setWallHeadline, setWallModeration, setWallScreenMode, setWallTheme } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
 import { getVoterId } from "@/lib/responses";
-import { Wall, WallMedia } from "@/lib/types";
+import { Wall, WallMedia, WALL_SCREEN_MODES } from "@/lib/types";
 
 export default function WallManage() {
   const { id } = useParams<{ id: string }>();
@@ -294,6 +294,31 @@ export default function WallManage() {
           <div className="w-full md:w-64 shrink-0">
             <p className="eyebrow mb-3">Perde önizlemesi</p>
             <WallPreview wall={wall} />
+          </div>
+        </div>
+
+        {/* Perde modu seçici */}
+        <div className="card p-5">
+          <p className="eyebrow mb-1">Perde modu</p>
+          <p className="text-muted text-xs mb-3">Anıların perdede nasıl görüneceğini seç — canlı olarak değişir.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+            {WALL_SCREEN_MODES.map((m) => {
+              const active = (wall?.screenMode ?? "stage") === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setWallScreenMode(id, m.id).catch(console.error)}
+                  className={`text-left rounded-xl border-2 p-3 transition-all ${
+                    active ? "border-accent bg-accent-soft/40 ring-2 ring-accent-soft" : "border-line hover:border-muted"
+                  }`}
+                  title={m.hint}
+                >
+                  <div className="text-2xl mb-1" aria-hidden>{m.icon}</div>
+                  <div className="font-semibold text-sm">{m.name}</div>
+                  <div className="text-muted text-[11px] leading-tight mt-0.5 line-clamp-2">{m.hint}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
