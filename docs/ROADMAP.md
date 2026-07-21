@@ -135,9 +135,9 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 - [x] **Tümünü indir (ZIP)** — tarayıcıda JSZip ile paketler (sunucu yok).
 - [x] **Kalıcı silme** — /api/wall/destroy (idToken doğrulama + sahiplik +
       imzalı Cloudinary destroy). Env: CLOUDINARY_API_KEY/SECRET (sunucu tarafı).
-- [x] **FlowWall PWA ikonları** — wall-icon-192/512 + apple-touch (kamera+halka,
-      logodan taranmış gerçek renkler); /wall ve /u rotaları kendi
-      manifest-wall.webmanifest kimliğini taşır.
+- ~~FlowWall PWA ikonları~~ — denendi, GERİ ALINDI: aynı origin'de ikinci
+      manifest tarayıcıda "zaten yüklü" çakışması yaratıyor; tek PWA kimliği
+      (FlowMeter) kaldı. Ayrı kimlik ancak ayrı domain'de anlamlı olur.
 - [ ] Kalan: imzalı yükleme (sertleştirme), Cloudinary klasör temizliği (duvar
       silinince toplu destroy), duvar teması (arka plan görseli).
 

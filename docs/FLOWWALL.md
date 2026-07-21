@@ -226,6 +226,37 @@ Not: FlowWall kendi giriş kapısına sahip olur (kendi landing / dashboard böl
 4. **P4 — Cila**: FlowWall logo/landing, tema editörü, wall slayt tipi (FlowMeter
    sunumu içinde), Storage lifecycle temizliği.
 
+## Gelecek planı (2026-07-19 tartışması — önceliklendirilmiş)
+
+**Dalga 1 — Etkinliğe hazır olmak (ilk gerçek etkinlikten önce şart):**
+1. **Duvar teması**: arka plan görseli/rengi + hazır görünümler (Yılbaşı,
+   Düğün, Parti, Kurumsal) — headline'ın yanına theme{} (FlowMeter deseni).
+2. **Yazdırılabilir QR kartı**: masalara konacak şık A6/A5 PDF ("📸 Anını
+   paylaş" + QR + kod) — kokpitten tek tıkla indir. Düğün senaryosunda kritik.
+3. **Duvar yaşam döngüsü**: kapat (yükleme durdur, perde "teşekkürler"),
+   yeni oturum (sessionId rotasyonu; FlowMeter'daki desen aynen).
+4. **Cloudinary toplu temizlik**: duvar/oturum silinince delete_by_prefix
+   API route (şu an tek tek siliniyor).
+
+**Dalga 2 — Deneyimi büyüten:**
+5. **Perde modları**: Sahne (mevcut) · Mozaik/kolaj (tüm fotolar ızgarada) ·
+   Spotlight (rastgele büyüt) — kokpitten seçilir.
+6. **Misafir galerisi**: yükleme sayfasında "duvarı gez" sekmesi (onaylı
+   medya akışı) + kendi yüklediklerini görme/silme isteği.
+7. **Slayt köprüsü**: FlowMeter sunumuna "wall" slayt tipi (sunum ortasında
+   canlı duvar) — iki ürünün kesişim vuruşu.
+8. **Video sesi** opsiyonu (perdede aç/kapat) + video süre limiti ayarı.
+
+**Dalga 3 — Güvenlik/ölçek/ticarileştirme:**
+9. **İçerik güvenliği**: Cloudinary AI moderation add-on (müstehcen/şiddet
+   otomatik reddi) — moderasyonsuz düğünlerde sigorta.
+10. **İmzalı yükleme + limitler**: unsigned preset yerine /api/wall/sign,
+    dosya boyutu/format/rate limit.
+11. **Ayrı domain/marka**: flowwall.app benzeri ayrı domain (o zaman ayrı PWA
+    kimliği de anlamlı olur — not: aynı origin'de ikinci manifest ÇALIŞMAZ,
+    denendi ve geri alındı).
+12. **Fiyatlandırma taslağı**: ücretsiz N medya/duvar; etkinlik başı paket.
+
 ## Açık sorular (kullanıcıyla netleşecek)
 
 - Video limitleri (süre/boyut) ve formatlar?
