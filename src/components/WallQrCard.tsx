@@ -95,16 +95,13 @@ export async function downloadQrCard(wall: Wall, joinUrl: string): Promise<void>
   ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
 
   // ── Katılım kodu ──
-  const codeY = qrY + qrSize + 80;
-  ctx.font = "36px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = colors.fg + "88";
-  ctx.fillText("veya kodu gir", W / 2, codeY);
+  const codeY = qrY + qrSize + 140;
 
   const code = wall.joinCode || "------";
   ctx.font = "bold 96px system-ui, -apple-system, sans-serif";
   ctx.fillStyle = colors.accent;
   ctx.letterSpacing = "16px";
-  ctx.fillText(code, W / 2, codeY + 100);
+  ctx.fillText(code, W / 2, codeY);
   ctx.letterSpacing = "0px";
 
   // ── Alt: FlowWall markası ──
