@@ -103,7 +103,7 @@ export const WALL_THEME_PRESETS: ThemePreset[] = [
   {
     id: "yilbasi",
     name: "Yılbaşı ❄️",
-    bg: "radial-gradient(60rem 36rem at 75% -15%, rgba(30,100,200,0.3), transparent 55%), linear-gradient(160deg, #0b1628 0%, #142244 50%, #1a0a2e 100%)",
+    bg: "radial-gradient(50rem 30rem at 80% -10%, rgba(220,38,38,0.25), transparent 55%), radial-gradient(60rem 36rem at 10% 110%, rgba(22,101,52,0.25), transparent 55%), linear-gradient(160deg, #450a0a 0%, #052e16 100%)",
     dark: true,
   },
   {

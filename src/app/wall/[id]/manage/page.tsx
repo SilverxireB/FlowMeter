@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
 import { downloadQrCard } from "@/components/WallQrCard";
+import Snowflakes from "@/components/Snowflakes";
 import { useAuthUser, useWall, useWallMedia } from "@/lib/hooks";
 import { addWallMedia, deleteMedia, setMediaStatus, setWallHeadline, setWallModeration, setWallTheme } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
@@ -409,6 +410,7 @@ function WallPreview({ wall }: { wall: Wall }) {
 
   return (
     <div className={`w-full aspect-video rounded-xl overflow-hidden shadow-inner border border-line relative flex flex-col items-center justify-center ${textClass}`} style={style}>
+      {wall?.theme?.preset === "yilbasi" && <Snowflakes />}
       {wall?.theme?.bgImage && (
         <div aria-hidden className="absolute inset-0" style={{ background: dark ? "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(5,9,28,0.75) 100%)" : "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(255,255,255,0.75) 100%)" }} />
       )}

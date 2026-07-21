@@ -12,6 +12,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
+import Snowflakes from "@/components/Snowflakes";
 import { useWall, useWallMedia } from "@/lib/hooks";
 import { resolveCode } from "@/lib/walls";
 import { cldFit, cldThumb, cldVideoPoster } from "@/lib/cloudinary";
@@ -78,9 +79,6 @@ export default function WallScreen() {
   }, [media.length, idx]);
 
   const { style: themeStyleObj, dark: themeDark } = wallThemeStyle(wall?.theme);
-  const textClass = themeDark ? "text-white" : "text-ink";
-  const mutedClass = themeDark ? "text-white/60" : "text-ink/55";
-
   if (wallId === null) {
     return <main className="min-h-screen grid place-items-center bg-[#05091c] text-white/70">Duvar bulunamadı.</main>;
   }
@@ -88,8 +86,12 @@ export default function WallScreen() {
   const strips = splitStrips(media);
   const backdrop = current ? (current.type === "video" ? cldVideoPoster(current.url, 400, 400) : cldThumb(current.url, 500, 500)) : "";
 
+  const textClass = themeDark ? "text-white" : `text-ink ${backdrop ? "drop-shadow-[0_0_12px_rgba(255,255,255,1)]" : ""}`;
+  const mutedClass = themeDark ? "text-white/60" : `text-ink/60 ${backdrop ? "drop-shadow-[0_0_8px_rgba(255,255,255,1)] font-medium" : ""}`;
+
   return (
     <main className={`relative h-screen overflow-hidden ${textClass}`} style={themeStyleObj}>
+      {wall?.theme?.preset === "yilbasi" && <Snowflakes />}
       {/* İmmersif bulanık arka plan (renk ambiyansı — yalnızca medya varken) */}
       {backdrop && (
         <div
@@ -105,7 +107,7 @@ export default function WallScreen() {
           }}
         />
       )}
-      {backdrop && <div aria-hidden className="absolute inset-0" style={{ background: themeDark ? "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(5,9,28,0.75) 100%)" : "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(255,255,255,0.75) 100%)" }} />}
+      {backdrop && <div aria-hidden className="absolute inset-0" style={{ background: themeDark ? "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(5,9,28,0.80) 100%)" : "radial-gradient(120% 100% at 50% 40%, transparent 30%, rgba(255,255,255,0.92) 100%)" }} />}
 
       <div className="relative z-10 h-full flex">
         {/* Sol şerit */}
