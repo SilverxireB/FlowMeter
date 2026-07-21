@@ -229,11 +229,15 @@ Not: FlowWall kendi giriş kapısına sahip olur (kendi landing / dashboard böl
 ## Gelecek planı (2026-07-19 tartışması — önceliklendirilmiş)
 
 **Dalga 1 — Etkinliğe hazır olmak (ilk gerçek etkinlikten önce şart):**
-1. **Duvar teması**: arka plan görseli/rengi + hazır görünümler (Yılbaşı,
-   Düğün, Parti, Kurumsal) — headline'ın yanına theme{} (FlowMeter deseni).
-2. **Yazdırılabilir QR kartı**: masalara konacak şık A6/A5 PDF ("📸 Anını
-   paylaş" + QR + kod) — kokpitten tek tıkla indir. Düğün senaryosunda kritik.
-3. **Duvar yaşam döngüsü**: kapat (yükleme durdur, perde "teşekkürler"),
+1. ✅ **Duvar teması** (YAPILDI — Gemini): `WALL_THEME_PRESETS` (Varsayılan/
+   Yılbaşı ❄️/Düğün 💍/Parti 🎉/Kurumsal) + `wallThemeStyle()`, özel arka plan
+   görseli (base64), Yılbaşı kar efekti (`Snowflakes.tsx`), kokpitte tema seçici
+   + canlı `WallPreview` önizleme. `wall.theme{}` owner-write (rules değişmedi).
+2. ✅ **Yazdırılabilir QR kartı** (YAPILDI — Gemini): `WallQrCard.tsx` — temaya
+   göre renklenen A6 Canvas PNG ("📸 Anını paylaş" + QR + kod), kokpitte
+   "🖨 QR Kartı indir". *Not: kağıda basılan URL sabit (`flowmetermanisa.vercel.app`);
+   QR'ın kendisi dinamik origin — domain değişirse yalnız yazı güncellenmeli.*
+3. **Duvar yaşam döngüsü** (SIRADAKİ): kapat (yükleme durdur, perde "teşekkürler"),
    yeni oturum (sessionId rotasyonu; FlowMeter'daki desen aynen).
 4. **Cloudinary toplu temizlik**: duvar/oturum silinince delete_by_prefix
    API route (şu an tek tek siliniyor).

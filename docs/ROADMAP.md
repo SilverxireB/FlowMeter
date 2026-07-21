@@ -138,8 +138,17 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
 - ~~FlowWall PWA ikonları~~ — denendi, GERİ ALINDI: aynı origin'de ikinci
       manifest tarayıcıda "zaten yüklü" çakışması yaratıyor; tek PWA kimliği
       (FlowMeter) kaldı. Ayrı kimlik ancak ayrı domain'de anlamlı olur.
-- [ ] Kalan: imzalı yükleme (sertleştirme), Cloudinary klasör temizliği (duvar
-      silinince toplu destroy), duvar teması (arka plan görseli).
+- [x] **Duvar teması** (Dalga 1 #1): `WALL_THEME_PRESETS` (Varsayılan/Yılbaşı ❄️/
+      Düğün 💍/Parti 🎉/Kurumsal) + `wallThemeStyle()`, özel arka plan görseli
+      (canvas sıkıştırma → base64), Yılbaşı'nda `Snowflakes.tsx` kar efekti,
+      kokpitte tema seçici + canlı `WallPreview` mini önizleme. `wall.theme{}`
+      (rules'a dokunmadan owner-write). — *Gemini*
+- [x] **Yazdırılabilir QR kartı** (Dalga 1 #2): `WallQrCard.tsx` — temaya göre
+      renklenen A6 (1050×1480) Canvas PNG ("📸 Anını paylaş" + QR + kod), kokpitten
+      "🖨 QR Kartı indir". QR dinamik origin; kağıt URL statik. — *Gemini*
+- [ ] Kalan (Dalga 1): **duvar yaşam döngüsü** (kapat/yeni oturum — sessionId
+      rotasyonu), **Cloudinary toplu temizlik** (delete_by_prefix API route);
+      ileride imzalı yükleme (sertleştirme).
 
 ## Faz 3.9 — Oturum arşivi + isimli katılım bulutu ✅
 
