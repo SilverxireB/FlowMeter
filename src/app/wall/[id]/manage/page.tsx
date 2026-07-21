@@ -16,7 +16,7 @@ import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } 
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
 import { getVoterId } from "@/lib/responses";
-import { WallMedia } from "@/lib/types";
+import { Wall, WallMedia } from "@/lib/types";
 
 export default function WallManage() {
   const { id } = useParams<{ id: string }>();
