@@ -2,6 +2,27 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Yönetici: bootstrap e-posta (Google token'ından) VEYA users kaydında role=admin.
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'doganbaharozu@gmail.com'
+        || get(/databases/$(database)/documents/users/$(request.auth.uid))
+             .data.get('role', '') == 'admin'
+      );
+    }
+
+    // Kullanıcı kayıt defteri: girişte herkes KENDİ kaydını yazar ama role
+    // alanına dokunamaz (kendini admin yapamaz); rol atama/silme sadece yönetici.
+    match /users/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.get('role', 'user') == 'user';
+      allow update: if isAdmin()
+        || (request.auth != null && request.auth.uid == uid
+            && request.resource.data.get('role', 'user') == resource.data.get('role', 'user'));
+      allow delete: if isAdmin();
+    }
+
     // Sunumlar: herkes okuyabilir (izleyiciler auth'suz katılır),
     // sadece sahibi yazabilir.
     match /presentations/{presentationId} {

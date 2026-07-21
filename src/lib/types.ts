@@ -68,6 +68,23 @@ export interface SessionRecord {
   endedAt: Timestamp | null;
 }
 
+// ── Kullanıcı kayıtları / yönetici ──────────────────────────────────────────
+
+/**
+ * users/{uid}: her girişte güncellenen kullanıcı kaydı (Auth listesi istemciden
+ * okunamaz; kayıt defteri budur). role'ü sadece yönetici değiştirebilir (rules).
+ */
+export interface UserRecord {
+  /** Doküman ID = Firebase Auth uid */
+  id: string;
+  email: string;
+  displayName?: string;
+  photoURL?: string;
+  role?: "admin" | "user";
+  createdAt?: Timestamp | null;
+  lastSeenAt?: Timestamp | null;
+}
+
 // ── FlowWall (canlı etkinlik foto/video duvarı) ──────────────────────────────
 
 /** Bir FlowWall duvarı (walls/{id}). FlowMeter sunumlarından bağımsız koleksiyon. */

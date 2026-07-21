@@ -92,6 +92,10 @@ presentations/{id}: ownerId, title, joinCode, mode, currentSlideIndex,
                               [create-only; delete sadece owner]
 joinCodes/{code}: presentationId   VEYA {id, kind:"wall"} (FlowWall duvarı)
 
+users/{uid}: email, displayName, photoURL, role("admin"|yok), createdAt,
+             lastSeenAt   [girişte upsert; role sadece admin yazar; /admin sayfası.
+             Bootstrap admin: doganbaharozu@gmail.com (rules'ta hardcode)]
+
 walls/{id}: ownerId, title, joinCode, moderation, headline, sessionId, createdAt
   └─ media/{autoId}: voterId, nickname?, type(image|video), cloudinaryId, url,
                      w, h, durationMs?, status(pending|approved|rejected),

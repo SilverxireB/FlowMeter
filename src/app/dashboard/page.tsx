@@ -17,6 +17,7 @@ import {
   renamePresentation,
   setPresentationFolder,
 } from "@/lib/presentations";
+import { getUserRecord, isAdminUser, upsertUserRecord } from "@/lib/users";
 import { createWall, deleteWall, listWalls } from "@/lib/walls";
 import { TEMPLATES } from "@/lib/templates";
 import { themeStyle } from "@/lib/themes";
@@ -123,6 +124,16 @@ export default function DashboardPage() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Kullanıcı kayıt defteri: girişte kayıt düş + yönetici mi öğren (/admin linki)
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    upsertUserRecord(user).catch(() => {});
+    getUserRecord(user.uid)
+      .then((r) => setIsAdmin(isAdminUser(user, r)))
+      .catch(() => setIsAdmin(isAdminUser(user, null)));
+  }, [user]);
 
   const folders = useMemo(
     () => [...new Set(items.map((p) => p.folder).filter((f): f is string => !!f))].sort(),
@@ -243,9 +254,16 @@ export default function DashboardPage() {
         <Link href="/" className="shrink-0">
           <Logo />
         </Link>
-        <span className="chip text-muted min-w-0 max-w-[55vw]">
-          <span className="truncate">{user.email}</span>
-        </span>
+        <div className="flex items-center gap-2 min-w-0">
+          {isAdmin && (
+            <Link href="/admin" className="chip !py-1.5 text-accent font-semibold shrink-0 hover:border-accent">
+              🛡 Admin
+            </Link>
+          )}
+          <span className="chip text-muted min-w-0 max-w-[45vw]">
+            <span className="truncate">{user.email}</span>
+          </span>
+        </div>
       </header>
 
       <section className="max-w-4xl mx-auto px-4 py-10">

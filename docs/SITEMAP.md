@@ -20,6 +20,7 @@
 | `/present/[id]` | Sunum: -1 = büyük QR katılım ekranı; slaytlarda mini QR + kalıcı "katıl" pili + "X/Y yanıtladı"; tepki uçuşları+sayaç; kontroller (oylama aç/kapat, sıfırla, 🙈 gizle, ⛶, 🏆 podyum, 💬 sohbet, Bitir); atlanan slaytları geçer; quiz müziği 🎵 |
 | `/results/[id]` | Sonuç inceleme + ⬇ CSV export + oturum seçici (Tüm/Şu anki/geçmiş oturumlar) |
 | `/moderate/[code]` | Q&A moderasyon ekranı (kod veya id; sadece sahip): bekleyenler ✓ Onayla / ✕ Reddet, onay geri alma, moderasyon aç/kapat |
+| `/admin` | Yönetici paneli (bootstrap: doganbaharozu@gmail.com + role=admin): kullanıcı kayıtları listele, yönetici yap/kaldır, kayıt sil |
 | `/wall` | **FlowWall** karşılama (koyu/festival): akıllı kod kutusu (deck→/join, wall→/u), "kendi duvarını oluştur" |
 | `/wall/[id]` | FlowWall perde ekranı: sağ/sol akan film şeritleri + orta sahne (foto ~7sn, video süresince) + QR/kod köşe |
 | `/u/[id]` | FlowWall yükleme (misafir, auth yok): foto/video seç → önizleme → Cloudinary %ilerleme → duvara/onaya |
