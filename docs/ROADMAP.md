@@ -127,9 +127,19 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
       `/wall/[id]/manage` (moderasyon toggle, onayla/reddet, başlık).
 - [x] **Dashboard**: Sunumlar | Duvarlar sekmesi + "Yeni duvar".
 - [x] **Rules**: `walls` + `media` (moderasyon açıkken create status=pending zorunlu).
-- [ ] Cloudinary hesabı/env (kullanıcı) + rules konsola yapıştır.
-- [ ] Fast-follow: Cloudinary silme + "tümünü indir" ZIP (Vercel API route),
-      FlowWall PWA ikonları, imzalı yükleme.
+- [x] Cloudinary hesabı/env + rules (kullanıcı yaptı, canlıda çalışıyor).
+- [x] Perde "resital": immersif bulanık arka plan, Ken Burns + crossfade,
+      mobilde de akan şeritler, video 12sn cap + hata atlaması, ✨ Yeni anı.
+- [x] Yükleme: çoklu seçim + karo ızgara + karo başına canlı %.
+- [x] Kokpit: sahibi medya ekler, Kaldırılanlar (geri al), her durumda erişilir.
+- [x] **Tümünü indir (ZIP)** — tarayıcıda JSZip ile paketler (sunucu yok).
+- [x] **Kalıcı silme** — /api/wall/destroy (idToken doğrulama + sahiplik +
+      imzalı Cloudinary destroy). Env: CLOUDINARY_API_KEY/SECRET (sunucu tarafı).
+- [x] **FlowWall PWA ikonları** — wall-icon-192/512 + apple-touch (kamera+halka,
+      logodan taranmış gerçek renkler); /wall ve /u rotaları kendi
+      manifest-wall.webmanifest kimliğini taşır.
+- [ ] Kalan: imzalı yükleme (sertleştirme), Cloudinary klasör temizliği (duvar
+      silinince toplu destroy), duvar teması (arka plan görseli).
 
 ## Faz 3.9 — Oturum arşivi + isimli katılım bulutu ✅
 

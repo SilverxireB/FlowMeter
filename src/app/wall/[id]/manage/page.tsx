@@ -43,6 +43,76 @@ export default function WallManage() {
   const [upPct, setUpPct] = useState(0);
   const [upErr, setUpErr] = useState<string | null>(null);
 
+  // Tümünü indir (ZIP) — tarayıcıda paketlenir, sunucu gerekmez
+  const [zipping, setZipping] = useState(false);
+  const [zipMsg, setZipMsg] = useState<string | null>(null);
+
+  async function downloadAll() {
+    if (zipping) return;
+    const list = allMedia.filter((m) => m.status !== "rejected");
+    if (!list.length) {
+      setZipMsg("İndirilecek medya yok.");
+      return;
+    }
+    setZipping(true);
+    setZipMsg(null);
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      let n = 0;
+      for (const m of list) {
+        try {
+          const res = await fetch(m.url);
+          if (!res.ok) throw new Error(String(res.status));
+          const blob = await res.blob();
+          const extFromUrl = m.url.split("?")[0].split(".").pop() ?? "";
+          const ext = /^[a-z0-9]{2,5}$/i.test(extFromUrl) ? extFromUrl : m.type === "video" ? "mp4" : "jpg";
+          const who = (m.nickname ?? "anonim").replace(/[^\p{L}\p{N} _-]/gu, "").trim() || "anonim";
+          zip.file(`${String(n + 1).padStart(3, "0")}-${who}.${ext}`, blob);
+          n++;
+          setZipMsg(`Paketleniyor… ${n}/${list.length}`);
+        } catch {
+          setZipMsg(`Paketleniyor… (${m.type} atlandı)`);
+        }
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `flowwall-${wall?.joinCode ?? id}.zip`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      setZipMsg(`✓ ${n} medya indirildi.`);
+    } catch (e) {
+      setZipMsg(`ZIP oluşturulamadı: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setZipping(false);
+    }
+  }
+
+  // KALICI silme: önce Cloudinary'deki dosya (API route), sonra Firestore kaydı
+  async function hardDelete(m: WallMedia) {
+    if (!confirm("Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?")) return;
+    try {
+      if (user && m.cloudinaryId && !m.cloudinaryId.startsWith("seed/")) {
+        const idToken = await user.getIdToken();
+        const res = await fetch("/api/wall/destroy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ wallId: id, cloudinaryId: m.cloudinaryId, resourceType: m.type, idToken }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok && j?.error !== "not-configured") {
+          setZipMsg(`Cloudinary silme başarısız (${j?.error ?? res.status}) — kayıt yine de duvardan kaldırıldı.`);
+        } else if (j?.error === "not-configured") {
+          setZipMsg("Not: CLOUDINARY_API_KEY/SECRET tanımlı değil — dosya Cloudinary'de kaldı, kayıt duvardan silindi.");
+        }
+      }
+    } catch {
+      // dosya silinemese de kaydı kaldır
+    }
+    await deleteMedia(id, m.id);
+  }
+
   async function ownerUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f || !wall) return;
@@ -132,6 +202,12 @@ export default function WallManage() {
               placeholder="Perde başlığı (ör. Ayşe & Mehmet · 2026)"
               className="input-base !py-2 mt-3 text-sm"
             />
+            <div className="flex items-center gap-3 mt-3 flex-wrap">
+              <button onClick={downloadAll} disabled={zipping} className="btn-ghost !py-2 !px-4 text-sm">
+                {zipping ? "⏳ Paketleniyor…" : "⬇ Tümünü indir (ZIP)"}
+              </button>
+              {zipMsg && <span className="text-muted text-xs">{zipMsg}</span>}
+            </div>
           </div>
         </div>
 
@@ -187,7 +263,7 @@ export default function WallManage() {
                 <MediaCard key={m.id} m={m}>
                   <div className="flex gap-1.5">
                     <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="flex-1 btn-ghost !py-1.5 text-xs">Kaldır</button>
-                    <button onClick={() => deleteMedia(id, m.id)} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Sil">🗑</button>
+                    <button onClick={() => hardDelete(m)} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil (Cloudinary dahil)">🗑</button>
                   </div>
                 </MediaCard>
               ))}
@@ -204,7 +280,7 @@ export default function WallManage() {
                 <MediaCard key={m.id} m={m}>
                   <div className="flex gap-1.5">
                     <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 btn-accent !py-1.5 text-xs">↩ Geri al</button>
-                    <button onClick={() => deleteMedia(id, m.id)} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil">🗑</button>
+                    <button onClick={() => hardDelete(m)} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil (Cloudinary dahil)">🗑</button>
                   </div>
                 </MediaCard>
               ))}
@@ -213,9 +289,9 @@ export default function WallManage() {
         )}
 
         <p className="text-muted text-xs">
-          Not: “Sil” şu an medyayı duvardan kaldırır (Firestore). Cloudinary'deki
-          dosyanın tamamen silinmesi ve “tümünü indir” için sunucu tarafı fonksiyon
-          eklenecek (bkz. docs/FLOWWALL.md).
+          🗑 = kalıcı silme (Cloudinary'deki dosya + duvar kaydı). Kalıcı silme için
+          Vercel'de CLOUDINARY_API_KEY ve CLOUDINARY_API_SECRET tanımlı olmalı;
+          değilse yalnız duvar kaydı silinir. “Tümünü indir” tarayıcıda paketler.
         </p>
       </div>
     </main>
