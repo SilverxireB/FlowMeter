@@ -27,9 +27,8 @@ import { cldFit, cldThumb, cldVideoPoster } from "@/lib/cloudinary";
 import { wallThemeStyle } from "@/lib/themes";
 import { BASE_WALL_SCREEN_MODES, WALL_SCREEN_MODES, WallMedia, WallScreenMode, wallEffectOf } from "@/lib/types";
 
-const IMAGE_MS = 6500; // fotoğraf sahne süresi (stage/cinema)
+const IMAGE_MS = 6500; // tüm modlarda fotoğraf sahne süresi
 const VIDEO_CAP_MS = 12000; // uzun videoları kesme sınırı
-const SPOT_MS = 5000; // spotlight değişim aralığı
 
 export default function WallScreen() {
   const { id: raw } = useParams<{ id: string }>();
@@ -88,7 +87,9 @@ export default function WallScreen() {
     return best?.id ?? null;
   }, [media]);
 
-  const { current: sharedCurrent, isNew: sharedIsNew, advance: sharedAdvance } = useSharedPlayback(media, topLovedId);
+  // Ortak oynatma denetleyicisi — tekil-foto modları (Sahne/Sinema/Spot) için:
+  // ağırlıklı adil seçim + YENİ foto anında açılır + tüm modlarda AYNI süre.
+  const play = usePagedPlayback(media);
 
   if (wallId === null) {
     return <main className="min-h-screen grid place-items-center bg-[#05091c] text-white/70">Duvar bulunamadı.</main>;
@@ -116,24 +117,27 @@ export default function WallScreen() {
         />
       )}
 
-      {/* Mod içeriği — auto'da mod değişince state korunur */}
-      <div className="relative z-10 h-full ww-fade">
+      {/* Mod içeriği — auto'da mod değişince yumuşak geçiş için key+fade */}
+      <div key={mode} className="relative z-10 h-full ww-fade">
         {media.length === 0 ? (
           <EmptyState mutedClass={mutedClass} />
         ) : mode === "mosaic" ? (
           <MosaicMode media={media} themeDark={themeDark} topLovedId={topLovedId} />
         ) : mode === "spotlight" ? (
-          <SpotlightMode media={media} themeDark={themeDark} topLovedId={topLovedId} />
+          <SpotlightMode media={media} themeDark={themeDark} topLovedId={topLovedId} hero={play.current} />
         ) : mode === "polaroid" ? (
           <PolaroidMode media={media} themeDark={themeDark} topLovedId={topLovedId} />
         ) : mode === "timeline" ? (
           <TimelineMode media={media} themeDark={themeDark} />
         ) : mode === "cinema" ? (
-          <CinemaMode media={media} topLovedId={topLovedId} current={sharedCurrent} advance={sharedAdvance} />
+          <CinemaMode media={media} topLovedId={topLovedId} current={play.current} advance={play.advance} />
         ) : (
-          <StageMode media={media} themeDark={themeDark} topLovedId={topLovedId} current={sharedCurrent} isNew={sharedIsNew} advance={sharedAdvance} />
+          <StageMode media={media} themeDark={themeDark} topLovedId={topLovedId} current={play.current} advance={play.advance} />
         )}
       </div>
+
+      {/* ✨ Yeni anı — global, tüm modlarda görünür */}
+      <WallNewMemory media={media} />
 
       {/* Başlık (üst orta) */}
       <div className="absolute top-5 left-1/2 -translate-x-1/2 z-20 text-center px-4 w-full max-w-[70vw] pointer-events-none">
@@ -231,10 +235,113 @@ function mediaPoster(m: WallMedia, w = 500, h = 500) {
   return m.type === "video" ? cldVideoPoster(m.url, w, h) : cldThumb(m.url, w, h);
 }
 
+/**
+ * Ortak oynatma denetleyicisi (tekil-foto modları için).
+ *  - Ağırlıklı adil seçim: taze foto öne, aynı kişi arka arkaya gelmez,
+ *    az gösterilen öne, beğeni bonusu, küçük rastgelelik.
+ *  - Yeni foto gelince ANINDA ona geçer (kesintisiz — en kritik davranış).
+ *  - Kalma süresi tüm modlarda AYNI (IMAGE_MS / video cap).
+ * advance() kimlik olarak sabittir (ref'lerle) → zamanlayıcı kararsızlaşmaz.
+ */
+function usePagedPlayback(media: WallMedia[]): { current: WallMedia | null; advance: () => void } {
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const mediaRef = useRef(media);
+  mediaRef.current = media;
+  const currentIdRef = useRef<string | null>(null);
+  const playCounts = useRef<Record<string, number>>({});
+  const lastByVoter = useRef<Record<string, number>>({});
+  const knownIds = useRef<Set<string>>(new Set());
+
+  const current = useMemo(
+    () => media.find((m) => m.id === currentId) ?? media[media.length - 1] ?? null,
+    [media, currentId]
+  );
+  currentIdRef.current = current?.id ?? null;
+
+  const advance = useCallback(() => {
+    const list = mediaRef.current;
+    if (!list.length) { setCurrentId(null); return; }
+    if (list.length === 1) { setCurrentId(list[0].id); return; }
+    const now = Date.now();
+    const curId = currentIdRef.current;
+    let bestId = list[0].id;
+    let best = -Infinity;
+    for (const m of list) {
+      if (m.id === curId) continue;
+      let s = 1 + Math.random() * 0.5;
+      const age = now - (m.createdAt?.toMillis?.() ?? now);
+      if (age < 5 * 60000) s += 2; else if (age < 15 * 60000) s += 0.8;
+      if (m.voterId) { const t = lastByVoter.current[m.voterId] ?? 0; if (now - t < 30000) s -= 5; }
+      s -= (playCounts.current[m.id] ?? 0) * 0.4;
+      s += (m.likes ?? 0) * 0.2;
+      if (s > best) { best = s; bestId = m.id; }
+    }
+    playCounts.current[bestId] = (playCounts.current[bestId] ?? 0) + 1;
+    const bm = list.find((m) => m.id === bestId);
+    if (bm?.voterId) lastByVoter.current[bm.voterId] = now;
+    setCurrentId(bestId);
+  }, []);
+
+  // Yeni medya → anında ona geç (ilk yüklemede baseline kurar, atlamaz).
+  useEffect(() => {
+    let newest: WallMedia | null = null;
+    for (const m of media) if (!knownIds.current.has(m.id)) newest = m; // asc → son yeni = en yeni
+    const first = knownIds.current.size === 0;
+    knownIds.current = new Set(media.map((m) => m.id));
+    if (first) { if (media.length) setCurrentId(media[media.length - 1].id); return; }
+    if (newest) {
+      playCounts.current[newest.id] = (playCounts.current[newest.id] ?? 0) + 1;
+      if (newest.voterId) lastByVoter.current[newest.voterId] = Date.now();
+      setCurrentId(newest.id);
+    }
+  }, [media]);
+
+  // Kalma süresi zamanlayıcısı — yalnız aktif id/tip değişince yeniden kurulur.
+  const curId = current?.id;
+  const curType = current?.type;
+  useEffect(() => {
+    if (!curId) return;
+    const dur = curType === "video" ? VIDEO_CAP_MS : IMAGE_MS;
+    const t = window.setTimeout(advance, dur);
+    return () => window.clearTimeout(t);
+  }, [curId, curType, advance]);
+
+  return { current, advance };
+}
+
+/** ✨ Yeni anı — global rozet; yeni medya gelince ~5 sn görünür (TÜM modlarda). */
+function WallNewMemory({ media }: { media: WallMedia[] }) {
+  const [show, setShow] = useState<WallMedia | null>(null);
+  const known = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    let newest: WallMedia | null = null;
+    for (const m of media) if (!known.current.has(m.id)) newest = m;
+    const first = known.current.size === 0;
+    known.current = new Set(media.map((m) => m.id));
+    if (first || !newest) return;
+    setShow(newest);
+    const t = window.setTimeout(() => setShow(null), 5000);
+    return () => window.clearTimeout(t);
+  }, [media]);
+
+  if (!show) return null;
+  const poster = mediaPoster(show, 120, 120);
+  return (
+    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 ww-pop pointer-events-none">
+      <div className="flex items-center gap-2.5 rounded-full bg-[#e34948] text-white pl-2 pr-4 py-1.5 shadow-2xl">
+        {poster && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={poster} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-white/40" />
+        )}
+        <span className="text-sm font-bold">✨ Yeni anı{show.nickname ? ` · ${show.nickname}` : ""}</span>
+      </div>
+    </div>
+  );
+}
+
 // ── Mod: SAHNE (mevcut resital) ───────────────────────────────────────────────
 
-function StageMode({ media, themeDark, topLovedId, current, isNew, advance }: { media: WallMedia[]; themeDark: boolean; topLovedId: string | null; current: WallMedia | null; isNew: boolean; advance: () => void }) {
-
+function StageMode({ media, themeDark, topLovedId, current, advance }: { media: WallMedia[]; themeDark: boolean; topLovedId: string | null; current: WallMedia | null; advance: () => void }) {
   const strips = splitStrips(media);
   const backdrop = current ? mediaPoster(current, 500, 500) : "";
 
@@ -259,14 +366,14 @@ function StageMode({ media, themeDark, topLovedId, current, isNew, advance }: { 
       )}
       <Strip items={strips.left} side="left" themeDark={themeDark} />
       <section className="flex-1 flex flex-col items-center justify-center px-4 min-w-0 relative z-10">
-        {current && <Stage media={current} isNew={isNew} loved={current.id === topLovedId} onEnded={advance} themeDark={themeDark} />}
+        {current && <Stage media={current} loved={current.id === topLovedId} onEnded={advance} themeDark={themeDark} />}
       </section>
       <Strip items={strips.right} side="right" themeDark={themeDark} />
     </div>
   );
 }
 
-function Stage({ media, isNew, loved, onEnded, themeDark }: { media: WallMedia; isNew: boolean; loved: boolean; onEnded: () => void; themeDark: boolean }) {
+function Stage({ media, loved, onEnded, themeDark }: { media: WallMedia; loved: boolean; onEnded: () => void; themeDark: boolean }) {
   return (
     <figure key={media.id} className="relative flex flex-col items-center ww-pop">
       <div className="relative rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10" style={{ maxHeight: "68vh" }}>
@@ -281,9 +388,6 @@ function Stage({ media, isNew, loved, onEnded, themeDark }: { media: WallMedia; 
       </div>
 
       <div className="mt-4 flex items-center gap-2 flex-wrap justify-center">
-        {isNew && (
-          <span className="rounded-full bg-[#e34948] text-white text-xs font-bold px-3 py-1 shadow-lg ww-pop">✨ Yeni anı</span>
-        )}
         {loved && <LovedRibbon />}
         {media.nickname && (
           <figcaption className={`px-4 py-1.5 rounded-full border text-sm font-semibold backdrop-blur ${themeDark ? "bg-white/12 border-white/10 text-white/90" : "bg-black/5 border-black/10 text-ink/90"}`}>
@@ -392,22 +496,7 @@ function MosaicTile({ m, themeDark, loved }: { m: WallMedia; themeDark: boolean;
 
 // ── Mod: SPOTLIGHT (öne çıkan + soluk arka) ───────────────────────────────────
 
-function SpotlightMode({ media, themeDark, topLovedId }: { media: WallMedia[]; themeDark: boolean; topLovedId: string | null }) {
-  const [idx, setIdx] = useState(0);
-  const prevLen = useRef(0);
-
-  useEffect(() => {
-    if (media.length > prevLen.current && prevLen.current > 0) setIdx(media.length - 1);
-    prevLen.current = media.length;
-  }, [media.length]);
-
-  useEffect(() => {
-    if (media.length < 2) return;
-    const t = window.setInterval(() => setIdx((i) => (i + 1 + Math.floor(Math.random() * (media.length - 1))) % media.length), SPOT_MS);
-    return () => window.clearInterval(t);
-  }, [media.length]);
-
-  const hero = media[((idx % media.length) + media.length) % media.length];
+function SpotlightMode({ media, themeDark, topLovedId, hero }: { media: WallMedia[]; themeDark: boolean; topLovedId: string | null; hero: WallMedia | null }) {
   const ring = useMemo(() => media.filter((m) => m.id !== hero?.id).slice(-14), [media, hero?.id]);
 
   return (
@@ -465,7 +554,7 @@ function PolaroidMode({ media, topLovedId }: { media: WallMedia[]; themeDark: bo
 
   useEffect(() => {
     if (media.length < 2) return;
-    const t = window.setInterval(() => setIdx((i) => i + 1), 5000);
+    const t = window.setInterval(() => setIdx((i) => i + 1), IMAGE_MS);
     return () => window.clearInterval(t);
   }, [media.length]);
 
@@ -608,7 +697,6 @@ function useDominantColor(url: string | undefined): string | null {
 // ── Mod: SİNEMA (tam ekran tek anı) ───────────────────────────────────────────
 
 function CinemaMode({ media, topLovedId, current, advance }: { media: WallMedia[]; topLovedId: string | null; current: WallMedia | null; advance: () => void }) {
-
   if (!current) return null;
   const backdrop = mediaPoster(current, 600, 600);
 
@@ -698,108 +786,4 @@ function WallStyles() {
       }
     `}</style>
   );
-}
-
-// ── Ortak Akıllı Oynatma (Weighted Round-Robin) ─────────────────────────────
-
-function useSharedPlayback(media: WallMedia[], topLovedId: string | null) {
-  const [currentId, setCurrentId] = useState<string | null>(null);
-  const [isNew, setIsNew] = useState(false);
-  const playCounts = useRef<Record<string, number>>({});
-  const lastPlayTimes = useRef<Record<string, number>>({});
-  
-  const mediaRef = useRef(media);
-  mediaRef.current = media;
-  const topLovedIdRef = useRef(topLovedId);
-  topLovedIdRef.current = topLovedId;
-
-  const current = useMemo(() => media.find((m) => m.id === currentId) || media[0] || null, [media, currentId]);
-
-  const advance = useCallback(() => {
-    const currentMedia = mediaRef.current;
-    if (currentMedia.length === 0) {
-      setCurrentId(null);
-      return;
-    }
-
-    const now = Date.now();
-    let bestScore = -Infinity;
-    let bestId = currentMedia[0].id;
-
-    for (const m of currentMedia) {
-      if (m.id === currentId && currentMedia.length > 1) continue;
-
-      let score = 1.0;
-      const ageMs = now - (m.createdAt?.toMillis?.() || now);
-
-      if (ageMs < 5 * 60 * 1000) {
-        score += 2.0;
-      } else if (ageMs < 15 * 60 * 1000) {
-        score += 0.8;
-      }
-
-      if (m.voterId) {
-        const lastVoterTime = lastPlayTimes.current[m.voterId] || 0;
-        if (now - lastVoterTime < 30 * 1000) {
-          score -= 5.0;
-        }
-      }
-
-      const played = playCounts.current[m.id] || 0;
-      score -= played * 0.4;
-
-      if (m.likes) score += m.likes * 0.2;
-      if (m.id === topLovedIdRef.current) score += 1.0;
-
-      score += Math.random() * 0.5;
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestId = m.id;
-      }
-    }
-
-    playCounts.current[bestId] = (playCounts.current[bestId] || 0) + 1;
-    const bestMedia = currentMedia.find((m) => m.id === bestId);
-    if (bestMedia?.voterId) {
-      lastPlayTimes.current[bestMedia.voterId] = now;
-    }
-    
-    setCurrentId((prevId) => {
-      const isActuallyNew = bestMedia && (now - (bestMedia.createdAt?.toMillis?.() || now)) < 15000;
-      setIsNew(Boolean(isActuallyNew && playCounts.current[bestId] <= 1));
-      return bestId;
-    });
-  }, [currentId]);
-
-  // Yeni fotoğraf yüklendiğinde anında ona geç (Kullanıcının özlediği davranış)
-  const prevLen = useRef(media.length);
-  useEffect(() => {
-    if (media.length > prevLen.current && prevLen.current > 0) {
-      const newest = media[media.length - 1]; // createdAt asc olduğu için son eleman en yenisidir
-      if (newest) {
-        setCurrentId(newest.id);
-        setIsNew(true);
-        playCounts.current[newest.id] = (playCounts.current[newest.id] || 0) + 1;
-        if (newest.voterId) lastPlayTimes.current[newest.voterId] = Date.now();
-      }
-    }
-    prevLen.current = media.length;
-  }, [media]);
-
-  // Arka plan zamanlayıcısı (Mod geçişlerinden ve render'lardan etkilenmez!)
-  const activeId = current?.id;
-  const activeType = current?.type;
-  useEffect(() => {
-    if (!activeId) {
-      if (mediaRef.current.length > 0) advance();
-      return;
-    }
-    // Tüm modlar için aynı resim süresini (IMAGE_MS) zorluyoruz ki tutarlı olsun
-    const dur = activeType === "video" ? VIDEO_CAP_MS : IMAGE_MS;
-    const t = window.setTimeout(advance, dur);
-    return () => window.clearTimeout(t);
-  }, [activeId, activeType, advance]);
-
-  return { current, isNew, advance };
 }
