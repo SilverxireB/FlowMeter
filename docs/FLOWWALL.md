@@ -11,7 +11,68 @@
 > **TODO (fast-follow):** Cloudinary dosya silme + "tümünü indir" (ZIP) için
 > Vercel API route; FlowWall PWA ikonları; imzalı yükleme (opsiyonel sertleştirme).
 
+---
 
+## 🧺 FİKİR HAVUZU (harmanlanmış — okuyup çıkaracağız)
+
+> **Nasıl kullanılır:** Burası ürün+özellik fikirlerinin tek toplandığı yer.
+> `[x]` = yapıldı/canlıda · `[ ]` = havuzda (henüz seçilmedi). Okuyup birini
+> seçince kurmaya geçeriz; istemediğimizi satırı silerek çıkarırız. **Yaşayan
+> liste** — proje ilerledikçe yenileri eklenir. Öncelik: **önce ürün & özellik**;
+> güvenlik / ürün satışı / pricing en sonda ("Sonraki planlar").
+
+### ✅ Canlıda (tamam)
+- [x] 5 perde modu (Sahne · Mozaik · Spot · Polaroid · Sinema) + 🔀 Otomatik geçiş
+- [x] Tema presetleri + özel arka plan + Yılbaşı karı · yazdırılabilir QR kartı
+- [x] Çoklu yükleme (karo ızgara, canlı %) · moderasyon · ZIP indir · kalıcı silme
+- [x] Duvarı gez sekmesi + ❤ beğeni + "Benimkiler" + perdede 👑 En sevilen
+- [x] Admin paneli (kullanıcı yönetimi)
+
+### 🎬 Blok A — Perde şovu (görsel deneyimi büyüt)
+- [ ] Canlı emoji/kalp yağmuru (misafir gönderir → perdeye düşer; FlowMeter reactions taşınır)
+- [ ] Özel an / geri sayım (gece yarısı, düğün "kesim anı") → perdede konfeti + kutlama
+- [ ] Anı/dilek mesajları (foto değil yazılı not; akan "dilek bandı")
+- [ ] Perde müziği (WebAudio ambient, dış servis yok)
+- [ ] Temaya özel efektler (düğün kalp, parti balon/konfeti — kar zaten var)
+
+### 🎪 Blok B — Etkinliğe hazır ol (operasyonel şart)
+- [ ] Yaşam döngüsü: duvarı kapat (perdede "teşekkürler") + yeni oturum (sessionId rotasyonu)
+- [ ] Kokpit istatistik/özet: kaç anı, kaç katılımcı, en aktif kişi, en sevilenler
+- [ ] Öne çıkar / gizle / sabitle (bir fotoyu perdede öne al ya da düşür)
+- [ ] Cloudinary toplu temizlik (duvar silinince delete_by_prefix)
+
+### 📱 Blok C — Katılım deneyimi (misafir tarafı)
+- [ ] Anlık çekim (dosya seçmeden direkt kamera — capture)
+- [ ] Foto çerçevesi / sticker (yüklerken etkinlik çerçevesi ekle)
+- [ ] "Duvarda göründün!" (foton perdeye düşünce telefonda ışıldar)
+- [ ] Masa/grup etiketi (hangi masadan — QR başına)
+
+### 💝 Blok D — Etkinlik sonu / hatıra
+- [ ] Otomatik kolaj/kapak (etkinlik özeti tek görsel, canvas)
+- [ ] Paylaşılabilir galeri linki (sonrasında misafirlere read-only galeri)
+- [ ] "En sevilenler" özeti / highlight turu
+
+### ✨ Taze fikirler (2026-07 — eğlence / duygusal / yeni perde)
+- [ ] **Foto yarışması + oylama** (en iyi kostüm/kare; misafir oylar, kazanan perdede — FlowMeter köprüsü)
+- [ ] **Sesli/video tebrik kabini** (10 sn tebrik, moderasyonlu, perdede dalga formu)
+- [ ] **Hatıra kitabı (PDF)** (tüm foto + dilek mesajları tek şık PDF, "anı defteri")
+- [ ] Foto booth / boomerang (seri çekim → kısa döngü GIF, client-side)
+- [ ] Canlı doodle/etiket (yüklemeden önce fotonun üstüne çizim/yazı/sticker)
+- [ ] "Bu kim?" oyunu (çocukluk fotoğrafı tahmini — buz kırıcı, FlowMeter köprüsü)
+- [ ] Milestone kutlamaları (100. foto → konfeti; "günün karesi" otomatik)
+- [ ] **Zaman tüneli modu** (kronolojik akış, saat damgalı — 6. perde modu)
+- [ ] Baskın renk ambiyansı (yüklenen fotonun renginden perde teması canlı değişir)
+- [ ] Canlı anons/isim bandı (perde altı ticker: organizatör duyurusu + "X paylaştı")
+
+### 🔗 Köprü — İki ürün birleşsin
+- [ ] FlowMeter sunumuna canlı "wall" slayt tipi + video sesi aç/kapat + video süre limiti
+
+### 🔒 Sonraki planlar (ŞİMDİLİK PARK — ürün oturunca)
+- [ ] Güvenlik: anonim-auth (guest self-delete), imzalı yükleme, boyut/format/rate limit, AI moderasyon
+- [ ] Ayrı domain / marka
+- [ ] Ürün satışı / pricing / paketler
+
+---
 
 > Kullanıcının fikri (2026-07-18 oturumunda anlatıldı). Yeni bir session bu
 > dosyayı okuyarak projeyi baştan anlatmaya gerek kalmadan devam edebilmeli.
