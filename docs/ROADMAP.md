@@ -168,6 +168,10 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
       `walls/{id}/reactions` create-only + rules → perdede `WallReactionOverlay`
       yukarı uçar) + temaya özel ambient efektler (`Hearts` düğün, `Confetti`
       parti, `Snowflakes` yılbaşı). Gönderim 500ms throttle.
+- [x] **Grup 2 — Perde bantları**: dilek mesajları (`/u` 💌 sekmesi →
+      `walls/{id}/wishes` create-only + rules → perdede `WallWishes` dönen kart) +
+      canlı anons (kokpit metin + süre 1–60 dk → `wall.announcement{text,until}` →
+      perdede `WallAnnouncement` banner, süre dolunca kalkar).
 - [ ] Kalan (Dalga 1): **duvar yaşam döngüsü** (kapat/yeni oturum — sessionId
       rotasyonu), **Cloudinary toplu temizlik** (delete_by_prefix API route);
       ileride imzalı yükleme (sertleştirme).

@@ -12,7 +12,7 @@ import QrCode from "@/components/present/QrCode";
 import { downloadQrCard } from "@/components/WallQrCard";
 import Snowflakes from "@/components/Snowflakes";
 import { useAuthUser, useWall, useWallMedia } from "@/lib/hooks";
-import { addWallMedia, deleteMedia, setMediaStatus, setWallAutoInterval, setWallAutoModes, setWallHeadline, setWallModeration, setWallScreenMode, setWallTheme } from "@/lib/walls";
+import { addWallMedia, clearWallAnnouncement, deleteMedia, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallHeadline, setWallModeration, setWallScreenMode, setWallTheme } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
@@ -21,6 +21,7 @@ import { BASE_WALL_SCREEN_MODES, Wall, WallMedia, WALL_SCREEN_MODES } from "@/li
 
 const AUTO_INTERVALS = [20, 30, 45, 60, 90];
 const fmtInterval = (s: number) => (s < 60 ? `${s} sn` : s % 60 === 0 ? `${s / 60} dk` : `${(s / 60).toFixed(1)} dk`);
+const ANN_MINUTES = [1, 2, 5, 10, 15, 30, 60];
 
 export default function WallManage() {
   const { id } = useParams<{ id: string }>();
@@ -53,6 +54,13 @@ export default function WallManage() {
   // Tümünü indir (ZIP) — tarayıcıda paketlenir, sunucu gerekmez
   const [zipping, setZipping] = useState(false);
   const [zipMsg, setZipMsg] = useState<string | null>(null);
+  const [annText, setAnnText] = useState("");
+  const [annMin, setAnnMin] = useState(2);
+  const [annNow, setAnnNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setAnnNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, []);
 
   async function downloadAll() {
     if (zipping) return;
@@ -380,6 +388,62 @@ export default function WallManage() {
             </div>
           )}
         </div>
+
+        {/* Canlı anons */}
+        {(() => {
+          const annUntil = wall.announcement?.until?.toMillis?.() ?? 0;
+          const annActive = Boolean(wall.announcement?.text) && annUntil > annNow;
+          const remain = Math.max(0, Math.round((annUntil - annNow) / 1000));
+          return (
+            <div className="card p-5">
+              <p className="eyebrow mb-1">📢 Canlı anons</p>
+              <p className="text-muted text-xs mb-3">Perdeye seçtiğin süre boyunca öne çıkan bir duyuru bas (ör. &quot;Kokteyller dağıtılıyor&quot;). Süre dolunca kendiliğinden kalkar.</p>
+
+              {annActive && (
+                <div className="mb-4 rounded-2xl bg-accent-soft/50 border border-accent/30 px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate">📢 {wall.announcement?.text}</p>
+                    <p className="text-muted text-xs tabular-nums">Perdede · kalan {Math.floor(remain / 60)}:{String(remain % 60).padStart(2, "0")}</p>
+                  </div>
+                  <button onClick={() => clearWallAnnouncement(id).catch(console.error)} className="btn-ghost !py-1.5 !px-3 text-xs !text-brand !border-brand shrink-0">
+                    Kaldır
+                  </button>
+                </div>
+              )}
+
+              <input
+                value={annText}
+                onChange={(e) => setAnnText(e.target.value.slice(0, 160))}
+                placeholder="Anons metni (ör. Yemek servisi başladı 🍽)"
+                className="input-base !py-2 text-sm mb-3"
+              />
+              <div className="flex items-center gap-2 flex-wrap mb-3">
+                <span className="text-muted text-xs">Süre:</span>
+                {ANN_MINUTES.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setAnnMin(m)}
+                    className={`!py-1.5 !px-3 text-xs rounded-full font-semibold border tabular-nums ${
+                      annMin === m ? "border-accent bg-accent-soft/50 text-accent" : "border-line text-muted hover:text-ink"
+                    }`}
+                  >
+                    {m} dk
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  if (!annText.trim()) return;
+                  setWallAnnouncement(id, annText, annMin).then(() => setAnnText("")).catch(console.error);
+                }}
+                disabled={!annText.trim()}
+                className="btn-accent !py-2 !px-5 text-sm disabled:opacity-40"
+              >
+                {annActive ? "Yeni anonsu yayınla" : "Yayınla"} →
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Sunucu kendi medyasını ekler (moderasyondan bağımsız kokpit) */}
         <div className="card p-4 flex items-center gap-3 flex-wrap">

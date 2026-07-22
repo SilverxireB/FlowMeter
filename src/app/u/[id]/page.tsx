@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import WallReactionBar from "@/components/wall/WallReactionBar";
 import { useWall, useWallMedia } from "@/lib/hooks";
-import { addWallMedia, hasLikedMedia, likeMedia, resolveCode } from "@/lib/walls";
+import { addWallMedia, hasLikedMedia, likeMedia, resolveCode, sendWallWish } from "@/lib/walls";
 import { cloudinaryStatus, cldFit, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { getStoredNickname, storeIdentity, getStoredAvatarSeed } from "@/lib/participants";
 import { getVoterId } from "@/lib/responses";
@@ -39,7 +39,7 @@ export default function UploadPage() {
 
   const { wall } = useWall(wallId ?? null);
 
-  const [tab, setTab] = useState<"upload" | "browse">("upload");
+  const [tab, setTab] = useState<"upload" | "browse" | "wish">("upload");
 
   const [nickname, setNickname] = useState("");
   useEffect(() => setNickname(getStoredNickname() ?? ""), []);
@@ -157,13 +157,21 @@ export default function UploadPage() {
             onClick={() => setTab("browse")}
             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${tab === "browse" ? "bg-white text-[#070c22]" : "text-white/60"}`}
           >
-            🖼 Duvarı gez
+            🖼 Gez
+          </button>
+          <button
+            onClick={() => setTab("wish")}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${tab === "wish" ? "bg-white text-[#070c22]" : "text-white/60"}`}
+          >
+            💌 Dilek
           </button>
         </div>
       </div>
 
       {tab === "browse" ? (
         <BrowseGallery wallId={wallId ?? null} />
+      ) : tab === "wish" ? (
+        <WishTab wallId={wallId ?? null} defaultName={nickname} />
       ) : (
       <section className="flex-1 flex flex-col px-5 pb-24 pt-4 max-w-md w-full mx-auto">
         {!isCloudinaryConfigured() && (
@@ -274,6 +282,63 @@ export default function UploadPage() {
 
       {typeof wallId === "string" && <WallReactionBar wallId={wallId} />}
     </main>
+  );
+}
+
+/** Dilek bırak — yazılı not, perdede akan dilek bandında görünür. */
+function WishTab({ wallId, defaultName }: { wallId: string | null; defaultName: string }) {
+  const [text, setText] = useState("");
+  const [name, setName] = useState(defaultName);
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setName(defaultName), [defaultName]);
+
+  async function send() {
+    if (!wallId || !text.trim() || busy) return;
+    setBusy(true);
+    try {
+      await sendWallWish(wallId, text, name);
+      setText("");
+      setSent(true);
+      window.setTimeout(() => setSent(false), 3500);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="flex-1 flex flex-col px-5 pb-24 pt-4 max-w-md w-full mx-auto">
+      <div className="rounded-3xl bg-white/5 border border-white/12 p-5">
+        <h2 className="text-lg font-bold mb-1">💌 Dileğini bırak</h2>
+        <p className="text-white/55 text-sm mb-4">Kısa bir not yaz — perdede akan dileklerin arasında parlar.</p>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value.slice(0, 140))}
+          placeholder="Mutluluklar, iyi ki doğdun, harika bir geceydi…"
+          rows={3}
+          className="w-full rounded-xl bg-white/10 border border-white/15 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 resize-none"
+        />
+        <div className="flex items-center justify-between mt-1 mb-3">
+          <span className="text-white/30 text-xs tabular-nums">{text.length}/140</span>
+        </div>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value.slice(0, 30))}
+          placeholder="Adın (opsiyonel)"
+          className="w-full rounded-xl bg-white/10 border border-white/15 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 mb-4"
+        />
+        <button
+          onClick={send}
+          disabled={!text.trim() || busy}
+          className="w-full py-3.5 rounded-2xl bg-white text-[#070c22] font-semibold disabled:opacity-40"
+        >
+          {busy ? "Gönderiliyor…" : "Dileği gönder →"}
+        </button>
+        {sent && (
+          <p className="mt-3 text-center text-[#8be2b0] text-sm font-semibold animate-pop">✓ Dileğin duvara düştü, teşekkürler!</p>
+        )}
+      </div>
+    </section>
   );
 }
 

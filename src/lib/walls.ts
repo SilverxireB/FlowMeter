@@ -20,7 +20,8 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { Wall, WallMedia, WallScreenMode } from "./types";
+import { getVoterId } from "./responses";
+import { Wall, WallMedia, WallScreenMode, WallWish } from "./types";
 
 function randomCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -191,6 +192,49 @@ export async function sendWallReaction(wallId: string, emoji: WallReactionEmoji)
     emoji,
     createdAt: serverTimestamp(),
   });
+}
+
+// ── Dilek/not mesajları (misafir yazılı → perdede akan dilek bandı) ───────────
+let lastWishSent = 0;
+
+/** Duvara dilek/not bırakır (create-only). 800ms throttle. */
+export async function sendWallWish(wallId: string, text: string, nickname?: string): Promise<void> {
+  const clean = text.trim().slice(0, 140);
+  if (!clean) return;
+  const now = Date.now();
+  if (now - lastWishSent < 800) return;
+  lastWishSent = now;
+  const data: Record<string, unknown> = {
+    text: clean,
+    voterId: getVoterId(),
+    createdAt: serverTimestamp(),
+  };
+  if (nickname && nickname.trim()) data.nickname = nickname.trim().slice(0, 30);
+  await addDoc(collection(db(), "walls", wallId, "wishes"), data);
+}
+
+export function watchWallWishes(id: string, cb: (w: WallWish[]) => void): () => void {
+  const q = query(collection(db(), "walls", id, "wishes"), orderBy("createdAt", "desc"));
+  return onSnapshot(q, (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as WallWish));
+  });
+}
+
+export async function deleteWish(wallId: string, wishId: string): Promise<void> {
+  await deleteDoc(doc(db(), "walls", wallId, "wishes", wishId));
+}
+
+// ── Canlı anons (moderasyondan; süre sonuna kadar perdede durur) ──────────────
+/** Anons yayınlar: `until` = şimdi + dakika. Perde bu ana kadar gösterir. */
+export async function setWallAnnouncement(wallId: string, text: string, durationMin: number): Promise<void> {
+  const clean = text.trim().slice(0, 160);
+  if (!clean) return;
+  const until = new Date(Date.now() + Math.max(1, durationMin) * 60_000);
+  await updateDoc(doc(db(), "walls", wallId), { announcement: { text: clean, until }, updatedAt: serverTimestamp() });
+}
+
+export async function clearWallAnnouncement(wallId: string): Promise<void> {
+  await updateDoc(doc(db(), "walls", wallId), { announcement: null, updatedAt: serverTimestamp() });
 }
 
 // ── Beğeni (misafir ❤ — sunum Q&A upvote deseniyle aynı: +1, localStorage dedup) ─

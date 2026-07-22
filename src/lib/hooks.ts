@@ -4,8 +4,8 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, doc, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { auth, db, isFirebaseConfigured } from "./firebase";
-import { AudienceQuestion, ChatMessage, Participant, Presentation, ResponseDoc, Slide, Wall, WallMedia } from "./types";
-import { watchWall, watchWallMedia } from "./walls";
+import { AudienceQuestion, ChatMessage, Participant, Presentation, ResponseDoc, Slide, Wall, WallMedia, WallWish } from "./types";
+import { watchWall, watchWallMedia, watchWallWishes } from "./walls";
 
 /** Presenter oturumu. loading=true iken yönlendirme yapma. */
 export function useAuthUser() {
@@ -180,4 +180,13 @@ export function useWallMedia(id: string | null) {
     return watchWallMedia(id, setMedia);
   }, [id]);
   return media;
+}
+
+export function useWallWishes(id: string | null) {
+  const [wishes, setWishes] = useState<WallWish[]>([]);
+  useEffect(() => {
+    if (!id || !isFirebaseConfigured()) return;
+    return watchWallWishes(id, setWishes);
+  }, [id]);
+  return wishes;
 }

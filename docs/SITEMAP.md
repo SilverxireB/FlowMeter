@@ -23,7 +23,7 @@
 | `/admin` | Yönetici paneli (bootstrap: doganbaharozu@gmail.com + role=admin): kullanıcı kayıtları listele, yönetici yap/kaldır, kayıt sil |
 | `/wall` | **FlowWall** karşılama (koyu/festival): akıllı kod kutusu (deck→/join, wall→/u), "kendi duvarını oluştur" |
 | `/wall/[id]` | FlowWall perde ekranı: kokpitten seçilen `screenMode` ile 5 mod — Sahne (şeritler+orta sahne) · Mozaik (kayan ızgara) · Spot (öne çıkan+soluk) · Polaroid (arka yığın+ön büyük) · Sinema (tam ekran+film şeridi) — ya da **Otomatik** (seçili modlar arası `autoIntervalSec` aralıkla döner); ❤ beğeni rozetleri + 👑 en sevilen; QR/kod köşe |
-| `/u/[id]` | FlowWall misafir (auth yok): **Yükle** sekmesi (foto/video seç → Cloudinary %ilerleme → duvara/onaya) + **Duvarı gez** sekmesi (onaylı akış, ❤ beğen, "Benimkiler" filtresi) |
+| `/u/[id]` | FlowWall misafir (auth yok): **Yükle** (foto/video → Cloudinary %ilerleme → duvara/onaya) · **Gez** (onaylı akış, ❤ beğen, "Benimkiler") · **💌 Dilek** (yazılı not → perdede dilek bandı); altta sabit emoji tepki çubuğu (→ perdeye uçar) |
 | `/wall/[id]/manage` | FlowWall yönetim (sahip): moderasyon toggle, bekleyen onayla/reddet, perde medyası kaldır/sil, başlık, QR/kod |
 
 ## 2. Dosya Haritası

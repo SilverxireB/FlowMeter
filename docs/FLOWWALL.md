@@ -29,9 +29,11 @@
    çubuğu → `walls/{id}/reactions` create-only → perdede yukarı uçar,
    `WallReactionOverlay`) + temaya özel ambient (düğün 💗 `Hearts`, parti 🎈🎊
    `Confetti`, yılbaşı ❄️ `Snowflakes`). Rules'a reactions bloğu eklendi.
-2. **Grup 2 — Perde bantları:** anı/dilek mesajları (akan dilek bandı) + canlı
-   anons bandı — **moderasyondan yönetilir**, anons seçilen süre ekranda tutulur,
-   sonra akış devam eder (süre aralığı **1–60 dk**; ör. "kokteyller dağıtıldı" 2 dk).
+2. ✅ **Grup 2 — Perde bantları (YAPILDI):** dilek mesajları (`/u` 💌 Dilek sekmesi
+   → `walls/{id}/wishes` create-only 1–140 krkt → perdede başlık altında dönen
+   `WallWishes` kartı) + canlı anons (kokpitten metin + süre 1/2/5/10/15/30/60 dk →
+   `wall.announcement{text,until}` → perdede `WallAnnouncement` banner, süre dolunca
+   kalkar, kokpitten "Kaldır"). Rules'a wishes bloğu eklendi.
 3. **Grup 3 — Kokpit & öne çıkanlar:** istatistik/özet (kaç anı/katılımcı, en aktif,
    en sevilenler) + "En sevilenler" highlight turu (perde) + milestone kutlamaları
    (100. foto → konfeti, "günün karesi").

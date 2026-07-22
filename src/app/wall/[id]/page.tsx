@@ -19,7 +19,9 @@ import Snowflakes from "@/components/Snowflakes";
 import Hearts from "@/components/Hearts";
 import Confetti from "@/components/Confetti";
 import WallReactionOverlay from "@/components/wall/WallReactionOverlay";
-import { useWall, useWallMedia } from "@/lib/hooks";
+import WallWishes from "@/components/wall/WallWishes";
+import WallAnnouncement from "@/components/wall/WallAnnouncement";
+import { useWall, useWallMedia, useWallWishes } from "@/lib/hooks";
 import { resolveCode } from "@/lib/walls";
 import { cldFit, cldThumb, cldVideoPoster } from "@/lib/cloudinary";
 import { wallThemeStyle } from "@/lib/themes";
@@ -44,6 +46,7 @@ export default function WallScreen() {
   const { wall } = useWall(wallId ?? null);
   const allMedia = useWallMedia(wallId ?? null);
   const media = useMemo(() => allMedia.filter((m) => m.status === "approved"), [allMedia]);
+  const wishes = useWallWishes(wallId ?? null);
 
   const [joinUrl, setJoinUrl] = useState("");
   useEffect(() => {
@@ -118,6 +121,9 @@ export default function WallScreen() {
         </h1>
       </div>
 
+      {/* Dilek bandı (başlık altında dönen kart) */}
+      <WallWishes wishes={wishes} themeDark={themeDark} />
+
       {/* Katılım kartı (alt orta) */}
       <div className={`absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 rounded-2xl px-4 py-3 backdrop-blur-md shadow-xl ${cardChrome}`}>
         {joinUrl && (
@@ -148,6 +154,9 @@ export default function WallScreen() {
           🔀 {WALL_SCREEN_MODES.find((m) => m.id === mode)?.name ?? mode}
         </div>
       )}
+
+      {/* Canlı anons (moderasyondan; süresi dolunca kaybolur) */}
+      <WallAnnouncement announcement={wall?.announcement} />
 
       <WallStyles />
     </main>

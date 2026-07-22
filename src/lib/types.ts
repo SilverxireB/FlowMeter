@@ -125,6 +125,8 @@ export interface Wall {
   autoModes?: WallScreenMode[];
   /** "auto" modda modlar arası geçiş aralığı (saniye; varsayılan 30) */
   autoIntervalSec?: number;
+  /** Canlı anons (moderasyondan yayınlanır; `until`e kadar perdede durur) */
+  announcement?: { text: string; until: Timestamp | null } | null;
   sessionId?: string;
   sessionStartedAt?: Timestamp | null;
   createdAt: Timestamp | null;
@@ -148,6 +150,15 @@ export interface WallMedia {
   /** Misafir beğenileri (❤ ile +1; perdede "en sevilen" anı) */
   likes?: number;
   sessionId?: string;
+  createdAt: Timestamp | null;
+}
+
+/** Duvara bırakılan yazılı dilek/not (walls/{id}/wishes/{autoId}). */
+export interface WallWish {
+  id: string;
+  text: string;
+  nickname?: string;
+  voterId: string;
   createdAt: Timestamp | null;
 }
 
