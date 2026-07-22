@@ -9,8 +9,8 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import WallReactionBar from "@/components/wall/WallReactionBar";
-import { useWall, useWallMedia } from "@/lib/hooks";
-import { addWallMedia, hasLikedMedia, likeMedia, resolveCode, sendWallWish } from "@/lib/walls";
+import { useWall } from "@/lib/hooks";
+import { addWallMedia, hasLikedMedia, likeMedia, resolveCode, sendWallWish, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
 import { cloudinaryStatus, cldFit, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { getStoredNickname, storeIdentity, getStoredAvatarSeed } from "@/lib/participants";
 import { getVoterId } from "@/lib/responses";
@@ -51,12 +51,17 @@ export default function UploadPage() {
   const itemsRef = useRef<Item[]>([]);
   itemsRef.current = items;
 
-  // "Duvarda göründün!" — kendi yüklediğin onaylanıp perdeye düşünce kutlama.
-  const liveMedia = useWallMedia(wallId ?? null);
+  // "Duvarda göründün!" — SADECE kendi medyanı dinle (tüm koleksiyonu değil;
+  // 500 kişide okuma patlamasın). Onaylanıp perdeye düşünce kutlama.
+  const [myMedia, setMyMedia] = useState<WallMedia[]>([]);
+  useEffect(() => {
+    if (!wallId) return;
+    return watchWallMediaByVoter(wallId, getVoterId(), setMyMedia);
+  }, [wallId]);
   const [celebrate, setCelebrate] = useState<string | null>(null);
   const seenMine = useRef<Set<string> | null>(null);
   useEffect(() => {
-    const mine = liveMedia.filter((m) => m.status === "approved" && m.voterId === getVoterId()).map((m) => m.id);
+    const mine = myMedia.filter((m) => m.status === "approved").map((m) => m.id);
     if (seenMine.current === null) {
       seenMine.current = new Set(mine);
       return;
@@ -64,11 +69,11 @@ export default function UploadPage() {
     const fresh = mine.find((x) => !seenMine.current!.has(x));
     mine.forEach((x) => seenMine.current!.add(x));
     if (fresh) {
-      const m = liveMedia.find((mm) => mm.id === fresh);
+      const m = myMedia.find((mm) => mm.id === fresh);
       setCelebrate(m ? (m.type === "video" ? cldVideoPoster(m.url, 500, 500) : cldFit(m.url, 500)) : "");
       window.setTimeout(() => setCelebrate(null), 4500);
     }
-  }, [liveMedia]);
+  }, [myMedia]);
 
   useEffect(() => {
     return () => {
@@ -377,9 +382,13 @@ function WishTab({ wallId, defaultName, moderation }: { wallId: string | null; d
   );
 }
 
-/** Duvarı gez — onaylı medya akışı; ❤ beğen, "Benimkiler" filtresi. */
+/** Duvarı gez — onaylı medya akışı (en yeni 150); ❤ beğen, "Benimkiler" filtresi. */
 function BrowseGallery({ wallId }: { wallId: string | null }) {
-  const allMedia = useWallMedia(wallId);
+  const [allMedia, setAllMedia] = useState<WallMedia[]>([]);
+  useEffect(() => {
+    if (!wallId) return;
+    return watchWallMediaRecent(wallId, 150, setAllMedia);
+  }, [wallId]);
   const approved = useMemo(() => allMedia.filter((m) => m.status === "approved"), [allMedia]);
   const [mineOnly, setMineOnly] = useState(false);
   const [voterId, setVoterId] = useState("");

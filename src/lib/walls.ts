@@ -10,6 +10,7 @@ import {
   getDoc,
   getDocs,
   increment,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -274,6 +275,23 @@ export function watchWall(id: string, cb: (w: Wall | null) => void): () => void 
 
 export function watchWallMedia(id: string, cb: (m: WallMedia[]) => void): () => void {
   const q = query(collection(db(), "walls", id, "media"), orderBy("createdAt", "asc"));
+  return onSnapshot(q, (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as WallMedia));
+  });
+}
+
+/** Sadece bir voterId'nin medyasını dinler (tek alan filtresi — index gerekmez).
+ * Misafir telefonları TÜM koleksiyonu dinlemesin diye ("duvarda göründün"). */
+export function watchWallMediaByVoter(id: string, voterId: string, cb: (m: WallMedia[]) => void): () => void {
+  const q = query(collection(db(), "walls", id, "media"), where("voterId", "==", voterId));
+  return onSnapshot(q, (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as WallMedia));
+  });
+}
+
+/** En yeni N medyayı dinler (misafir "Duvarı gez" için — sınırlı okuma). */
+export function watchWallMediaRecent(id: string, max: number, cb: (m: WallMedia[]) => void): () => void {
+  const q = query(collection(db(), "walls", id, "media"), orderBy("createdAt", "desc"), limit(max));
   return onSnapshot(q, (snap) => {
     cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as WallMedia));
   });
