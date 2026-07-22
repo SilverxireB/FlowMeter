@@ -15,9 +15,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
-import Snowflakes from "@/components/Snowflakes";
-import Hearts from "@/components/Hearts";
-import Confetti from "@/components/Confetti";
+import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import WallReactionOverlay from "@/components/wall/WallReactionOverlay";
 import WallWishes from "@/components/wall/WallWishes";
 import WallAnnouncement from "@/components/wall/WallAnnouncement";
@@ -27,7 +25,7 @@ import { useWall, useWallMedia, useWallWishes } from "@/lib/hooks";
 import { resolveCode } from "@/lib/walls";
 import { cldFit, cldThumb, cldVideoPoster } from "@/lib/cloudinary";
 import { wallThemeStyle } from "@/lib/themes";
-import { BASE_WALL_SCREEN_MODES, WALL_SCREEN_MODES, WallMedia, WallScreenMode } from "@/lib/types";
+import { BASE_WALL_SCREEN_MODES, WALL_SCREEN_MODES, WallMedia, WallScreenMode, wallEffectOf } from "@/lib/types";
 
 const IMAGE_MS = 6500; // fotoğraf sahne süresi (stage/cinema)
 const VIDEO_CAP_MS = 12000; // uzun videoları kesme sınırı
@@ -100,9 +98,7 @@ export default function WallScreen() {
 
   return (
     <main className={`relative h-screen overflow-hidden ${textClass}`} style={themeStyleObj}>
-      {wall?.theme?.preset === "yilbasi" && <Snowflakes />}
-      {wall?.theme?.preset === "dugun" && <Hearts />}
-      {wall?.theme?.preset === "parti" && <Confetti />}
+      <WallEffectLayer effect={wallEffectOf(wall)} />
       {typeof wallId === "string" && <WallReactionOverlay wallId={wallId} />}
 
       {/* Baskın renk ambiyansı (en son anının renginden) */}

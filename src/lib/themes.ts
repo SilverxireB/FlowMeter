@@ -91,36 +91,55 @@ export function themeStyle(theme?: PresentationTheme): {
 }
 
 // ── FlowWall tema presetleri ─────────────────────────────────────────────────
-// Etkinlik türüne göre hazır görünümler. Yapı `ThemePreset` ile aynı.
+// Renk temelli hazır görünümler (güzel renk isimleri). Yapı `ThemePreset` ile
+// aynı. NOT: id'ler sabit tutuldu (mevcut duvarlar bozulmasın); yalnız isim/renk.
 
 export const WALL_THEME_PRESETS: ThemePreset[] = [
   {
     id: "gece",
-    name: "Varsayılan",
+    name: "Gece Mavisi",
     bg: "linear-gradient(160deg, #05091c 0%, #0f1535 50%, #0a0e24 100%)",
     dark: true,
   },
   {
-    id: "yilbasi",
-    name: "Yılbaşı ❄️",
-    bg: "radial-gradient(50rem 30rem at 80% -10%, rgba(220,38,38,0.25), transparent 55%), radial-gradient(60rem 36rem at 10% 110%, rgba(22,101,52,0.25), transparent 55%), linear-gradient(160deg, #450a0a 0%, #052e16 100%)",
+    id: "yilbasi", // (eski) → Zümrüt
+    name: "Zümrüt",
+    bg: "radial-gradient(58rem 34rem at 78% -10%, rgba(16,185,129,0.28), transparent 55%), linear-gradient(160deg, #04140f 0%, #06231a 55%, #041711 100%)",
     dark: true,
   },
   {
-    id: "dugun",
-    name: "Düğün 💍",
-    bg: "radial-gradient(50rem 30rem at 50% 0%, rgba(244,220,195,0.25), transparent 60%), linear-gradient(170deg, #fdf8f4 0%, #f5ece3 50%, #fef6ee 100%)",
-    dark: false,
-  },
-  {
-    id: "parti",
-    name: "Parti 🎉",
+    id: "parti", // (eski) → Ametist
+    name: "Ametist",
     bg: "radial-gradient(50rem 30rem at 20% -10%, rgba(168,85,247,0.3), transparent 55%), radial-gradient(40rem 25rem at 85% 110%, rgba(236,72,153,0.25), transparent 55%), linear-gradient(160deg, #1a0533 0%, #240b36 50%, #0f0720 100%)",
     dark: true,
   },
   {
-    id: "kurumsal",
-    name: "Kurumsal",
+    id: "mercan",
+    name: "Mercan",
+    bg: "radial-gradient(55rem 32rem at 80% -10%, rgba(251,113,133,0.3), transparent 55%), radial-gradient(45rem 28rem at 10% 110%, rgba(251,146,60,0.22), transparent 55%), linear-gradient(160deg, #2a0a12 0%, #34101a 50%, #1e070d 100%)",
+    dark: true,
+  },
+  {
+    id: "okyanus",
+    name: "Okyanus",
+    bg: "radial-gradient(58rem 32rem at 75% -8%, rgba(34,211,238,0.22), transparent 55%), linear-gradient(160deg, #04141c 0%, #06232e 55%, #04161d 100%)",
+    dark: true,
+  },
+  {
+    id: "antrasit",
+    name: "Antrasit",
+    bg: "linear-gradient(160deg, #111114 0%, #1b1b20 50%, #0d0d10 100%)",
+    dark: true,
+  },
+  {
+    id: "dugun", // (eski) → Şampanya
+    name: "Şampanya",
+    bg: "radial-gradient(50rem 30rem at 50% 0%, rgba(244,220,195,0.35), transparent 60%), linear-gradient(170deg, #fdf8f4 0%, #f5ece3 50%, #fef6ee 100%)",
+    dark: false,
+  },
+  {
+    id: "kurumsal", // (eski) → Sedef
+    name: "Sedef",
     bg: "radial-gradient(55rem 30rem at 80% -10%, rgba(79,70,229,0.08), transparent 55%), linear-gradient(170deg, #ffffff 0%, #f8f9fc 50%, #f1f3f8 100%)",
     dark: false,
   },

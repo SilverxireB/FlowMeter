@@ -14,15 +14,19 @@ const W = 1050;
 const H = 1480;
 const SCALE = 2; // baskı keskinliği
 
-interface CardColors { bg: string; fg: string; accent: string; onAccent: string }
+interface CardColors { bg: string; fg: string; accent: string; dark: boolean }
 
 function cardColors(wall: Wall): CardColors {
-  const preset = getWallPreset(wall.theme?.preset);
-  if (preset.id === "dugun") return { bg: "#fbf6f0", fg: "#3d2e1f", accent: "#b0895f", onAccent: "#ffffff" };
-  if (preset.id === "kurumsal") return { bg: "#f6f8fc", fg: "#18181b", accent: "#4f46e5", onAccent: "#ffffff" };
-  if (preset.id === "yilbasi") return { bg: "#0e1a36", fg: "#e8edf8", accent: "#6bb0f0", onAccent: "#0e1a36" };
-  if (preset.id === "parti") return { bg: "#1c0733", fg: "#f0e4ff", accent: "#c084fc", onAccent: "#1c0733" };
-  return { bg: "#070c22", fg: "#e6eaf5", accent: "#5b8ef7", onAccent: "#070c22" }; // gece
+  switch (getWallPreset(wall.theme?.preset).id) {
+    case "dugun": return { bg: "#fbf6f0", fg: "#3d2e1f", accent: "#b0895f", dark: false }; // Şampanya
+    case "kurumsal": return { bg: "#f6f8fc", fg: "#18181b", accent: "#4f46e5", dark: false }; // Sedef
+    case "yilbasi": return { bg: "#06231a", fg: "#e6f5ee", accent: "#34d399", dark: true }; // Zümrüt
+    case "parti": return { bg: "#1c0733", fg: "#f0e4ff", accent: "#c084fc", dark: true }; // Ametist
+    case "mercan": return { bg: "#34101a", fg: "#ffe8ea", accent: "#fb7185", dark: true };
+    case "okyanus": return { bg: "#06232e", fg: "#e4f6fb", accent: "#22d3ee", dark: true };
+    case "antrasit": return { bg: "#17171b", fg: "#eaeaee", accent: "#a5b4fc", dark: true };
+    default: return { bg: "#070c22", fg: "#e6eaf5", accent: "#5b8ef7", dark: true }; // Gece Mavisi
+  }
 }
 
 const FONT = (spec: string) => `${spec} "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif`;
@@ -39,7 +43,7 @@ export async function downloadQrCard(wall: Wall, joinUrl: string): Promise<void>
   ctx.scale(SCALE, SCALE);
   ctx.textAlign = "center";
   const c = cardColors(wall);
-  const isDark = ["#0e1a36", "#1c0733", "#070c22"].includes(c.bg);
+  const isDark = c.dark;
 
   // ── Arka plan + ince çerçeve ──
   ctx.fillStyle = c.bg;

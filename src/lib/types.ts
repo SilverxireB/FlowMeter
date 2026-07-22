@@ -108,6 +108,25 @@ export const WALL_SCREEN_MODES: WallModeMeta[] = [
   { id: "auto", name: "Otomatik", icon: "🔀", hint: "Seçtiğin modlar arasında, belirlediğin aralıkla kendiliğinden geçer" },
 ];
 
+/** Perde ambient efekti — temadan bağımsız, kokpitten seçilir. */
+export type WallEffect = "none" | "snow" | "confetti" | "fireworks" | "hearts" | "balloons" | "bubbles" | "stars";
+
+export const WALL_EFFECTS: { id: WallEffect; name: string; icon: string }[] = [
+  { id: "none", name: "Yok", icon: "🚫" },
+  { id: "snow", name: "Kar", icon: "❄️" },
+  { id: "confetti", name: "Konfeti", icon: "🎊" },
+  { id: "fireworks", name: "Havai fişek", icon: "🎆" },
+  { id: "hearts", name: "Kalp", icon: "💗" },
+  { id: "balloons", name: "Balon", icon: "🎈" },
+  { id: "bubbles", name: "Kabarcık", icon: "🫧" },
+  { id: "stars", name: "Yıldız", icon: "✨" },
+];
+
+/** Efekt temadan bağımsız — kokpitten açıkça seçilir (varsayılan: yok). */
+export function wallEffectOf(wall?: { effect?: WallEffect } | null): WallEffect {
+  return wall?.effect ?? "none";
+}
+
 /** Bir FlowWall duvarı (walls/{id}). FlowMeter sunumlarından bağımsız koleksiyon. */
 export interface Wall {
   id: string;
@@ -120,6 +139,8 @@ export interface Wall {
   headline?: string;
   /** Duvar görsel teması (FlowMeter PresentationTheme ile aynı yapı) */
   theme?: PresentationTheme;
+  /** Perde ambient efekti (temadan bağımsız; yoksa temadan türetilir) */
+  effect?: WallEffect;
   /** Perde gösterim modu — kokpitten seçilir (varsayılan: stage) */
   screenMode?: WallScreenMode;
   /** "auto" modda dönecek modlar (boş/yoksa hepsi) */

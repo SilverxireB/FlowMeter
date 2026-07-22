@@ -22,13 +22,13 @@ export default function Snowflakes({ contained }: { contained?: boolean }) {
   }, []);
 
   return (
-    <div aria-hidden className={`pointer-events-none overflow-hidden ${contained ? "absolute inset-0 z-0" : "fixed inset-0 z-[15]"}`}>
+    <div aria-hidden className={`ww-fx pointer-events-none overflow-hidden ${contained ? "absolute inset-0 z-0" : "fixed inset-0 z-[15]"}`}>
       {flakes.map((f) => (
         <div
           key={f.id}
-          className="absolute top-[-5vh] rounded-full bg-white"
+          className="absolute top-[-5cqh] rounded-full bg-white"
           style={{
-            left: `${f.x}vw`,
+            left: `${f.x}cqw`,
             width: `${f.size}rem`,
             height: `${f.size}rem`,
             opacity: f.opacity,
@@ -43,10 +43,10 @@ export default function Snowflakes({ contained }: { contained?: boolean }) {
             transform: translateY(0) translateX(0) rotate(0deg);
           }
           50% {
-            transform: translateY(55vh) translateX(10vw) rotate(180deg);
+            transform: translateY(55cqh) translateX(10cqw) rotate(180deg);
           }
           100% {
-            transform: translateY(110vh) translateX(-10vw) rotate(360deg);
+            transform: translateY(110cqh) translateX(-10cqw) rotate(360deg);
           }
         }
       `}</style>

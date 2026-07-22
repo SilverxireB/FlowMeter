@@ -12,7 +12,7 @@ interface Heart {
   opacity: number;
 }
 
-export default function Hearts() {
+export default function Hearts({ contained }: { contained?: boolean }) {
   const [items, setItems] = useState<Heart[]>([]);
 
   useEffect(() => {
@@ -31,13 +31,13 @@ export default function Hearts() {
   }, []);
 
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-[15] overflow-hidden">
+    <div aria-hidden className={`ww-fx pointer-events-none overflow-hidden ${contained ? "absolute inset-0 z-0" : "fixed inset-0 z-[15]"}`}>
       {items.map((f) => (
         <div
           key={f.id}
-          className="absolute bottom-[-8vh] ww-heart-rise"
+          className="absolute bottom-[-8cqh] ww-heart-rise"
           style={{
-            left: `${f.x}vw`,
+            left: `${f.x}cqw`,
             fontSize: `${f.size}rem`,
             opacity: f.opacity,
             animationDuration: `${f.duration}s`,
@@ -52,8 +52,8 @@ export default function Hearts() {
         .ww-heart-rise { animation-name: wwheartrise; animation-timing-function: linear; animation-iteration-count: infinite; }
         @keyframes wwheartrise {
           0% { transform: translateY(0) translateX(0) scale(1); }
-          50% { transform: translateY(-55vh) translateX(5vw) scale(1.12); }
-          100% { transform: translateY(-115vh) translateX(-5vw) scale(0.9); opacity: 0; }
+          50% { transform: translateY(-55cqh) translateX(5cqw) scale(1.12); }
+          100% { transform: translateY(-115cqh) translateX(-5cqw) scale(0.9); opacity: 0; }
         }
         @media (prefers-reduced-motion: reduce) { .ww-heart-rise { animation: none !important; } }
       `}</style>

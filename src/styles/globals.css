@@ -166,4 +166,8 @@ body {
     @apply inline-flex items-center gap-1.5 bg-white border border-line rounded-full
       px-3 py-1 text-sm font-semibold;
   }
+
+  /* FlowWall ambient efekt katmanı: efektler içinde bulundukları kutuya göre
+     ölçeklensin (cqw/cqh) — hem tam ekran perde hem kokpit mini önizleme. */
+  .ww-fx { container-type: size; }
 }

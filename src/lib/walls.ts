@@ -22,7 +22,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { getVoterId } from "./responses";
-import { Wall, WallMedia, WallScreenMode, WallWish } from "./types";
+import { Wall, WallEffect, WallMedia, WallScreenMode, WallWish } from "./types";
 
 function randomCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -96,6 +96,10 @@ export async function setWallTheme(id: string, theme: { preset?: string; bgImage
 
 export async function setWallScreenMode(id: string, screenMode: WallScreenMode): Promise<void> {
   await updateDoc(doc(db(), "walls", id), { screenMode, updatedAt: serverTimestamp() });
+}
+
+export async function setWallEffect(id: string, effect: WallEffect): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { effect, updatedAt: serverTimestamp() });
 }
 
 export async function setWallAutoModes(id: string, autoModes: WallScreenMode[]): Promise<void> {

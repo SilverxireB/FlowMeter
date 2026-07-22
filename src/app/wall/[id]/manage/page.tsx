@@ -10,14 +10,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
 import { downloadQrCard } from "@/components/WallQrCard";
-import Snowflakes from "@/components/Snowflakes";
+import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import { useAuthUser, useWall, useWallMedia, useWallWishes } from "@/lib/hooks";
-import { addWallMedia, clearWallAnnouncement, deleteMedia, deleteWish, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallHeadline, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWishStatus } from "@/lib/walls";
+import { addWallMedia, clearWallAnnouncement, deleteMedia, deleteWish, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWishStatus } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
 import { getVoterId } from "@/lib/responses";
-import { BASE_WALL_SCREEN_MODES, Wall, WallMedia, WALL_SCREEN_MODES } from "@/lib/types";
+import { BASE_WALL_SCREEN_MODES, Wall, WallMedia, WALL_EFFECTS, WALL_SCREEN_MODES, wallEffectOf } from "@/lib/types";
 
 const AUTO_INTERVALS = [20, 30, 45, 60, 90];
 const fmtInterval = (s: number) => (s < 60 ? `${s} sn` : s % 60 === 0 ? `${s / 60} dk` : `${(s / 60).toFixed(1)} dk`);
@@ -356,6 +356,27 @@ export default function WallManage() {
                 <span className="text-muted text-xs">Görsel yüklendi — perdede koyu katman ile görünür.</span>
               )}
             </div>
+
+            {/* Ambient efekt (temadan bağımsız) */}
+            <div className="mt-5">
+              <p className="text-sm font-semibold mb-2">Efekt</p>
+              <div className="flex flex-wrap gap-2">
+                {WALL_EFFECTS.map((e) => {
+                  const active = wallEffectOf(wall) === e.id;
+                  return (
+                    <button
+                      key={e.id}
+                      onClick={() => setWallEffect(id, e.id).catch(console.error)}
+                      className={`!py-1.5 !px-3 text-xs rounded-full font-semibold border ${
+                        active ? "border-accent bg-accent-soft/50 text-accent" : "border-line text-muted hover:text-ink"
+                      }`}
+                    >
+                      {e.icon} {e.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
           
           {/* Önizleme */}
@@ -689,7 +710,7 @@ function WallPreview({ wall }: { wall: Wall }) {
 
   return (
     <div className={`w-full aspect-video rounded-xl overflow-hidden shadow-inner border border-line relative flex flex-col items-center justify-center ${textClass}`} style={style}>
-      {wall?.theme?.preset === "yilbasi" && <Snowflakes contained />}
+      <WallEffectLayer effect={wallEffectOf(wall)} contained />
       {wall?.theme?.bgImage && (
         <div aria-hidden className="absolute inset-0" style={{ background: dark ? "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(5,9,28,0.75) 100%)" : "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(255,255,255,0.75) 100%)" }} />
       )}
