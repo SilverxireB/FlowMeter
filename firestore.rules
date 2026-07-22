@@ -171,6 +171,9 @@ service cloud.firestore {
           && request.resource.data.voterId is string
           && request.resource.data.type in ['image','video']
           && request.resource.data.url is string
+          && request.resource.data.url.size() <= 500
+          && (!('nickname' in request.resource.data)
+              || (request.resource.data.nickname is string && request.resource.data.nickname.size() <= 40))
           && request.resource.data.get('likes', 0) == 0
           && (request.resource.data.type == 'image' || wall().get('allowVideo', true) == true)
           && request.resource.data.status ==
@@ -206,6 +209,8 @@ service cloud.firestore {
           && request.resource.data.text.size() >= 1
           && request.resource.data.text.size() <= 140
           && request.resource.data.voterId is string
+          && (!('nickname' in request.resource.data)
+              || (request.resource.data.nickname is string && request.resource.data.nickname.size() <= 40))
           && get(/databases/$(database)/documents/walls/$(wallId)).data.get('wishesEnabled', true) == true
           && request.resource.data.status ==
              (get(/databases/$(database)/documents/walls/$(wallId)).data.get('moderation', false) == true ? 'pending' : 'approved');

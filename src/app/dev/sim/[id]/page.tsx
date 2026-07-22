@@ -309,6 +309,7 @@ export default function SimPage() {
     }
   }, [id]);
 
+  if (process.env.NODE_ENV === "production") return <main className="min-h-screen grid place-items-center text-muted">404</main>;
   if (authed === null) return <main className="min-h-screen grid place-items-center text-muted">…</main>;
   if (!authed) {
     return (

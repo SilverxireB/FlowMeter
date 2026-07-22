@@ -61,7 +61,9 @@ export async function createWall(ownerId: string, title: string): Promise<string
     ownerId,
     title,
     joinCode: "",
-    moderation: false,
+    // Güvenli varsayılan: AÇIK — yüklenenler önce onaya düşer, perdeye değil.
+    // (Kodu bilen birinin uygunsuz gönderisi doğrudan büyük ekrana basılmasın.)
+    moderation: true,
     sessionId: randomSessionId(),
     sessionStartedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
@@ -297,12 +299,12 @@ export function getMyContestVote(contestId: string): string | null {
   return localStorage.getItem(contestVoteKey(contestId));
 }
 export async function castContestVote(wallId: string, contestId: string, mediaId: string): Promise<void> {
-  localStorage.setItem(contestVoteKey(contestId), mediaId);
   await setDoc(doc(db(), "walls", wallId, "contestVotes", getVoterId()), {
     mediaId,
     contestId,
     createdAt: serverTimestamp(),
   });
+  localStorage.setItem(contestVoteKey(contestId), mediaId); // yalnız başarılı yazımdan sonra
 }
 
 /** Oyları dinler — YALNIZ perde + kokpit kullanır (misafir değil, ölçek). */
@@ -336,8 +338,8 @@ export function hasLikedMedia(mediaId: string): boolean {
 /** Medyayı beğen (+1). Tekrarları localStorage engeller; sunucuda +1 kuralı var. */
 export async function likeMedia(wallId: string, mediaId: string): Promise<void> {
   if (hasLikedMedia(mediaId)) return;
-  localStorage.setItem(likeKey(mediaId), "1");
   await updateDoc(doc(db(), "walls", wallId, "media", mediaId), { likes: increment(1) });
+  localStorage.setItem(likeKey(mediaId), "1"); // yalnız başarılı yazımdan sonra kilitle
 }
 
 // ── Canlı dinleyiciler ───────────────────────────────────────────────────────

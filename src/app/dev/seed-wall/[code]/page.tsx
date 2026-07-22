@@ -103,6 +103,8 @@ export default function SeedWallPage() {
     setLog((l) => l + `\n✓ Bitti: ${n}/20 medya eklendi.` + (wall.moderation ? " (Moderasyon AÇIK — perdede görünmesi için Yönet'ten onayla.)" : ""));
   }
 
+  // Prod'da bu test aracı tümüyle kapalı (sızan SIM_SECRET prod'da işe yaramasın).
+  if (process.env.NODE_ENV === "production") return <main className="min-h-screen grid place-items-center bg-[#05091c] text-white/60">404</main>;
   if (authed === null) return <main className="min-h-screen grid place-items-center bg-[#05091c] text-white/60">…</main>;
   if (!authed) return <main className="min-h-screen grid place-items-center bg-[#05091c] text-white/60">404</main>;
 
