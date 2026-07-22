@@ -127,7 +127,7 @@ export default function WallScreen() {
         ) : mode === "spotlight" ? (
           <SpotlightMode media={media} themeDark={themeDark} topLovedId={topLovedId} hero={play.current} />
         ) : mode === "polaroid" ? (
-          <PolaroidMode media={media} themeDark={themeDark} topLovedId={topLovedId} />
+          <PolaroidMode media={media} themeDark={themeDark} topLovedId={topLovedId} front={play.current} />
         ) : mode === "timeline" ? (
           <TimelineMode media={media} themeDark={themeDark} />
         ) : mode === "cinema" ? (
@@ -252,6 +252,7 @@ function usePagedPlayback(media: WallMedia[]): { current: WallMedia | null; adva
   const mediaRef = useRef(media);
   mediaRef.current = media;
   const currentIdRef = useRef<string | null>(null);
+  const startedAt = useRef(0); // aktif fotonun gösterime başladığı an
   const playCounts = useRef<Record<string, number>>({});
   const lastByVoter = useRef<Record<string, number>>({});
   const knownIds = useRef<Set<string>>(new Set());
@@ -268,35 +269,48 @@ function usePagedPlayback(media: WallMedia[]): { current: WallMedia | null; adva
     if (list.length === 1) { setCurrentId(list[0].id); return; }
     const now = Date.now();
     const curId = currentIdRef.current;
+    // En düşük gösterim sayısı BASKIN faktör → gerçek round-robin (hiç foto aç kalmaz);
+    // tazelik/beğeni/rastgelelik yalnız eşit gösterimliler arasında ayırt eder.
     let bestId = list[0].id;
     let best = -Infinity;
     for (const m of list) {
       if (m.id === curId) continue;
-      let s = 1 + Math.random() * 0.5;
+      let s = Math.random() * 0.5;
+      s -= (playCounts.current[m.id] ?? 0) * 4; // BASKIN adalet
       const age = now - (m.createdAt?.toMillis?.() ?? now);
-      if (age < 5 * 60000) s += 2; else if (age < 15 * 60000) s += 0.8;
-      if (m.voterId) { const t = lastByVoter.current[m.voterId] ?? 0; if (now - t < 30000) s -= 5; }
-      s -= (playCounts.current[m.id] ?? 0) * 0.4;
-      s += (m.likes ?? 0) * 0.2;
+      if (age < 5 * 60000) s += 1.5; else if (age < 15 * 60000) s += 0.6;
+      if (m.voterId) { const t = lastByVoter.current[m.voterId] ?? 0; if (now - t < 30000) s -= 2; }
+      s += (m.likes ?? 0) * 0.15;
       if (s > best) { best = s; bestId = m.id; }
     }
-    playCounts.current[bestId] = (playCounts.current[bestId] ?? 0) + 1;
-    const bm = list.find((m) => m.id === bestId);
-    if (bm?.voterId) lastByVoter.current[bm.voterId] = now;
+    startedAt.current = now;
     setCurrentId(bestId);
   }, []);
 
-  // Yeni medya → anında ona geç (ilk yüklemede baseline kurar, atlamaz).
+  // Sayım TEK yerde: bir foto gösterime girdiğinde (jump ya da advance farketmez)
+  // bir kez sayılır. Yeni fotolar sayaç=0 ile gelir → round-robin'de EN yüksek
+  // öncelik → mutlaka görünür.
+  const curForCount = current?.id;
+  useEffect(() => {
+    if (!curForCount) return;
+    playCounts.current[curForCount] = (playCounts.current[curForCount] ?? 0) + 1;
+    const v = mediaRef.current.find((m) => m.id === curForCount)?.voterId;
+    if (v) lastByVoter.current[v] = Date.now();
+  }, [curForCount]);
+
+  // Yeni medya → ona geç. İlk yükleme baseline kurar. Mevcut foto en az ~1.6 sn
+  // gösterildiyse hemen geçer (kesintisiz his); daha yeni başladıysa kesmez.
   useEffect(() => {
     let newest: WallMedia | null = null;
     for (const m of media) if (!knownIds.current.has(m.id)) newest = m; // asc → son yeni = en yeni
     const first = knownIds.current.size === 0;
     knownIds.current = new Set(media.map((m) => m.id));
-    if (first) { if (media.length) setCurrentId(media[media.length - 1].id); return; }
+    if (first) { if (media.length) { setCurrentId(media[media.length - 1].id); startedAt.current = Date.now(); } return; }
     if (newest) {
-      playCounts.current[newest.id] = (playCounts.current[newest.id] ?? 0) + 1;
-      if (newest.voterId) lastByVoter.current[newest.voterId] = Date.now();
-      setCurrentId(newest.id);
+      const sinceStart = Date.now() - startedAt.current;
+      const jump = () => { startedAt.current = Date.now(); setCurrentId(newest!.id); };
+      if (sinceStart >= 1600) jump();
+      else { const t = window.setTimeout(jump, 1600 - sinceStart); return () => window.clearTimeout(t); }
     }
   }, [media]);
 
@@ -331,7 +345,7 @@ function WallNewMemory({ media }: { media: WallMedia[] }) {
   if (!show) return null;
   const poster = mediaPoster(show, 120, 120);
   return (
-    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 ww-pop pointer-events-none">
+    <div className="absolute top-[4.25rem] left-5 z-40 ww-pop pointer-events-none">
       <div className="flex items-center gap-2.5 rounded-full bg-[#e34948] text-white pl-2 pr-4 py-1.5 shadow-2xl">
         {poster && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -544,25 +558,10 @@ function SpotlightMode({ media, themeDark, topLovedId, hero }: { media: WallMedi
 
 // ── Mod: POLAROID (saçılan eğik kartlar) ──────────────────────────────────────
 
-function PolaroidMode({ media, topLovedId }: { media: WallMedia[]; themeDark: boolean; topLovedId: string | null }) {
+function PolaroidMode({ media, topLovedId, front }: { media: WallMedia[]; themeDark: boolean; topLovedId: string | null; front: WallMedia | null }) {
   // Arka: saçılan küçük/soluk polaroidler (dağınık masa hissi).
   const back = useMemo(() => [...media].slice(-12), [media]);
-  // Ön: tek büyük polaroid, dönerek öne çıkar.
-  const [idx, setIdx] = useState(0);
-  const prevLen = useRef(0);
-
-  useEffect(() => {
-    if (media.length > prevLen.current && prevLen.current > 0) setIdx(media.length - 1);
-    prevLen.current = media.length;
-  }, [media.length]);
-
-  useEffect(() => {
-    if (media.length < 2) return;
-    const t = window.setInterval(() => setIdx((i) => i + 1), IMAGE_MS);
-    return () => window.clearInterval(t);
-  }, [media.length]);
-
-  const front = media.length ? media[((idx % media.length) + media.length) % media.length] : null;
+  // Ön: ortak oynatmadan gelen current (adil + yeni foto önce; hep aynı resimden başlamaz).
 
   return (
     <div className="relative h-full w-full overflow-hidden">
