@@ -64,6 +64,28 @@
 - [ ] Baskın renk ambiyansı (yüklenen fotonun renginden perde teması canlı değişir)
 - [ ] Canlı anons/isim bandı (perde altı ticker: organizatör duyurusu + "X paylaştı")
 
+### ☁️ Cloudinary güç fikirleri (medya motoru zaten Cloudinary — Kural 4 istisnası)
+> Çoğu **URL dönüşümü = bedava**, sunucu yok, **orijinali bozmadan gösterim anında**
+> uygulanır (ör. perde/indirme sürümüne logo, orijinal temiz kalır). Add-on'lar
+> etkinleştirme/kota ister.
+
+**Bedava (URL dönüşümü — hemen kurulabilir):**
+- [ ] Logo/filigran bindirme her foto & videoya (etkinlik markası; `l_logo`, köşe, saydam)
+- [ ] Metin bindirme (etkinlik adı/tarihi ya da yükleyen adı foto üstüne; `l_text`)
+- [ ] Etkinlik çerçevesi (temaya özel çerçeve PNG overlay — "foto çerçevesi" fikri bununla ucuz)
+- [ ] Sanatsal filtreler (`e_art:*`) — misafir yüklerken seçer
+- [ ] Otomatik iyileştirme (`e_improve` + auto renk/kontrast) — her foto emeksiz parlar
+- [ ] Yüz-farkında akıllı kırpma (`g_face`/`g_auto`) — thumbnail'de yüz kesilmez
+- [ ] Retro/siyah-beyaz mod (`e_sepia`/`e_grayscale`) — perde teması
+- [ ] Video teaser döngüsü (`e_preview`) + otomatik poster — şeritler için
+- [ ] Baskın renk (upload yanıtı `colors`) → "renk ambiyansı" fikrini besler
+
+**Add-on (etkinleştirme/kota; bir kısmı ücretli — çoğu güvenlik bloğuna):**
+- [ ] AI arka plan kaldırma (`e_background_removal`) — sticker/stüdyo efekti
+- [ ] AI otomatik etiketleme (konuya göre; arama/filtre)
+- [ ] AI içerik moderasyonu (müstehcen/şiddet otomatik red → güvenlik/park)
+- [ ] Generative fill/remove (nesne sil/genişlet — kredi ister)
+
 ### 🔗 Köprü — İki ürün birleşsin
 - [ ] FlowMeter sunumuna canlı "wall" slayt tipi + video sesi aç/kapat + video süre limiti
 
