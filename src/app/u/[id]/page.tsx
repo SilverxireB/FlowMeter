@@ -51,6 +51,25 @@ export default function UploadPage() {
   const itemsRef = useRef<Item[]>([]);
   itemsRef.current = items;
 
+  // "Duvarda göründün!" — kendi yüklediğin onaylanıp perdeye düşünce kutlama.
+  const liveMedia = useWallMedia(wallId ?? null);
+  const [celebrate, setCelebrate] = useState<string | null>(null);
+  const seenMine = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const mine = liveMedia.filter((m) => m.status === "approved" && m.voterId === getVoterId()).map((m) => m.id);
+    if (seenMine.current === null) {
+      seenMine.current = new Set(mine);
+      return;
+    }
+    const fresh = mine.find((x) => !seenMine.current!.has(x));
+    mine.forEach((x) => seenMine.current!.add(x));
+    if (fresh) {
+      const m = liveMedia.find((mm) => mm.id === fresh);
+      setCelebrate(m ? (m.type === "video" ? cldVideoPoster(m.url, 500, 500) : cldFit(m.url, 500)) : "");
+      window.setTimeout(() => setCelebrate(null), 4500);
+    }
+  }, [liveMedia]);
+
   useEffect(() => {
     return () => {
       itemsRef.current.forEach((i) => URL.revokeObjectURL(i.url));
@@ -171,7 +190,7 @@ export default function UploadPage() {
       {tab === "browse" ? (
         <BrowseGallery wallId={wallId ?? null} />
       ) : tab === "wish" ? (
-        <WishTab wallId={wallId ?? null} defaultName={nickname} />
+        <WishTab wallId={wallId ?? null} defaultName={nickname} moderation={!!wall?.moderation} />
       ) : (
       <section className="flex-1 flex flex-col px-5 pb-24 pt-4 max-w-md w-full mx-auto">
         {!isCloudinaryConfigured() && (
@@ -281,12 +300,26 @@ export default function UploadPage() {
       )}
 
       {typeof wallId === "string" && <WallReactionBar wallId={wallId} />}
+
+      {celebrate !== null && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 backdrop-blur-sm px-8" onClick={() => setCelebrate(null)}>
+          <div className="text-center">
+            <div className="text-5xl mb-4 animate-pop" aria-hidden>🎉</div>
+            <p className="text-white text-2xl font-bold mb-4">Fotoğrafın duvarda parlıyor!</p>
+            {celebrate && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={celebrate} alt="" className="mx-auto max-h-[40vh] rounded-2xl shadow-2xl border-2 border-white/30 animate-pop" />
+            )}
+            <p className="text-white/60 text-sm mt-4">Perdeye bak 👀</p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
 
 /** Dilek bırak — yazılı not, perdede akan dilek bandında görünür. */
-function WishTab({ wallId, defaultName }: { wallId: string | null; defaultName: string }) {
+function WishTab({ wallId, defaultName, moderation }: { wallId: string | null; defaultName: string; moderation: boolean }) {
   const [text, setText] = useState("");
   const [name, setName] = useState(defaultName);
   const [sent, setSent] = useState(false);
@@ -297,7 +330,7 @@ function WishTab({ wallId, defaultName }: { wallId: string | null; defaultName: 
     if (!wallId || !text.trim() || busy) return;
     setBusy(true);
     try {
-      await sendWallWish(wallId, text, name);
+      await sendWallWish(wallId, text, name, moderation);
       setText("");
       setSent(true);
       window.setTimeout(() => setSent(false), 3500);
@@ -335,7 +368,9 @@ function WishTab({ wallId, defaultName }: { wallId: string | null; defaultName: 
           {busy ? "Gönderiliyor…" : "Dileği gönder →"}
         </button>
         {sent && (
-          <p className="mt-3 text-center text-[#8be2b0] text-sm font-semibold animate-pop">✓ Dileğin duvara düştü, teşekkürler!</p>
+          <p className="mt-3 text-center text-[#8be2b0] text-sm font-semibold animate-pop">
+            {moderation ? "✓ Dileğin onaya gönderildi — onaylanınca perdede görünür." : "✓ Dileğin duvara düştü, teşekkürler!"}
+          </p>
         )}
       </div>
     </section>

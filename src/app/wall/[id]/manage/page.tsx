@@ -12,7 +12,7 @@ import QrCode from "@/components/present/QrCode";
 import { downloadQrCard } from "@/components/WallQrCard";
 import Snowflakes from "@/components/Snowflakes";
 import { useAuthUser, useWall, useWallMedia, useWallWishes } from "@/lib/hooks";
-import { addWallMedia, clearWallAnnouncement, deleteMedia, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallHeadline, setWallModeration, setWallScreenMode, setWallTheme } from "@/lib/walls";
+import { addWallMedia, clearWallAnnouncement, deleteMedia, deleteWish, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallHeadline, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWishStatus } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
@@ -45,6 +45,8 @@ export default function WallManage() {
   const approved = useMemo(() => allMedia.filter((m) => m.status === "approved"), [allMedia]);
   const rejected = useMemo(() => allMedia.filter((m) => m.status === "rejected"), [allMedia]);
   const wishes = useWallWishes(id);
+  const pendingWishes = useMemo(() => wishes.filter((w) => (w.status ?? "approved") === "pending"), [wishes]);
+  const approvedWishes = useMemo(() => wishes.filter((w) => (w.status ?? "approved") === "approved"), [wishes]);
 
   // Kokpit özeti — mevcut veriden hesaplanır (yeni koleksiyon yok).
   const stats = useMemo(() => {
@@ -444,6 +446,28 @@ export default function WallManage() {
           )}
         </div>
 
+        {/* En Sevilenler turu sıklığı */}
+        <div className="card p-5">
+          <p className="eyebrow mb-1">✨ En Sevilenler turu</p>
+          <p className="text-muted text-xs mb-3">Perdede belirli aralıklarla en çok beğenilen ilk 3 anı öne çıkar (#1 = günün karesi).</p>
+          <div className="flex flex-wrap gap-2">
+            {[{ s: 0, l: "Kapalı" }, { s: 60, l: "1 dk" }, { s: 120, l: "2 dk" }, { s: 300, l: "5 dk" }, { s: 600, l: "10 dk" }].map((o) => {
+              const active = (wall?.topLovedEverySec ?? 120) === o.s;
+              return (
+                <button
+                  key={o.s}
+                  onClick={() => setWallTopLovedInterval(id, o.s).catch(console.error)}
+                  className={`!py-1.5 !px-3 text-xs rounded-full font-semibold border ${
+                    active ? "border-accent bg-accent-soft/50 text-accent" : "border-line text-muted hover:text-ink"
+                  }`}
+                >
+                  {o.l}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Canlı anons */}
         {(() => {
           const annUntil = wall.announcement?.until?.toMillis?.() ?? 0;
@@ -499,6 +523,48 @@ export default function WallManage() {
             </div>
           );
         })()}
+
+        {/* Dilek moderasyonu */}
+        {(pendingWishes.length > 0 || approvedWishes.length > 0) && (
+          <div className="card p-5">
+            <p className="eyebrow mb-1">💌 Dilekler</p>
+            <p className="text-muted text-xs mb-3">
+              {wall.moderation ? "Moderasyon açık — dilekler onaydan sonra perdeye düşer." : "Moderasyon kapalı — dilekler direkt perdede."}
+            </p>
+
+            {pendingWishes.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-semibold mb-2">Onay bekleyen ({pendingWishes.length})</p>
+                <div className="flex flex-col gap-2">
+                  {pendingWishes.map((w) => (
+                    <div key={w.id} className="rounded-xl border border-line p-3 flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm">{w.text}</p>
+                        {w.nickname && <p className="text-muted text-xs">— {w.nickname}</p>}
+                      </div>
+                      <button onClick={() => setWishStatus(id, w.id, "approved").catch(console.error)} className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-accent text-accent hover:bg-accent-soft/50 shrink-0">✓ Onayla</button>
+                      <button onClick={() => setWishStatus(id, w.id, "rejected").catch(console.error)} className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-line text-brand shrink-0">✕</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {approvedWishes.length > 0 && (
+              <div>
+                <p className="text-muted text-xs mb-2">Perdede ({approvedWishes.length})</p>
+                <div className="flex flex-col gap-1.5">
+                  {approvedWishes.map((w) => (
+                    <div key={w.id} className="flex items-center gap-2 text-sm">
+                      <span className="flex-1 min-w-0 truncate">💌 {w.text}{w.nickname ? ` — ${w.nickname}` : ""}</span>
+                      <button onClick={() => deleteWish(id, w.id).catch(console.error)} className="text-muted hover:text-brand text-xs shrink-0" aria-label="Sil">🗑</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Sunucu kendi medyasını ekler (moderasyondan bağımsız kokpit) */}
         <div className="card p-4 flex items-center gap-3 flex-wrap">
@@ -623,7 +689,7 @@ function WallPreview({ wall }: { wall: Wall }) {
 
   return (
     <div className={`w-full aspect-video rounded-xl overflow-hidden shadow-inner border border-line relative flex flex-col items-center justify-center ${textClass}`} style={style}>
-      {wall?.theme?.preset === "yilbasi" && <Snowflakes />}
+      {wall?.theme?.preset === "yilbasi" && <Snowflakes contained />}
       {wall?.theme?.bgImage && (
         <div aria-hidden className="absolute inset-0" style={{ background: dark ? "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(5,9,28,0.75) 100%)" : "radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(255,255,255,0.75) 100%)" }} />
       )}

@@ -48,7 +48,13 @@ export default function WallScreen() {
   const { wall } = useWall(wallId ?? null);
   const allMedia = useWallMedia(wallId ?? null);
   const media = useMemo(() => allMedia.filter((m) => m.status === "approved"), [allMedia]);
-  const wishes = useWallWishes(wallId ?? null);
+  const allWishes = useWallWishes(wallId ?? null);
+  const wishes = useMemo(() => allWishes.filter((w) => (w.status ?? "approved") === "approved"), [allWishes]);
+
+  // Baskın renk ambiyansı — en son anının renginden perdeye yumuşak tint.
+  const latest = media.length ? media[media.length - 1] : null;
+  const ambientThumb = latest ? (latest.type === "video" ? cldVideoPoster(latest.url, 32, 32) : cldThumb(latest.url, 32, 32)) : undefined;
+  const ambientColor = useDominantColor(ambientThumb);
 
   const [joinUrl, setJoinUrl] = useState("");
   useEffect(() => {
@@ -99,6 +105,19 @@ export default function WallScreen() {
       {wall?.theme?.preset === "parti" && <Confetti />}
       {typeof wallId === "string" && <WallReactionOverlay wallId={wallId} />}
 
+      {/* Baskın renk ambiyansı (en son anının renginden) */}
+      {ambientColor && (
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none transition-[background] duration-1000"
+          style={{
+            background: `radial-gradient(75% 55% at 50% 22%, ${ambientColor}, transparent 72%)`,
+            opacity: themeDark ? 0.4 : 0.26,
+            mixBlendMode: themeDark ? "screen" : "multiply",
+          }}
+        />
+      )}
+
       {/* Mod içeriği — auto'da mod değişince yumuşak geçiş için key+fade */}
       <div key={mode} className="relative z-10 h-full ww-fade">
         {media.length === 0 ? (
@@ -109,6 +128,8 @@ export default function WallScreen() {
           <SpotlightMode media={media} themeDark={themeDark} topLovedId={topLovedId} />
         ) : mode === "polaroid" ? (
           <PolaroidMode media={media} themeDark={themeDark} topLovedId={topLovedId} />
+        ) : mode === "timeline" ? (
+          <TimelineMode media={media} themeDark={themeDark} />
         ) : mode === "cinema" ? (
           <CinemaMode media={media} topLovedId={topLovedId} />
         ) : (
@@ -158,7 +179,7 @@ export default function WallScreen() {
       )}
 
       {/* En sevilenler highlight turu (periyodik) + milestone kutlamaları */}
-      {media.length > 0 && <WallTopLoved media={media} />}
+      {media.length > 0 && <WallTopLoved media={media} everySec={wall?.topLovedEverySec ?? 120} />}
       <WallMilestone count={media.length} />
 
       {/* Canlı anons (moderasyondan; süresi dolunca kaybolur) */}
@@ -528,6 +549,89 @@ function hashStr(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) & 0x7fffffff;
   return h;
+}
+
+// ── Mod: ZAMAN TÜNELİ (kronolojik akış, saat damgalı) ─────────────────────────
+
+function TimelineMode({ media, themeDark }: { media: WallMedia[]; themeDark: boolean }) {
+  // media zaten createdAt'e göre artan sırada (watchWallMedia orderBy asc).
+  const loop = media.length ? [...media, ...media] : [];
+  const dur = Math.max(30, media.length * 7);
+  if (!media.length) return null;
+  return (
+    <div className="h-full flex justify-center overflow-hidden pt-24 pb-28 px-4">
+      <div
+        className="relative w-full max-w-xl overflow-hidden"
+        style={{ maskImage: "linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent)", WebkitMaskImage: "linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent)" }}
+      >
+        <div className="flex flex-col items-center gap-7 ww-marquee" style={{ animationDuration: `${dur}s` }}>
+          {loop.map((m, i) => (
+            <TimelineItem key={m.id + "-" + i} m={m} themeDark={themeDark} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TimelineItem({ m, themeDark }: { m: WallMedia; themeDark: boolean }) {
+  const t = m.createdAt?.toDate?.();
+  const label = t ? t.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : "";
+  const poster = m.type === "video" ? cldVideoPoster(m.url, 600, 600) : cldFit(m.url, 700);
+  return (
+    <div className="flex flex-col items-center gap-2 w-full">
+      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold tabular-nums backdrop-blur ${themeDark ? "bg-white/12 text-white/90 border border-white/15" : "bg-black/5 text-ink/80 border border-black/10"}`}>
+        🕰 {label}
+      </span>
+      <div className={`relative rounded-2xl overflow-hidden shadow-xl border max-w-full ${themeDark ? "border-white/10" : "border-black/10"}`} style={{ maxHeight: "42vh" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={poster} alt="" className="max-h-[42vh] w-auto object-contain block" loading="lazy" />
+        {(m.likes ?? 0) > 0 && <div className="absolute bottom-2 right-2"><LikePill likes={m.likes} /></div>}
+      </div>
+      {m.nickname && <span className={`text-sm font-semibold ${themeDark ? "text-white/75" : "text-ink/70"}`}>{m.nickname}</span>}
+      <span aria-hidden className={`w-px h-6 ${themeDark ? "bg-white/20" : "bg-black/15"}`} />
+    </div>
+  );
+}
+
+/** Görselin baskın (ortalama) rengini canvas'la örnekler; CORS/hatada null. */
+function useDominantColor(url: string | undefined): string | null {
+  const [color, setColor] = useState<string | null>(null);
+  useEffect(() => {
+    if (!url) {
+      setColor(null);
+      return;
+    }
+    let cancelled = false;
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const c = document.createElement("canvas");
+        c.width = 16;
+        c.height = 16;
+        const ctx = c.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, 16, 16);
+        const d = ctx.getImageData(0, 0, 16, 16).data;
+        let r = 0, g = 0, b = 0, n = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          r += d[i]; g += d[i + 1]; b += d[i + 2]; n++;
+        }
+        if (!cancelled && n) setColor(`rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})`);
+      } catch {
+        if (!cancelled) setColor(null);
+      }
+    };
+    img.onerror = () => {
+      if (!cancelled) setColor(null);
+    };
+    img.src = url;
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+  return color;
 }
 
 // ── Mod: SİNEMA (tam ekran tek anı) ───────────────────────────────────────────

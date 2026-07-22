@@ -176,6 +176,12 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
       ❤/dilek/en aktif/en sevilen — mevcut veriden) + "En Sevilenler" highlight
       turu (`WallTopLoved`, ≈2 dk'de bir ilk 3, #1=günün karesi) + milestone
       kutlamaları (`WallMilestone`, 10/25/50/100… eşiğinde konfeti + banner).
+- [x] **Grup 4 — Geri besleme & ambiyans**: "Duvarda göründün!" (foton onaylanıp
+      düşünce `/u` kutlama), zaman tüneli modu (`timeline`, kronolojik+saat),
+      baskın renk ambiyansı (`useDominantColor` canvas → radial tint). Ek: dilek
+      moderasyonu (rules `wishes.status`), En Sevilenler turu sıklığı (kokpit,
+      0/60/120/300/600 sn), tema efekt katmanı z-[15] tutarlandı (Snowflakes
+      `contained` propu ile kokpit önizleme korundu).
 - [ ] Kalan (Dalga 1): **duvar yaşam döngüsü** (kapat/yeni oturum — sessionId
       rotasyonu), **Cloudinary toplu temizlik** (delete_by_prefix API route);
       ileride imzalı yükleme (sertleştirme).

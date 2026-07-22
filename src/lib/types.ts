@@ -88,7 +88,7 @@ export interface UserRecord {
 // ── FlowWall (canlı etkinlik foto/video duvarı) ──────────────────────────────
 
 /** Perde gösterim modları (kokpit seçer, /wall/[id] uygular). "auto" = karışık. */
-export type WallScreenMode = "stage" | "mosaic" | "spotlight" | "polaroid" | "cinema" | "auto";
+export type WallScreenMode = "stage" | "mosaic" | "spotlight" | "polaroid" | "cinema" | "timeline" | "auto";
 
 interface WallModeMeta { id: WallScreenMode; name: string; icon: string; hint: string }
 
@@ -99,6 +99,7 @@ export const BASE_WALL_SCREEN_MODES: WallModeMeta[] = [
   { id: "spotlight", name: "Spot", icon: "🔦", hint: "Rastgele bir anı öne çıkar, diğerleri soluk" },
   { id: "polaroid", name: "Polaroid", icon: "📸", hint: "Arkada saçılan kartlar + önde tek büyük polaroid" },
   { id: "cinema", name: "Sinema", icon: "🎬", hint: "Tam ekran tek anı + altta akan film şeridi" },
+  { id: "timeline", name: "Zaman tüneli", icon: "🕰", hint: "Anılar kronolojik akar, saat damgalı" },
 ];
 
 /** Kokpit seçici — tekil modlar + Otomatik (karışık). */
@@ -127,6 +128,8 @@ export interface Wall {
   autoIntervalSec?: number;
   /** Canlı anons (moderasyondan yayınlanır; `until`e kadar perdede durur) */
   announcement?: { text: string; until: Timestamp | null } | null;
+  /** "En Sevilenler" turu sıklığı (saniye; 0 = kapalı, yoksa 120) */
+  topLovedEverySec?: number;
   sessionId?: string;
   sessionStartedAt?: Timestamp | null;
   createdAt: Timestamp | null;
@@ -159,6 +162,8 @@ export interface WallWish {
   text: string;
   nickname?: string;
   voterId: string;
+  /** Moderasyon açıkken 'pending'; kapalıyken 'approved'. */
+  status?: "pending" | "approved" | "rejected";
   createdAt: Timestamp | null;
 }
 

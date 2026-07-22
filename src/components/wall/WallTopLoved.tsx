@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { WallMedia } from "@/lib/types";
 import { cldFit, cldVideoPoster } from "@/lib/cloudinary";
 
-export default function WallTopLoved({ media }: { media: WallMedia[] }) {
+export default function WallTopLoved({ media, everySec = 120 }: { media: WallMedia[]; everySec?: number }) {
   const [show, setShow] = useState(false);
 
   const top = useMemo(
@@ -18,12 +18,13 @@ export default function WallTopLoved({ media }: { media: WallMedia[] }) {
   );
 
   useEffect(() => {
+    if (!everySec || everySec <= 0) return; // kapalı
     const cycle = window.setInterval(() => {
       setShow(true);
       window.setTimeout(() => setShow(false), 10000);
-    }, 120000);
+    }, everySec * 1000);
     return () => window.clearInterval(cycle);
-  }, []);
+  }, [everySec]);
 
   if (!show || top.length < 2) return null;
 

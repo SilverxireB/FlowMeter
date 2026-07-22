@@ -31,7 +31,7 @@ export default function Hearts() {
   }, []);
 
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-[15] overflow-hidden">
       {items.map((f) => (
         <div
           key={f.id}

@@ -39,8 +39,14 @@
    koleksiyon yok) + "En Sevilenler" highlight turu (perde, ≈2 dk'de bir ilk 3
    beğenilen, #1=günün karesi — `WallTopLoved`) + milestone kutlamaları (10/25/50/
    100… eşiğinde konfeti + banner — `WallMilestone`). Rules değişmedi.
-4. **Grup 4 — Geri besleme & ambiyans:** "Duvarda göründün!" (foton onaylanıp duvara
-   düşünce telefonda kutlama) + zaman tüneli modu (6. perde modu) + baskın renk ambiyansı.
+4. ✅ **Grup 4 — Geri besleme & ambiyans (YAPILDI):** "Duvarda göründün!" (foton
+   onaylanıp duvara düşünce `/u`'da kutlama overlay) + zaman tüneli modu (6. perde
+   modu `timeline`, kronolojik + saat damgalı) + baskın renk ambiyansı (en son
+   anının rengi canvas'la örneklenip perdeye yumuşak radial tint, `useDominantColor`).
+   Ayrıca: **dilek moderasyonu** (moderasyon açıkken onay bekler; kokpitte onayla/
+   reddet/sil), **En Sevilenler turu sıklığı** kokpitten (Kapalı/1/2/5/10 dk),
+   **tema efekt katmanı** düzeltildi (kar/konfeti/kalp artık tutarlı, resimlerin
+   önünde z-[15], üst arayüzün arkasında).
 5. **Grup 5 — Hatıra çıktıları:** otomatik kolaj/kapak (canvas) + hatıra kitabı
    (PDF: tüm foto + dilek mesajları — "anı defteri").
 6. **Grup 6 — Foto yarışması + oylama:** **moderasyondan başlatılır**; misafirler oylar,

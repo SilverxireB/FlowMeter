@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export default function Snowflakes() {
+export default function Snowflakes({ contained }: { contained?: boolean }) {
   const [flakes, setFlakes] = useState<{ id: number; x: number; delay: number; duration: number; size: number; opacity: number }[]>([]);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export default function Snowflakes() {
   }, []);
 
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+    <div aria-hidden className={`pointer-events-none overflow-hidden ${contained ? "absolute inset-0 z-0" : "fixed inset-0 z-[15]"}`}>
       {flakes.map((f) => (
         <div
           key={f.id}
