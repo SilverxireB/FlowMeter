@@ -10,6 +10,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
 import { downloadQrCard } from "@/components/WallQrCard";
+import { downloadCollage } from "@/components/WallCollage";
+import { generateMemoryBook } from "@/lib/wallMemoryBook";
 import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import { useAuthUser, useWall, useWallMedia, useWallWishes } from "@/lib/hooks";
 import { addWallMedia, clearWallAnnouncement, deleteMedia, deleteWish, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWishStatus } from "@/lib/walls";
@@ -75,6 +77,7 @@ export default function WallManage() {
   // Tümünü indir (ZIP) — tarayıcıda paketlenir, sunucu gerekmez
   const [zipping, setZipping] = useState(false);
   const [zipMsg, setZipMsg] = useState<string | null>(null);
+  const [bookMsg, setBookMsg] = useState<string | null>(null);
   const [annText, setAnnText] = useState("");
   const [annMin, setAnnMin] = useState(2);
   const [annNow, setAnnNow] = useState(() => Date.now());
@@ -284,6 +287,30 @@ export default function WallManage() {
                 className="btn-ghost !py-2 !px-4 text-sm"
               >
                 🖨 QR Kartı indir
+              </button>
+              <button
+                onClick={() => wall && downloadCollage(wall, allMedia)}
+                disabled={approved.length === 0}
+                className="btn-ghost !py-2 !px-4 text-sm"
+              >
+                🖼 Kolaj indir
+              </button>
+              <button
+                onClick={async () => {
+                  if (!wall || approved.length === 0 || bookMsg) return;
+                  setBookMsg("Hazırlanıyor…");
+                  try {
+                    await generateMemoryBook(wall, allMedia, wishes, (d, t) => setBookMsg(`${d}/${t} hazırlanıyor…`));
+                    setBookMsg(null);
+                  } catch {
+                    setBookMsg("Hata — tekrar dene");
+                    setTimeout(() => setBookMsg(null), 3000);
+                  }
+                }}
+                disabled={approved.length === 0 || !!bookMsg}
+                className="btn-ghost !py-2 !px-4 text-sm"
+              >
+                {bookMsg ? `📖 ${bookMsg}` : "📖 Hatıra kitabı (PDF)"}
               </button>
               {zipMsg && <span className="text-muted text-xs">{zipMsg}</span>}
             </div>
