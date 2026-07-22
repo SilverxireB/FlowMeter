@@ -116,8 +116,8 @@ export default function WallScreen() {
         />
       )}
 
-      {/* Mod içeriği — auto'da mod değişince yumuşak geçiş için key+fade */}
-      <div key={mode} className="relative z-10 h-full ww-fade">
+      {/* Mod içeriği — auto'da mod değişince state korunur */}
+      <div className="relative z-10 h-full ww-fade">
         {media.length === 0 ? (
           <EmptyState mutedClass={mutedClass} />
         ) : mode === "mosaic" ? (
@@ -236,15 +236,16 @@ function mediaPoster(m: WallMedia, w = 500, h = 500) {
 function StageMode({ media, themeDark, topLovedId, current, isNew, advance }: { media: WallMedia[]; themeDark: boolean; topLovedId: string | null; current: WallMedia | null; isNew: boolean; advance: () => void }) {
   const timer = useRef<number | null>(null);
 
+  const dur = current?.type === "video" ? VIDEO_CAP_MS : IMAGE_MS;
+
   useEffect(() => {
     if (timer.current) window.clearTimeout(timer.current);
     if (!current) return;
-    const dur = current.type === "video" ? VIDEO_CAP_MS : IMAGE_MS;
     timer.current = window.setTimeout(advance, dur);
     return () => {
       if (timer.current) window.clearTimeout(timer.current);
     };
-  }, [current, advance]);
+  }, [current?.id, advance, dur]);
 
   const strips = splitStrips(media);
   const backdrop = current ? mediaPoster(current, 500, 500) : "";
@@ -621,15 +622,16 @@ function useDominantColor(url: string | undefined): string | null {
 function CinemaMode({ media, topLovedId, current, advance }: { media: WallMedia[]; topLovedId: string | null; current: WallMedia | null; advance: () => void }) {
   const timer = useRef<number | null>(null);
 
+  const dur = current?.type === "video" ? VIDEO_CAP_MS : IMAGE_MS + 1500;
+
   useEffect(() => {
     if (timer.current) window.clearTimeout(timer.current);
     if (!current) return;
-    const dur = current.type === "video" ? VIDEO_CAP_MS : IMAGE_MS + 1500;
     timer.current = window.setTimeout(advance, dur);
     return () => {
       if (timer.current) window.clearTimeout(timer.current);
     };
-  }, [current, advance]);
+  }, [current?.id, advance, dur]);
 
   if (!current) return null;
   const backdrop = mediaPoster(current, 600, 600);
@@ -729,21 +731,27 @@ function useSharedPlayback(media: WallMedia[], topLovedId: string | null) {
   const [isNew, setIsNew] = useState(false);
   const playCounts = useRef<Record<string, number>>({});
   const lastPlayTimes = useRef<Record<string, number>>({});
+  
+  const mediaRef = useRef(media);
+  mediaRef.current = media;
+  const topLovedIdRef = useRef(topLovedId);
+  topLovedIdRef.current = topLovedId;
 
   const current = useMemo(() => media.find((m) => m.id === currentId) || media[0] || null, [media, currentId]);
 
   const advance = useCallback(() => {
-    if (media.length === 0) {
+    const currentMedia = mediaRef.current;
+    if (currentMedia.length === 0) {
       setCurrentId(null);
       return;
     }
 
     const now = Date.now();
     let bestScore = -Infinity;
-    let bestId = media[0].id;
+    let bestId = currentMedia[0].id;
 
-    for (const m of media) {
-      if (m.id === currentId && media.length > 1) continue;
+    for (const m of currentMedia) {
+      if (m.id === currentId && currentMedia.length > 1) continue;
 
       let score = 1.0;
       const ageMs = now - (m.createdAt?.toMillis?.() || now);
@@ -765,7 +773,7 @@ function useSharedPlayback(media: WallMedia[], topLovedId: string | null) {
       score -= played * 0.4;
 
       if (m.likes) score += m.likes * 0.2;
-      if (m.id === topLovedId) score += 1.0;
+      if (m.id === topLovedIdRef.current) score += 1.0;
 
       score += Math.random() * 0.5;
 
@@ -776,22 +784,23 @@ function useSharedPlayback(media: WallMedia[], topLovedId: string | null) {
     }
 
     playCounts.current[bestId] = (playCounts.current[bestId] || 0) + 1;
-    const bestMedia = media.find((m) => m.id === bestId);
+    const bestMedia = currentMedia.find((m) => m.id === bestId);
     if (bestMedia?.voterId) {
       lastPlayTimes.current[bestMedia.voterId] = now;
     }
     
-    setCurrentId(bestId);
-    
-    const isActuallyNew = bestMedia && (now - (bestMedia.createdAt?.toMillis?.() || now)) < 15000;
-    setIsNew(Boolean(isActuallyNew && playCounts.current[bestId] <= 1));
-  }, [media, currentId, topLovedId]);
+    setCurrentId((prevId) => {
+      const isActuallyNew = bestMedia && (now - (bestMedia.createdAt?.toMillis?.() || now)) < 15000;
+      setIsNew(Boolean(isActuallyNew && playCounts.current[bestId] <= 1));
+      return bestId;
+    });
+  }, [currentId]);
 
   useEffect(() => {
     if (!currentId && media.length > 0) {
       advance();
     }
-  }, [media, currentId, advance]);
+  }, [media.length, currentId, advance]);
 
   return { current, isNew, advance };
 }
