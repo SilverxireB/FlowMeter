@@ -78,6 +78,13 @@ export default function WallScreen() {
 
   const { style: themeStyleObj, dark: themeDark } = wallThemeStyle(wall?.theme);
 
+  // Şampanya (dugun) + Sedef (kurumsal): açık temalar, siyah yazı. Resimden
+  // türeyen ambient tint `multiply` ile açık zemini karartıp yazıyı okunmaz
+  // yapıyor → yalnız bu ikisinde karartmayan çok hafif bir harman kullan.
+  const pearlTheme =
+    !themeDark && !wall?.theme?.bgImage &&
+    (wall?.theme?.preset === "dugun" || wall?.theme?.preset === "kurumsal");
+
   // En sevilen anı (en çok beğeni; eşitlikte en yenisi). >0 beğeni şart.
   const topLovedId = useMemo(() => {
     let best: WallMedia | null = null;
@@ -112,8 +119,8 @@ export default function WallScreen() {
           className="absolute inset-0 pointer-events-none transition-[background] duration-1000"
           style={{
             background: `radial-gradient(75% 55% at 50% 22%, ${ambientColor}, transparent 72%)`,
-            opacity: themeDark ? 0.4 : 0.26,
-            mixBlendMode: themeDark ? "screen" : "multiply",
+            opacity: themeDark ? 0.4 : pearlTheme ? 0.12 : 0.26,
+            mixBlendMode: themeDark ? "screen" : pearlTheme ? "soft-light" : "multiply",
           }}
         />
       )}
