@@ -16,6 +16,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
 import Snowflakes from "@/components/Snowflakes";
+import Hearts from "@/components/Hearts";
+import Confetti from "@/components/Confetti";
+import WallReactionOverlay from "@/components/wall/WallReactionOverlay";
 import { useWall, useWallMedia } from "@/lib/hooks";
 import { resolveCode } from "@/lib/walls";
 import { cldFit, cldThumb, cldVideoPoster } from "@/lib/cloudinary";
@@ -87,6 +90,9 @@ export default function WallScreen() {
   return (
     <main className={`relative h-screen overflow-hidden ${textClass}`} style={themeStyleObj}>
       {wall?.theme?.preset === "yilbasi" && <Snowflakes />}
+      {wall?.theme?.preset === "dugun" && <Hearts />}
+      {wall?.theme?.preset === "parti" && <Confetti />}
+      {typeof wallId === "string" && <WallReactionOverlay wallId={wallId} />}
 
       {/* Mod içeriği — auto'da mod değişince yumuşak geçiş için key+fade */}
       <div key={mode} className="relative z-10 h-full ww-fade">

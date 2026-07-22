@@ -164,6 +164,10 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
       kimliği sunucuda doğrulanamadığından (Altın Kural 1: audience auth yok +
       delete gövde taşımaz) güvenli değil — sahibi siler; misafir-silme için
       anonim-auth ayrı bir karar (bkz. FLOWWALL Dalga 3).*
+- [x] **Grup 1 — Perde canlansın**: emoji/kalp yağmuru (misafir `/u` tepki çubuğu →
+      `walls/{id}/reactions` create-only + rules → perdede `WallReactionOverlay`
+      yukarı uçar) + temaya özel ambient efektler (`Hearts` düğün, `Confetti`
+      parti, `Snowflakes` yılbaşı). Gönderim 500ms throttle.
 - [ ] Kalan (Dalga 1): **duvar yaşam döngüsü** (kapat/yeni oturum — sessionId
       rotasyonu), **Cloudinary toplu temizlik** (delete_by_prefix API route);
       ileride imzalı yükleme (sertleştirme).

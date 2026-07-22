@@ -183,6 +183,17 @@ service cloud.firestore {
         allow delete: if request.auth != null
           && wall().ownerId == request.auth.uid;
       }
+
+      // Tepkiler (misafir emoji/kalp yağmuru → perde): herkes ekler, sadece
+      // izinli emojiler. Değiştirilemez; silme (temizlik) sadece duvar sahibinde.
+      match /reactions/{reactionId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['emoji', 'createdAt'])
+          && request.resource.data.emoji in ['❤️', '👏', '🎉', '😍', '🔥', '😮'];
+        allow update: if false;
+        allow delete: if request.auth != null
+          && get(/databases/$(database)/documents/walls/$(wallId)).data.ownerId == request.auth.uid;
+      }
     }
 
     // Join kodu -> sunum/duvar lookup tablosu ({presentationId} veya {id,kind:"wall"}).

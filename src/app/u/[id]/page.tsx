@@ -8,6 +8,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
+import WallReactionBar from "@/components/wall/WallReactionBar";
 import { useWall, useWallMedia } from "@/lib/hooks";
 import { addWallMedia, hasLikedMedia, likeMedia, resolveCode } from "@/lib/walls";
 import { cloudinaryStatus, cldFit, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
@@ -164,7 +165,7 @@ export default function UploadPage() {
       {tab === "browse" ? (
         <BrowseGallery wallId={wallId ?? null} />
       ) : (
-      <section className="flex-1 flex flex-col px-5 pb-8 pt-4 max-w-md w-full mx-auto">
+      <section className="flex-1 flex flex-col px-5 pb-24 pt-4 max-w-md w-full mx-auto">
         {!isCloudinaryConfigured() && (
           <div className="mb-5 rounded-2xl bg-[#eda100]/15 border border-[#eda100]/40 px-4 py-3 text-sm text-[#ffdd99]">
             ⚠️ Medya yükleme yapılandırılmadı. Eksik:
@@ -270,6 +271,8 @@ export default function UploadPage() {
         )}
       </section>
       )}
+
+      {typeof wallId === "string" && <WallReactionBar wallId={wallId} />}
     </main>
   );
 }
@@ -290,7 +293,7 @@ function BrowseGallery({ wallId }: { wallId: string | null }) {
   const mineCount = useMemo(() => approved.filter((m) => m.voterId === voterId).length, [approved, voterId]);
 
   return (
-    <section className="flex-1 flex flex-col px-5 pb-10 pt-4 max-w-md w-full mx-auto">
+    <section className="flex-1 flex flex-col px-5 pb-24 pt-4 max-w-md w-full mx-auto">
       <div className="flex items-center justify-between mb-3">
         <p className="text-white/60 text-sm tabular-nums">{approved.length} anı duvarda</p>
         <button

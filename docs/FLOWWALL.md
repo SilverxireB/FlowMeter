@@ -25,8 +25,10 @@
 > Kullanıcı bu 13 maddeyi seçti; **gruplar hâlinde sırayla** kurulur (her grup
 > ayrı push + ayrı gözden geçirme). Geri kalan havuz fikirleri sonraya.
 
-1. **Grup 1 — Perde canlansın:** emoji/kalp yağmuru (misafir → perde) + temaya
-   özel ambient efektler (düğün 💗 kalp, parti 🎈🎊 konfeti/balon; yılbaşı ❄️ zaten var).
+1. ✅ **Grup 1 — Perde canlansın (YAPILDI):** emoji/kalp yağmuru (misafir /u tepki
+   çubuğu → `walls/{id}/reactions` create-only → perdede yukarı uçar,
+   `WallReactionOverlay`) + temaya özel ambient (düğün 💗 `Hearts`, parti 🎈🎊
+   `Confetti`, yılbaşı ❄️ `Snowflakes`). Rules'a reactions bloğu eklendi.
 2. **Grup 2 — Perde bantları:** anı/dilek mesajları (akan dilek bandı) + canlı
    anons bandı — **moderasyondan yönetilir**, anons seçilen süre ekranda tutulur,
    sonra akış devam eder (süre aralığı **1–60 dk**; ör. "kokteyller dağıtıldı" 2 dk).

@@ -176,6 +176,23 @@ export async function deleteMedia(wallId: string, mediaId: string): Promise<void
   await deleteDoc(doc(db(), "walls", wallId, "media", mediaId));
 }
 
+// ── Tepkiler (misafir → perde emoji/kalp yağmuru; create-only) ────────────────
+export const WALL_REACTION_EMOJIS = ["❤️", "👏", "🎉", "😍", "🔥", "😮"] as const;
+export type WallReactionEmoji = (typeof WALL_REACTION_EMOJIS)[number];
+
+let lastReactionSent = 0;
+
+/** Perdeye emoji gönderir — client-side 500ms rate limit (spam koruması). */
+export async function sendWallReaction(wallId: string, emoji: WallReactionEmoji): Promise<void> {
+  const now = Date.now();
+  if (now - lastReactionSent < 500) return;
+  lastReactionSent = now;
+  await addDoc(collection(db(), "walls", wallId, "reactions"), {
+    emoji,
+    createdAt: serverTimestamp(),
+  });
+}
+
 // ── Beğeni (misafir ❤ — sunum Q&A upvote deseniyle aynı: +1, localStorage dedup) ─
 function likeKey(mediaId: string): string {
   return `flowwall.liked.${mediaId}`;
