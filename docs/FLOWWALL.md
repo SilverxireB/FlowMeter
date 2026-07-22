@@ -21,6 +21,25 @@
 > liste** — proje ilerledikçe yenileri eklenir. Öncelik: **önce ürün & özellik**;
 > güvenlik / ürün satışı / pricing en sonda ("Sonraki planlar").
 
+### 🎯 SIRA — seçilen build planı (2026-07, gruplu · sırayla kurulur)
+> Kullanıcı bu 13 maddeyi seçti; **gruplar hâlinde sırayla** kurulur (her grup
+> ayrı push + ayrı gözden geçirme). Geri kalan havuz fikirleri sonraya.
+
+1. **Grup 1 — Perde canlansın:** emoji/kalp yağmuru (misafir → perde) + temaya
+   özel ambient efektler (düğün 💗 kalp, parti 🎈🎊 konfeti/balon; yılbaşı ❄️ zaten var).
+2. **Grup 2 — Perde bantları:** anı/dilek mesajları (akan dilek bandı) + canlı
+   anons bandı — **moderasyondan yönetilir**, anons seçilen süre ekranda tutulur,
+   sonra akış devam eder (süre aralığı **1–60 dk**; ör. "kokteyller dağıtıldı" 2 dk).
+3. **Grup 3 — Kokpit & öne çıkanlar:** istatistik/özet (kaç anı/katılımcı, en aktif,
+   en sevilenler) + "En sevilenler" highlight turu (perde) + milestone kutlamaları
+   (100. foto → konfeti, "günün karesi").
+4. **Grup 4 — Geri besleme & ambiyans:** "Duvarda göründün!" (foton onaylanıp duvara
+   düşünce telefonda kutlama) + zaman tüneli modu (6. perde modu) + baskın renk ambiyansı.
+5. **Grup 5 — Hatıra çıktıları:** otomatik kolaj/kapak (canvas) + hatıra kitabı
+   (PDF: tüm foto + dilek mesajları — "anı defteri").
+6. **Grup 6 — Foto yarışması + oylama:** **moderasyondan başlatılır**; misafirler oylar,
+   kazanan perdede taçlanır (FlowMeter oylama köprüsü). En kapsamlısı, en sona.
+
 ### ✅ Canlıda (tamam)
 - [x] 5 perde modu (Sahne · Mozaik · Spot · Polaroid · Sinema) + 🔀 Otomatik geçiş
 - [x] Tema presetleri + özel arka plan + Yılbaşı karı · yazdırılabilir QR kartı
