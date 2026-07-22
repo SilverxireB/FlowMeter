@@ -11,7 +11,7 @@ import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
 import { downloadQrCard } from "@/components/WallQrCard";
 import Snowflakes from "@/components/Snowflakes";
-import { useAuthUser, useWall, useWallMedia } from "@/lib/hooks";
+import { useAuthUser, useWall, useWallMedia, useWallWishes } from "@/lib/hooks";
 import { addWallMedia, clearWallAnnouncement, deleteMedia, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallHeadline, setWallModeration, setWallScreenMode, setWallTheme } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
@@ -44,6 +44,25 @@ export default function WallManage() {
   const pending = useMemo(() => allMedia.filter((m) => m.status === "pending"), [allMedia]);
   const approved = useMemo(() => allMedia.filter((m) => m.status === "approved"), [allMedia]);
   const rejected = useMemo(() => allMedia.filter((m) => m.status === "rejected"), [allMedia]);
+  const wishes = useWallWishes(id);
+
+  // Kokpit özeti — mevcut veriden hesaplanır (yeni koleksiyon yok).
+  const stats = useMemo(() => {
+    const byVoter = new Map<string, { count: number; name: string }>();
+    for (const m of allMedia) {
+      const k = m.voterId || "?";
+      const e = byVoter.get(k) ?? { count: 0, name: m.nickname || "Misafir" };
+      e.count += 1;
+      if (m.nickname) e.name = m.nickname;
+      byVoter.set(k, e);
+    }
+    let topContributor: { count: number; name: string } | null = null;
+    for (const v of byVoter.values()) if (!topContributor || v.count > topContributor.count) topContributor = v;
+    let mostLoved: WallMedia | null = null;
+    for (const m of approved) if ((m.likes ?? 0) > 0 && (!mostLoved || (m.likes ?? 0) > (mostLoved.likes ?? 0))) mostLoved = m;
+    const totalLikes = approved.reduce((s, m) => s + (m.likes ?? 0), 0);
+    return { participants: byVoter.size, topContributor, mostLoved, totalLikes };
+  }, [allMedia, approved]);
 
   // Sunucunun kendi medya eklemesi
   const fileRef = useRef<HTMLInputElement>(null);
@@ -190,6 +209,42 @@ export default function WallManage() {
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
+        {/* Kokpit özeti */}
+        <div className="card p-5">
+          <p className="eyebrow mb-3">Özet</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <StatTile label="Anı" value={approved.length} sub={pending.length ? `${pending.length} onay bekliyor` : undefined} />
+            <StatTile label="Katılımcı" value={stats.participants} />
+            <StatTile label="Toplam ❤" value={stats.totalLikes} />
+            <StatTile label="Dilek" value={wishes.length} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <div className="rounded-xl border border-line p-3 flex items-center gap-2 min-w-0">
+              <span className="text-xl shrink-0" aria-hidden>🔥</span>
+              <div className="min-w-0">
+                <p className="text-muted text-xs">En aktif</p>
+                <p className="font-semibold text-sm truncate">
+                  {stats.topContributor ? `${stats.topContributor.name} · ${stats.topContributor.count} anı` : "—"}
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-line p-3 flex items-center gap-2 min-w-0">
+              {stats.mostLoved ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={cldThumb(stats.mostLoved.url, 80, 80)} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />
+              ) : (
+                <span className="text-xl shrink-0" aria-hidden>👑</span>
+              )}
+              <div className="min-w-0">
+                <p className="text-muted text-xs">En sevilen</p>
+                <p className="font-semibold text-sm truncate">
+                  {stats.mostLoved ? `❤ ${stats.mostLoved.likes} · ${stats.mostLoved.nickname || "Misafir"}` : "Henüz beğeni yok"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Katılım + ayarlar */}
         <div className="card p-5 flex flex-col sm:flex-row gap-5 items-center">
           {joinUrl && (
@@ -547,6 +602,16 @@ function MediaCard({ m, children }: { m: WallMedia; children: React.ReactNode })
         {m.nickname && <p className="text-xs text-muted truncate px-0.5">{m.nickname}</p>}
         {children}
       </div>
+    </div>
+  );
+}
+
+function StatTile({ label, value, sub }: { label: string; value: number; sub?: string }) {
+  return (
+    <div className="rounded-xl border border-line p-3 text-center">
+      <p className="font-display text-3xl font-bold tabular-nums leading-none">{value}</p>
+      <p className="text-muted text-xs mt-1.5">{label}</p>
+      {sub && <p className="text-accent text-[11px] mt-0.5">{sub}</p>}
     </div>
   );
 }

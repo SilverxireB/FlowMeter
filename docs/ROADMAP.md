@@ -172,6 +172,10 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
       `walls/{id}/wishes` create-only + rules → perdede `WallWishes` dönen kart) +
       canlı anons (kokpit metin + süre 1–60 dk → `wall.announcement{text,until}` →
       perdede `WallAnnouncement` banner, süre dolunca kalkar).
+- [x] **Grup 3 — Kokpit & öne çıkanlar**: kokpit özet kartı (anı/katılımcı/toplam
+      ❤/dilek/en aktif/en sevilen — mevcut veriden) + "En Sevilenler" highlight
+      turu (`WallTopLoved`, ≈2 dk'de bir ilk 3, #1=günün karesi) + milestone
+      kutlamaları (`WallMilestone`, 10/25/50/100… eşiğinde konfeti + banner).
 - [ ] Kalan (Dalga 1): **duvar yaşam döngüsü** (kapat/yeni oturum — sessionId
       rotasyonu), **Cloudinary toplu temizlik** (delete_by_prefix API route);
       ileride imzalı yükleme (sertleştirme).

@@ -34,9 +34,11 @@
    `WallWishes` kartı) + canlı anons (kokpitten metin + süre 1/2/5/10/15/30/60 dk →
    `wall.announcement{text,until}` → perdede `WallAnnouncement` banner, süre dolunca
    kalkar, kokpitten "Kaldır"). Rules'a wishes bloğu eklendi.
-3. **Grup 3 — Kokpit & öne çıkanlar:** istatistik/özet (kaç anı/katılımcı, en aktif,
-   en sevilenler) + "En sevilenler" highlight turu (perde) + milestone kutlamaları
-   (100. foto → konfeti, "günün karesi").
+3. ✅ **Grup 3 — Kokpit & öne çıkanlar (YAPILDI):** kokpit özet kartı (anı,
+   katılımcı, toplam ❤, dilek, en aktif, en sevilen — mevcut veriden, yeni
+   koleksiyon yok) + "En Sevilenler" highlight turu (perde, ≈2 dk'de bir ilk 3
+   beğenilen, #1=günün karesi — `WallTopLoved`) + milestone kutlamaları (10/25/50/
+   100… eşiğinde konfeti + banner — `WallMilestone`). Rules değişmedi.
 4. **Grup 4 — Geri besleme & ambiyans:** "Duvarda göründün!" (foton onaylanıp duvara
    düşünce telefonda kutlama) + zaman tüneli modu (6. perde modu) + baskın renk ambiyansı.
 5. **Grup 5 — Hatıra çıktıları:** otomatik kolaj/kapak (canvas) + hatıra kitabı

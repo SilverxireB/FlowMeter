@@ -21,6 +21,8 @@ import Confetti from "@/components/Confetti";
 import WallReactionOverlay from "@/components/wall/WallReactionOverlay";
 import WallWishes from "@/components/wall/WallWishes";
 import WallAnnouncement from "@/components/wall/WallAnnouncement";
+import WallMilestone from "@/components/wall/WallMilestone";
+import WallTopLoved from "@/components/wall/WallTopLoved";
 import { useWall, useWallMedia, useWallWishes } from "@/lib/hooks";
 import { resolveCode } from "@/lib/walls";
 import { cldFit, cldThumb, cldVideoPoster } from "@/lib/cloudinary";
@@ -154,6 +156,10 @@ export default function WallScreen() {
           🔀 {WALL_SCREEN_MODES.find((m) => m.id === mode)?.name ?? mode}
         </div>
       )}
+
+      {/* En sevilenler highlight turu (periyodik) + milestone kutlamaları */}
+      {media.length > 0 && <WallTopLoved media={media} />}
+      <WallMilestone count={media.length} />
 
       {/* Canlı anons (moderasyondan; süresi dolunca kaybolur) */}
       <WallAnnouncement announcement={wall?.announcement} />
