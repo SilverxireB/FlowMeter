@@ -118,9 +118,18 @@ Tamamlanan/kalan her şey: `docs/ROADMAP.md`. Kısaca kalanlar: Guess the Number
 audience-pace anket modu, şablon galerisi, profanity filtresi, slayta görsel
 ekleme, editör canlı önizleme/otomatik kayıt, Cloud Function temizlik, i18n.
 
-**FlowWall** (canlı fotoğraf/video duvarı — henüz YAPILMADI, planı hazır):
-`docs/FLOWWALL.md`. Karar: ayrı uygulama değil, bu altyapı üzerine ikinci ürün
-(ayrı `walls/{id}` koleksiyonu, kendi giriş kapısı). Medya deposu **Cloudinary**
-(yalnız FlowWall'a özel istisna — etkinlik ağında kural 4 esner; FlowMeter'a
-sıçramaz); metadata/moderasyon/auth/oturum/rules Firebase'de kalır. Kullanıcı
-"FlowWall'a başla" dediğinde önce o dosyayı oku.
+**FlowWall** (canlı foto/video duvarı — büyük ölçüde CANLIDA): ayrı ürün, bu
+altyapı üstünde (`walls/{id}` koleksiyonu, kendi giriş kapısı; medya Cloudinary,
+gerisi Firebase). Rotalar: `/wall` `/wall/[id]` (perde) `/u/[id]` (misafir)
+`/wall/[id]/manage` (kokpit). Fikir havuzu + kapasite analizi + tamamlanan gruplar:
+`docs/FLOWWALL.md`. YAPILDI (Grup 1-6 + cila): 6 perde modu + 🔀 otomatik + **akıllı
+ağırlıklı adil oynatma** (usePagedPlayback, page.tsx); 8 renk teması; temadan
+bağımsız 8 ambient efekt (WallEffectLayer); emoji yağmuru; dilek bandı +
+moderasyon; canlı anons; kokpit istatistik; En Sevilenler turu; milestone (aç/kapa);
+"Duvarda göründün"; baskın renk ambiyansı; QR kartı; kolaj (WallCollage) + hatıra
+kitabı PDF (wallMemoryBook, jspdf); foto yarışması+oylama (contest, WallContest).
+Ölçek: misafir büyük koleksiyon dinlemez (watchWallMediaByVoter/Recent);
+contest oylarını yalnız perde+kokpit dinler. **Firestore rules SON hali konsola
+yapıştırılmalı** (media likes, reactions, wishes.status, contestVotes eklendi).
+Kalan (park): güvenlik/anonim-auth/imzalı yükleme/AI moderasyon, ayrı domain,
+pricing — bkz. `docs/FLOWWALL.md` "Sonraki planlar".
