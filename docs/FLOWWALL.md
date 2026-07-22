@@ -117,6 +117,30 @@
 - [ ] AI içerik moderasyonu (müstehcen/şiddet otomatik red → güvenlik/park)
 - [ ] Generative fill/remove (nesne sil/genişlet — kredi ister)
 
+### 📊 Kapasite & limitler (2026-07 gerçekçi analiz — fikir olarak tutuluyor)
+> Model: 500 misafir · 4 saat · %60 katılım · 1500 foto + 150 video (~10 sn) ·
+> 7.5k tepki · 2k beğeni · 150 dilek · 250 kişi "Gez".
+
+- **Firestore (Blaze):** darboğaz DEĞİL. Bir aktif etkinlik ≈ **birkaç sent**
+  (okuma ~63k → ~1 sent; yazma ~13k → ücretsiz kotada). 2.000 kişi bile birkaç
+  dolar. Tepkiler hem yazmanın hem perde okumasının ana sürücüsü.
+- **Cloudinary (ücretsiz 25 kredi/ay; 1 kredi = 1 GB depo / 1 GB trafik / 1000
+  dönüşüm):** GERÇEK tavan. Video'lu 1 etkinlik ≈ **26 kredi** (ucunda/biraz
+  üstü), sadece foto ≈ **17 kredi** (rahat). Ayda 2 büyük video'lu etkinlik → aşar.
+- ✅ YAPILDI: misafir telefonu tüm medya koleksiyonunu dinlemiyor (kendi medyası
+  `watchWallMediaByVoter` + "Gez"de en yeni 150 `watchWallMediaRecent`) — 500
+  kişide okuma patlamasını önler. Perde (tek cihaz) tümünü dinler.
+
+Kaldıraçlar/limitler (hepsine bakılacak — sırasız):
+- [ ] **Cloudinary upload preset'te gelen dönüşüm** (max ~1920px + q_auto) → foto
+      depo ~10× düşer (~6.5 GB → ~0.7 GB). Dashboard ayarı, EN BÜYÜK etki.
+- [ ] **Video limiti** (≤15 sn, ≤25 MB) ya da ücretsiz tier'da video kapalı → ~9 kredi geri.
+- [ ] **Kişi başı foto tavanı** (~15-20; bir kişi 200 basmasın).
+- [ ] Dönüşüm varyantlarını azalt (şu an 5-6 boyut → 3).
+- [ ] Tepki cooldown 500 → 800 ms (yazma/okuma gürültüsü).
+- [ ] Duvar başına toplam medya tavanı (~2000, opsiyonel guard).
+- [ ] Oturum sonu temizliği (eski reaction/medya — Cloudinary delete_by_prefix ile birlikte).
+
 ### 🔗 Köprü — İki ürün birleşsin
 - [ ] FlowMeter sunumuna canlı "wall" slayt tipi + video sesi aç/kapat + video süre limiti
 
