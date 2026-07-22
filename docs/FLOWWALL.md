@@ -53,8 +53,11 @@
    kazanan perdede taçlanır (FlowMeter oylama köprüsü). En kapsamlısı, en sona.
 
 ### ✅ Canlıda (tamam)
-- [x] 5 perde modu (Sahne · Mozaik · Spot · Polaroid · Sinema) + 🔀 Otomatik geçiş
-- [x] Tema presetleri + özel arka plan + Yılbaşı karı · yazdırılabilir QR kartı
+- [x] 6 perde modu (Sahne · Mozaik · Spot · Polaroid · Sinema · Zaman tüneli) + 🔀 Otomatik geçiş
+- [x] **8 renk teması** (Gece Mavisi · Zümrüt · Ametist · Mercan · Okyanus · Antrasit ·
+      Şampanya · Sedef) + özel arka plan · yazdırılabilir QR kartı (yeniden tasarlandı)
+- [x] **Ambient efektler temadan bağımsız seçilir** (Kar · Konfeti · Havai fişek · Kalp ·
+      Balon · Kabarcık · Yıldız); `WallEffectLayer`, kokpit önizlemede de görünür (cqh/cqw)
 - [x] Çoklu yükleme (karo ızgara, canlı %) · moderasyon · ZIP indir · kalıcı silme
 - [x] Duvarı gez sekmesi + ❤ beğeni + "Benimkiler" + perdede 👑 En sevilen
 - [x] Admin paneli (kullanıcı yönetimi)
