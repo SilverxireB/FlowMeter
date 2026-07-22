@@ -417,39 +417,67 @@ function SpotlightMode({ media, themeDark, topLovedId }: { media: WallMedia[]; t
 
 // ── Mod: POLAROID (saçılan eğik kartlar) ──────────────────────────────────────
 
-function PolaroidMode({ media, themeDark, topLovedId }: { media: WallMedia[]; themeDark: boolean; topLovedId: string | null }) {
-  const shown = useMemo(() => [...media].slice(-16), [media]);
-  const newestId = media.length ? media[media.length - 1].id : null;
+function PolaroidMode({ media, topLovedId }: { media: WallMedia[]; themeDark: boolean; topLovedId: string | null }) {
+  // Arka: saçılan küçük/soluk polaroidler (dağınık masa hissi).
+  const back = useMemo(() => [...media].slice(-12), [media]);
+  // Ön: tek büyük polaroid, dönerek öne çıkar.
+  const [idx, setIdx] = useState(0);
+  const prevLen = useRef(0);
+
+  useEffect(() => {
+    if (media.length > prevLen.current && prevLen.current > 0) setIdx(media.length - 1);
+    prevLen.current = media.length;
+  }, [media.length]);
+
+  useEffect(() => {
+    if (media.length < 2) return;
+    const t = window.setInterval(() => setIdx((i) => i + 1), 5000);
+    return () => window.clearInterval(t);
+  }, [media.length]);
+
+  const front = media.length ? media[((idx % media.length) + media.length) % media.length] : null;
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {shown.map((m, i) => {
-        // İndeks tabanlı deterministik dağınık yerleşim (her render aynı kalır).
+      {/* Arka yığın — küçük, soluk, dağınık */}
+      {back.map((m, i) => {
         const seed = hashStr(m.id);
-        const left = 8 + ((seed % 1000) / 1000) * 78; // %
-        const top = 16 + (((seed >> 3) % 1000) / 1000) * 60; // %
-        const rot = -14 + (((seed >> 6) % 28)); // -14..+14 derece
-        const isNewest = m.id === newestId;
-        const z = isNewest ? 50 : 10 + (i % 20);
+        const left = 5 + ((seed % 1000) / 1000) * 82; // %
+        const top = 12 + (((seed >> 3) % 1000) / 1000) * 66; // %
+        const rot = -16 + (((seed >> 6) % 32)); // -16..+16
         return (
-          <figure
+          <div
             key={m.id}
-            className={`absolute ${isNewest ? "ww-drop" : "ww-float"} rounded-sm bg-white shadow-2xl`}
-            style={{ left: `${left}%`, top: `${top}%`, transform: `rotate(${rot}deg)`, zIndex: z, width: "clamp(120px, 15vw, 230px)", padding: "8px 8px 34px", animationDelay: `${(i % 8) * 0.4}s` }}
+            className="absolute ww-float rounded-sm bg-white shadow-xl"
+            style={{ left: `${left}%`, top: `${top}%`, transform: `rotate(${rot}deg)`, zIndex: 5, width: "clamp(78px, 9vw, 140px)", padding: "5px 5px 20px", opacity: 0.5, animationDelay: `${(i % 8) * 0.4}s` }}
           >
             <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: "1" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={mediaPoster(m, 400, 400)} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-              {m.type === "video" && <span className="absolute bottom-1 right-1 grid place-items-center w-6 h-6 rounded-full bg-black/55 text-white text-[10px]">▶</span>}
-              {(m.likes ?? 0) > 0 && <div className="absolute top-1 left-1"><LikePill likes={m.likes} /></div>}
+              <img src={mediaPoster(m, 260, 260)} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
             </div>
-            <figcaption className="absolute bottom-1.5 inset-x-2 text-center text-[#333] text-xs font-semibold truncate" style={{ fontFamily: "var(--font-display, inherit)" }}>
-              {m.id === topLovedId ? "👑 " : ""}{m.nickname || (isNewest ? "✨ yeni" : "")}
-            </figcaption>
-          </figure>
+          </div>
         );
       })}
-      {!themeDark && <div aria-hidden className="absolute inset-0 -z-0" />}
+
+      {/* Ön: tekil büyük polaroid */}
+      {front && (
+        <div className="absolute inset-0 grid place-items-center">
+          <figure key={front.id} className="ww-drop rounded-sm bg-white shadow-2xl" style={{ transform: "rotate(-3deg)", width: "clamp(240px, 33vw, 430px)", padding: "14px 14px 56px", zIndex: 30 }}>
+            <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: "1" }}>
+              {front.type === "video" ? (
+                <video src={cldFit(front.url, 900)} autoPlay muted playsInline preload="auto" className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={mediaPoster(front, 760, 760)} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              )}
+              {(front.likes ?? 0) > 0 && <div className="absolute top-2 left-2"><LikePill likes={front.likes} large /></div>}
+            </div>
+            <figcaption className="absolute bottom-3.5 inset-x-4 text-center text-[#2a2a2a] text-lg font-bold truncate" style={{ fontFamily: "var(--font-display, inherit)" }}>
+              {front.id === topLovedId ? "👑 " : ""}{front.nickname || "✨"}
+            </figcaption>
+          </figure>
+        </div>
+      )}
     </div>
   );
 }
@@ -503,12 +531,38 @@ function CinemaMode({ media, topLovedId }: { media: WallMedia[]; topLovedId: str
           <img src={cldFit(current.url, 2000)} alt="" className="max-h-screen max-w-full object-contain block ww-ken-slow" />
         )}
       </figure>
-      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
+      <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
         {current.id === topLovedId && <LovedRibbon />}
         {(current.likes ?? 0) > 0 && <LikePill likes={current.likes} large />}
         {current.nickname && (
           <span className="px-4 py-1.5 rounded-full border border-white/15 bg-white/10 text-white/90 text-sm font-semibold backdrop-blur">{current.nickname}</span>
         )}
+      </div>
+
+      {/* Alt film şeridi — koleksiyon bütünselliği (bütün anılar akar) */}
+      <CinemaReel media={media} />
+    </div>
+  );
+}
+
+/** Sinema modunda alttan yatay akan ince film şeridi (soluk; kart üstünde durur). */
+function CinemaReel({ media }: { media: WallMedia[] }) {
+  if (media.length < 2) return null;
+  const items = [...media].slice(-20);
+  const loop = [...items, ...items];
+  const dur = Math.max(34, items.length * 4);
+  return (
+    <div
+      className="absolute bottom-0 inset-x-0 h-[74px] z-[8] overflow-hidden opacity-55"
+      style={{ maskImage: "linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)", WebkitMaskImage: "linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)" }}
+    >
+      <div className="flex gap-2 p-2 ww-marquee-x" style={{ animationDuration: `${dur}s` }}>
+        {loop.map((m, i) => (
+          <div key={m.id + "-" + i} className="relative h-[58px] aspect-square rounded-lg overflow-hidden border border-white/15 shrink-0 bg-white/5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={mediaPoster(m, 180, 180)} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -531,6 +585,8 @@ function WallStyles() {
       @keyframes wwkenslow { from { transform: scale(1.04); } to { transform: scale(1.14) translate(-1.5%, 1.5%); } }
       .ww-marquee { animation-name: wwmarquee; animation-timing-function: linear; animation-iteration-count: infinite; }
       @keyframes wwmarquee { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+      .ww-marquee-x { animation-name: wwmarqueex; animation-timing-function: linear; animation-iteration-count: infinite; }
+      @keyframes wwmarqueex { from { transform: translateX(0); } to { transform: translateX(-50%); } }
       .ww-spot { animation: wwspot 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
       @keyframes wwspot { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
       .ww-heart { animation: wwheart 1.6s ease-in-out infinite; display: inline-block; }
@@ -542,7 +598,7 @@ function WallStyles() {
       .ww-float { animation: wwfloat 7s ease-in-out infinite; }
       @keyframes wwfloat { 0%,100% { transform: translateY(0) rotate(var(--r,0)); } 50% { transform: translateY(-6px); } }
       @media (prefers-reduced-motion: reduce) {
-        .ww-fade, .ww-pulse, .ww-ken, .ww-ken-slow, .ww-pop, .ww-marquee, .ww-spot, .ww-heart, .ww-glow, .ww-drop, .ww-float { animation: none !important; }
+        .ww-fade, .ww-pulse, .ww-ken, .ww-ken-slow, .ww-pop, .ww-marquee, .ww-marquee-x, .ww-spot, .ww-heart, .ww-glow, .ww-drop, .ww-float { animation: none !important; }
       }
     `}</style>
   );
