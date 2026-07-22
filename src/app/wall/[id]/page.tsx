@@ -88,6 +88,8 @@ export default function WallScreen() {
     return best?.id ?? null;
   }, [media]);
 
+  const { current: sharedCurrent, isNew: sharedIsNew, advance: sharedAdvance } = useSharedPlayback(media, topLovedId);
+
   if (wallId === null) {
     return <main className="min-h-screen grid place-items-center bg-[#05091c] text-white/70">Duvar bulunamadı.</main>;
   }
@@ -127,9 +129,9 @@ export default function WallScreen() {
         ) : mode === "timeline" ? (
           <TimelineMode media={media} themeDark={themeDark} />
         ) : mode === "cinema" ? (
-          <CinemaMode media={media} topLovedId={topLovedId} />
+          <CinemaMode media={media} topLovedId={topLovedId} current={sharedCurrent} advance={sharedAdvance} />
         ) : (
-          <StageMode media={media} themeDark={themeDark} topLovedId={topLovedId} />
+          <StageMode media={media} themeDark={themeDark} topLovedId={topLovedId} current={sharedCurrent} isNew={sharedIsNew} advance={sharedAdvance} />
         )}
       </div>
 
@@ -231,32 +233,16 @@ function mediaPoster(m: WallMedia, w = 500, h = 500) {
 
 // ── Mod: SAHNE (mevcut resital) ───────────────────────────────────────────────
 
-function StageMode({ media, themeDark, topLovedId }: { media: WallMedia[]; themeDark: boolean; topLovedId: string | null }) {
-  const [idx, setIdx] = useState(0);
-  const [isNew, setIsNew] = useState(false);
-  const prevLen = useRef(0);
+function StageMode({ media, themeDark, topLovedId, current, isNew, advance }: { media: WallMedia[]; themeDark: boolean; topLovedId: string | null; current: WallMedia | null; isNew: boolean; advance: () => void }) {
   const timer = useRef<number | null>(null);
-  const advance = useCallback(() => setIdx((i) => i + 1), []);
-
-  useEffect(() => {
-    if (media.length > prevLen.current && prevLen.current > 0) {
-      setIdx(media.length - 1);
-      setIsNew(true);
-    }
-    prevLen.current = media.length;
-  }, [media.length]);
-
-  const current = media.length ? media[((idx % media.length) + media.length) % media.length] : null;
 
   useEffect(() => {
     if (timer.current) window.clearTimeout(timer.current);
     if (!current) return;
     const dur = current.type === "video" ? VIDEO_CAP_MS : IMAGE_MS;
     timer.current = window.setTimeout(advance, dur);
-    const t = window.setTimeout(() => setIsNew(false), Math.min(dur, 5000));
     return () => {
       if (timer.current) window.clearTimeout(timer.current);
-      window.clearTimeout(t);
     };
   }, [current, advance]);
 
@@ -632,18 +618,8 @@ function useDominantColor(url: string | undefined): string | null {
 
 // ── Mod: SİNEMA (tam ekran tek anı) ───────────────────────────────────────────
 
-function CinemaMode({ media, topLovedId }: { media: WallMedia[]; topLovedId: string | null }) {
-  const [idx, setIdx] = useState(0);
-  const prevLen = useRef(0);
+function CinemaMode({ media, topLovedId, current, advance }: { media: WallMedia[]; topLovedId: string | null; current: WallMedia | null; advance: () => void }) {
   const timer = useRef<number | null>(null);
-  const advance = useCallback(() => setIdx((i) => i + 1), []);
-
-  useEffect(() => {
-    if (media.length > prevLen.current && prevLen.current > 0) setIdx(media.length - 1);
-    prevLen.current = media.length;
-  }, [media.length]);
-
-  const current = media.length ? media[((idx % media.length) + media.length) % media.length] : null;
 
   useEffect(() => {
     if (timer.current) window.clearTimeout(timer.current);
@@ -744,4 +720,78 @@ function WallStyles() {
       }
     `}</style>
   );
+}
+
+// ── Ortak Akıllı Oynatma (Weighted Round-Robin) ─────────────────────────────
+
+function useSharedPlayback(media: WallMedia[], topLovedId: string | null) {
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [isNew, setIsNew] = useState(false);
+  const playCounts = useRef<Record<string, number>>({});
+  const lastPlayTimes = useRef<Record<string, number>>({});
+
+  const current = useMemo(() => media.find((m) => m.id === currentId) || media[0] || null, [media, currentId]);
+
+  const advance = useCallback(() => {
+    if (media.length === 0) {
+      setCurrentId(null);
+      return;
+    }
+
+    const now = Date.now();
+    let bestScore = -Infinity;
+    let bestId = media[0].id;
+
+    for (const m of media) {
+      if (m.id === currentId && media.length > 1) continue;
+
+      let score = 1.0;
+      const ageMs = now - (m.createdAt?.toMillis?.() || now);
+
+      if (ageMs < 5 * 60 * 1000) {
+        score += 2.0;
+      } else if (ageMs < 15 * 60 * 1000) {
+        score += 0.8;
+      }
+
+      if (m.voterId) {
+        const lastVoterTime = lastPlayTimes.current[m.voterId] || 0;
+        if (now - lastVoterTime < 30 * 1000) {
+          score -= 5.0;
+        }
+      }
+
+      const played = playCounts.current[m.id] || 0;
+      score -= played * 0.4;
+
+      if (m.likes) score += m.likes * 0.2;
+      if (m.id === topLovedId) score += 1.0;
+
+      score += Math.random() * 0.5;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestId = m.id;
+      }
+    }
+
+    playCounts.current[bestId] = (playCounts.current[bestId] || 0) + 1;
+    const bestMedia = media.find((m) => m.id === bestId);
+    if (bestMedia?.voterId) {
+      lastPlayTimes.current[bestMedia.voterId] = now;
+    }
+    
+    setCurrentId(bestId);
+    
+    const isActuallyNew = bestMedia && (now - (bestMedia.createdAt?.toMillis?.() || now)) < 15000;
+    setIsNew(Boolean(isActuallyNew && playCounts.current[bestId] <= 1));
+  }, [media, currentId, topLovedId]);
+
+  useEffect(() => {
+    if (!currentId && media.length > 0) {
+      advance();
+    }
+  }, [media, currentId, advance]);
+
+  return { current, isNew, advance };
 }
