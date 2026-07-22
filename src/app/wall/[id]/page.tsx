@@ -307,8 +307,9 @@ function usePagedPlayback(media: WallMedia[]): { current: WallMedia | null; adva
     if (v) lastByVoter.current[v] = Date.now();
   }, [curForCount]);
 
-  // Yeni medya → ona geç. İlk yükleme baseline kurar. Mevcut foto en az ~1.6 sn
-  // gösterildiyse hemen geçer (kesintisiz his); daha yeni başladıysa kesmez.
+  // Yeni medya → ona geç. İlk yükleme baseline kurar. Mevcut foto en az ~5 sn
+  // gösterildiyse yeniye geçer; daha yeni başladıysa kesmez → toplu onayda bile
+  // her foto epey görünür (atlananlar sonra adalet sırasıyla çıkar).
   useEffect(() => {
     let newest: WallMedia | null = null;
     for (const m of media) if (!knownIds.current.has(m.id)) newest = m; // asc → son yeni = en yeni
@@ -318,8 +319,8 @@ function usePagedPlayback(media: WallMedia[]): { current: WallMedia | null; adva
     if (newest) {
       const sinceStart = Date.now() - startedAt.current;
       const jump = () => { startedAt.current = Date.now(); setCurrentId(newest!.id); };
-      if (sinceStart >= 1600) jump();
-      else { const t = window.setTimeout(jump, 1600 - sinceStart); return () => window.clearTimeout(t); }
+      if (sinceStart >= 5000) jump();
+      else { const t = window.setTimeout(jump, 5000 - sinceStart); return () => window.clearTimeout(t); }
     }
   }, [media]);
 

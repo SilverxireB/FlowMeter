@@ -33,10 +33,16 @@ export default function WallMilestone({ count, enabled = true }: { count: number
     if (target !== null) {
       celebrated.current = target;
       setActive(target);
-      const t = window.setTimeout(() => setActive(null), 7000);
-      return () => window.clearTimeout(t);
     }
   }, [count, enabled]);
+
+  // Otomatik gizleme — YALNIZ `active`'e bağlı; count hızlı artınca (toplu onay)
+  // yukarıdaki effect yeniden koşup bu zamanlayıcıyı iptal etmesin (banner takılmasın).
+  useEffect(() => {
+    if (active === null) return;
+    const t = window.setTimeout(() => setActive(null), 7000);
+    return () => window.clearTimeout(t);
+  }, [active]);
 
   if (!enabled || active === null) return null;
 
