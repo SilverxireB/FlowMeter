@@ -234,18 +234,6 @@ function mediaPoster(m: WallMedia, w = 500, h = 500) {
 // ── Mod: SAHNE (mevcut resital) ───────────────────────────────────────────────
 
 function StageMode({ media, themeDark, topLovedId, current, isNew, advance }: { media: WallMedia[]; themeDark: boolean; topLovedId: string | null; current: WallMedia | null; isNew: boolean; advance: () => void }) {
-  const timer = useRef<number | null>(null);
-
-  const dur = current?.type === "video" ? VIDEO_CAP_MS : IMAGE_MS;
-
-  useEffect(() => {
-    if (timer.current) window.clearTimeout(timer.current);
-    if (!current) return;
-    timer.current = window.setTimeout(advance, dur);
-    return () => {
-      if (timer.current) window.clearTimeout(timer.current);
-    };
-  }, [current?.id, advance, dur]);
 
   const strips = splitStrips(media);
   const backdrop = current ? mediaPoster(current, 500, 500) : "";
@@ -620,18 +608,6 @@ function useDominantColor(url: string | undefined): string | null {
 // ── Mod: SİNEMA (tam ekran tek anı) ───────────────────────────────────────────
 
 function CinemaMode({ media, topLovedId, current, advance }: { media: WallMedia[]; topLovedId: string | null; current: WallMedia | null; advance: () => void }) {
-  const timer = useRef<number | null>(null);
-
-  const dur = current?.type === "video" ? VIDEO_CAP_MS : IMAGE_MS + 1500;
-
-  useEffect(() => {
-    if (timer.current) window.clearTimeout(timer.current);
-    if (!current) return;
-    timer.current = window.setTimeout(advance, dur);
-    return () => {
-      if (timer.current) window.clearTimeout(timer.current);
-    };
-  }, [current?.id, advance, dur]);
 
   if (!current) return null;
   const backdrop = mediaPoster(current, 600, 600);
@@ -796,11 +772,34 @@ function useSharedPlayback(media: WallMedia[], topLovedId: string | null) {
     });
   }, [currentId]);
 
+  // Yeni fotoğraf yüklendiğinde anında ona geç (Kullanıcının özlediği davranış)
+  const prevLen = useRef(media.length);
   useEffect(() => {
-    if (!currentId && media.length > 0) {
-      advance();
+    if (media.length > prevLen.current && prevLen.current > 0) {
+      const newest = media[media.length - 1]; // createdAt asc olduğu için son eleman en yenisidir
+      if (newest) {
+        setCurrentId(newest.id);
+        setIsNew(true);
+        playCounts.current[newest.id] = (playCounts.current[newest.id] || 0) + 1;
+        if (newest.voterId) lastPlayTimes.current[newest.voterId] = Date.now();
+      }
     }
-  }, [media.length, currentId, advance]);
+    prevLen.current = media.length;
+  }, [media]);
+
+  // Arka plan zamanlayıcısı (Mod geçişlerinden ve render'lardan etkilenmez!)
+  const activeId = current?.id;
+  const activeType = current?.type;
+  useEffect(() => {
+    if (!activeId) {
+      if (mediaRef.current.length > 0) advance();
+      return;
+    }
+    // Tüm modlar için aynı resim süresini (IMAGE_MS) zorluyoruz ki tutarlı olsun
+    const dur = activeType === "video" ? VIDEO_CAP_MS : IMAGE_MS;
+    const t = window.setTimeout(advance, dur);
+    return () => window.clearTimeout(t);
+  }, [activeId, activeType, advance]);
 
   return { current, isNew, advance };
 }
