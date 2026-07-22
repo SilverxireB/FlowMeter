@@ -135,6 +135,10 @@ export interface Wall {
   joinCode: string;
   /** Açıkken yüklenen medya önce onay bekler (status=pending) */
   moderation?: boolean;
+  /** Video yüklemeye izin ver (varsayılan açık; kapalıysa yalnız fotoğraf) */
+  allowVideo?: boolean;
+  /** Dilek bırakmayı aç (varsayılan açık; kapalıysa misafirde dilek sekmesi yok) */
+  wishesEnabled?: boolean;
   /** Perde arka planı üst yazısı (opsiyonel) */
   headline?: string;
   /** Duvar görsel teması (FlowMeter PresentationTheme ile aynı yapı) */

@@ -119,8 +119,10 @@ export default function WallScreen() {
           className="absolute inset-0 pointer-events-none transition-[background] duration-1000"
           style={{
             background: `radial-gradient(75% 55% at 50% 22%, ${ambientColor}, transparent 72%)`,
-            opacity: themeDark ? 0.4 : pearlTheme ? 0.12 : 0.26,
-            mixBlendMode: themeDark ? "screen" : pearlTheme ? "soft-light" : "multiply",
+            opacity: themeDark ? 0.4 : pearlTheme ? 0.45 : 0.26,
+            // Şampanya/Sedef: `screen` açık zemini ASLA karartmaz (koyu resim ≈
+            // etkisiz), böylece siyah yazı her resimde okunur kalır.
+            mixBlendMode: themeDark ? "screen" : pearlTheme ? "screen" : "multiply",
           }}
         />
       )}

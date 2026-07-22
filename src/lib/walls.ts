@@ -86,6 +86,14 @@ export async function setWallModeration(id: string, moderation: boolean): Promis
   await updateDoc(doc(db(), "walls", id), { moderation });
 }
 
+export async function setWallAllowVideo(id: string, allowVideo: boolean): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { allowVideo, updatedAt: serverTimestamp() });
+}
+
+export async function setWallWishesEnabled(id: string, wishesEnabled: boolean): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { wishesEnabled, updatedAt: serverTimestamp() });
+}
+
 export async function setWallHeadline(id: string, headline: string): Promise<void> {
   await updateDoc(doc(db(), "walls", id), { headline, updatedAt: serverTimestamp() });
 }

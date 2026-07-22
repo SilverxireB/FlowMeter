@@ -14,7 +14,7 @@ import { downloadCollage } from "@/components/WallCollage";
 import { generateMemoryBook } from "@/lib/wallMemoryBook";
 import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
-import { addWallMedia, clearContest, clearWallAnnouncement, deleteMedia, deleteWish, endContest, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWishStatus, startContest, tallyContest } from "@/lib/walls";
+import { addWallMedia, clearContest, clearWallAnnouncement, deleteMedia, deleteWish, endContest, setMediaStatus, setWallAllowVideo, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallWishesEnabled, setWishStatus, startContest, tallyContest } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
@@ -79,6 +79,7 @@ export default function WallManage() {
   const [zipMsg, setZipMsg] = useState<string | null>(null);
   const [bookMsg, setBookMsg] = useState<string | null>(null);
   const [contestTitle, setContestTitle] = useState("");
+  const [tab, setTab] = useState<"ayarlar" | "moderasyon">("moderasyon");
   const contestVotes = useContestVotes(id);
   const contestRanking = useMemo(
     () => (wall?.contest ? tallyContest(contestVotes, wall.contest.id, allMedia) : []),
@@ -256,6 +257,34 @@ export default function WallManage() {
           </div>
         </div>
 
+        {/* Sekmeler — ayarlar çok büyüdüğü için moderasyon ayrı sekmede */}
+        <div className="flex gap-1 rounded-2xl bg-paper border border-line p-1 sticky top-2 z-20">
+          {([
+            ["ayarlar", "⚙ Sunum ayarları"],
+            ["moderasyon", "🛡 Moderasyon"],
+          ] as const).map(([t, label]) => {
+            const badge = t === "moderasyon" ? pending.length + pendingWishes.length : 0;
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-colors ${
+                  tab === t ? "bg-white shadow-sm text-ink" : "text-muted hover:text-ink"
+                }`}
+              >
+                {label}
+                {badge > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-brand text-white text-[11px] font-bold px-1.5 py-0.5 tabular-nums align-middle">
+                    {badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {tab === "ayarlar" && (
+          <>
         {/* Katılım + ayarlar */}
         <div className="card p-5 flex flex-col sm:flex-row gap-5 items-center">
           {joinUrl && (
@@ -320,6 +349,31 @@ export default function WallManage() {
               </button>
               {zipMsg && <span className="text-muted text-xs">{zipMsg}</span>}
             </div>
+          </div>
+        </div>
+
+        {/* İçerik izinleri — etkinlik başına video / dilek aç-kapa */}
+        <div className="card p-5">
+          <p className="eyebrow mb-3">İçerik izinleri</p>
+          <div className="flex flex-col gap-3">
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={wall.allowVideo !== false}
+                onChange={(e) => setWallAllowVideo(id, e.target.checked).catch(console.error)}
+                className="w-5 h-5 accent-[#4f46e5]"
+              />
+              <span className="text-sm font-semibold">🎬 Video yükleme <span className="text-muted font-normal">{wall.allowVideo !== false ? "— açık" : "— kapalı (yalnız fotoğraf)"}</span></span>
+            </label>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={wall.wishesEnabled !== false}
+                onChange={(e) => setWallWishesEnabled(id, e.target.checked).catch(console.error)}
+                className="w-5 h-5 accent-[#4f46e5]"
+              />
+              <span className="text-sm font-semibold">💌 Dilekler <span className="text-muted font-normal">{wall.wishesEnabled !== false ? "— açık" : "— kapalı (misafirde dilek sekmesi yok)"}</span></span>
+            </label>
           </div>
         </div>
 
@@ -531,6 +585,11 @@ export default function WallManage() {
           </label>
         </div>
 
+          </>
+        )}
+
+        {tab === "moderasyon" && (
+          <>
         {/* Canlı anons */}
         {(() => {
           const annUntil = wall.announcement?.until?.toMillis?.() ?? 0;
@@ -750,6 +809,8 @@ export default function WallManage() {
               ))}
             </div>
           </section>
+        )}
+          </>
         )}
       </div>
     </main>

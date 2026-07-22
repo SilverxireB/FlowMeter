@@ -41,6 +41,8 @@ export default function UploadPage() {
 
   const [tab, setTab] = useState<"upload" | "browse" | "wish" | "contest">("upload");
   const contestOn = wall?.contest?.status === "running";
+  const videoOn = wall?.allowVideo !== false;
+  const wishesOn = wall?.wishesEnabled !== false;
 
   const [nickname, setNickname] = useState("");
   useEffect(() => setNickname(getStoredNickname() ?? ""), []);
@@ -85,7 +87,9 @@ export default function UploadPage() {
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
-    const next = files.slice(0, 30).map((f) => ({
+    const usable = videoOn ? files : files.filter((f) => !f.type.startsWith("video"));
+    if (!usable.length) return;
+    const next = usable.slice(0, 30).map((f) => ({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       file: f,
       url: URL.createObjectURL(f),
@@ -184,12 +188,14 @@ export default function UploadPage() {
           >
             🖼 Gez
           </button>
-          <button
-            onClick={() => setTab("wish")}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${tab === "wish" ? "bg-white text-[#070c22]" : "text-white/60"}`}
-          >
-            💌 Dilek
-          </button>
+          {wishesOn && (
+            <button
+              onClick={() => setTab("wish")}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${tab === "wish" ? "bg-white text-[#070c22]" : "text-white/60"}`}
+            >
+              💌 Dilek
+            </button>
+          )}
           {contestOn && (
             <button
               onClick={() => setTab("contest")}
@@ -205,7 +211,7 @@ export default function UploadPage() {
         <ContestTab wallId={wallId ?? null} contestId={wall!.contest!.id} title={wall!.contest!.title} />
       ) : tab === "browse" ? (
         <BrowseGallery wallId={wallId ?? null} />
-      ) : tab === "wish" ? (
+      ) : tab === "wish" && wishesOn ? (
         <WishTab wallId={wallId ?? null} defaultName={nickname} moderation={!!wall?.moderation} />
       ) : (
       <section className="flex-1 flex flex-col px-5 pb-24 pt-4 max-w-md w-full mx-auto">
@@ -249,7 +255,7 @@ export default function UploadPage() {
                 className="rounded-3xl bg-white/5 border border-white/12 flex flex-col items-center justify-center gap-3 text-white/70 py-24"
               >
                 <span className="text-5xl" aria-hidden>📸</span>
-                <span className="font-semibold text-lg text-white">Fotoğraf / video seç</span>
+                <span className="font-semibold text-lg text-white">{videoOn ? "Fotoğraf / video seç" : "Fotoğraf seç"}</span>
                 <span className="text-sm text-white/50">Birden çok seçebilirsin</span>
               </button>
             ) : (
@@ -299,7 +305,7 @@ export default function UploadPage() {
               </div>
             )}
 
-            <input ref={inputRef} type="file" accept="image/*,video/*" multiple onChange={onPick} className="hidden" />
+            <input ref={inputRef} type="file" accept={videoOn ? "image/*,video/*" : "image/*"} multiple onChange={onPick} className="hidden" />
 
             {items.length > 0 && (
               <button

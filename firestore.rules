@@ -172,6 +172,7 @@ service cloud.firestore {
           && request.resource.data.type in ['image','video']
           && request.resource.data.url is string
           && request.resource.data.get('likes', 0) == 0
+          && (request.resource.data.type == 'image' || wall().get('allowVideo', true) == true)
           && request.resource.data.status ==
              (wall().get('moderation', false) == true ? 'pending' : 'approved');
         // Beğeni: herkes yalnız 'likes' alanını +1 artırabilir (misafir ❤);
@@ -205,6 +206,7 @@ service cloud.firestore {
           && request.resource.data.text.size() >= 1
           && request.resource.data.text.size() <= 140
           && request.resource.data.voterId is string
+          && get(/databases/$(database)/documents/walls/$(wallId)).data.get('wishesEnabled', true) == true
           && request.resource.data.status ==
              (get(/databases/$(database)/documents/walls/$(wallId)).data.get('moderation', false) == true ? 'pending' : 'approved');
         allow update, delete: if request.auth != null
