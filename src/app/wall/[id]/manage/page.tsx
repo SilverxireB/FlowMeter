@@ -12,12 +12,15 @@ import QrCode from "@/components/present/QrCode";
 import { downloadQrCard } from "@/components/WallQrCard";
 import Snowflakes from "@/components/Snowflakes";
 import { useAuthUser, useWall, useWallMedia } from "@/lib/hooks";
-import { addWallMedia, deleteMedia, setMediaStatus, setWallHeadline, setWallModeration, setWallScreenMode, setWallTheme } from "@/lib/walls";
+import { addWallMedia, deleteMedia, setMediaStatus, setWallAutoInterval, setWallAutoModes, setWallHeadline, setWallModeration, setWallScreenMode, setWallTheme } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
 import { getVoterId } from "@/lib/responses";
-import { Wall, WallMedia, WALL_SCREEN_MODES } from "@/lib/types";
+import { BASE_WALL_SCREEN_MODES, Wall, WallMedia, WALL_SCREEN_MODES } from "@/lib/types";
+
+const AUTO_INTERVALS = [20, 30, 45, 60, 90];
+const fmtInterval = (s: number) => (s < 60 ? `${s} sn` : s % 60 === 0 ? `${s / 60} dk` : `${(s / 60).toFixed(1)} dk`);
 
 export default function WallManage() {
   const { id } = useParams<{ id: string }>();
@@ -301,7 +304,7 @@ export default function WallManage() {
         <div className="card p-5">
           <p className="eyebrow mb-1">Perde modu</p>
           <p className="text-muted text-xs mb-3">Anıların perdede nasıl görüneceğini seç — canlı olarak değişir.</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
             {WALL_SCREEN_MODES.map((m) => {
               const active = (wall?.screenMode ?? "stage") === m.id;
               return (
@@ -320,6 +323,62 @@ export default function WallManage() {
               );
             })}
           </div>
+
+          {/* Otomatik mod ayarları */}
+          {wall?.screenMode === "auto" && (
+            <div className="mt-4 rounded-xl border border-line bg-paper/60 p-4 flex flex-col gap-4 animate-pop">
+              <div>
+                <p className="text-sm font-semibold mb-2">Geçiş aralığı</p>
+                <div className="flex flex-wrap gap-2">
+                  {AUTO_INTERVALS.map((s) => {
+                    const active = (wall?.autoIntervalSec ?? 30) === s;
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => setWallAutoInterval(id, s).catch(console.error)}
+                        className={`!py-1.5 !px-3 text-xs rounded-full font-semibold border tabular-nums ${
+                          active ? "border-accent bg-accent-soft/50 text-accent" : "border-line text-muted hover:text-ink"
+                        }`}
+                      >
+                        {fmtInterval(s)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold mb-2">Hangi modlar dönsün</p>
+                <div className="flex flex-wrap gap-2">
+                  {BASE_WALL_SCREEN_MODES.map((m) => {
+                    const baseIds = BASE_WALL_SCREEN_MODES.map((x) => x.id);
+                    const chosen = wall?.autoModes && wall.autoModes.length ? wall.autoModes : baseIds;
+                    const on = chosen.includes(m.id);
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          const set = new Set(chosen);
+                          if (set.has(m.id)) {
+                            if (set.size <= 1) return; // en az bir mod kalmalı
+                            set.delete(m.id);
+                          } else {
+                            set.add(m.id);
+                          }
+                          setWallAutoModes(id, baseIds.filter((x) => set.has(x))).catch(console.error);
+                        }}
+                        className={`!py-1.5 !px-3 text-xs rounded-full font-semibold border ${
+                          on ? "border-accent bg-accent-soft/50 text-accent" : "border-line text-muted hover:text-ink"
+                        }`}
+                      >
+                        {on ? "✓ " : ""}{m.icon} {m.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-muted text-xs mt-2">En az bir mod seçili kalmalı. Perde bu modlar arasında {fmtInterval(wall?.autoIntervalSec ?? 30)}&apos;de bir değişir.</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sunucu kendi medyasını ekler (moderasyondan bağımsız kokpit) */}

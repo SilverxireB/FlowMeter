@@ -148,9 +148,13 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
       "🖨 QR Kartı indir". QR dinamik origin; kağıt URL statik. — *Gemini*
 - [x] **Perde modları** (Dalga 2 #5): kokpitten seçilen `wall.screenMode` ile 5
       görünüm — **Sahne** (mevcut resital) · **Mozaik** (5 sütun kayan ızgara) ·
-      **Spot** (rastgele öne çıkan + soluk arka halka) · **Polaroid** (masaya
-      saçılan eğik kartlar, en yeni tepeye düşer) · **Sinema** (tam ekran Ken
-      Burns). Kokpitte ikonlu seçici, canlı geçiş. `WALL_SCREEN_MODES` (types.ts).
+      **Spot** (rastgele öne çıkan + soluk arka halka) · **Polaroid** (arkada
+      saçılan kartlar + önde tek büyük polaroid döner) · **Sinema** (tam ekran Ken
+      Burns + altta akan film şeridi). Kokpitte ikonlu seçici, canlı geçiş.
+- [x] **Otomatik (karışık) mod**: `screenMode="auto"` → seçili modlar arasında
+      `autoIntervalSec` (20/30/45/60/90 sn) aralıkla kendiliğinden geçer;
+      `autoModes[]` ile hangi modların döneceği seçilir (en az 1). Perde yumuşak
+      fade ile değişir, köşede 🔀 aktif mod göstergesi.
 - [x] **Beğeni + en sevilen** (Dalga 2 #6 parçası): `media.likes` (+1, Q&A upvote
       deseni: localStorage dedup + rules'ta herkese-açık yalnız-+1 update). Misafir
       "Duvarı gez"de ❤ ile beğenir; perdede tüm modlarda ❤ rozeti + 👑 "En sevilen".

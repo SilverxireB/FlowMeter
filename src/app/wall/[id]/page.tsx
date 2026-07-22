@@ -20,7 +20,7 @@ import { useWall, useWallMedia } from "@/lib/hooks";
 import { resolveCode } from "@/lib/walls";
 import { cldFit, cldThumb, cldVideoPoster } from "@/lib/cloudinary";
 import { wallThemeStyle } from "@/lib/themes";
-import { WallMedia, WallScreenMode } from "@/lib/types";
+import { BASE_WALL_SCREEN_MODES, WALL_SCREEN_MODES, WallMedia, WallScreenMode } from "@/lib/types";
 
 const IMAGE_MS = 6500; // fotoğraf sahne süresi (stage/cinema)
 const VIDEO_CAP_MS = 12000; // uzun videoları kesme sınırı
@@ -47,7 +47,23 @@ export default function WallScreen() {
     if (wallId) setJoinUrl(`${window.location.origin}/u/${wallId}`);
   }, [wallId]);
 
-  const mode: WallScreenMode = wall?.screenMode ?? "stage";
+  // Perde modu — "auto" ise seçili modlar arasında belirlenen aralıkla döner.
+  const stored: WallScreenMode = wall?.screenMode ?? "stage";
+  const autoInterval = Math.max(8, wall?.autoIntervalSec ?? 30);
+  const autoModes = useMemo(() => {
+    const base = BASE_WALL_SCREEN_MODES.map((m) => m.id);
+    const chosen = (wall?.autoModes ?? base).filter((m) => m !== "auto");
+    return chosen.length ? chosen : base;
+  }, [wall?.autoModes]);
+  const [autoIdx, setAutoIdx] = useState(0);
+  useEffect(() => {
+    if (stored !== "auto") return;
+    setAutoIdx(0);
+    const t = window.setInterval(() => setAutoIdx((i) => i + 1), autoInterval * 1000);
+    return () => window.clearInterval(t);
+  }, [stored, autoInterval, autoModes]);
+  const mode: WallScreenMode = stored === "auto" ? autoModes[autoIdx % autoModes.length] : stored;
+
   const { style: themeStyleObj, dark: themeDark } = wallThemeStyle(wall?.theme);
 
   // En sevilen anı (en çok beğeni; eşitlikte en yenisi). >0 beğeni şart.
@@ -72,8 +88,8 @@ export default function WallScreen() {
     <main className={`relative h-screen overflow-hidden ${textClass}`} style={themeStyleObj}>
       {wall?.theme?.preset === "yilbasi" && <Snowflakes />}
 
-      {/* Mod içeriği */}
-      <div className="relative z-10 h-full">
+      {/* Mod içeriği — auto'da mod değişince yumuşak geçiş için key+fade */}
+      <div key={mode} className="relative z-10 h-full ww-fade">
         {media.length === 0 ? (
           <EmptyState mutedClass={mutedClass} />
         ) : mode === "mosaic" ? (
@@ -119,6 +135,11 @@ export default function WallScreen() {
       {media.length > 0 && (
         <div className={`absolute top-5 right-5 z-20 rounded-full px-3 py-1 text-xs font-semibold tabular-nums backdrop-blur ${cardChrome}`}>
           {media.length} anı
+        </div>
+      )}
+      {stored === "auto" && (
+        <div className={`absolute top-14 right-5 z-20 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur ${cardChrome}`}>
+          🔀 {WALL_SCREEN_MODES.find((m) => m.id === mode)?.name ?? mode}
         </div>
       )}
 

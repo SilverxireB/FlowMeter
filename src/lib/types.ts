@@ -87,16 +87,24 @@ export interface UserRecord {
 
 // ── FlowWall (canlı etkinlik foto/video duvarı) ──────────────────────────────
 
-/** Perde gösterim modları (kokpit seçer, /wall/[id] uygular). */
-export type WallScreenMode = "stage" | "mosaic" | "spotlight" | "polaroid" | "cinema";
+/** Perde gösterim modları (kokpit seçer, /wall/[id] uygular). "auto" = karışık. */
+export type WallScreenMode = "stage" | "mosaic" | "spotlight" | "polaroid" | "cinema" | "auto";
 
-/** Perde modu meta bilgisi (kokpit seçici + varsayılan). */
-export const WALL_SCREEN_MODES: { id: WallScreenMode; name: string; icon: string; hint: string }[] = [
+interface WallModeMeta { id: WallScreenMode; name: string; icon: string; hint: string }
+
+/** Tekil perde modları — otomatik rotasyonda da bunlar arasından seçilir. */
+export const BASE_WALL_SCREEN_MODES: WallModeMeta[] = [
   { id: "stage", name: "Sahne", icon: "🎭", hint: "Ortada büyük anı + yanlarda akan şeritler" },
   { id: "mosaic", name: "Mozaik", icon: "🧩", hint: "Tüm anılar canlı bir ızgarada" },
   { id: "spotlight", name: "Spot", icon: "🔦", hint: "Rastgele bir anı öne çıkar, diğerleri soluk" },
-  { id: "polaroid", name: "Polaroid", icon: "📸", hint: "Masaya saçılan eğik polaroid kartlar" },
-  { id: "cinema", name: "Sinema", icon: "🎬", hint: "Tam ekran tek anı — sinematik geçişler" },
+  { id: "polaroid", name: "Polaroid", icon: "📸", hint: "Arkada saçılan kartlar + önde tek büyük polaroid" },
+  { id: "cinema", name: "Sinema", icon: "🎬", hint: "Tam ekran tek anı + altta akan film şeridi" },
+];
+
+/** Kokpit seçici — tekil modlar + Otomatik (karışık). */
+export const WALL_SCREEN_MODES: WallModeMeta[] = [
+  ...BASE_WALL_SCREEN_MODES,
+  { id: "auto", name: "Otomatik", icon: "🔀", hint: "Seçtiğin modlar arasında, belirlediğin aralıkla kendiliğinden geçer" },
 ];
 
 /** Bir FlowWall duvarı (walls/{id}). FlowMeter sunumlarından bağımsız koleksiyon. */
@@ -113,6 +121,10 @@ export interface Wall {
   theme?: PresentationTheme;
   /** Perde gösterim modu — kokpitten seçilir (varsayılan: stage) */
   screenMode?: WallScreenMode;
+  /** "auto" modda dönecek modlar (boş/yoksa hepsi) */
+  autoModes?: WallScreenMode[];
+  /** "auto" modda modlar arası geçiş aralığı (saniye; varsayılan 30) */
+  autoIntervalSec?: number;
   sessionId?: string;
   sessionStartedAt?: Timestamp | null;
   createdAt: Timestamp | null;

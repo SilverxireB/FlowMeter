@@ -245,8 +245,10 @@ Not: FlowWall kendi giriş kapısına sahip olur (kendi landing / dashboard böl
 **Dalga 2 — Deneyimi büyüten:**
 5. ✅ **Perde modları** (YAPILDI): kokpitten `wall.screenMode` — **Sahne** (mevcut
    resital) · **Mozaik** (5 sütun kayan ızgara) · **Spot** (rastgele öne çıkan +
-   soluk arka halka) · **Polaroid** (masaya saçılan eğik kartlar, en yeni tepeye
-   düşer) · **Sinema** (tam ekran Ken Burns). İkonlu seçici + canlı geçiş.
+   soluk arka halka) · **Polaroid** (arkada saçılan kartlar + önde tek büyük
+   polaroid döner) · **Sinema** (tam ekran Ken Burns + altta akan film şeridi) ·
+   **Otomatik** (seçili modlar arasında `autoIntervalSec` aralıkla kendiliğinden
+   geçer — `autoModes[]` ile hangi modlar döner seçilir). İkonlu seçici + canlı geçiş.
 6. ✅ **Misafir galerisi + beğeni** (YAPILDI): `/u/[id]` sekmeli (Yükle | Duvarı
    gez); gez'de onaylı medya masonry, ❤ beğen (`media.likes` +1, localStorage
    dedup, rules herkese-açık +1), "Benimkiler" filtresi + "senin" rozeti. Perdede

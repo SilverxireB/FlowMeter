@@ -96,6 +96,14 @@ export async function setWallScreenMode(id: string, screenMode: WallScreenMode):
   await updateDoc(doc(db(), "walls", id), { screenMode, updatedAt: serverTimestamp() });
 }
 
+export async function setWallAutoModes(id: string, autoModes: WallScreenMode[]): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { autoModes, updatedAt: serverTimestamp() });
+}
+
+export async function setWallAutoInterval(id: string, autoIntervalSec: number): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { autoIntervalSec, updatedAt: serverTimestamp() });
+}
+
 export async function deleteWall(w: Wall): Promise<void> {
   await deleteAllDocs(["walls", w.id, "media"]);
   const batch = writeBatch(db());
