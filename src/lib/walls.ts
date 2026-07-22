@@ -252,6 +252,11 @@ export async function setWallTopLovedInterval(wallId: string, topLovedEverySec: 
   await updateDoc(doc(db(), "walls", wallId), { topLovedEverySec, updatedAt: serverTimestamp() });
 }
 
+/** Milestone kutlamaları aç/kapat. */
+export async function setWallMilestones(wallId: string, milestones: boolean): Promise<void> {
+  await updateDoc(doc(db(), "walls", wallId), { milestones, updatedAt: serverTimestamp() });
+}
+
 // ── Beğeni (misafir ❤ — sunum Q&A upvote deseniyle aynı: +1, localStorage dedup) ─
 function likeKey(mediaId: string): string {
   return `flowwall.liked.${mediaId}`;

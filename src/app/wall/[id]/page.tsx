@@ -176,7 +176,7 @@ export default function WallScreen() {
 
       {/* En sevilenler highlight turu (periyodik) + milestone kutlamaları */}
       {media.length > 0 && <WallTopLoved media={media} everySec={wall?.topLovedEverySec ?? 120} />}
-      <WallMilestone count={media.length} />
+      <WallMilestone count={media.length} enabled={wall?.milestones !== false} />
 
       {/* Canlı anons (moderasyondan; süresi dolunca kaybolur) */}
       <WallAnnouncement announcement={wall?.announcement} />

@@ -12,7 +12,7 @@ import QrCode from "@/components/present/QrCode";
 import { downloadQrCard } from "@/components/WallQrCard";
 import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import { useAuthUser, useWall, useWallMedia, useWallWishes } from "@/lib/hooks";
-import { addWallMedia, clearWallAnnouncement, deleteMedia, deleteWish, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWishStatus } from "@/lib/walls";
+import { addWallMedia, clearWallAnnouncement, deleteMedia, deleteWish, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWishStatus } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
@@ -487,6 +487,15 @@ export default function WallManage() {
               );
             })}
           </div>
+          <label className="flex items-center gap-2.5 cursor-pointer select-none mt-4 pt-4 border-t border-line">
+            <input
+              type="checkbox"
+              checked={wall.milestones !== false}
+              onChange={(e) => setWallMilestones(id, e.target.checked).catch(console.error)}
+              className="w-5 h-5 accent-[#4f46e5]"
+            />
+            <span className="text-sm font-semibold">🎉 Milestone kutlamaları <span className="text-muted font-normal">(10, 25, 50, 100… anıda konfeti)</span></span>
+          </label>
         </div>
 
         {/* Canlı anons */}
@@ -663,12 +672,6 @@ export default function WallManage() {
             </div>
           </section>
         )}
-
-        <p className="text-muted text-xs">
-          🗑 = kalıcı silme (Cloudinary'deki dosya + duvar kaydı). Kalıcı silme için
-          Vercel'de CLOUDINARY_API_KEY ve CLOUDINARY_API_SECRET tanımlı olmalı;
-          değilse yalnız duvar kaydı silinir. “Tümünü indir” tarayıcıda paketler.
-        </p>
       </div>
     </main>
   );

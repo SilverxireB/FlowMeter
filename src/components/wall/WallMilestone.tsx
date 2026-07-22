@@ -16,12 +16,13 @@ function highestUpTo(n: number): number {
   return r;
 }
 
-export default function WallMilestone({ count }: { count: number }) {
+export default function WallMilestone({ count, enabled = true }: { count: number; enabled?: boolean }) {
   const celebrated = useRef<number | null>(null);
   const baselined = useRef(false);
   const [active, setActive] = useState<number | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     if (!baselined.current) {
       baselined.current = true;
       celebrated.current = highestUpTo(count);
@@ -35,9 +36,9 @@ export default function WallMilestone({ count }: { count: number }) {
       const t = window.setTimeout(() => setActive(null), 7000);
       return () => window.clearTimeout(t);
     }
-  }, [count]);
+  }, [count, enabled]);
 
-  if (active === null) return null;
+  if (!enabled || active === null) return null;
 
   return (
     <>

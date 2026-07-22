@@ -151,6 +151,8 @@ export interface Wall {
   announcement?: { text: string; until: Timestamp | null } | null;
   /** "En Sevilenler" turu sıklığı (saniye; 0 = kapalı, yoksa 120) */
   topLovedEverySec?: number;
+  /** Milestone kutlamaları (10/25/50/100… anı → konfeti). Varsayılan açık. */
+  milestones?: boolean;
   sessionId?: string;
   sessionStartedAt?: Timestamp | null;
   createdAt: Timestamp | null;
