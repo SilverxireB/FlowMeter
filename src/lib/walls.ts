@@ -22,7 +22,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { getVoterId } from "./responses";
-import { Wall, WallEffect, WallMedia, WallScreenMode, WallWish } from "./types";
+import { ContestVote, Wall, WallEffect, WallMedia, WallScreenMode, WallWish } from "./types";
 
 function randomCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -255,6 +255,63 @@ export async function setWallTopLovedInterval(wallId: string, topLovedEverySec: 
 /** Milestone kutlamaları aç/kapat. */
 export async function setWallMilestones(wallId: string, milestones: boolean): Promise<void> {
   await updateDoc(doc(db(), "walls", wallId), { milestones, updatedAt: serverTimestamp() });
+}
+
+// ── Foto yarışması (moderasyondan) ────────────────────────────────────────────
+export async function startContest(wallId: string, title: string): Promise<void> {
+  const id = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `c-${Date.now()}`;
+  await deleteAllDocs(["walls", wallId, "contestVotes"]); // eski oyları temizle
+  await updateDoc(doc(db(), "walls", wallId), {
+    contest: { id, title: title.trim().slice(0, 80), status: "running", startedAt: serverTimestamp(), winnerMediaId: null },
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function endContest(wallId: string, winnerMediaId: string | null): Promise<void> {
+  await updateDoc(doc(db(), "walls", wallId), {
+    "contest.status": "ended",
+    "contest.endedAt": serverTimestamp(),
+    "contest.winnerMediaId": winnerMediaId ?? "",
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function clearContest(wallId: string): Promise<void> {
+  await deleteAllDocs(["walls", wallId, "contestVotes"]);
+  await updateDoc(doc(db(), "walls", wallId), { contest: null, updatedAt: serverTimestamp() });
+}
+
+function contestVoteKey(contestId: string): string {
+  return `flowwall.vote.${contestId}`;
+}
+export function getMyContestVote(contestId: string): string | null {
+  if (typeof localStorage === "undefined") return null;
+  return localStorage.getItem(contestVoteKey(contestId));
+}
+export async function castContestVote(wallId: string, contestId: string, mediaId: string): Promise<void> {
+  localStorage.setItem(contestVoteKey(contestId), mediaId);
+  await setDoc(doc(db(), "walls", wallId, "contestVotes", getVoterId()), {
+    mediaId,
+    contestId,
+    createdAt: serverTimestamp(),
+  });
+}
+
+/** Oyları dinler — YALNIZ perde + kokpit kullanır (misafir değil, ölçek). */
+export function watchContestVotes(wallId: string, cb: (v: ContestVote[]) => void): () => void {
+  return onSnapshot(collection(db(), "walls", wallId, "contestVotes"), (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ContestVote));
+  });
+}
+
+/** Aktif contestId oylarını mediaId'ye göre say, azalan (eşitlik: en eski media). */
+export function tallyContest(votes: ContestVote[], contestId: string, media: WallMedia[]): { mediaId: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const v of votes) if (v.contestId === contestId) counts.set(v.mediaId, (counts.get(v.mediaId) ?? 0) + 1);
+  const order = new Map(media.map((m, i) => [m.id, i])); // createdAt asc → küçük index = eski
+  return [...counts.entries()]
+    .map(([mediaId, count]) => ({ mediaId, count }))
+    .sort((a, b) => b.count - a.count || (order.get(a.mediaId) ?? 0) - (order.get(b.mediaId) ?? 0));
 }
 
 // ── Beğeni (misafir ❤ — sunum Q&A upvote deseniyle aynı: +1, localStorage dedup) ─

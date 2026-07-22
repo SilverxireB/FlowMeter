@@ -210,6 +210,20 @@ service cloud.firestore {
         allow update, delete: if request.auth != null
           && get(/databases/$(database)/documents/walls/$(wallId)).data.ownerId == request.auth.uid;
       }
+
+      // Yarışma oyları: misafir KENDİ oyunu yazar (doc id = voterId → kişi başı
+      // tek, değiştirilebilir). Aktif yarışmanın contestId'si zorunlu; silme sahibinde.
+      match /contestVotes/{voterId} {
+        function w() { return get(/databases/$(database)/documents/walls/$(wallId)).data; }
+        allow read: if true;
+        allow create, update: if request.resource.data.keys().hasOnly(['mediaId','contestId','createdAt'])
+          && request.resource.data.mediaId is string
+          && w().get('contest', null) != null
+          && w().contest.get('status','') == 'running'
+          && request.resource.data.contestId == w().contest.id;
+        allow delete: if request.auth != null
+          && get(/databases/$(database)/documents/walls/$(wallId)).data.ownerId == request.auth.uid;
+      }
     }
 
     // Join kodu -> sunum/duvar lookup tablosu ({presentationId} veya {id,kind:"wall"}).

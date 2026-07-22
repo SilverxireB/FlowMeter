@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import WallReactionBar from "@/components/wall/WallReactionBar";
 import { useWall } from "@/lib/hooks";
-import { addWallMedia, hasLikedMedia, likeMedia, resolveCode, sendWallWish, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
+import { addWallMedia, castContestVote, getMyContestVote, hasLikedMedia, likeMedia, resolveCode, sendWallWish, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
 import { cloudinaryStatus, cldFit, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { getStoredNickname, storeIdentity, getStoredAvatarSeed } from "@/lib/participants";
 import { getVoterId } from "@/lib/responses";
@@ -39,7 +39,8 @@ export default function UploadPage() {
 
   const { wall } = useWall(wallId ?? null);
 
-  const [tab, setTab] = useState<"upload" | "browse" | "wish">("upload");
+  const [tab, setTab] = useState<"upload" | "browse" | "wish" | "contest">("upload");
+  const contestOn = wall?.contest?.status === "running";
 
   const [nickname, setNickname] = useState("");
   useEffect(() => setNickname(getStoredNickname() ?? ""), []);
@@ -189,10 +190,20 @@ export default function UploadPage() {
           >
             💌 Dilek
           </button>
+          {contestOn && (
+            <button
+              onClick={() => setTab("contest")}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${tab === "contest" ? "bg-white text-[#070c22]" : "text-white/60"}`}
+            >
+              🏆
+            </button>
+          )}
         </div>
       </div>
 
-      {tab === "browse" ? (
+      {tab === "contest" && contestOn ? (
+        <ContestTab wallId={wallId ?? null} contestId={wall!.contest!.id} title={wall!.contest!.title} />
+      ) : tab === "browse" ? (
         <BrowseGallery wallId={wallId ?? null} />
       ) : tab === "wish" ? (
         <WishTab wallId={wallId ?? null} defaultName={nickname} moderation={!!wall?.moderation} />
@@ -320,6 +331,44 @@ export default function UploadPage() {
         </div>
       )}
     </main>
+  );
+}
+
+/** 🏆 Yarışma — aday fotolara oy ver (kişi başı tek, değiştirilebilir). */
+function ContestTab({ wallId, contestId, title }: { wallId: string | null; contestId: string; title: string }) {
+  const [media, setMedia] = useState<WallMedia[]>([]);
+  const [myVote, setMyVote] = useState<string | null>(null);
+  useEffect(() => { if (!wallId) return; return watchWallMediaRecent(wallId, 150, setMedia); }, [wallId]);
+  useEffect(() => { setMyVote(getMyContestVote(contestId)); }, [contestId]);
+  const approved = useMemo(() => [...media].filter((m) => m.status === "approved").reverse(), [media]);
+
+  async function vote(mediaId: string) {
+    if (!wallId) return;
+    setMyVote(mediaId);
+    try { await castContestVote(wallId, contestId, mediaId); } catch { setMyVote(getMyContestVote(contestId)); }
+  }
+
+  return (
+    <section className="flex-1 flex flex-col px-5 pb-24 pt-4 max-w-md w-full mx-auto">
+      <div className="rounded-2xl bg-white/8 border border-white/12 p-4 mb-4 text-center">
+        <p className="text-lg font-bold">🏆 {title}</p>
+        <p className="text-white/55 text-sm">Favori fotoğrafa oy ver — oyunu değiştirebilirsin.</p>
+      </div>
+      <div className="columns-2 gap-2.5 [column-fill:_balance]">
+        {approved.map((m) => {
+          const mine = myVote === m.id;
+          const poster = m.type === "video" ? cldVideoPoster(m.url, 500, 500) : cldFit(m.url, 500);
+          return (
+            <button key={m.id} onClick={() => vote(m.id)} className={`mb-2.5 break-inside-avoid relative block w-full rounded-2xl overflow-hidden border-2 ${mine ? "border-[#f6b73c]" : "border-white/10"}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={poster} alt="" className="w-full object-cover" />
+              <span className={`absolute bottom-2 right-2 rounded-full px-3 py-1 text-xs font-bold ${mine ? "bg-[#f6b73c] text-[#3a2a00]" : "bg-black/55 text-white"}`}>{mine ? "✓ Oyun" : "Oy ver"}</span>
+            </button>
+          );
+        })}
+        {approved.length === 0 && <p className="text-white/50 text-center py-16">Aday fotoğraf yok.</p>}
+      </div>
+    </section>
   );
 }
 

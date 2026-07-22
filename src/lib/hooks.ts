@@ -4,8 +4,8 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, doc, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { auth, db, isFirebaseConfigured } from "./firebase";
-import { AudienceQuestion, ChatMessage, Participant, Presentation, ResponseDoc, Slide, Wall, WallMedia, WallWish } from "./types";
-import { watchWall, watchWallMedia, watchWallWishes } from "./walls";
+import { AudienceQuestion, ChatMessage, ContestVote, Participant, Presentation, ResponseDoc, Slide, Wall, WallMedia, WallWish } from "./types";
+import { watchWall, watchWallMedia, watchWallWishes, watchContestVotes } from "./walls";
 
 /** Presenter oturumu. loading=true iken yönlendirme yapma. */
 export function useAuthUser() {
@@ -189,4 +189,14 @@ export function useWallWishes(id: string | null) {
     return watchWallWishes(id, setWishes);
   }, [id]);
   return wishes;
+}
+
+/** YALNIZ perde + kokpit çağırır (misafir değil — ölçek). */
+export function useContestVotes(id: string | null) {
+  const [votes, setVotes] = useState<ContestVote[]>([]);
+  useEffect(() => {
+    if (!id || !isFirebaseConfigured()) return;
+    return watchContestVotes(id, setVotes);
+  }, [id]);
+  return votes;
 }

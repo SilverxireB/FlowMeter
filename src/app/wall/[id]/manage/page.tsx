@@ -13,8 +13,8 @@ import { downloadQrCard } from "@/components/WallQrCard";
 import { downloadCollage } from "@/components/WallCollage";
 import { generateMemoryBook } from "@/lib/wallMemoryBook";
 import WallEffectLayer from "@/components/wall/WallEffectLayer";
-import { useAuthUser, useWall, useWallMedia, useWallWishes } from "@/lib/hooks";
-import { addWallMedia, clearWallAnnouncement, deleteMedia, deleteWish, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWishStatus } from "@/lib/walls";
+import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
+import { addWallMedia, clearContest, clearWallAnnouncement, deleteMedia, deleteWish, endContest, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWishStatus, startContest, tallyContest } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
@@ -78,6 +78,12 @@ export default function WallManage() {
   const [zipping, setZipping] = useState(false);
   const [zipMsg, setZipMsg] = useState<string | null>(null);
   const [bookMsg, setBookMsg] = useState<string | null>(null);
+  const [contestTitle, setContestTitle] = useState("");
+  const contestVotes = useContestVotes(id);
+  const contestRanking = useMemo(
+    () => (wall?.contest ? tallyContest(contestVotes, wall.contest.id, allMedia) : []),
+    [contestVotes, wall?.contest, allMedia]
+  );
   const [annText, setAnnText] = useState("");
   const [annMin, setAnnMin] = useState(2);
   const [annNow, setAnnNow] = useState(() => Date.now());
@@ -580,6 +586,52 @@ export default function WallManage() {
             </div>
           );
         })()}
+
+        {/* Foto yarışması */}
+        <div className="card p-5">
+          <p className="eyebrow mb-1">🏆 Foto yarışması</p>
+          {!wall.contest ? (
+            <>
+              <p className="text-muted text-xs mb-3">Başlık ver, başlat; misafirler onaylı fotolara oy verir, kazanan perdede taçlanır.</p>
+              <div className="flex gap-2 flex-wrap">
+                <input value={contestTitle} onChange={(e) => setContestTitle(e.target.value.slice(0, 80))} placeholder="Yarışma başlığı (ör. En iyi kostüm)" className="input-base !py-2 text-sm flex-1 min-w-[200px]" />
+                <button onClick={() => { if (contestTitle.trim()) startContest(id, contestTitle).then(() => setContestTitle("")).catch(console.error); }} disabled={!contestTitle.trim()} className="btn-accent !py-2 !px-5 text-sm disabled:opacity-40">Başlat →</button>
+              </div>
+            </>
+          ) : wall.contest.status === "running" ? (
+            <>
+              <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                <p className="font-semibold text-sm truncate">🔴 {wall.contest.title} <span className="text-muted font-normal">· {contestVotes.length} oy</span></p>
+                <div className="flex gap-1.5 shrink-0">
+                  <button onClick={() => endContest(id, contestRanking[0]?.mediaId ?? null).catch(console.error)} className="btn-accent !py-1.5 !px-3 text-xs">Bitir & ilan et</button>
+                  <button onClick={() => clearContest(id).catch(console.error)} className="!py-1.5 !px-3 text-xs rounded-full border border-line text-brand font-semibold">İptal</button>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {contestRanking.slice(0, 5).map((r, i) => {
+                  const m = allMedia.find((x) => x.id === r.mediaId);
+                  return (
+                    <div key={r.mediaId} className="flex items-center gap-2 text-sm">
+                      <span className="text-muted w-4 tabular-nums">{i + 1}</span>
+                      {m && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={cldThumb(m.url, 60, 60)} alt="" className="w-8 h-8 rounded object-cover" />
+                      )}
+                      <span className="flex-1 truncate">{m?.nickname || "—"}</span>
+                      <span className="font-bold tabular-nums">{r.count} oy</span>
+                    </div>
+                  );
+                })}
+                {contestRanking.length === 0 && <p className="text-muted text-sm">Henüz oy yok.</p>}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="font-semibold text-sm">🏆 Bitti: {wall.contest.title}{wall.contest.winnerMediaId ? " · kazanan ilan edildi" : ""}</p>
+              <button onClick={() => clearContest(id).catch(console.error)} className="btn-ghost !py-1.5 !px-3 text-xs">Kapat / Yeni</button>
+            </div>
+          )}
+        </div>
 
         {/* Dilek moderasyonu */}
         {(pendingWishes.length > 0 || approvedWishes.length > 0) && (

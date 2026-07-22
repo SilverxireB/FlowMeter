@@ -153,6 +153,15 @@ export interface Wall {
   topLovedEverySec?: number;
   /** Milestone kutlamaları (10/25/50/100… anı → konfeti). Varsayılan açık. */
   milestones?: boolean;
+  /** Foto yarışması (moderasyondan başlatılır; kazanan perdede taçlanır) */
+  contest?: {
+    id: string;
+    title: string;
+    status: "running" | "ended";
+    startedAt: Timestamp | null;
+    endedAt?: Timestamp | null;
+    winnerMediaId?: string;
+  } | null;
   sessionId?: string;
   sessionStartedAt?: Timestamp | null;
   createdAt: Timestamp | null;
@@ -176,6 +185,14 @@ export interface WallMedia {
   /** Misafir beğenileri (❤ ile +1; perdede "en sevilen" anı) */
   likes?: number;
   sessionId?: string;
+  createdAt: Timestamp | null;
+}
+
+/** Yarışma oyu (walls/{id}/contestVotes/{voterId}) — kişi başı tek. */
+export interface ContestVote {
+  id: string;
+  mediaId: string;
+  contestId: string;
   createdAt: Timestamp | null;
 }
 

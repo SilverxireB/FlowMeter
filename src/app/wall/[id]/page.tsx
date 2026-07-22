@@ -17,6 +17,7 @@ import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
 import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import WallReactionOverlay from "@/components/wall/WallReactionOverlay";
+import WallContest from "@/components/wall/WallContest";
 import WallWishes from "@/components/wall/WallWishes";
 import WallAnnouncement from "@/components/wall/WallAnnouncement";
 import WallMilestone from "@/components/wall/WallMilestone";
@@ -183,6 +184,9 @@ export default function WallScreen() {
       {/* En sevilenler highlight turu (periyodik) + milestone kutlamaları */}
       {media.length > 0 && <WallTopLoved media={media} everySec={wall?.topLovedEverySec ?? 120} />}
       <WallMilestone count={media.length} enabled={wall?.milestones !== false} />
+
+      {/* Foto yarışması (running: ilk 3 turu + rozet; ended: kazanan takeover) */}
+      {typeof wallId === "string" && wall && <WallContest wallId={wallId} wall={wall} media={media} />}
 
       {/* Canlı anons (moderasyondan; süresi dolunca kaybolur) */}
       <WallAnnouncement announcement={wall?.announcement} />
