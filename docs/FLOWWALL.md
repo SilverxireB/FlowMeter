@@ -1,4 +1,13 @@
-# FlowWall — P1 İSKELETİ YAPILDI (Cloudinary env'i bekliyor)
+# FlowWall — FİKİR HAVUZU / ARŞİV (dağınık)
+
+> ⚠️ **Güncel durum ve yol haritası için `docs/FLOWWALL-DURUM.md` (temiz sayfa).**
+> Bu dosya artık **arşiv + ham fikir havuzu**: eski faz notları, kapasite analizi,
+> seçilmemiş fikirler. Tek doğruluk kaynağı DURUM dosyası; buradan oraya
+> **seçilen** işler taşınır.
+
+---
+
+## (arşiv) P1 İskeleti — Cloudinary env notları
 
 > **Durum (P1 kuruldu):** `walls/{id}` modeli + kod çözümü (walls.ts),
 > Cloudinary imzasız yükleme (cloudinary.ts), hooks (useWall/useWallMedia),

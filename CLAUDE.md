@@ -121,8 +121,9 @@ ekleme, editör canlı önizleme/otomatik kayıt, Cloud Function temizlik, i18n.
 **FlowWall** (canlı foto/video duvarı — büyük ölçüde CANLIDA): ayrı ürün, bu
 altyapı üstünde (`walls/{id}` koleksiyonu, kendi giriş kapısı; medya Cloudinary,
 gerisi Firebase). Rotalar: `/wall` `/wall/[id]` (perde) `/u/[id]` (misafir)
-`/wall/[id]/manage` (kokpit). Fikir havuzu + kapasite analizi + tamamlanan gruplar:
-`docs/FLOWWALL.md`. YAPILDI (Grup 1-6 + cila): 6 perde modu + 🔀 otomatik + **akıllı
+`/wall/[id]/manage` (kokpit). **Güncel durum + yol haritası (temiz): `docs/FLOWWALL-DURUM.md`.**
+Dağınık fikir havuzu + kapasite analizi + eski faz notları (arşiv): `docs/FLOWWALL.md`.
+YAPILDI (Grup 1-6 + cila): 6 perde modu + 🔀 otomatik + **akıllı
 ağırlıklı adil oynatma** (usePagedPlayback, page.tsx); 8 renk teması; temadan
 bağımsız 8 ambient efekt (WallEffectLayer); emoji yağmuru; dilek bandı +
 moderasyon; canlı anons; kokpit istatistik; En Sevilenler turu; milestone (aç/kapa);
@@ -131,5 +132,8 @@ kitabı PDF (wallMemoryBook, jspdf); foto yarışması+oylama (contest, WallCont
 Ölçek: misafir büyük koleksiyon dinlemez (watchWallMediaByVoter/Recent);
 contest oylarını yalnız perde+kokpit dinler. **Firestore rules SON hali konsola
 yapıştırılmalı** (media likes, reactions, wishes.status, contestVotes eklendi).
-Kalan (park): güvenlik/anonim-auth/imzalı yükleme/AI moderasyon, ayrı domain,
-pricing — bkz. `docs/FLOWWALL.md` "Sonraki planlar".
+Ayrıca CANLI: **🎬 Anı Filmi** (highlight video — WebCodecs MP4, `src/lib/wallFilm/`
++ WallFilm/WallFilmStage; kokpitten indir veya perdede oynat; 5 telifsiz müzik
+`public/music/`). Sıradaki kritik: **duvar yaşam döngüsü** + **kota guard'ları**
+(bkz. `docs/FLOWWALL-DURUM.md` "Yapacaklarımız"). Kalan (park): güvenlik/anonim-auth/
+imzalı yükleme/AI moderasyon, ayrı domain, pricing.
