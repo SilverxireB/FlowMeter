@@ -109,7 +109,8 @@ export default function DashboardPage() {
     if (!confirm(`"${w.title}" duvarı ve tüm medyası silinsin mi? Bu işlem geri alınamaz.`)) return;
     setFlash({ msg: `"${w.title}" siliniyor…` });
     try {
-      await deleteWall(w);
+      const idToken = user ? await user.getIdToken().catch(() => undefined) : undefined;
+      await deleteWall(w, idToken);
       setFlash(null);
       refreshWalls();
     } catch (err) {

@@ -32,13 +32,17 @@ function randomSessionId(): string {
   return `s-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/** Koleksiyonu sayfa sayfa siler — tüm dokümanları belleğe almadan (binlerce
+ *  medya/tepkide bile şişmez): her turda en çok 450 oku + tek batch'te sil. */
 async function deleteAllDocs(colPath: [string, ...string[]]): Promise<void> {
-  const snap = await getDocs(collection(db(), ...colPath));
-  const docs = snap.docs;
-  for (let i = 0; i < docs.length; i += 450) {
+  const col = collection(db(), ...colPath);
+  for (let guard = 0; guard < 10000; guard++) {
+    const snap = await getDocs(query(col, limit(450)));
+    if (snap.empty) break;
     const batch = writeBatch(db());
-    docs.slice(i, i + 450).forEach((d) => batch.delete(d.ref));
+    snap.docs.forEach((d) => batch.delete(d.ref));
     await batch.commit();
+    if (snap.size < 450) break;
   }
 }
 
@@ -118,8 +122,30 @@ export async function setWallAutoInterval(id: string, autoIntervalSec: number): 
   await updateDoc(doc(db(), "walls", id), { autoIntervalSec, updatedAt: serverTimestamp() });
 }
 
-export async function deleteWall(w: Wall): Promise<void> {
+/** Duvarı TAM temizler: önce Cloudinary dosyaları (prefix), sonra tüm alt
+ *  koleksiyonlar (yetim wishes/reactions/contestVotes dahil), en son kod + doküman.
+ *  idToken verilirse Cloudinary temizliği yapılır; başarısızsa Firestore temizliği
+ *  yine de tamamlanır (best-effort — buton donmaz). */
+export async function deleteWall(w: Wall, idToken?: string): Promise<void> {
+  // 1) Cloudinary dosyaları (secret sunucuda; wall dokümanı hâlâ dururken çağır —
+  //    route sahiplik kontrolü için okuyor)
+  if (idToken) {
+    try {
+      await fetch("/api/wall/destroy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "wall", wallId: w.id, idToken }),
+      });
+    } catch {
+      /* Cloudinary temizliği başarısız olsa da Firestore temizliğine devam et */
+    }
+  }
+  // 2) Alt koleksiyonlar (yetim kalmasın)
   await deleteAllDocs(["walls", w.id, "media"]);
+  await deleteAllDocs(["walls", w.id, "reactions"]);
+  await deleteAllDocs(["walls", w.id, "wishes"]);
+  await deleteAllDocs(["walls", w.id, "contestVotes"]);
+  // 3) joinCode + duvar dokümanı
   const batch = writeBatch(db());
   if (w.joinCode) batch.delete(doc(db(), "joinCodes", w.joinCode));
   batch.delete(doc(db(), "walls", w.id));

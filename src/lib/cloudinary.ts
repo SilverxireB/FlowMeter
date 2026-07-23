@@ -25,21 +25,44 @@ export interface UploadResult {
   durationMs?: number;
 }
 
-/** Dosyayı Cloudinary'ye yükler; onProgress(0-100) canlı ilerleme verir. */
-export function uploadToCloudinary(
-  file: File,
-  folder: string,
-  onProgress: (pct: number) => void
-): Promise<UploadResult> {
-  return new Promise((resolve, reject) => {
-    if (!isCloudinaryConfigured()) {
-      reject(
-        new Error(
-          "Cloudinary yapılandırılmadı. NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ve NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET değişkenlerini ekleyin."
-        )
-      );
-      return;
+/** Kalıcı (yeniden denemesi anlamsız) yükleme hatası — ör. 4xx, geçersiz preset. */
+class PermanentUploadError extends Error {}
+
+/**
+ * Görseli yüklemeden ÖNCE tarayıcıda küçültür (max kenar ~1920px, JPEG).
+ * ÖNEMLİ: Bu Cloudinary DEPOLAMASINI düşürür — teslimat q_auto/f_auto orijinali
+ * küçültmez, tam çözünürlük saklanır. Sıkıştırma başarısızsa/küçülmezse orijinali
+ * gönderir (yükleme asla bozulmaz). GIF ve video dokunulmaz.
+ */
+async function compressImageForUpload(file: File, maxDim = 1920, quality = 0.82): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close();
+      return file;
     }
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/jpeg", quality));
+    if (!blob || blob.size >= file.size) return file; // küçülmediyse orijinali gönder
+    const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+    return new File([blob], name, { type: "image/jpeg", lastModified: file.lastModified });
+  } catch {
+    return file;
+  }
+}
+
+/** Tek yükleme denemesi (XHR + canlı ilerleme). 4xx → PermanentUploadError. */
+function attemptUpload(file: File, folder: string, onProgress: (pct: number) => void): Promise<UploadResult> {
+  return new Promise((resolve, reject) => {
     const endpoint = `https://api.cloudinary.com/v1_1/${CLOUD}/auto/upload`;
     const form = new FormData();
     form.append("file", file);
@@ -66,6 +89,9 @@ export function uploadToCloudinary(
         } catch {
           reject(new Error("Cloudinary yanıtı okunamadı."));
         }
+      } else if (xhr.status >= 400 && xhr.status < 500) {
+        // Kalıcı hata (geçersiz preset, dosya reddi…) — tekrar deneme boşuna
+        reject(new PermanentUploadError("Yükleme reddedildi (" + xhr.status + ")."));
       } else {
         reject(new Error("Yükleme başarısız (" + xhr.status + ")."));
       }
@@ -73,6 +99,38 @@ export function uploadToCloudinary(
     xhr.onerror = () => reject(new Error("Ağ hatası — yükleme tamamlanamadı."));
     xhr.send(form);
   });
+}
+
+/**
+ * Dosyayı Cloudinary'ye yükler; onProgress(0-100) canlı ilerleme verir.
+ * Görseli önce ~1920px'e sıkıştırır (depolama tasarrufu). Geçici ağ/5xx
+ * hatalarında üstel bekleyişle (2s, 4s) 3 kez dener; 4xx'te hemen vazgeçer.
+ */
+export async function uploadToCloudinary(
+  file: File,
+  folder: string,
+  onProgress: (pct: number) => void
+): Promise<UploadResult> {
+  if (!isCloudinaryConfigured()) {
+    throw new Error(
+      "Cloudinary yapılandırılmadı. NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ve NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET değişkenlerini ekleyin."
+    );
+  }
+  const toSend = await compressImageForUpload(file);
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      onProgress(0);
+      await new Promise((r) => setTimeout(r, 2000 * 2 ** (attempt - 1))); // 2s, 4s
+    }
+    try {
+      return await attemptUpload(toSend, folder, onProgress);
+    } catch (e) {
+      lastErr = e;
+      if (e instanceof PermanentUploadError) throw e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Yükleme başarısız.");
 }
 
 /** Gerçek Cloudinary URL'si mi? (Cloudinary-dışı test/örnek URL'lere dokunma.) */

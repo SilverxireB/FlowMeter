@@ -29,14 +29,17 @@ function randomSessionId(): string {
   return `s-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/** Bir koleksiyondaki tüm dokümanları 450'lik parçalarla siler (büyük veride bile takılmaz). */
+/** Bir koleksiyondaki tüm dokümanları sayfa sayfa siler — tüm dokümanları belleğe
+ *  almadan (büyük veride bile takılmaz): her turda en çok 450 oku + tek batch'te sil. */
 async function deleteAllDocs(colPath: [string, ...string[]]): Promise<void> {
-  const snap = await getDocs(collection(db(), ...colPath));
-  const docs = snap.docs;
-  for (let i = 0; i < docs.length; i += 450) {
+  const col = collection(db(), ...colPath);
+  for (let guard = 0; guard < 10000; guard++) {
+    const snap = await getDocs(query(col, limit(450)));
+    if (snap.empty) break;
     const batch = writeBatch(db());
-    docs.slice(i, i + 450).forEach((d) => batch.delete(d.ref));
+    snap.docs.forEach((d) => batch.delete(d.ref));
     await batch.commit();
+    if (snap.size < 450) break;
   }
 }
 

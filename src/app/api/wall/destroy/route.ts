@@ -31,15 +31,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "firebase-env" }, { status: 500 });
   }
 
-  let body: { wallId?: string; cloudinaryId?: string; resourceType?: string; idToken?: string };
+  let body: { wallId?: string; cloudinaryId?: string; resourceType?: string; idToken?: string; mode?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "bad-json" }, { status: 400 });
   }
   const { wallId, cloudinaryId, idToken } = body;
+  const wallMode = body.mode === "wall"; // tüm duvarı topluca temizle (prefix)
   const resourceType = body.resourceType === "video" ? "video" : "image";
-  if (!wallId || !cloudinaryId || !idToken) {
+  if (!wallId || !idToken || (!wallMode && !cloudinaryId)) {
     return NextResponse.json({ ok: false, error: "missing-params" }, { status: 400 });
   }
 
@@ -62,18 +63,41 @@ export async function POST(req: Request) {
   const ownerId = (await wallRes.json())?.fields?.ownerId?.stringValue;
   if (ownerId !== uid) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
 
+  // ── Duvar toplu temizlik: walls/{wallId}/ altındaki TÜM dosyaları sil ─────────
+  // (duvar silinince yetim Cloudinary dosyası kalmasın → depolama sızıntısı biter)
+  if (wallMode) {
+    const prefix = `walls/${wallId}`;
+    const auth = "Basic " + Buffer.from(`${KEY}:${SECRET}`).toString("base64");
+    const purged: Record<string, number> = {};
+    // image ve video ayrı resource_type → her biri için prefix sil
+    for (const rt of ["image", "video"] as const) {
+      let deleted = 0;
+      // delete_resources_by_prefix 1000/çağrı siler, kalırsa partial=true → tekrar
+      for (let guard = 0; guard < 25; guard++) {
+        const url = `https://api.cloudinary.com/v1_1/${CLOUD}/resources/${rt}/upload?prefix=${encodeURIComponent(prefix)}`;
+        const del = await fetch(url, { method: "DELETE", headers: { Authorization: auth } });
+        if (!del.ok) break;
+        const j = await del.json().catch(() => ({}));
+        deleted += j.deleted ? Object.keys(j.deleted).length : 0;
+        if (!j.partial) break;
+      }
+      purged[rt] = deleted;
+    }
+    return NextResponse.json({ ok: true, purged });
+  }
+
   // Test tohumu / Cloudinary-dışı kayıtlar: silinecek dosya yok
-  if (cloudinaryId.startsWith("seed/")) {
+  if (cloudinaryId!.startsWith("seed/")) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
   // 3) imzalı destroy
   const timestamp = Math.floor(Date.now() / 1000);
-  const toSign = `invalidate=true&public_id=${cloudinaryId}&timestamp=${timestamp}${SECRET}`;
+  const toSign = `invalidate=true&public_id=${cloudinaryId!}&timestamp=${timestamp}${SECRET}`;
   const signature = crypto.createHash("sha1").update(toSign).digest("hex");
 
   const form = new URLSearchParams();
-  form.set("public_id", cloudinaryId);
+  form.set("public_id", cloudinaryId!);
   form.set("invalidate", "true");
   form.set("timestamp", String(timestamp));
   form.set("api_key", KEY);
