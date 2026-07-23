@@ -13,6 +13,7 @@ import { downloadQrCard } from "@/components/WallQrCard";
 import { downloadCollage } from "@/components/WallCollage";
 import { generateMemoryBook } from "@/lib/wallMemoryBook";
 import WallEffectLayer from "@/components/wall/WallEffectLayer";
+import WallFilm from "@/components/wall/WallFilm";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
 import { addWallMedia, clearContest, clearWallAnnouncement, deleteMedia, deleteWish, endContest, setMediaStatus, setWallAllowVideo, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallWishesEnabled, setWishStatus, startContest, tallyContest } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
@@ -351,6 +352,9 @@ export default function WallManage() {
             </div>
           </div>
         </div>
+
+        {/* Anı Filmi — highlight video üretimi */}
+        {wall && <WallFilm wall={wall} media={allMedia} wishes={wishes} />}
 
         {/* İçerik izinleri — etkinlik başına video / dilek aç-kapa */}
         <div className="card p-5">

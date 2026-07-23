@@ -24,7 +24,14 @@
 | `/wall` | **FlowWall** karşılama (koyu/festival): akıllı kod kutusu (deck→/join, wall→/u), "kendi duvarını oluştur" |
 | `/wall/[id]` | FlowWall perde ekranı: kokpitten seçilen `screenMode` ile 5 mod — Sahne (şeritler+orta sahne) · Mozaik (kayan ızgara) · Spot (öne çıkan+soluk) · Polaroid (arka yığın+ön büyük) · Sinema (tam ekran+film şeridi) — ya da **Otomatik** (seçili modlar arası `autoIntervalSec` aralıkla döner); ❤ beğeni rozetleri + 👑 en sevilen; QR/kod köşe |
 | `/u/[id]` | FlowWall misafir (auth yok): **Yükle** (foto/video → Cloudinary %ilerleme → duvara/onaya) · **Gez** (onaylı akış, ❤ beğen, "Benimkiler") · **💌 Dilek** (yazılı not → perdede dilek bandı); altta sabit emoji tepki çubuğu (→ perdeye uçar) |
-| `/wall/[id]/manage` | FlowWall yönetim (sahip): moderasyon toggle, bekleyen onayla/reddet, perde medyası kaldır/sil, başlık, QR/kod |
+| `/wall/[id]/manage` | FlowWall yönetim (sahip): moderasyon toggle, bekleyen onayla/reddet, perde medyası kaldır/sil, başlık, QR/kod, ZIP/kolaj/hatıra kitabı, **🎬 Anı Filmi** (highlight video) |
+
+**Anı Filmi modülü** (`src/lib/wallFilm/` + `components/wall/WallFilm.tsx`): tek canvas
+motoru hem canlı önizleme hem MP4 encode. `timeline.ts` (akıllı seçim: 👑 en sevilen +
+adalet "herkesten 1 foto" + beğeni×tazelik, ~40 sahne/2dk, dilek kartları serpiştirilir),
+`render.ts` (Ken Burns + crossfade + temalı kartlar), `music.ts` (WebAudio mood'ları +
+`public/music/manifest.json` telifsiz mp3 + "kendi müziğim"), `encode.ts` (WebCodecs
+H.264/AAC → mp4-muxer; yoksa MediaRecorder WebM yedeği — tamamen lokal, Cloudinary kredisi yemez).
 
 ## 2. Dosya Haritası
 

@@ -182,6 +182,13 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
       moderasyonu (rules `wishes.status`), En Sevilenler turu sıklığı (kokpit,
       0/60/120/300/600 sn), tema efekt katmanı z-[15] tutarlandı (Snowflakes
       `contained` propu ile kokpit önizleme korundu).
+- [x] **🎬 Anı Filmi** (Dalga 5 / hatıra çıktısı): kokpitten duvarın onaylı foto+
+      dileklerinden müzikli highlight video. Tek canvas motoru → C canlı önizleme +
+      A2 WebCodecs H.264/AAC MP4 (yoksa MediaRecorder WebM). Akıllı seçim (👑 en
+      sevilen + herkesten 1 foto adaleti + beğeni×tazelik, ~40 sahne/2dk), Ken Burns +
+      crossfade, yön (dikey/yatay), uzunluk (Kısa/Orta/Uzun), müzik (WebAudio mood +
+      telifsiz mp3 manifest + kendi müziğin), opsiyonel arka plan. Tamamen lokal encode
+      → **Cloudinary kredisi yemez** (Paket 3 maliyet çizgisiyle uyumlu). `src/lib/wallFilm/`.
 - [ ] Kalan (Dalga 1): **duvar yaşam döngüsü** (kapat/yeni oturum — sessionId
       rotasyonu), **Cloudinary toplu temizlik** (delete_by_prefix API route);
       ileride imzalı yükleme (sertleştirme).
