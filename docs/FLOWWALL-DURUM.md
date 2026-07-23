@@ -34,6 +34,11 @@ Rotalar: `/wall` (karşılama) · `/wall/[id]` (perde) · `/u/[id]` (misafir) ·
 **Kokpit `/wall/[id]/manage`**
 - Moderasyon sekmeleri (medya/dilek), özet istatistik, medya ekle, Kaldırılanlar (geri al).
 - Ayarlar: video/dilek/orijinal-kalite toggle, tema/efekt/mod seçici, anons, tur/milestone.
+- **İlk-kullanım rehberi (onboarding)**: duvar tazeyken "3 adımda başla" kartı
+  (perde aç · kod paylaş · test), canlı durum, kapatılabilir.
+- **Yaşam döngüsü**: Duvarı kapat/aç (kapalıyken yükleme durur, perde "🎉 Teşekkürler")
+  + Yeni oturum (sessionId rotasyonu → perde/misafir/kokpit yalnız aktif oturumu
+  gösterir; eski anılar arşivde kalır). Aynı duvarı ikinci grupla baştan çalıştırma.
 
 **Çıktılar (etkinlik değeri)**
 - Tümünü indir (ZIP), kolaj PNG, hatıra kitabı PDF.
@@ -50,10 +55,7 @@ Rotalar: `/wall` (karşılama) · `/wall/[id]` (perde) · `/u/[id]` (misafir) ·
 ## 🔜 Yapacaklarımız (öncelik sırasıyla)
 
 ### 🔴 Kritik — ürünü ayakta tutan operasyon
-1. **Duvar yaşam döngüsü** — "Duvarı kapat" (yükleme dur + perde "teşekkürler") +
-   "Yeni oturum" (sessionId rotasyonu; FlowMeter deseni). *Bu olmadan duvar tek
-   kullanımlık; ikinci etkinlikte eski fotolar karışır.* **En acil.**
-2. **Kota guard'ları** — kişi başı foto tavanı (~15-20), video süre/boyut limiti,
+1. **Kota guard'ları** — kişi başı foto tavanı (~15-20), video süre/boyut limiti,
    duvar başına toplam medya tavanı, tepki cooldown. *Bir etkinlik kotayı yakmasın.*
 
 ### 🟡 Deneyim / değer
@@ -68,8 +70,8 @@ Rotalar: `/wall` (karşılama) · `/wall/[id]` (perde) · `/u/[id]` (misafir) ·
 8. **Video Tebrik Kabini** — 10 sn moderasyonlu tebrik → sesli anı defteri.
 
 ### 🧱 Mimari borç (token maliyeti düşürme)
-9. **Perde `page.tsx` bölme** — 6 mod + yardımcıları `components/wall/screenModes/`
-   altına; ana dosya orkestratöre iner (~829 → ~300 satır). Sonra `edit`/`manage`.
+9. ✅ Perde `page.tsx` bölündü (834→166 satır, `components/wall/screen/`). Sırada:
+   `edit/[id]` (987) ve `manage` (900+) — ama state'li, daha dikkatli.
 
 ### 🔒 Park (şirket-içi araç için ertelendi; satışta şart)
 - Güvenlik: anon-auth + misafir self-delete, imzalı yükleme, rate-limit, AI moderasyon.

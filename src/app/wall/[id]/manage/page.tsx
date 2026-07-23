@@ -14,6 +14,7 @@ import { downloadCollage } from "@/components/WallCollage";
 import { generateMemoryBook } from "@/lib/wallMemoryBook";
 import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import WallFilm from "@/components/wall/WallFilm";
+import WallOnboarding from "@/components/wall/WallOnboarding";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
 import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAllowVideo, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallWishesEnabled, setWishStatus, startContest, tallyContest } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
@@ -225,6 +226,9 @@ export default function WallManage() {
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
+        {/* İlk-kullanım rehberi (duvar tazeyken; kapatılabilir) */}
+        <WallOnboarding wall={wall} joinUrl={joinUrl} mediaCount={approved.length} onGoSettings={() => setTab("ayarlar")} />
+
         {/* Kokpit özeti */}
         <div className="card p-5">
           <p className="eyebrow mb-3">Özet</p>
