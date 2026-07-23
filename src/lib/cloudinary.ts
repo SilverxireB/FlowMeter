@@ -109,14 +109,16 @@ function attemptUpload(file: File, folder: string, onProgress: (pct: number) => 
 export async function uploadToCloudinary(
   file: File,
   folder: string,
-  onProgress: (pct: number) => void
+  onProgress: (pct: number) => void,
+  opts?: { keepOriginal?: boolean }
 ): Promise<UploadResult> {
   if (!isCloudinaryConfigured()) {
     throw new Error(
       "Cloudinary yapılandırılmadı. NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ve NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET değişkenlerini ekleyin."
     );
   }
-  const toSend = await compressImageForUpload(file);
+  // Duvar ayarı "orijinali sakla" ise küçültme atlanır (tam çözünürlük yüklenir).
+  const toSend = opts?.keepOriginal ? file : await compressImageForUpload(file);
   let lastErr: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) {

@@ -14,7 +14,7 @@ import { downloadCollage } from "@/components/WallCollage";
 import { generateMemoryBook } from "@/lib/wallMemoryBook";
 import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
-import { addWallMedia, clearContest, clearWallAnnouncement, deleteMedia, deleteWish, endContest, setMediaStatus, setWallAllowVideo, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallWishesEnabled, setWishStatus, startContest, tallyContest } from "@/lib/walls";
+import { addWallMedia, clearContest, clearWallAnnouncement, deleteMedia, deleteWish, endContest, setMediaStatus, setWallAllowVideo, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallWishesEnabled, setWishStatus, startContest, tallyContest } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
@@ -373,6 +373,15 @@ export default function WallManage() {
                 className="w-5 h-5 accent-[#4f46e5]"
               />
               <span className="text-sm font-semibold">💌 Dilekler <span className="text-muted font-normal">{wall.wishesEnabled !== false ? "— açık" : "— kapalı (misafirde dilek sekmesi yok)"}</span></span>
+            </label>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={!!wall.keepOriginal}
+                onChange={(e) => setWallKeepOriginal(id, e.target.checked).catch(console.error)}
+                className="w-5 h-5 accent-[#4f46e5]"
+              />
+              <span className="text-sm font-semibold">🖼 Orijinal kalite <span className="text-muted font-normal">{wall.keepOriginal ? "— açık (tam çözünürlük saklanır, daha çok depolama)" : "— kapalı (görseller ~1920px'e küçültülür, depolama dostu)"}</span></span>
             </label>
           </div>
         </div>

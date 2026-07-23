@@ -126,7 +126,8 @@ export default function UploadPage() {
         const res = await uploadToCloudinary(
           it.file,
           `walls/${wallId}/${wall.sessionId ?? "s"}`,
-          (pct) => patch(it.id, { pct })
+          (pct) => patch(it.id, { pct }),
+          { keepOriginal: !!wall.keepOriginal }
         );
         await addWallMedia(
           wallId,

@@ -98,6 +98,10 @@ export async function setWallWishesEnabled(id: string, wishesEnabled: boolean): 
   await updateDoc(doc(db(), "walls", id), { wishesEnabled, updatedAt: serverTimestamp() });
 }
 
+export async function setWallKeepOriginal(id: string, keepOriginal: boolean): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { keepOriginal, updatedAt: serverTimestamp() });
+}
+
 export async function setWallHeadline(id: string, headline: string): Promise<void> {
   await updateDoc(doc(db(), "walls", id), { headline, updatedAt: serverTimestamp() });
 }

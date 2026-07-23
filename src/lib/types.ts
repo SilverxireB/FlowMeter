@@ -139,6 +139,9 @@ export interface Wall {
   allowVideo?: boolean;
   /** Dilek bırakmayı aç (varsayılan açık; kapalıysa misafirde dilek sekmesi yok) */
   wishesEnabled?: boolean;
+  /** Orijinal çözünürlükte sakla (küçültme kapalı). Varsayılan kapalı → görseller
+   *  yüklenirken ~1920px'e küçültülür (depolama tasarrufu). Açıksa tam boyut saklanır. */
+  keepOriginal?: boolean;
   /** Perde arka planı üst yazısı (opsiyonel) */
   headline?: string;
   /** Duvar görsel teması (FlowMeter PresentationTheme ile aynı yapı) */
