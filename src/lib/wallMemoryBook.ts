@@ -78,7 +78,7 @@ export async function generateMemoryBook(
   onProgress?: (done: number, total: number) => void
 ): Promise<void> {
   const { jsPDF } = await import("jspdf");
-  const approved = media.filter((m) => m.status === "approved");
+  const approved = media.filter((m) => m.status === "approved" && m.type === "image"); // yalnız foto (video yok)
   const photos = [...approved].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0)).slice(0, 120);
   const okWishes = wishes.filter((w) => (w.status ?? "approved") === "approved");
 

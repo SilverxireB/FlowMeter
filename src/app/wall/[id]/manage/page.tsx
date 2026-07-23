@@ -16,7 +16,7 @@ import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import WallFilm from "@/components/wall/WallFilm";
 import WallOnboarding from "@/components/wall/WallOnboarding";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
-import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAllowVideo, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallWishesEnabled, setWishStatus, startContest, tallyContest } from "@/lib/walls";
+import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
@@ -24,6 +24,8 @@ import { getVoterId } from "@/lib/responses";
 import { BASE_WALL_SCREEN_MODES, Wall, WallMedia, WALL_EFFECTS, WALL_SCREEN_MODES, wallEffectOf } from "@/lib/types";
 
 const AUTO_INTERVALS = [20, 30, 45, 60, 90];
+const VIDEO_OPTS: [number, string][] = [[0, "Kapalı"], [15, "≤15 sn"], [30, "≤30 sn"], [60, "≤60 sn"]];
+const PERPERSON_OPTS: [number, string][] = [[0, "Sınırsız"], [10, "10"], [20, "20"], [30, "30"]];
 const fmtInterval = (s: number) => (s < 60 ? `${s} sn` : s % 60 === 0 ? `${s / 60} dk` : `${(s / 60).toFixed(1)} dk`);
 const ANN_MINUTES = [1, 2, 5, 10, 15, 30, 60];
 
@@ -84,12 +86,16 @@ export default function WallManage() {
   const [zipMsg, setZipMsg] = useState<string | null>(null);
   const [bookMsg, setBookMsg] = useState<string | null>(null);
   const [contestTitle, setContestTitle] = useState("");
+  const [contestMin, setContestMin] = useState(0); // 0 = süresiz
   const [tab, setTab] = useState<"ayarlar" | "moderasyon">("moderasyon");
   const contestVotes = useContestVotes(id);
   const contestRanking = useMemo(
     () => (wall?.contest ? tallyContest(contestVotes, wall.contest.id, allMedia) : []),
     [contestVotes, wall?.contest, allMedia]
   );
+  // Yarışma geri sayımı dolunca kokpit otomatik bitirir (kazanan = anlık lider).
+  const contestRankRef = useRef(contestRanking);
+  contestRankRef.current = contestRanking;
   const [annText, setAnnText] = useState("");
   const [annMin, setAnnMin] = useState(2);
   const [annNow, setAnnNow] = useState(() => Date.now());
@@ -97,6 +103,13 @@ export default function WallManage() {
     const t = window.setInterval(() => setAnnNow(Date.now()), 1000);
     return () => window.clearInterval(t);
   }, []);
+  useEffect(() => {
+    const c = wall?.contest;
+    const ends = c?.endsAt?.toMillis?.() ?? 0;
+    if (c?.status === "running" && ends && annNow >= ends) {
+      endContest(id, contestRankRef.current[0]?.mediaId ?? null).catch(console.error);
+    }
+  }, [wall?.contest, annNow, id]);
 
   async function downloadAll() {
     if (zipping) return;
@@ -393,17 +406,30 @@ export default function WallManage() {
 
         {/* İçerik izinleri — etkinlik başına video / dilek aç-kapa */}
         <div className="card p-5">
-          <p className="eyebrow mb-3">İçerik izinleri</p>
-          <div className="flex flex-col gap-3">
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={wall.allowVideo !== false}
-                onChange={(e) => setWallAllowVideo(id, e.target.checked).catch(console.error)}
-                className="w-5 h-5 accent-[#4f46e5]"
-              />
-              <span className="text-sm font-semibold">🎬 Video yükleme <span className="text-muted font-normal">{wall.allowVideo !== false ? "— açık" : "— kapalı (yalnız fotoğraf)"}</span></span>
-            </label>
+          <p className="eyebrow mb-3">İçerik izinleri & sınırlar</p>
+          <div className="flex flex-col gap-4">
+            <div>
+              <p className="text-sm font-semibold mb-1.5">🎬 Video <span className="text-muted font-normal">— süre limiti (kredi koruması)</span></p>
+              <div className="flex gap-1.5 flex-wrap">
+                {VIDEO_OPTS.map(([sec, lbl]) => (
+                  <button key={sec} onClick={() => setWallVideoLimit(id, sec).catch(console.error)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${wallVideoLimitSec(wall) === sec ? "bg-accent text-white border-accent" : "border-line text-ink"}`}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-semibold mb-1.5">📸 Kişi başı en fazla foto <span className="text-muted font-normal">— spam/tekel önler</span></p>
+              <div className="flex gap-1.5 flex-wrap">
+                {PERPERSON_OPTS.map(([n, lbl]) => (
+                  <button key={n} onClick={() => setWallMaxPerPerson(id, n).catch(console.error)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${wallMaxPerPerson(wall) === n ? "bg-accent text-white border-accent" : "border-line text-ink"}`}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+            </div>
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -699,10 +725,19 @@ export default function WallManage() {
           <summary className="eyebrow mb-1 cursor-pointer select-none">🏆 Foto yarışması{wall.contest?.status === "running" ? " · 🔴 canlı" : ""}</summary>
           {!wall.contest ? (
             <>
-              <p className="text-muted text-xs mb-3">Başlık ver, başlat; misafirler onaylı fotolara oy verir, kazanan perdede taçlanır.</p>
-              <div className="flex gap-2 flex-wrap">
+              <p className="text-muted text-xs mb-3">Başlık ver, başlat; misafirler onaylı fotolara oy verir, kazanan perdede taçlanır. Süre eklersen geri sayım dolunca otomatik biter (kazanan = anlık lider).</p>
+              <div className="flex gap-2 flex-wrap items-center">
                 <input value={contestTitle} onChange={(e) => setContestTitle(e.target.value.slice(0, 80))} placeholder="Yarışma başlığı (ör. En iyi kostüm)" className="input-base !py-2 text-sm flex-1 min-w-[200px]" />
-                <button onClick={() => { if (contestTitle.trim()) startContest(id, contestTitle).then(() => setContestTitle("")).catch(console.error); }} disabled={!contestTitle.trim()} className="btn-accent !py-2 !px-5 text-sm disabled:opacity-40">Başlat →</button>
+                <button onClick={() => { if (contestTitle.trim()) startContest(id, contestTitle, contestMin).then(() => setContestTitle("")).catch(console.error); }} disabled={!contestTitle.trim()} className="btn-accent !py-2 !px-5 text-sm disabled:opacity-40">Başlat →</button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap mt-2">
+                <span className="text-muted text-xs">Süre:</span>
+                {[[0, "Süresiz"], [1, "1 dk"], [2, "2 dk"], [5, "5 dk"], [10, "10 dk"]].map(([m, lbl]) => (
+                  <button key={m} onClick={() => setContestMin(m as number)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold border ${contestMin === m ? "bg-accent text-white border-accent" : "border-line text-ink"}`}>
+                    {lbl}
+                  </button>
+                ))}
               </div>
             </>
           ) : wall.contest.status === "running" ? (

@@ -28,7 +28,6 @@ export function filmColors(wall: Wall): Palette {
   }
 }
 
-const easeInOut = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 
 /** Foto sahnelerinin görsellerini CORS-temiz önyükler (encode canvas'ı kirletmesin). */
@@ -107,8 +106,9 @@ function drawPhoto(ctx: CanvasRenderingContext2D, s: PhotoScene, img: HTMLImageE
   ctx.fillStyle = "rgba(0,0,0,0.30)";
   ctx.fillRect(0, 0, W, H);
 
-  // 2) Foreground — tüm resim görünür (contain) + Ken Burns
-  const e = easeInOut(clamp01(p));
+  // 2) Foreground — tüm resim görünür (contain) + Ken Burns (DOĞRUSAL → yavaş,
+  //    sürekli sürüklenme; ease-in-out sahne ortasında "hızlı zoom" hissi veriyordu).
+  const e = clamp01(p);
   const scale = s.ken.fromScale + (s.ken.toScale - s.ken.fromScale) * e;
   const tx = (s.ken.fromX + (s.ken.toX - s.ken.fromX) * e) * W;
   const ty = (s.ken.fromY + (s.ken.toY - s.ken.fromY) * e) * H;

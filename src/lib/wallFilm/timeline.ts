@@ -68,15 +68,15 @@ const mediaMs = (m: WallMedia) => m.createdAt?.toMillis?.() ?? 0;
  */
 function kenBurns(i: number): PhotoScene["ken"] {
   const base = 1.0;
-  const amp = 0.06; // zoom aralığı 1.00 ↔ 1.06 (nazik)
+  const amp = 0.045; // zoom aralığı 1.00 ↔ 1.045 (çok nazik, doğrusal → yavaş)
   const zoomIn = i % 2 === 0;
   const fromScale = zoomIn ? base : base + amp;
   const toScale = zoomIn ? base + amp : base;
   const dirs = [
-    { x: -0.02, y: -0.015 },
-    { x: 0.02, y: 0.015 },
-    { x: -0.018, y: 0.02 },
-    { x: 0.02, y: -0.018 },
+    { x: -0.014, y: -0.01 },
+    { x: 0.014, y: 0.01 },
+    { x: -0.012, y: 0.014 },
+    { x: 0.014, y: -0.012 },
   ];
   const d = dirs[i % dirs.length];
   return { fromScale, toScale, fromX: -d.x, toX: d.x, fromY: -d.y, toY: d.y };
@@ -84,7 +84,7 @@ function kenBurns(i: number): PhotoScene["ken"] {
 
 /**
  * Onaylı medya + dilek + ayarlardan sahne listesi kurar.
- * Not: v1'de video de "sabit kare" (poster) olarak filme girer — oynatma yok.
+ * Not: filme YALNIZ fotoğraflar girer (video yok — kullanıcı kararı).
  */
 export function buildTimeline(
   title: string,
@@ -92,7 +92,7 @@ export function buildTimeline(
   wishes: WallWish[],
   opts: FilmOptions
 ): { scenes: FilmScene[]; totalMs: number; picked: number; totalApproved: number } {
-  const approved = media.filter((m) => m.status === "approved");
+  const approved = media.filter((m) => m.status === "approved" && m.type === "image");
   const budget = photoBudget(opts.length);
 
   // En sevilen (👑) — beğenisi >0 olanlar arasında en yüksek

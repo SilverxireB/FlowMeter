@@ -94,6 +94,28 @@ export async function setWallAllowVideo(id: string, allowVideo: boolean): Promis
   await updateDoc(doc(db(), "walls", id), { allowVideo, updatedAt: serverTimestamp() });
 }
 
+// ── Sınırlar (kota/kalite guard'ları) ────────────────────────────────────────
+/** Video süre limiti sn (0 = kapalı). allowVideo'yu da senkron tutar (eski okuyucular). */
+export async function setWallVideoLimit(id: string, videoLimitSec: number): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { videoLimitSec, allowVideo: videoLimitSec > 0, updatedAt: serverTimestamp() });
+}
+
+/** Kişi başı en fazla foto (0 = sınırsız). */
+export async function setWallMaxPerPerson(id: string, maxPerPerson: number): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { maxPerPerson, updatedAt: serverTimestamp() });
+}
+
+/** Etkin video limiti (sn): açıkça verilmişse o; yoksa eski allowVideo'dan türet (varsayılan 30). */
+export function wallVideoLimitSec(wall: Wall | null | undefined): number {
+  if (wall?.videoLimitSec != null) return wall.videoLimitSec;
+  return wall?.allowVideo === false ? 0 : 30;
+}
+
+/** Etkin kişi başı foto tavanı (0 = sınırsız, varsayılan 20). */
+export function wallMaxPerPerson(wall: Wall | null | undefined): number {
+  return wall?.maxPerPerson ?? 20;
+}
+
 export async function setWallWishesEnabled(id: string, wishesEnabled: boolean): Promise<void> {
   await updateDoc(doc(db(), "walls", id), { wishesEnabled, updatedAt: serverTimestamp() });
 }
@@ -339,11 +361,12 @@ export async function setWallMilestones(wallId: string, milestones: boolean): Pr
 }
 
 // ── Foto yarışması (moderasyondan) ────────────────────────────────────────────
-export async function startContest(wallId: string, title: string): Promise<void> {
+export async function startContest(wallId: string, title: string, durationMin = 0): Promise<void> {
   const id = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `c-${Date.now()}`;
   await deleteAllDocs(["walls", wallId, "contestVotes"]); // eski oyları temizle
+  const endsAt = durationMin > 0 ? new Date(Date.now() + durationMin * 60_000) : null;
   await updateDoc(doc(db(), "walls", wallId), {
-    contest: { id, title: title.trim().slice(0, 80), status: "running", startedAt: serverTimestamp(), winnerMediaId: null },
+    contest: { id, title: title.trim().slice(0, 80), status: "running", startedAt: serverTimestamp(), endsAt, winnerMediaId: null },
     updatedAt: serverTimestamp(),
   });
 }

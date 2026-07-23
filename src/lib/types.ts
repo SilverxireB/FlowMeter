@@ -165,12 +165,18 @@ export interface Wall {
   filmPlay?: { startedAt: Timestamp | null; length?: string; musicId?: string } | null;
   /** Duvar kapalı — yükleme durur, perde "teşekkürler" gösterir. Yeni oturum açar. */
   closed?: boolean;
+  /** Kişi başı en fazla foto (aktif oturum). 0 = sınırsız; yoksa varsayılan 20. */
+  maxPerPerson?: number;
+  /** Video süre limiti (sn). 0 = kapalı; yoksa allowVideo'dan türetilir (varsayılan 30). */
+  videoLimitSec?: number;
   /** Foto yarışması (moderasyondan başlatılır; kazanan perdede taçlanır) */
   contest?: {
     id: string;
     title: string;
     status: "running" | "ended";
     startedAt: Timestamp | null;
+    /** Opsiyonel geri sayım sonu; dolunca kokpit otomatik bitirir. */
+    endsAt?: Timestamp | null;
     endedAt?: Timestamp | null;
     winnerMediaId?: string;
   } | null;

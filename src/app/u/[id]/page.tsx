@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import WallReactionBar from "@/components/wall/WallReactionBar";
 import { useWall } from "@/lib/hooks";
-import { addWallMedia, castContestVote, getMyContestVote, hasLikedMedia, isCurrentSession, likeMedia, resolveCode, sendWallWish, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
+import { addWallMedia, castContestVote, getMyContestVote, hasLikedMedia, isCurrentSession, likeMedia, resolveCode, sendWallWish, wallMaxPerPerson, wallVideoLimitSec, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
 import { cloudinaryStatus, cldFit, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { getStoredNickname, storeIdentity, getStoredAvatarSeed } from "@/lib/participants";
 import { getVoterId } from "@/lib/responses";
@@ -23,6 +23,26 @@ interface Item {
   isVideo: boolean;
   status: "queued" | "uploading" | "done" | "error";
   pct: number;
+}
+
+const MAX_VIDEO_BYTES = 80 * 1024 * 1024; // saçma büyüklükte dosyayı engelle (süre asıl kontrol)
+
+/** Video dosyasının süresini (sn) metadata'dan okur; okunamazsa 0 (engelleme). */
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.onloadedmetadata = () => {
+      const d = v.duration;
+      URL.revokeObjectURL(v.src);
+      resolve(Number.isFinite(d) ? d : 0);
+    };
+    v.onerror = () => {
+      URL.revokeObjectURL(v.src);
+      reject(new Error("metadata"));
+    };
+    v.src = URL.createObjectURL(file);
+  });
 }
 
 export default function UploadPage() {
@@ -41,9 +61,11 @@ export default function UploadPage() {
 
   const [tab, setTab] = useState<"upload" | "browse" | "wish" | "contest">("upload");
   const contestOn = wall?.contest?.status === "running";
-  const videoOn = wall?.allowVideo !== false;
+  const videoLimit = wallVideoLimitSec(wall); // sn (0 = kapalı)
+  const videoOn = videoLimit > 0;
   const wishesOn = wall?.wishesEnabled !== false;
   const closedWall = !!wall?.closed;
+  const [pickMsg, setPickMsg] = useState<string | null>(null);
 
   const [nickname, setNickname] = useState("");
   useEffect(() => setNickname(getStoredNickname() ?? ""), []);
@@ -85,22 +107,48 @@ export default function UploadPage() {
     };
   }, []);
 
-  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-    const usable = videoOn ? files : files.filter((f) => !f.type.startsWith("video"));
-    if (!usable.length) return;
-    const next = usable.slice(0, 30).map((f) => ({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      file: f,
-      url: URL.createObjectURL(f),
-      isVideo: f.type.startsWith("video"),
-      status: "queued" as const,
-      pct: 0,
-    }));
-    setItems((prev) => [...prev, ...next]);
-    setFinished(false);
     if (inputRef.current) inputRef.current.value = "";
+    if (!files.length) return;
+
+    // Sınırlar: kişi başı foto tavanı + video süre/boyut (istemci tarafı, nazik).
+    const cap = wallMaxPerPerson(wall); // 0 = sınırsız
+    const mySession = wall?.sessionId;
+    const myPhotos = myMedia.filter((m) => m.type === "image" && m.status !== "rejected" && (!mySession || m.sessionId === mySession)).length;
+    const queuedPhotos = itemsRef.current.filter((i) => !i.isVideo && i.status !== "done").length;
+    let photoBudget = cap === 0 ? Infinity : Math.max(0, cap - myPhotos - queuedPhotos);
+
+    const accepted: File[] = [];
+    const notices: string[] = [];
+    for (const f of files.slice(0, 30)) {
+      if (f.type.startsWith("video")) {
+        if (!videoOn) { notices.push("Video kapalı — yalnız fotoğraf."); continue; }
+        if (f.size > MAX_VIDEO_BYTES) { notices.push(`Video çok büyük (en çok ${Math.round(MAX_VIDEO_BYTES / 1e6)} MB).`); continue; }
+        const dur = await getVideoDuration(f).catch(() => 0);
+        if (dur && dur > videoLimit + 0.6) { notices.push(`Video ${videoLimit} sn'yi aşıyor.`); continue; }
+        accepted.push(f);
+      } else if (f.type.startsWith("image")) {
+        if (photoBudget <= 0) { notices.push(cap ? `Kişi başı en fazla ${cap} foto paylaşabilirsin.` : "Foto eklenemedi."); continue; }
+        photoBudget--;
+        accepted.push(f);
+      }
+    }
+
+    if (accepted.length) {
+      const next = accepted.map((f) => ({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        file: f,
+        url: URL.createObjectURL(f),
+        isVideo: f.type.startsWith("video"),
+        status: "queued" as const,
+        pct: 0,
+      }));
+      setItems((prev) => [...prev, ...next]);
+      setFinished(false);
+    }
+    setPickMsg(notices[0] ?? null);
+    if (notices.length) window.setTimeout(() => setPickMsg(null), 4500);
   }
 
   function removeItem(id: string) {
@@ -314,6 +362,10 @@ export default function UploadPage() {
             )}
 
             <input ref={inputRef} type="file" accept={videoOn ? "image/*,video/*" : "image/*"} multiple onChange={onPick} className="hidden" />
+
+            {pickMsg && (
+              <p className="mt-3 rounded-xl bg-[#eda100]/15 border border-[#eda100]/40 px-3 py-2 text-xs text-[#ffdd99]">{pickMsg}</p>
+            )}
 
             {items.length > 0 && (
               <button

@@ -43,7 +43,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 }
 
 export async function downloadCollage(wall: Wall, media: WallMedia[]): Promise<void> {
-  const approved = media.filter((m) => m.status === "approved");
+  const approved = media.filter((m) => m.status === "approved" && m.type === "image"); // yalnız foto (video yok)
   if (approved.length === 0) return;
   // Seçim: en çok beğenilen önce, en fazla 24 (hepsi zaten dahil, beğeniye göre sıralı).
   const pick = [...approved].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0)).slice(0, 24);

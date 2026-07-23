@@ -21,6 +21,14 @@ export default function WallContest({ wallId, wall, media }: { wallId: string; w
   const byId = useMemo(() => new Map(media.map((m) => [m.id, m])), [media]);
   const ranking = useMemo(() => (contest ? tallyContest(votes, contest.id, media) : []), [votes, contest, media]);
 
+  // Geri sayım (opsiyonel süre) — sadece süreli + running iken tik.
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!(contest?.status === "running" && contest.endsAt)) return;
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, [contest?.status, contest?.endsAt]);
+
   useEffect(() => {
     if (!contest || contest.status !== "running") return;
     const iv = window.setInterval(() => {
@@ -60,11 +68,14 @@ export default function WallContest({ wallId, wall, media }: { wallId: string; w
   // running
   const top3 = ranking.slice(0, 3).map((r) => ({ m: byId.get(r.mediaId), count: r.count })).filter((x) => x.m) as { m: WallMedia; count: number }[];
   const ordered = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3;
+  const endsMs = contest.endsAt?.toMillis?.() ?? 0;
+  const remain = endsMs ? Math.max(0, Math.round((endsMs - now) / 1000)) : 0;
+  const cdText = endsMs ? ` · ⏳ ${Math.floor(remain / 60)}:${String(remain % 60).padStart(2, "0")}` : "";
 
   return (
     <>
-      <div className="absolute top-24 left-1/2 -translate-x-1/2 z-30 rounded-2xl text-sm font-bold px-5 py-2 shadow-lg border border-white/20 text-white pointer-events-none ww-pop" style={{ background: bc.gradient }}>
-        🏆 {contest.title} · telefondan oy ver
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 rounded-3xl text-sm sm:text-base font-bold px-6 py-3 shadow-2xl border border-white/20 text-white text-center pointer-events-none ww-pop" style={{ background: bc.gradient }}>
+        🏆 {contest.title} · telefondan oy ver{cdText}
       </div>
       {showBoard && top3.length > 0 && (
         <div className="absolute inset-0 z-50 grid place-items-center px-6 ww-fade">
