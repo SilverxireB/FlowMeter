@@ -22,12 +22,12 @@ export interface FilmOptions {
 }
 
 /** Sahne süreleri (ms) ve geçiş örtüşmesi. */
-export const SCENE_MS = { title: 2800, photo: 3000, wish: 3400, outro: 4200 } as const;
-export const TRANSITION_MS = 550; // crossfade örtüşmesi
+export const SCENE_MS = { title: 3000, photo: 4000, wish: 3800, outro: 4400 } as const;
+export const TRANSITION_MS = 600; // crossfade örtüşmesi
 
-/** Uzunluk → hedef foto sayısı. */
+/** Uzunluk → hedef foto sayısı (foto süresi 4sn'ye çıktı → sayı buna göre). */
 export function photoBudget(length: FilmLength): number {
-  return length === "short" ? 20 : length === "long" ? 60 : 40;
+  return length === "short" ? 16 : length === "long" ? 44 : 30;
 }
 
 export interface PhotoScene {
@@ -61,17 +61,22 @@ export type FilmScene = BaseScene & {
 
 const mediaMs = (m: WallMedia) => m.createdAt?.toMillis?.() ?? 0;
 
-/** Bir fotoya çeşitlemeli, mekanik durmayan Ken Burns hareketi ata. */
+/**
+ * Bir fotoya çeşitlemeli, mekanik durmayan Ken Burns hareketi ata.
+ * ÖNEMLİ: zoom tabanı hep >1 (base=1.10) ve kaydırma ≤0.035 → görüntü her an
+ * kareyi taşırır; kenardan siyah GÖRÜNMEZ (koşul: |kaydırma| ≤ (scale−1)/2).
+ */
 function kenBurns(i: number): PhotoScene["ken"] {
-  // Yönü sahne indeksine göre değiştir (hep içeri zoom sıkıcı olur)
+  const base = 1.1;
+  const amp = 0.1; // zoom aralığı 1.10 ↔ 1.20
   const zoomIn = i % 2 === 0;
-  const fromScale = zoomIn ? 1.0 : 1.14;
-  const toScale = zoomIn ? 1.14 : 1.0;
+  const fromScale = zoomIn ? base : base + amp;
+  const toScale = zoomIn ? base + amp : base;
   const dirs = [
-    { x: -0.04, y: -0.02 },
-    { x: 0.04, y: 0.02 },
-    { x: -0.03, y: 0.03 },
-    { x: 0.03, y: -0.03 },
+    { x: -0.03, y: -0.02 },
+    { x: 0.03, y: 0.02 },
+    { x: -0.025, y: 0.03 },
+    { x: 0.03, y: -0.025 },
   ];
   const d = dirs[i % dirs.length];
   return { fromScale, toScale, fromX: -d.x, toX: d.x, fromY: -d.y, toY: d.y };

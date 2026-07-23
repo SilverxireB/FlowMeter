@@ -41,7 +41,12 @@ export default function WallFilm({ wall, media, wishes }: { wall: Wall; media: W
 
   useEffect(() => {
     loadMusicManifest().then((extra) => {
-      if (extra.length) setTracks([...BUILTIN_TRACKS, ...extra]);
+      // Telifsiz mp3'ler varsa sentez (dosyasız) varsayılanları gizle → tek temiz
+      // liste (Müziksiz + gerçek parçalar). Yoksa sentez mood'ları kalır.
+      if (extra.length) {
+        setTracks([BUILTIN_TRACKS[0], ...extra]);
+        setMusicId(extra[0].id);
+      }
     });
   }, []);
 

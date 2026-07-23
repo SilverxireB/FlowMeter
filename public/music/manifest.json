@@ -1,3 +1,7 @@
 [
-  { "id": "warm", "label": "Sıcak 🎵", "file": "/music/warm.mp3" }
+  { "id": "warm",    "label": "Sıcak",    "file": "/music/warm.mp3" },
+  { "id": "joy",     "label": "Neşeli",   "file": "/music/joy.mp3" },
+  { "id": "tender",  "label": "Duygusal", "file": "/music/tender.mp3" },
+  { "id": "elegant", "label": "Şık",      "file": "/music/elegant.mp3" },
+  { "id": "party",   "label": "Enerjik",  "file": "/music/party.mp3" }
 ]
