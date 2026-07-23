@@ -35,6 +35,8 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
   const lastPlayedRef = useRef<string | null>(null);
   const cancelRef = useRef(false);
   const activeRef = useRef(false); // çekim oynarken yeni çekimi yok say (çift çekim yok)
+  const orderRef = useRef<number[]>([]); // karıştırılmış sıra (adil algı)
+  const cursorRef = useRef(0);
 
   const [active, setActive] = useState(false);
   const [phase, setPhase] = useState<Phase>("intro");
@@ -65,9 +67,14 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
       const max = Math.max(min, r.max ?? min);
       return { label: String(min + Math.floor(Math.random() * (max - min + 1))) };
     }
+    // Kayıt: karıştırılmış sırada SIRAYLA geçir → izleyici birçok FARKLI isim görür
+    // (rastgele tek tek değil → "sadece bazıları" algısı olmaz, herkes akıp geçer).
     const list = entriesRef.current;
     if (!list.length) return { label: "…" };
-    return { label: list[Math.floor(Math.random() * list.length)].name };
+    const order = orderRef.current.length === list.length ? orderRef.current : list.map((_, i) => i);
+    const idx = order[cursorRef.current % order.length];
+    cursorRef.current += 1;
+    return { label: list[idx]?.name ?? "…" };
   }
 
   function spin(winner: RaffleWinner, durMs: number): Promise<void> {
@@ -96,6 +103,15 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
     setReveal(null);
     setFlick(null);
     setActive(true);
+    // Havuzu karıştır (sıralı geçiş için) — her çekimde farklı sıra.
+    const nn = entriesRef.current.length;
+    const order = Array.from({ length: nn }, (_, i) => i);
+    for (let i = nn - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    orderRef.current = order;
+    cursorRef.current = 0;
     const dur = Math.max(2, r?.suspenseSec ?? 7) * 1000;
     const total = winners.length;
     for (let i = 0; i < total; i++) {
@@ -131,6 +147,9 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
   const drawingLabel = r?.type === "number" ? "Numara çekiliyor" : "İsim çekiliyor";
   // Spin sırasında SABİT font (her isim farklı uzunlukta → zıplamasın); numara büyük, isim orta.
   const spinFont = r?.type === "number" ? "clamp(2.5rem,9vw,5.5rem)" : "clamp(1.4rem,4vw,2.6rem)";
+  const poolLabel = r?.type === "number"
+    ? `${r.min ?? 1}–${Math.max(r.min ?? 1, r.max ?? 1)} arasından`
+    : `${entries.length} kişi arasından`;
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center px-4 bg-black/55 backdrop-blur-[3px] ww-raffle-in">
@@ -163,6 +182,7 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
               <p className="font-display font-extrabold leading-tight break-words text-center px-2" style={{ fontSize: spinFont, opacity: 0.95 }}>
                 {flick?.label ?? "…"}
               </p>
+              <p className="mt-4 text-sm sm:text-base text-white/50 tabular-nums">🎲 {poolLabel}</p>
             </div>
           )}
         </div>
