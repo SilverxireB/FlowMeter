@@ -150,6 +150,23 @@ export function getWallPreset(id?: string): ThemePreset {
 }
 
 /**
+ * Perde "banner" gösterimleri (anons + yarışma çağrısı) için temaya UYGUN renk.
+ * gradient = dolgu (beyaz yazı her tonda okunur), accent = tek renk (kenar/başlık).
+ */
+export function wallBannerColors(preset?: string): { gradient: string; accent: string } {
+  switch (getWallPreset(preset).id) {
+    case "yilbasi": return { gradient: "linear-gradient(135deg,#059669,#10b981)", accent: "#10b981" }; // Zümrüt
+    case "parti": return { gradient: "linear-gradient(135deg,#a855f7,#ec4899)", accent: "#c084fc" }; // Ametist
+    case "mercan": return { gradient: "linear-gradient(135deg,#fb7185,#f97316)", accent: "#fb7185" };
+    case "okyanus": return { gradient: "linear-gradient(135deg,#0891b2,#22d3ee)", accent: "#22d3ee" };
+    case "antrasit": return { gradient: "linear-gradient(135deg,#4338ca,#6366f1)", accent: "#a5b4fc" };
+    case "dugun": return { gradient: "linear-gradient(135deg,#b0895f,#d9a566)", accent: "#b0895f" }; // Şampanya
+    case "kurumsal": return { gradient: "linear-gradient(135deg,#4f46e5,#6366f1)", accent: "#4f46e5" }; // Sedef
+    default: return { gradient: "linear-gradient(135deg,#4f46e5,#7c3aed)", accent: "#7c93ff" }; // Gece
+  }
+}
+
+/**
  * Duvar temasından sayfa stilini ve koyu/açık bilgisini üretir.
  * bgImage varsa karartmalı overlay uygular (fotoğraflar üzerinde okunurluk).
  */

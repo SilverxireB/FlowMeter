@@ -87,15 +87,19 @@ export function usePagedPlayback(media: WallMedia[]): { current: WallMedia | nul
     }
   }, [media]);
 
-  // Kalma süresi zamanlayıcısı — yalnız aktif id/tip değişince yeniden kurulur.
-  const curId = current?.id;
-  const curType = current?.type;
+  // Sağlam ilerleme — GÖZCÜ: tek bir interval her 500ms geçen süreyi kontrol eder;
+  // aktif kare süresini doldurduysa ilerletir. Yeniden-kurulan setTimeout yerine
+  // bu desen "kendini toparlar": video stall / kaçan zamanlayıcı / render glitch
+  // olsa bile kare sonsuza kadar TAKILI KALMAZ. startedAt advance/jump/ilk-yükleme'de set.
   useEffect(() => {
-    if (!curId) return;
-    const dur = curType === "video" ? VIDEO_CAP_MS : IMAGE_MS;
-    const t = window.setTimeout(advance, dur);
-    return () => window.clearTimeout(t);
-  }, [curId, curType, advance]);
+    const iv = window.setInterval(() => {
+      const cur = mediaRef.current.find((m) => m.id === currentIdRef.current);
+      if (!cur) return;
+      const dur = cur.type === "video" ? VIDEO_CAP_MS : IMAGE_MS;
+      if (Date.now() - startedAt.current >= dur) advance();
+    }, 500);
+    return () => window.clearInterval(iv);
+  }, [advance]);
 
   return { current, advance };
 }

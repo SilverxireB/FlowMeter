@@ -63,20 +63,20 @@ const mediaMs = (m: WallMedia) => m.createdAt?.toMillis?.() ?? 0;
 
 /**
  * Bir fotoya çeşitlemeli, mekanik durmayan Ken Burns hareketi ata.
- * ÖNEMLİ: zoom tabanı hep >1 (base=1.10) ve kaydırma ≤0.035 → görüntü her an
- * kareyi taşırır; kenardan siyah GÖRÜNMEZ (koşul: |kaydırma| ≤ (scale−1)/2).
+ * Foreground CONTAIN çizildiği için (bulanık dolgu arka planı boşlukları
+ * kapatır) zoom/pan YUMUŞAK tutulur → yüzler kırpılmaz (base~1.0, küçük pan).
  */
 function kenBurns(i: number): PhotoScene["ken"] {
-  const base = 1.1;
-  const amp = 0.1; // zoom aralığı 1.10 ↔ 1.20
+  const base = 1.0;
+  const amp = 0.06; // zoom aralığı 1.00 ↔ 1.06 (nazik)
   const zoomIn = i % 2 === 0;
   const fromScale = zoomIn ? base : base + amp;
   const toScale = zoomIn ? base + amp : base;
   const dirs = [
-    { x: -0.03, y: -0.02 },
-    { x: 0.03, y: 0.02 },
-    { x: -0.025, y: 0.03 },
-    { x: 0.03, y: -0.025 },
+    { x: -0.02, y: -0.015 },
+    { x: 0.02, y: 0.015 },
+    { x: -0.018, y: 0.02 },
+    { x: 0.02, y: -0.018 },
   ];
   const d = dirs[i % dirs.length];
   return { fromScale, toScale, fromX: -d.x, toX: d.x, fromY: -d.y, toY: d.y };

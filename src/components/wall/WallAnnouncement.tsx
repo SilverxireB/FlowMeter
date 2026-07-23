@@ -7,8 +7,9 @@
  */
 import { useEffect, useState } from "react";
 import { Timestamp } from "firebase/firestore";
+import { wallBannerColors } from "@/lib/themes";
 
-export default function WallAnnouncement({ announcement }: { announcement?: { text: string; until: Timestamp | null } | null }) {
+export default function WallAnnouncement({ announcement, preset }: { announcement?: { text: string; until: Timestamp | null } | null; preset?: string }) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function WallAnnouncement({ announcement }: { announcement?: { te
     <div className="absolute inset-0 z-50 grid place-items-center pointer-events-none px-6">
       <div aria-hidden className="absolute inset-0 bg-black/45 backdrop-blur-[2px] ww-ann-fade" />
       <div className="relative ww-ann-pop max-w-3xl w-full rounded-3xl px-8 py-7 text-center shadow-2xl border border-white/20"
-        style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)" }}>
+        style={{ background: wallBannerColors(preset).gradient }}>
         <div className="text-4xl mb-3" aria-hidden>📢</div>
         <p className="font-display text-2xl sm:text-4xl font-bold text-white text-balance leading-snug">
           {announcement!.text}

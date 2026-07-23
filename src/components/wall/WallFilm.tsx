@@ -149,22 +149,29 @@ export default function WallFilm({ wall, media, wishes }: { wall: Wall; media: W
       );
       const file = new File([result.blob], `flowwall-ani-filmi-${wall.joinCode || "film"}.${result.ext}`, { type: result.mime });
       setMsg(null);
-      // Telefonda paylaş; masaüstünde indir
+      // Telefonda paylaş (WhatsApp vb.); masaüstünde HER ZAMAN indir.
+      const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const nav = navigator as Navigator & { canShare?: (d: unknown) => boolean };
-      if (nav.canShare?.({ files: [file] })) {
+      let shared = false;
+      if (isMobile && nav.canShare?.({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title: wall.title || "Anı Filmi" });
+          shared = true;
         } catch {
-          /* kullanıcı paylaşımı iptal etti → sorun değil */
+          shared = false; // iptal/başarısız → indirmeye düş
         }
-      } else {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(file);
-        a.download = file.name;
-        a.click();
-        URL.revokeObjectURL(a.href);
       }
-      setMsg(result.ext === "webm" ? "İndirildi (WebM — masaüstü Chrome/Edge MP4 verir)." : "Film hazır! 🎬");
+      if (!shared) {
+        const url = URL.createObjectURL(file);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 15000);
+      }
+      setMsg(result.ext === "webm" ? "İndirildi (WebM — masaüstü Chrome/Edge MP4 verir)." : shared ? "Paylaşıldı 🎬" : "Film indirildi! 🎬");
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Film oluşturulamadı.");
     } finally {

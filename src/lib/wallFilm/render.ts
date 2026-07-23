@@ -74,17 +74,47 @@ function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxW: number): s
   return lines;
 }
 
-/** Kareyi tam kaplayacak şekilde (cover) çiz + Ken Burns scale/translate. */
+/**
+ * Resmin bulanık dolgu arka planını resim başına BİR KEZ üretir (küçük canvas'a
+ * cover çizip büyütünce yumuşak blur; kare başına maliyet ~yok). img üstünde
+ * önbelleklenir; yön (W:H) değişirse yeniden üretir.
+ */
+function getBlurBg(img: HTMLImageElement, W: number, H: number): HTMLCanvasElement {
+  const key = `${W}x${H}`;
+  const store = img as HTMLImageElement & { _blurBg?: HTMLCanvasElement; _blurBgKey?: string };
+  if (store._blurBgKey === key && store._blurBg) return store._blurBg;
+  const bw = 128;
+  const bh = Math.max(1, Math.round((128 * H) / W));
+  const c = document.createElement("canvas");
+  c.width = bw;
+  c.height = bh;
+  const cx = c.getContext("2d");
+  if (cx) {
+    const cover = Math.max(bw / img.width, bh / img.height);
+    const dw = img.width * cover;
+    const dh = img.height * cover;
+    cx.drawImage(img, (bw - dw) / 2, (bh - dh) / 2, dw, dh);
+  }
+  store._blurBg = c;
+  store._blurBgKey = key;
+  return c;
+}
+
+/** Resmi TAM göster (contain) + kenarları bulanık dolgu; yüzler kırpılmaz. Ken Burns yumuşak. */
 function drawPhoto(ctx: CanvasRenderingContext2D, s: PhotoScene, img: HTMLImageElement, p: number, W: number, H: number, pal: Palette) {
+  // 1) Bulanık dolgu arka plan (küçük canvas büyütülünce yumuşak blur) + hafif karartma
+  ctx.drawImage(getBlurBg(img, W, H), 0, 0, W, H);
+  ctx.fillStyle = "rgba(0,0,0,0.30)";
+  ctx.fillRect(0, 0, W, H);
+
+  // 2) Foreground — tüm resim görünür (contain) + Ken Burns
   const e = easeInOut(clamp01(p));
   const scale = s.ken.fromScale + (s.ken.toScale - s.ken.fromScale) * e;
   const tx = (s.ken.fromX + (s.ken.toX - s.ken.fromX) * e) * W;
   const ty = (s.ken.fromY + (s.ken.toY - s.ken.fromY) * e) * H;
-
-  // cover ölçeği
-  const cover = Math.max(W / img.width, H / img.height) * scale;
-  const dw = img.width * cover;
-  const dh = img.height * cover;
+  const contain = Math.min(W / img.width, H / img.height) * scale;
+  const dw = img.width * contain;
+  const dh = img.height * contain;
   ctx.save();
   ctx.translate(W / 2 + tx, H / 2 + ty);
   ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);

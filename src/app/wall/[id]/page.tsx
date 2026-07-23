@@ -234,7 +234,7 @@ export default function WallScreen() {
       {typeof wallId === "string" && wall && <WallContest wallId={wallId} wall={wall} media={media} />}
 
       {/* Canlı anons (moderasyondan; süresi dolunca kaybolur) */}
-      <WallAnnouncement announcement={wall?.announcement} />
+      <WallAnnouncement announcement={wall?.announcement} preset={wall?.theme?.preset} />
 
       {/* Anı Filmi — perdede canlı oynatma (kokpit tetikler) */}
       {filmOpts && wall && (
