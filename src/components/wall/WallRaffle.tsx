@@ -16,6 +16,15 @@ import { wallBannerColors } from "@/lib/themes";
 const wait = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
 type Phase = "intro" | "spin" | "reveal";
 
+/** Etikete göre yazı boyu (uzun isim taşmasın/kesilmesin, kısa numara büyük). */
+function labelFont(s: string): string {
+  const n = s.length;
+  if (n <= 4) return "clamp(3rem,12vw,7rem)";
+  if (n <= 10) return "clamp(2.25rem,8vw,5rem)";
+  if (n <= 18) return "clamp(1.6rem,5.5vw,3.5rem)";
+  return "clamp(1.2rem,4vw,2.5rem)";
+}
+
 export default function WallRaffle({ wall, entries }: { wall: Wall; entries: RaffleEntry[] }) {
   const r = wall.raffle;
   // Tetikleme SAAT-BAĞIMSIZ nonce ile: mount anındaki çekim "görülmüş" sayılır
@@ -24,6 +33,7 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
   if (initialNonceRef.current === undefined) initialNonceRef.current = wall.raffle?.draw?.nonce ?? null;
   const lastPlayedRef = useRef<string | null>(null);
   const cancelRef = useRef(false);
+  const activeRef = useRef(false); // çekim oynarken yeni çekimi yok say (çift çekim yok)
 
   const [active, setActive] = useState(false);
   const [phase, setPhase] = useState<Phase>("intro");
@@ -42,6 +52,7 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
   useEffect(() => {
     const nonce = r?.draw?.nonce ?? null;
     if (!nonce || nonce === initialNonceRef.current || nonce === lastPlayedRef.current) return;
+    if (activeRef.current) return; // bir çekim oynuyorsa yenisini oynatma
     lastPlayedRef.current = nonce;
     void runDraw(r!.draw!.winners ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -79,6 +90,7 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
   async function runDraw(winners: RaffleWinner[]) {
     if (!winners.length) return;
     cancelRef.current = false;
+    activeRef.current = true;
     setRevealed([]);
     setReveal(null);
     setFlick(null);
@@ -110,6 +122,7 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
       await wait(total > 1 ? 3400 : 4600);
     }
     await wait(6000);
+    activeRef.current = false;
     if (!cancelRef.current) setActive(false);
   }
 
@@ -134,9 +147,9 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
               {countdown ?? ""}
             </p>
           ) : reveal ? (
-            <div className="ww-pop">
+            <div className="ww-pop w-full">
               <div className="text-4xl sm:text-5xl mb-2" aria-hidden>🎉</div>
-              <p className="font-display font-extrabold leading-none break-words" style={{ fontSize: "clamp(2.4rem,10vw,7rem)", textShadow: `0 0 55px ${bc.accent}` }}>
+              <p className="font-display font-extrabold leading-tight break-words px-2" style={{ fontSize: labelFont(reveal.label), textShadow: `0 0 55px ${bc.accent}` }}>
                 {reveal.label}
               </p>
               {reveal.sub && <p className="mt-3 text-xl sm:text-3xl text-white/70">Sicil: {reveal.sub}</p>}
@@ -144,8 +157,8 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
           ) : (
             <div className="w-full">
               <p className="text-[11px] sm:text-xs uppercase tracking-[0.3em] text-white/45 mb-3">{drawingLabel}…</p>
-              <div className="mx-auto rounded-2xl border border-white/15 bg-black/30 py-5 sm:py-7 px-4 overflow-hidden" style={{ maxWidth: "20ch" }}>
-                <p className="font-display font-extrabold leading-none break-words ww-slot" style={{ fontSize: "clamp(2rem,9vw,5.5rem)" }}>
+              <div className="mx-auto w-full max-w-full rounded-2xl border border-white/15 bg-black/30 py-6 px-4 flex items-center justify-center min-h-[6rem]">
+                <p className="font-display font-extrabold leading-tight break-words text-center" style={{ fontSize: labelFont(flick?.label ?? "…") }}>
                   {flick?.label ?? "…"}
                 </p>
               </div>
@@ -169,9 +182,7 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
         @keyframes wwrfin { from { opacity: 0; } to { opacity: 1; } }
         .ww-count { animation: wwcount 0.65s ease-out; }
         @keyframes wwcount { from { opacity: 0; transform: scale(1.6); } 60% { opacity: 1; } to { transform: scale(1); } }
-        .ww-slot { display: inline-block; animation: wwslot 0.11s steps(2) infinite; }
-        @keyframes wwslot { 0% { transform: translateY(-7%); } 100% { transform: translateY(7%); } }
-        @media (prefers-reduced-motion: reduce) { .ww-slot, .ww-count, .ww-raffle-in { animation: none !important; } }
+        @media (prefers-reduced-motion: reduce) { .ww-count, .ww-raffle-in { animation: none !important; } }
       `}</style>
     </div>
   );

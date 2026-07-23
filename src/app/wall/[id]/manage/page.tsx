@@ -16,7 +16,7 @@ import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import WallFilm from "@/components/wall/WallFilm";
 import WallOnboarding from "@/components/wall/WallOnboarding";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
-import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";
+import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, endRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
@@ -134,6 +134,22 @@ export default function WallManage() {
   }, [id, wall?.raffle?.type]);
   const rosterRef = useRef<HTMLInputElement>(null);
   const [rosterMsg, setRosterMsg] = useState<string | null>(null);
+  // Çekim kilidi: animasyon bitene kadar yeni "Çek!" engellenir (yanlışlıkla çift çekim yok).
+  const [drawing, setDrawing] = useState(false);
+  async function doDraw() {
+    if (drawing || !wall?.raffle) return;
+    const wc = Math.max(1, wall.raffle.winnersCount ?? 1);
+    const ss = wall.raffle.suspenseSec ?? 7;
+    const lockMs = 3000 + wc * (ss * 1000 + 5000) + 5000; // ~animasyon süresi
+    setDrawing(true);
+    window.setTimeout(() => setDrawing(false), lockMs);
+    try {
+      await drawRaffle(wall, raffleEntries);
+    } catch (e) {
+      setDrawing(false);
+      alert(e instanceof Error ? e.message : "Çekim başarısız");
+    }
+  }
   async function onRoster(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (rosterRef.current) rosterRef.current.value = "";
@@ -894,15 +910,13 @@ export default function WallManage() {
                 ))}
               </div>
               <div className="flex gap-2 flex-wrap items-center pt-1">
-                <button
-                  onClick={() => drawRaffle(wall, raffleEntries).catch((e) => alert(e instanceof Error ? e.message : "Çekim başarısız"))}
-                  className="btn-primary !py-2 !px-5 text-sm"
-                >
-                  🎉 Çek!
+                <button onClick={doDraw} disabled={drawing} className="btn-primary !py-2 !px-5 text-sm disabled:opacity-50">
+                  {drawing ? "🎬 Çekiliyor…" : "🎉 Çek!"}
                 </button>
-                <button onClick={() => { if (confirm("Çekilişi kapat ve kayıtları temizle?")) clearRaffle(id).catch(console.error); }} className="btn-ghost !py-2 !px-4 text-sm">Kapat</button>
+                <button onClick={() => { if (confirm("Çekilişi bitir? (perdeden kalkar, kayıtlar SİLİNMEZ)")) endRaffle(id).catch(console.error); }} className="btn-ghost !py-2 !px-4 text-sm">Bitir</button>
+                <button onClick={() => { if (confirm("Çekilişi ve TÜM kayıtları sil? Geri alınamaz.")) clearRaffle(id).catch(console.error); }} className="!py-2 !px-3 text-sm rounded-full border border-line text-brand font-semibold">🗑 Sil</button>
                 {wall.raffle.draw?.winners?.length ? (
-                  <span className="text-xs text-muted truncate">Son çekim: {wall.raffle.draw.winners.map((w) => w.label).join(", ")}</span>
+                  <span className="text-xs text-muted truncate w-full">Son çekim: {wall.raffle.draw.winners.map((w) => w.label).join(", ")}</span>
                 ) : null}
               </div>
             </div>

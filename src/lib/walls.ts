@@ -219,6 +219,8 @@ export async function deleteWall(w: Wall, idToken?: string): Promise<void> {
   await deleteAllDocs(["walls", w.id, "reactions"]);
   await deleteAllDocs(["walls", w.id, "wishes"]);
   await deleteAllDocs(["walls", w.id, "contestVotes"]);
+  await deleteAllDocs(["walls", w.id, "raffleEntries"]);
+  await deleteAllDocs(["walls", w.id, "draws"]);
   // 3) joinCode + duvar dokümanı
   const batch = writeBatch(db());
   if (w.joinCode) batch.delete(doc(db(), "joinCodes", w.joinCode));
@@ -426,12 +428,18 @@ export function tallyContest(votes: ContestVote[], contestId: string, media: Wal
 // ── Çekiliş (moderasyondan kurulur; perdede animasyonlu çekilir) ──────────────
 type RaffleType = "registration" | "number";
 
-/** Çekilişi kur/aç. Kayıt türünde misafir girişi otomatik açılır. */
+/** Çekilişi kur/aç — TAZE havuz (önceki kayıtları temizler). Kayıt türünde giriş açık. */
 export async function startRaffle(id: string, type: RaffleType): Promise<void> {
+  await deleteAllDocs(["walls", id, "raffleEntries"]); // yeni çekiliş = temiz havuz
   await updateDoc(doc(db(), "walls", id), {
-    raffle: { type, registerOpen: type === "registration", prize: "", winnersCount: 1, suspenseSec: 7, min: 1, max: 100, draw: null },
+    raffle: { type, registerOpen: type === "registration", registerUntil: null, prize: "", winnersCount: 1, suspenseSec: 7, min: 1, max: 100, draw: null },
     updatedAt: serverTimestamp(),
   });
+}
+
+/** Çekilişi bitir — perdeden kaldırır ama KAYITLARI SİLMEZ (tekrar kurulunca temizlenir). */
+export async function endRaffle(id: string): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { raffle: null, updatedAt: serverTimestamp() });
 }
 
 /** Çekiliş ayarlarını güncelle (raffle mevcut olmalı; dot-path). */
