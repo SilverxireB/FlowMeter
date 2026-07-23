@@ -161,10 +161,15 @@ export async function newWallSession(id: string): Promise<void> {
   });
 }
 
-/** Medya aktif oturuma mı ait? (perde/kokpit/gez oturum filtresi). Duvarda
- *  sessionId yoksa (eski) hepsini göster — güvenli varsayılan. */
+/** Medya aktif oturuma mı ait? (perde/kokpit/gez oturum filtresi).
+ *  - Duvarın oturumu yoksa: hepsi görünür.
+ *  - Medyada sessionId yoksa (ESKİ/etiketsiz): daima görünür → oturum
+ *    etiketlemesinden önceki yüklemeler bir daha kaybolmaz (legacy uyumu).
+ *  - Aksi halde: yalnız aktif oturum eşleşmesi. */
 export function isCurrentSession(m: WallMedia, wall: Wall | null | undefined): boolean {
-  return !wall?.sessionId || m.sessionId === wall.sessionId;
+  if (!wall?.sessionId) return true;
+  if (!m.sessionId) return true;
+  return m.sessionId === wall.sessionId;
 }
 
 export async function setWallHeadline(id: string, headline: string): Promise<void> {

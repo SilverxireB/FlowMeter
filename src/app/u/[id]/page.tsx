@@ -115,7 +115,7 @@ export default function UploadPage() {
     // Sınırlar: kişi başı foto tavanı + video süre/boyut (istemci tarafı, nazik).
     const cap = wallMaxPerPerson(wall); // 0 = sınırsız
     const mySession = wall?.sessionId;
-    const myPhotos = myMedia.filter((m) => m.type === "image" && m.status !== "rejected" && (!mySession || m.sessionId === mySession)).length;
+    const myPhotos = myMedia.filter((m) => m.type === "image" && m.status !== "rejected" && (!mySession || !m.sessionId || m.sessionId === mySession)).length;
     const queuedPhotos = itemsRef.current.filter((i) => !i.isVideo && i.status !== "done").length;
     let photoBudget = cap === 0 ? Infinity : Math.max(0, cap - myPhotos - queuedPhotos);
 
@@ -505,7 +505,7 @@ function BrowseGallery({ wallId, sessionId }: { wallId: string | null; sessionId
     return watchWallMediaRecent(wallId, 150, setAllMedia);
   }, [wallId]);
   const approved = useMemo(
-    () => allMedia.filter((m) => m.status === "approved" && (!sessionId || m.sessionId === sessionId)),
+    () => allMedia.filter((m) => m.status === "approved" && (!sessionId || !m.sessionId || m.sessionId === sessionId)),
     [allMedia, sessionId]
   );
   const [mineOnly, setMineOnly] = useState(false);
