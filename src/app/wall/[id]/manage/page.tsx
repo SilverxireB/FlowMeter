@@ -16,12 +16,12 @@ import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import WallFilm from "@/components/wall/WallFilm";
 import WallOnboarding from "@/components/wall/WallOnboarding";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
-import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, endRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";
+import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, endRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, watchDraws, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
 import { getVoterId } from "@/lib/responses";
-import { BASE_WALL_SCREEN_MODES, RaffleEntry, Wall, WallMedia, WALL_EFFECTS, WALL_SCREEN_MODES, wallEffectOf } from "@/lib/types";
+import { BASE_WALL_SCREEN_MODES, RaffleDraw, RaffleEntry, Wall, WallMedia, WALL_EFFECTS, WALL_SCREEN_MODES, wallEffectOf } from "@/lib/types";
 
 const AUTO_INTERVALS = [20, 30, 45, 60, 90];
 const VIDEO_OPTS: [number, string][] = [[0, "Kapalı"], [15, "≤15 sn"], [30, "≤30 sn"], [60, "≤60 sn"]];
@@ -134,6 +134,9 @@ export default function WallManage() {
   }, [id, wall?.raffle?.type]);
   const rosterRef = useRef<HTMLInputElement>(null);
   const [rosterMsg, setRosterMsg] = useState<string | null>(null);
+  // Çekiliş sonuçları (kalıcı log — Bitir/Sil sonrası da görünür).
+  const [draws, setDraws] = useState<RaffleDraw[]>([]);
+  useEffect(() => watchDraws(id, setDraws), [id]);
   // Çekim kilidi: animasyon bitene kadar yeni "Çek!" engellenir (yanlışlıkla çift çekim yok).
   const [drawing, setDrawing] = useState(false);
   async function doDraw() {
@@ -922,6 +925,33 @@ export default function WallManage() {
             </div>
           )}
         </details>
+
+        {/* Çekiliş sonuçları — kalıcı log (Bitir/Sil sonrası da görünür) */}
+        {draws.length > 0 && (
+          <details className="card p-5">
+            <summary className="eyebrow mb-1 cursor-pointer select-none">🏆 Çekiliş sonuçları ({draws.length})</summary>
+            <div className="mt-3 flex flex-col gap-3">
+              {draws.map((d) => (
+                <div key={d.id} className="rounded-xl border border-line p-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="font-semibold text-sm">{d.prize || (d.type === "number" ? "Numara çekilişi" : "Çekiliş")}</p>
+                    <span className="text-muted text-xs tabular-nums">
+                      {d.createdAt?.toDate?.().toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) ?? ""}
+                      {d.poolSize ? ` · havuz ${d.poolSize}` : ""}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {d.winners?.map((w, i) => (
+                      <span key={i} className="rounded-full bg-accent-soft text-accent-dark px-3 py-1 text-xs font-semibold">
+                        🏅 {w.label}{w.sub ? ` · ${w.sub}` : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
 
         {/* Dilek moderasyonu */}
         {(pendingWishes.length > 0 || approvedWishes.length > 0) && (

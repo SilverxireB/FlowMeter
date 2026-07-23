@@ -16,13 +16,14 @@ import { wallBannerColors } from "@/lib/themes";
 const wait = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
 type Phase = "intro" | "spin" | "reveal";
 
-/** Etikete göre yazı boyu (uzun isim taşmasın/kesilmesin, kısa numara büyük). */
+/** KAZANAN yazı boyu — etikete göre, karta sığacak şekilde (uzun isim küçülür). */
 function labelFont(s: string): string {
   const n = s.length;
-  if (n <= 4) return "clamp(3rem,12vw,7rem)";
-  if (n <= 10) return "clamp(2.25rem,8vw,5rem)";
-  if (n <= 18) return "clamp(1.6rem,5.5vw,3.5rem)";
-  return "clamp(1.2rem,4vw,2.5rem)";
+  if (n <= 3) return "clamp(3rem,11vw,6.5rem)";
+  if (n <= 8) return "clamp(2.25rem,6vw,4rem)";
+  if (n <= 16) return "clamp(1.6rem,4.2vw,2.9rem)";
+  if (n <= 26) return "clamp(1.25rem,3vw,2rem)";
+  return "clamp(1rem,2.4vw,1.5rem)";
 }
 
 export default function WallRaffle({ wall, entries }: { wall: Wall; entries: RaffleEntry[] }) {
@@ -128,6 +129,8 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
 
   if (!active) return null;
   const drawingLabel = r?.type === "number" ? "Numara çekiliyor" : "İsim çekiliyor";
+  // Spin sırasında SABİT font (her isim farklı uzunlukta → zıplamasın); numara büyük, isim orta.
+  const spinFont = r?.type === "number" ? "clamp(2.5rem,9vw,5.5rem)" : "clamp(1.4rem,4vw,2.6rem)";
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center px-4 bg-black/55 backdrop-blur-[3px] ww-raffle-in">
@@ -156,12 +159,10 @@ export default function WallRaffle({ wall, entries }: { wall: Wall; entries: Raf
             </div>
           ) : (
             <div className="w-full">
-              <p className="text-[11px] sm:text-xs uppercase tracking-[0.3em] text-white/45 mb-3">{drawingLabel}…</p>
-              <div className="mx-auto w-full max-w-full rounded-2xl border border-white/15 bg-black/30 py-6 px-4 flex items-center justify-center min-h-[6rem]">
-                <p className="font-display font-extrabold leading-tight break-words text-center" style={{ fontSize: labelFont(flick?.label ?? "…") }}>
-                  {flick?.label ?? "…"}
-                </p>
-              </div>
+              <p className="text-[11px] sm:text-xs uppercase tracking-[0.3em] text-white/45 mb-4">{drawingLabel}…</p>
+              <p className="font-display font-extrabold leading-tight break-words text-center px-2" style={{ fontSize: spinFont, opacity: 0.95 }}>
+                {flick?.label ?? "…"}
+              </p>
             </div>
           )}
         </div>

@@ -215,6 +215,16 @@ export interface RaffleEntry {
   createdAt: Timestamp | null;
 }
 
+/** Çekim kayıt defteri (walls/{id}/draws/{autoId}) — kalıcı "çekiliş sonuçları". */
+export interface RaffleDraw {
+  id: string;
+  type?: string;
+  prize?: string;
+  poolSize?: number;
+  winners: RaffleWinner[];
+  createdAt: Timestamp | null;
+}
+
 /** Duvara yüklenen medya (walls/{id}/media/{autoId}). Byte'lar Cloudinary'de. */
 export interface WallMedia {
   id: string;

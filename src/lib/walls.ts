@@ -22,7 +22,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { getVoterId } from "./responses";
-import { ContestVote, RaffleEntry, RaffleWinner, Wall, WallEffect, WallMedia, WallScreenMode, WallWish } from "./types";
+import { ContestVote, RaffleDraw, RaffleEntry, RaffleWinner, Wall, WallEffect, WallMedia, WallScreenMode, WallWish } from "./types";
 
 function randomCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -432,7 +432,8 @@ type RaffleType = "registration" | "number";
 export async function startRaffle(id: string, type: RaffleType): Promise<void> {
   await deleteAllDocs(["walls", id, "raffleEntries"]); // yeni çekiliş = temiz havuz
   await updateDoc(doc(db(), "walls", id), {
-    raffle: { type, registerOpen: type === "registration", registerUntil: null, prize: "", winnersCount: 1, suspenseSec: 7, min: 1, max: 100, draw: null },
+    // Misafir kaydı VARSAYILAN KAPALI — organizatör hazır olunca "Aç" der / Excel yükler.
+    raffle: { type, registerOpen: false, registerUntil: null, prize: "", winnersCount: 1, suspenseSec: 7, min: 1, max: 100, draw: null },
     updatedAt: serverTimestamp(),
   });
 }
@@ -484,6 +485,12 @@ export function watchRaffleEntries(wallId: string, cb: (e: RaffleEntry[]) => voi
   return onSnapshot(collection(db(), "walls", wallId, "raffleEntries"), (snap) => {
     cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as RaffleEntry));
   });
+}
+
+/** Çekim geçmişini dinle (kalıcı "çekiliş sonuçları" — Bitir/Sil sonrası da kalır). */
+export function watchDraws(wallId: string, cb: (d: RaffleDraw[]) => void): () => void {
+  const q = query(collection(db(), "walls", wallId, "draws"), orderBy("createdAt", "desc"));
+  return onSnapshot(q, (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as RaffleDraw)));
 }
 
 /** Organizatör toplu liste ekler (Excel/CSV). doc id = sicil (tekilleştirir). */
