@@ -22,7 +22,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { getVoterId } from "./responses";
-import { ContestVote, Wall, WallEffect, WallMedia, WallScreenMode, WallWish } from "./types";
+import { ContestVote, RaffleEntry, RaffleWinner, Wall, WallEffect, WallMedia, WallScreenMode, WallWish } from "./types";
 
 function randomCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -421,6 +421,106 @@ export function tallyContest(votes: ContestVote[], contestId: string, media: Wal
   return [...counts.entries()]
     .map(([mediaId, count]) => ({ mediaId, count }))
     .sort((a, b) => b.count - a.count || (order.get(a.mediaId) ?? 0) - (order.get(b.mediaId) ?? 0));
+}
+
+// ── Çekiliş (moderasyondan kurulur; perdede animasyonlu çekilir) ──────────────
+type RaffleType = "registration" | "number";
+
+/** Çekilişi kur/aç. Kayıt türünde misafir girişi otomatik açılır. */
+export async function startRaffle(id: string, type: RaffleType): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), {
+    raffle: { type, registerOpen: type === "registration", prize: "", winnersCount: 1, suspenseSec: 7, min: 1, max: 100, draw: null },
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/** Çekiliş ayarlarını güncelle (raffle mevcut olmalı; dot-path). */
+export async function setRaffleFields(id: string, patch: Partial<{ registerOpen: boolean; prize: string; winnersCount: number; suspenseSec: number; min: number; max: number; type: RaffleType }>): Promise<void> {
+  const data: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  for (const [k, v] of Object.entries(patch)) data[`raffle.${k}`] = v;
+  await updateDoc(doc(db(), "walls", id), data);
+}
+
+/** Çekilişi kapat + kayıtları temizle. */
+export async function clearRaffle(id: string): Promise<void> {
+  await deleteAllDocs(["walls", id, "raffleEntries"]);
+  await updateDoc(doc(db(), "walls", id), { raffle: null, updatedAt: serverTimestamp() });
+}
+
+function raffleKey(wallId: string): string {
+  return `flowwall.raffle.${wallId}`;
+}
+/** Bu cihaz bu duvarda çekilişe hangi sicille kayıtlı? (UX; güvenlik değil). */
+export function getMyRaffleSicil(wallId: string): string | null {
+  if (typeof localStorage === "undefined") return null;
+  return localStorage.getItem(raffleKey(wallId));
+}
+
+/** Çekilişe kaydol — doc id = sicil (aynı sicil = tek kayıt; iki-telefon şişirmesini keser). */
+export async function registerRaffle(wallId: string, name: string, sicil: string): Promise<void> {
+  const cleanName = name.trim().slice(0, 40);
+  const cleanSicil = sicil.trim().slice(0, 40);
+  if (!cleanName || !cleanSicil) throw new Error("İsim ve sicil gerekli.");
+  const docId = cleanSicil.replace(/[^\w-]/g, "_"); // Firestore doc id güvenli
+  await setDoc(doc(db(), "walls", wallId, "raffleEntries", docId), {
+    name: cleanName,
+    sicil: cleanSicil,
+    voterId: getVoterId(),
+    createdAt: serverTimestamp(),
+  });
+  if (typeof localStorage !== "undefined") localStorage.setItem(raffleKey(wallId), cleanSicil);
+}
+
+/** Kayıtları dinle — YALNIZ kokpit + perde (misafir değil; ölçek). */
+export function watchRaffleEntries(wallId: string, cb: (e: RaffleEntry[]) => void): () => void {
+  return onSnapshot(collection(db(), "walls", wallId, "raffleEntries"), (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as RaffleEntry));
+  });
+}
+
+function pickUnique<T>(arr: T[], k: number): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, Math.max(0, k));
+}
+
+/**
+ * Çekimi yap: kazananları belirle, perde tetikleyicisine yaz (raffle.draw) VE
+ * kalıcı kayıt için `draws` loguna ekle (moderatöre güven + kayıt kalır).
+ */
+export async function drawRaffle(wall: Wall, entries: RaffleEntry[]): Promise<void> {
+  const r = wall.raffle;
+  if (!r) return;
+  const count = Math.max(1, r.winnersCount ?? 1);
+  let winners: RaffleWinner[] = [];
+  let poolSize = 0;
+  if (r.type === "number") {
+    const min = r.min ?? 1;
+    const max = Math.max(min, r.max ?? min);
+    const pool: number[] = [];
+    for (let n = min; n <= max; n++) pool.push(n);
+    poolSize = pool.length;
+    winners = pickUnique(pool, count).map((n) => ({ label: String(n) }));
+  } else {
+    poolSize = entries.length;
+    winners = pickUnique(entries, Math.min(count, entries.length)).map((e) => ({ label: e.name, sub: e.sicil }));
+  }
+  if (winners.length === 0) throw new Error("Havuz boş — çekilecek kimse yok.");
+  const nonce = Math.random().toString(36).slice(2, 10);
+  await updateDoc(doc(db(), "walls", wall.id), {
+    "raffle.draw": { startedAt: serverTimestamp(), winners, nonce },
+    updatedAt: serverTimestamp(),
+  });
+  await addDoc(collection(db(), "walls", wall.id, "draws"), {
+    type: r.type,
+    prize: r.prize ?? "",
+    poolSize,
+    winners,
+    createdAt: serverTimestamp(),
+  });
 }
 
 // ── Beğeni (misafir ❤ — sunum Q&A upvote deseniyle aynı: +1, localStorage dedup) ─

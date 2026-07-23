@@ -23,6 +23,7 @@ import WallAnnouncement from "@/components/wall/WallAnnouncement";
 import WallMilestone from "@/components/wall/WallMilestone";
 import WallTopLoved from "@/components/wall/WallTopLoved";
 import WallFilmStage from "@/components/wall/WallFilmStage";
+import WallRaffle from "@/components/wall/WallRaffle";
 import { EmptyState, WallNewMemory, WallStyles } from "@/components/wall/screen/shared";
 import { usePagedPlayback, useDominantColor } from "@/components/wall/screen/hooks";
 import StageMode from "@/components/wall/screen/StageMode";
@@ -33,10 +34,10 @@ import TimelineMode from "@/components/wall/screen/TimelineMode";
 import CinemaMode from "@/components/wall/screen/CinemaMode";
 import { FilmLength } from "@/lib/wallFilm/timeline";
 import { useWall, useWallMedia, useWallWishes } from "@/lib/hooks";
-import { isCurrentSession, resolveCode } from "@/lib/walls";
+import { isCurrentSession, resolveCode, watchRaffleEntries } from "@/lib/walls";
 import { cldThumb, cldVideoPoster } from "@/lib/cloudinary";
 import { wallThemeStyle } from "@/lib/themes";
-import { BASE_WALL_SCREEN_MODES, WALL_SCREEN_MODES, WallMedia, WallScreenMode, wallEffectOf } from "@/lib/types";
+import { BASE_WALL_SCREEN_MODES, RaffleEntry, WALL_SCREEN_MODES, WallMedia, WallScreenMode, wallEffectOf } from "@/lib/types";
 
 export default function WallScreen() {
   const { id: raw } = useParams<{ id: string }>();
@@ -106,6 +107,16 @@ export default function WallScreen() {
       setFilmOpts(null);
     }
   }, [wall?.filmPlay]);
+
+  // Çekiliş kayıtlarını perde dinler (kayıt türünde havuz = kayıtlar).
+  const [raffleEntries, setRaffleEntries] = useState<RaffleEntry[]>([]);
+  useEffect(() => {
+    if (!wallId || wall?.raffle?.type !== "registration") {
+      setRaffleEntries([]);
+      return;
+    }
+    return watchRaffleEntries(wallId, setRaffleEntries);
+  }, [wallId, wall?.raffle?.type]);
 
   // Şampanya (dugun) + Sedef (kurumsal): açık temalar, siyah yazı. Resimden
   // türeyen ambient tint `multiply` ile açık zemini karartıp yazıyı okunmaz
@@ -247,6 +258,9 @@ export default function WallScreen() {
           onEnd={() => setFilmOpts(null)}
         />
       )}
+
+      {/* Çekiliş — kokpit "Çek!" deyince tüm ekranı kaplayan animasyon */}
+      {wall?.raffle && <WallRaffle wall={wall} entries={raffleEntries} />}
 
       <WallStyles />
     </main>

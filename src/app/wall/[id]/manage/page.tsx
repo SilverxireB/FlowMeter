@@ -16,12 +16,12 @@ import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import WallFilm from "@/components/wall/WallFilm";
 import WallOnboarding from "@/components/wall/WallOnboarding";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
-import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec } from "@/lib/walls";
+import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
 import { getVoterId } from "@/lib/responses";
-import { BASE_WALL_SCREEN_MODES, Wall, WallMedia, WALL_EFFECTS, WALL_SCREEN_MODES, wallEffectOf } from "@/lib/types";
+import { BASE_WALL_SCREEN_MODES, RaffleEntry, Wall, WallMedia, WALL_EFFECTS, WALL_SCREEN_MODES, wallEffectOf } from "@/lib/types";
 
 const AUTO_INTERVALS = [20, 30, 45, 60, 90];
 const VIDEO_OPTS: [number, string][] = [[0, "Kapalı"], [15, "≤15 sn"], [30, "≤30 sn"], [60, "≤60 sn"]];
@@ -96,6 +96,12 @@ export default function WallManage() {
   // Yarışma geri sayımı dolunca kokpit otomatik bitirir (kazanan = anlık lider).
   const contestRankRef = useRef(contestRanking);
   contestRankRef.current = contestRanking;
+  // Çekiliş kayıtları (kayıt türünde havuz = kayıtlar; kokpit çekimi bundan yapar).
+  const [raffleEntries, setRaffleEntries] = useState<RaffleEntry[]>([]);
+  useEffect(() => {
+    if (wall?.raffle?.type !== "registration") { setRaffleEntries([]); return; }
+    return watchRaffleEntries(id, setRaffleEntries);
+  }, [id, wall?.raffle?.type]);
   const [annText, setAnnText] = useState("");
   const [annMin, setAnnMin] = useState(2);
   const [annNow, setAnnNow] = useState(() => Date.now());
@@ -771,6 +777,69 @@ export default function WallManage() {
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <p className="font-semibold text-sm">🏆 Bitti: {wall.contest.title}{wall.contest.winnerMediaId ? " · kazanan ilan edildi" : ""}</p>
               <button onClick={() => clearContest(id).catch(console.error)} className="btn-ghost !py-1.5 !px-3 text-xs">Kapat / Yeni</button>
+            </div>
+          )}
+        </details>
+
+        {/* Çekiliş */}
+        <details className="card p-5">
+          <summary className="eyebrow mb-1 cursor-pointer select-none">🎁 Çekiliş{wall.raffle ? " · kurulu" : ""}</summary>
+          {!wall.raffle ? (
+            <div className="mt-3">
+              <p className="text-muted text-xs mb-3">Perdede tüm ekranı kaplayan animasyonla kazanan çekilir. Tür seç:</p>
+              <div className="flex gap-2 flex-wrap">
+                <button onClick={() => startRaffle(id, "registration").catch(console.error)} className="btn-accent !py-2 !px-4 text-sm">İsim + sicil kaydı</button>
+                <button onClick={() => startRaffle(id, "number").catch(console.error)} className="btn-ghost !py-2 !px-4 text-sm">Numara aralığı</button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 flex flex-col gap-3">
+              <input
+                defaultValue={wall.raffle.prize ?? ""}
+                onBlur={(e) => setRaffleFields(id, { prize: e.target.value.slice(0, 60) }).catch(console.error)}
+                placeholder="Ödül (ör. iPhone, hediye çeki…)"
+                className="input-base !py-2 text-sm"
+              />
+              {wall.raffle.type === "number" ? (
+                <div className="flex items-center gap-2 text-sm flex-wrap">
+                  <span className="text-muted">Numara aralığı:</span>
+                  <input type="number" defaultValue={wall.raffle.min ?? 1} onBlur={(e) => setRaffleFields(id, { min: Math.max(0, Number(e.target.value) || 1) }).catch(console.error)} className="input-base !py-1.5 w-24 text-sm" />
+                  <span>–</span>
+                  <input type="number" defaultValue={wall.raffle.max ?? 100} onBlur={(e) => setRaffleFields(id, { max: Math.max(1, Number(e.target.value) || 100) }).catch(console.error)} className="input-base !py-1.5 w-24 text-sm" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                    <input type="checkbox" checked={wall.raffle.registerOpen !== false} onChange={(e) => setRaffleFields(id, { registerOpen: e.target.checked }).catch(console.error)} className="w-4 h-4 accent-[#4f46e5]" />
+                    Kayıt açık (misafirler isim+sicil girer)
+                  </label>
+                  <span className="text-muted text-xs tabular-nums">{raffleEntries.length} kayıt</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2 flex-wrap text-sm">
+                <span className="text-muted">Kazanan:</span>
+                {[1, 2, 3, 5].map((n) => (
+                  <button key={n} onClick={() => setRaffleFields(id, { winnersCount: n }).catch(console.error)} className={`px-3 py-1 rounded-full text-xs font-semibold border ${(wall.raffle!.winnersCount ?? 1) === n ? "bg-accent text-white border-accent" : "border-line text-ink"}`}>{n}</button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap text-sm">
+                <span className="text-muted">Heyecan süresi:</span>
+                {([[4, "Kısa"], [7, "Orta"], [12, "Uzun"]] as [number, string][]).map(([s, l]) => (
+                  <button key={s} onClick={() => setRaffleFields(id, { suspenseSec: s }).catch(console.error)} className={`px-3 py-1 rounded-full text-xs font-semibold border ${(wall.raffle!.suspenseSec ?? 7) === s ? "bg-accent text-white border-accent" : "border-line text-ink"}`}>{l}</button>
+                ))}
+              </div>
+              <div className="flex gap-2 flex-wrap items-center pt-1">
+                <button
+                  onClick={() => drawRaffle(wall, raffleEntries).catch((e) => alert(e instanceof Error ? e.message : "Çekim başarısız"))}
+                  className="btn-primary !py-2 !px-5 text-sm"
+                >
+                  🎉 Çek!
+                </button>
+                <button onClick={() => { if (confirm("Çekilişi kapat ve kayıtları temizle?")) clearRaffle(id).catch(console.error); }} className="btn-ghost !py-2 !px-4 text-sm">Kapat</button>
+                {wall.raffle.draw?.winners?.length ? (
+                  <span className="text-xs text-muted truncate">Son çekim: {wall.raffle.draw.winners.map((w) => w.label).join(", ")}</span>
+                ) : null}
+              </div>
             </div>
           )}
         </details>

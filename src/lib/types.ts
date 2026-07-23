@@ -169,6 +169,19 @@ export interface Wall {
   maxPerPerson?: number;
   /** Video süre limiti (sn). 0 = kapalı; yoksa allowVideo'dan türetilir (varsayılan 30). */
   videoLimitSec?: number;
+  /** Çekiliş (moderasyondan kurulur; perdede animasyonlu çekilir). type "registration"
+   *  = misafir isim+sicil girer; "number" = organizatör aralık verir. draw taze
+   *  startedAt olduğunda perde tüm ekranı kaplayan çekilişi oynatır. */
+  raffle?: {
+    type: "registration" | "number";
+    registerOpen?: boolean; // kayıt türünde misafirler girebilir mi
+    min?: number;
+    max?: number;
+    prize?: string;
+    winnersCount?: number; // varsayılan 1
+    suspenseSec?: number; // perde animasyon süresi (varsayılan 7)
+    draw?: { startedAt: Timestamp | null; winners: RaffleWinner[]; nonce?: string } | null;
+  } | null;
   /** Foto yarışması (moderasyondan başlatılır; kazanan perdede taçlanır) */
   contest?: {
     id: string;
@@ -184,6 +197,21 @@ export interface Wall {
   sessionStartedAt?: Timestamp | null;
   createdAt: Timestamp | null;
   updatedAt?: Timestamp | null;
+}
+
+/** Çekiliş kazananı (perdede gösterime hazır): label = isim ya da numara, sub = sicil. */
+export interface RaffleWinner {
+  label: string;
+  sub?: string;
+}
+
+/** Çekiliş kaydı (walls/{id}/raffleEntries/{sicil}) — misafir isim+sicil girer. */
+export interface RaffleEntry {
+  id: string;
+  name: string;
+  sicil: string;
+  voterId: string;
+  createdAt: Timestamp | null;
 }
 
 /** Duvara yüklenen medya (walls/{id}/media/{autoId}). Byte'lar Cloudinary'de. */

@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import WallReactionBar from "@/components/wall/WallReactionBar";
 import { useWall } from "@/lib/hooks";
-import { addWallMedia, castContestVote, getMyContestVote, hasLikedMedia, isCurrentSession, likeMedia, resolveCode, sendWallWish, wallMaxPerPerson, wallVideoLimitSec, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
+import { addWallMedia, castContestVote, getMyContestVote, getMyRaffleSicil, hasLikedMedia, isCurrentSession, likeMedia, registerRaffle, resolveCode, sendWallWish, wallMaxPerPerson, wallVideoLimitSec, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
 import { cloudinaryStatus, cldFit, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { getStoredNickname, storeIdentity, getStoredAvatarSeed } from "@/lib/participants";
 import { getVoterId } from "@/lib/responses";
@@ -59,8 +59,9 @@ export default function UploadPage() {
 
   const { wall } = useWall(wallId ?? null);
 
-  const [tab, setTab] = useState<"upload" | "browse" | "wish" | "contest">("upload");
+  const [tab, setTab] = useState<"upload" | "browse" | "wish" | "contest" | "raffle">("upload");
   const contestOn = wall?.contest?.status === "running";
+  const raffleOn = wall?.raffle?.type === "registration" && wall?.raffle?.registerOpen !== false;
   const videoLimit = wallVideoLimitSec(wall); // sn (0 = kapalı)
   const videoOn = videoLimit > 0;
   const wishesOn = wall?.wishesEnabled !== false;
@@ -254,10 +255,20 @@ export default function UploadPage() {
               🏆
             </button>
           )}
+          {raffleOn && (
+            <button
+              onClick={() => setTab("raffle")}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${tab === "raffle" ? "bg-white text-[#070c22]" : "text-white/60"}`}
+            >
+              🎁
+            </button>
+          )}
         </div>
       </div>
 
-      {tab === "contest" && contestOn ? (
+      {tab === "raffle" && raffleOn ? (
+        <RaffleTab wallId={wallId ?? null} prize={wall?.raffle?.prize} defaultName={nickname} />
+      ) : tab === "contest" && contestOn ? (
         <ContestTab wallId={wallId ?? null} contestId={wall!.contest!.id} title={wall!.contest!.title} />
       ) : tab === "browse" ? (
         <BrowseGallery wallId={wallId ?? null} sessionId={wall?.sessionId} />
@@ -491,6 +502,67 @@ function WishTab({ wallId, defaultName, moderation }: { wallId: string | null; d
           <p className="mt-3 text-center text-[#8be2b0] text-sm font-semibold animate-pop">
             {moderation ? "✓ Dileğin onaya gönderildi — onaylanınca perdede görünür." : "✓ Dileğin duvara düştü, teşekkürler!"}
           </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** 🎁 Çekiliş kaydı — isim + sicil (aynı sicil = tek kayıt; perde çeker). */
+function RaffleTab({ wallId, prize, defaultName }: { wallId: string | null; prize?: string; defaultName: string }) {
+  const [name, setName] = useState(defaultName);
+  const [sicil, setSicil] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => { setName(defaultName); }, [defaultName]);
+  useEffect(() => { if (wallId) setDone(getMyRaffleSicil(wallId)); }, [wallId]);
+
+  async function submit() {
+    if (!wallId || !name.trim() || !sicil.trim() || busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await registerRaffle(wallId, name, sicil);
+      setDone(sicil.trim());
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Kayıt başarısız.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="flex-1 flex flex-col px-5 pb-24 pt-4 max-w-md w-full mx-auto">
+      <div className="rounded-3xl bg-white/5 border border-white/12 p-5">
+        <h2 className="text-lg font-bold mb-1">🎁 Çekilişe katıl{prize ? ` · ${prize}` : ""}</h2>
+        <p className="text-white/55 text-sm mb-4">İsmini ve sicilini gir; kazanan perdede canlı çekilir. Her sicil bir kez kayıt olur.</p>
+        {done ? (
+          <div className="text-center py-6">
+            <div className="text-5xl mb-3" aria-hidden>✅</div>
+            <p className="font-bold text-lg">Kaydın alındı!</p>
+            <p className="text-white/60 text-sm mt-1">Sicil: {done} · perdeye bak 👀</p>
+            <button onClick={() => setDone(null)} className="mt-4 text-white/50 text-sm underline">Bilgiyi güncelle</button>
+          </div>
+        ) : (
+          <>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value.slice(0, 40))}
+              placeholder="Ad Soyad"
+              className="w-full rounded-xl bg-white/10 border border-white/15 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 mb-3"
+            />
+            <input
+              value={sicil}
+              onChange={(e) => setSicil(e.target.value.slice(0, 40))}
+              placeholder="Sicil / kayıt no"
+              className="w-full rounded-xl bg-white/10 border border-white/15 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 mb-4"
+            />
+            <button onClick={submit} disabled={!name.trim() || !sicil.trim() || busy} className="w-full py-3.5 rounded-2xl bg-white text-[#070c22] font-semibold disabled:opacity-40">
+              {busy ? "Kaydediliyor…" : "Çekilişe katıl →"}
+            </button>
+            {err && <p className="mt-3 text-center text-[#ff9a9a] text-sm">{err}</p>}
+          </>
         )}
       </div>
     </section>
