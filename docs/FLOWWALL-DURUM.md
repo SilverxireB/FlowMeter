@@ -58,6 +58,15 @@ Rotalar: `/wall` (karşılama) · `/wall/[id]` (perde) · `/u/[id]` (misafir) ·
 1. **Kota guard'ları** — kişi başı foto tavanı (~15-20), video süre/boyut limiti,
    duvar başına toplam medya tavanı, tepki cooldown. *Bir etkinlik kotayı yakmasın.*
 
+### 🎛️ Ürün girişi / dashboard mimarisi ✅ YAPILDI (2026-07)
+- **Ürün hub'ı:** `/dashboard` iki **markalı karta** açılır (🎤 FlowMeter indigo /
+  📷 FlowWall festival-koyu) + öğe sayısı + son 3 öğe + Aç/Yeni. Meter'a otomatik
+  düşmez; `?p=decks|walls` ile odaklı alan (geri-tuşu dostu), "← Ürünler" geri dön.
+- **Nötr `/` karşılaması:** "Etkinliğe katıl"; kod wall→/u, deck→/join(→/p) otomatik.
+  Join/QR linkleri (perde /u, present /join) DEĞİŞMEDİ.
+- Kalan (opsiyonel): çalışma alanı içi daha güçlü ayrı marka hero'su; gerçek
+  route ayrımı (`/dashboard/decks|walls`).
+
 ### 🟡 Deneyim / değer
 3. **Anlık kamera** (`capture`) — "anında çek, patlat" vaadini kapatır.
 4. **Öne çıkar / sabitle / gizle** — moderatör bir kareyi perdede öne alır/düşürür.

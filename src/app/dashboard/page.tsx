@@ -73,8 +73,8 @@ export default function DashboardPage() {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [flash, setFlash] = useState<{ msg: string; err?: boolean } | null>(null);
-  // Ürün sekmesi: sunumlar (FlowMeter) | duvarlar (FlowWall)
-  const [product, setProduct] = useState<"decks" | "walls">("decks");
+  // Ürün seçimi: null = HUB (iki markalı kart), decks = FlowMeter, walls = FlowWall
+  const [product, setProduct] = useState<"decks" | "walls" | null>(null);
   const [walls, setWalls] = useState<Wall[]>([]);
   const [wallTitle, setWallTitle] = useState("");
 
@@ -86,9 +86,23 @@ export default function DashboardPage() {
     if (user) setWalls(await listWalls(user.uid));
   }, [user]);
 
+  // Her iki ürünün sayısı/son öğeleri hub'da görünür → ikisini de yükle.
   useEffect(() => {
-    if (product === "walls") refreshWalls();
-  }, [product, refreshWalls]);
+    refreshWalls();
+  }, [refreshWalls]);
+
+  // Ürün seçimi URL'e yansır (geri-tuşu / paylaşılabilir link), join linkleri değişmez.
+  const selectProduct = useCallback((p: "decks" | "walls" | null) => {
+    setProduct(p);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", p ? `/dashboard?p=${p}` : "/dashboard");
+    }
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = new URLSearchParams(window.location.search).get("p");
+    if (p === "decks" || p === "walls") setProduct(p);
+  }, []);
 
   async function createWallHandler(e: FormEvent) {
     e.preventDefault();
@@ -268,22 +282,11 @@ export default function DashboardPage() {
       </header>
 
       <section className="max-w-4xl mx-auto px-4 py-10">
-        <p className="eyebrow mb-2">Sunucu paneli</p>
-        {/* Ürün sekmeleri: FlowMeter sunumları | FlowWall duvarları */}
-        <div className="inline-flex rounded-full border border-line bg-white p-1 mb-6">
-          <button
-            onClick={() => setProduct("decks")}
-            className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${product === "decks" ? "bg-ink text-white" : "text-muted hover:text-ink"}`}
-          >
-            🎤 Sunumlar
+        {product !== null && (
+          <button onClick={() => selectProduct(null)} className="text-muted hover:text-ink text-sm font-semibold mb-4 inline-flex items-center gap-1">
+            ← Ürünler
           </button>
-          <button
-            onClick={() => setProduct("walls")}
-            className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${product === "walls" ? "bg-ink text-white" : "text-muted hover:text-ink"}`}
-          >
-            📷 Duvarlar
-          </button>
-        </div>
+        )}
 
         {flash && (
           <div
@@ -292,6 +295,64 @@ export default function DashboardPage() {
             }`}
           >
             {flash.msg}
+          </div>
+        )}
+
+        {/* HUB — iki markalı ürün kartı */}
+        {product === null && (
+          <div>
+            <p className="eyebrow mb-2">Panelin</p>
+            <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">Ne oluşturmak istersin?</h1>
+            <p className="text-muted text-sm mb-7">İki ürün, tek hesap.</p>
+            <div className="grid gap-5 sm:grid-cols-2">
+              {/* FlowMeter */}
+              <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
+                <div className="p-6 bg-gradient-to-br from-accent-soft to-white">
+                  <div className="text-3xl" aria-hidden>🎤</div>
+                  <h2 className="font-display text-2xl font-bold mt-2 text-ink">FlowMeter</h2>
+                  <p className="text-muted text-sm">İnteraktif sunum & canlı oylama</p>
+                </div>
+                <div className="p-6 pt-4 flex-1 flex flex-col">
+                  <p className="text-xs text-muted mb-2 tabular-nums">{items.length} sunum</p>
+                  <ul className="flex flex-col gap-1 mb-4">
+                    {[...items].sort((a, b) => (b.updatedAt?.toMillis() ?? 0) - (a.updatedAt?.toMillis() ?? 0)).slice(0, 3).map((p) => (
+                      <li key={p.id}>
+                        <button onClick={() => router.push(`/edit/${p.id}`)} className="w-full text-left text-sm truncate text-ink/80 hover:text-accent py-1">• {p.title}</button>
+                      </li>
+                    ))}
+                    {items.length === 0 && <li className="text-sm text-muted py-1">Henüz sunum yok</li>}
+                  </ul>
+                  <div className="mt-auto flex gap-2">
+                    <button onClick={() => selectProduct("decks")} className="btn-ghost flex-1 !py-2 text-sm">Sunumlar →</button>
+                    <button onClick={() => selectProduct("decks")} className="btn-primary !py-2 !px-4 text-sm">＋ Yeni</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* FlowWall */}
+              <div className="rounded-3xl shadow-sm overflow-hidden flex flex-col text-white" style={{ background: "linear-gradient(160deg,#0b1030 0%,#141b48 100%)" }}>
+                <div className="p-6">
+                  <div className="text-3xl" aria-hidden>📷</div>
+                  <h2 className="font-display text-2xl font-bold mt-2">FlowWall</h2>
+                  <p className="text-white/55 text-sm">Canlı foto/video etkinlik duvarı</p>
+                </div>
+                <div className="p-6 pt-4 flex-1 flex flex-col">
+                  <p className="text-xs text-white/50 mb-2 tabular-nums">{walls.length} duvar</p>
+                  <ul className="flex flex-col gap-1 mb-4">
+                    {walls.slice(0, 3).map((w) => (
+                      <li key={w.id}>
+                        <button onClick={() => router.push(`/wall/${w.id}/manage`)} className="w-full text-left text-sm truncate text-white/75 hover:text-white py-1">• {w.title}</button>
+                      </li>
+                    ))}
+                    {walls.length === 0 && <li className="text-sm text-white/45 py-1">Henüz duvar yok</li>}
+                  </ul>
+                  <div className="mt-auto flex gap-2">
+                    <button onClick={() => selectProduct("walls")} className="flex-1 rounded-xl bg-white/10 border border-white/15 py-2 text-sm font-semibold hover:bg-white/15">Duvarlar →</button>
+                    <button onClick={() => selectProduct("walls")} className="rounded-xl bg-white text-[#141b48] px-4 py-2 text-sm font-semibold">＋ Yeni</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

@@ -5,24 +5,34 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import Logo from "@/components/Logo";
 import { getLastPresentation, LastPresentation } from "@/lib/participants";
+import { resolveCode } from "@/lib/walls";
 
 /**
- * Landing = sadece katılım (menti.com gibi). Sunum oluşturma herkese açık
- * değildir; sunucular doğrudan /dashboard adresini kullanır.
+ * Landing = marka-bağımsız katılım kapısı (menti.com gibi). Kod deck ise
+ * sunuma (/join→/p), wall ise duvara (/u) gider. Oluşturma /dashboard'da.
  */
 export default function LandingPage() {
   const router = useRouter();
   const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
   const [last, setLast] = useState<LastPresentation | null>(null);
 
   useEffect(() => {
     setLast(getLastPresentation());
   }, []);
 
-  function join(e: FormEvent) {
+  async function join(e: FormEvent) {
     e.preventDefault();
     const clean = code.replace(/\D/g, "");
-    if (clean.length === 6) router.push(`/join/${clean}`);
+    if (clean.length !== 6 || busy) return;
+    setBusy(true);
+    try {
+      const t = await resolveCode(clean);
+      // wall → doğrudan yükleme; deck → mevcut /join akışı (→ /p). QR/linkler değişmez.
+      router.push(t?.kind === "wall" ? `/u/${t.id}` : `/join/${clean}`);
+    } catch {
+      router.push(`/join/${clean}`);
+    }
   }
 
   return (
@@ -32,9 +42,9 @@ export default function LandingPage() {
       </header>
 
       <section className="flex-1 flex flex-col items-center justify-center px-4 -mt-14">
-        <p className="eyebrow mb-4">Canlı sunum</p>
+        <p className="eyebrow mb-4">Canlı etkinlik</p>
         <h1 className="font-display text-4xl sm:text-5xl font-semibold tracking-tight text-center mb-3">
-          Sunuma katıl
+          Etkinliğe katıl
         </h1>
         <p className="text-muted text-center mb-10">
           Ekranda gördüğün 6 haneli kodu gir
@@ -50,8 +60,8 @@ export default function LandingPage() {
             aria-label="Katılım kodu"
             className="input-base text-center text-4xl tracking-[0.3em] font-bold py-5 placeholder:text-line placeholder:font-semibold"
           />
-          <button type="submit" disabled={code.length !== 6} className="btn-accent py-4 text-lg">
-            Katıl →
+          <button type="submit" disabled={code.length !== 6 || busy} className="btn-accent py-4 text-lg">
+            {busy ? "Bağlanılıyor…" : "Katıl →"}
           </button>
         </form>
 
@@ -72,7 +82,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="px-6 py-5 text-xs text-muted">
-        <span>FlowMeter</span>
+        <span>FlowMeter · FlowWall</span>
       </footer>
     </main>
   );
