@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import Logo from "@/components/Logo";
+import LogoRotating from "@/components/LogoRotating";
 import { getLastPresentation, LastPresentation } from "@/lib/participants";
 import { resolveCode } from "@/lib/walls";
 
@@ -38,7 +38,7 @@ export default function LandingPage() {
   return (
     <main className="min-h-screen flex flex-col bg-wash">
       <header className="px-6 py-5">
-        <Logo />
+        <LogoRotating />
       </header>
 
       <section className="flex-1 flex flex-col items-center justify-center px-4 -mt-14">

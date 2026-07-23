@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import LogoRotating from "@/components/LogoRotating";
 import SlidePreview from "@/components/editor/SlidePreview";
 import { useRouter } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUser } from "@/lib/hooks";
 import {
   createFromTemplate,
@@ -103,6 +104,17 @@ export default function DashboardPage() {
     const p = new URLSearchParams(window.location.search).get("p");
     if (p === "decks" || p === "walls") setProduct(p);
   }, []);
+
+  // "＋ Yeni" → ürünü aç ve oluşturma alanına odaklan ("Aç"tan farklı davranış).
+  const titleRef = useRef<HTMLInputElement>(null);
+  const wallTitleRef = useRef<HTMLInputElement>(null);
+  const openProduct = useCallback(
+    (p: "decks" | "walls", focusNew = false) => {
+      selectProduct(p);
+      if (focusNew) window.setTimeout(() => (p === "walls" ? wallTitleRef : titleRef).current?.focus(), 60);
+    },
+    [selectProduct]
+  );
 
   async function createWallHandler(e: FormEvent) {
     e.preventDefault();
@@ -267,7 +279,7 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-wash" onClick={() => setMenuFor(null)}>
       <header className="bg-white/80 backdrop-blur border-b border-line px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
         <Link href="/" className="shrink-0">
-          <Logo />
+          {product === null ? <LogoRotating /> : <Logo variant={product === "walls" ? "wall" : "meter"} />}
         </Link>
         <div className="flex items-center gap-2 min-w-0">
           {isAdmin && (
@@ -302,15 +314,13 @@ export default function DashboardPage() {
         {product === null && (
           <div>
             <p className="eyebrow mb-2">Panelin</p>
-            <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">Ne oluşturmak istersin?</h1>
-            <p className="text-muted text-sm mb-7">İki ürün, tek hesap.</p>
+            <h1 className="font-display text-3xl font-semibold tracking-tight mb-7">Ne oluşturmak istersin?</h1>
             <div className="grid gap-5 sm:grid-cols-2">
               {/* FlowMeter */}
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
                 <div className="p-6 bg-gradient-to-br from-accent-soft to-white">
-                  <div className="text-3xl" aria-hidden>🎤</div>
-                  <h2 className="font-display text-2xl font-bold mt-2 text-ink">FlowMeter</h2>
-                  <p className="text-muted text-sm">İnteraktif sunum & canlı oylama</p>
+                  <Logo size="lg" />
+                  <p className="text-muted text-sm mt-3">İnteraktif sunum & canlı oylama</p>
                 </div>
                 <div className="p-6 pt-4 flex-1 flex flex-col">
                   <p className="text-xs text-muted mb-2 tabular-nums">{items.length} sunum</p>
@@ -323,8 +333,8 @@ export default function DashboardPage() {
                     {items.length === 0 && <li className="text-sm text-muted py-1">Henüz sunum yok</li>}
                   </ul>
                   <div className="mt-auto flex gap-2">
-                    <button onClick={() => selectProduct("decks")} className="btn-ghost flex-1 !py-2 text-sm">Sunumlar →</button>
-                    <button onClick={() => selectProduct("decks")} className="btn-primary !py-2 !px-4 text-sm">＋ Yeni</button>
+                    <button onClick={() => openProduct("decks")} className="btn-ghost flex-1 !py-2 text-sm">Sunumlar →</button>
+                    <button onClick={() => openProduct("decks", true)} className="btn-primary !py-2 !px-4 text-sm">＋ Yeni</button>
                   </div>
                 </div>
               </div>
@@ -332,9 +342,8 @@ export default function DashboardPage() {
               {/* FlowWall */}
               <div className="rounded-3xl shadow-sm overflow-hidden flex flex-col text-white" style={{ background: "linear-gradient(160deg,#0b1030 0%,#141b48 100%)" }}>
                 <div className="p-6">
-                  <div className="text-3xl" aria-hidden>📷</div>
-                  <h2 className="font-display text-2xl font-bold mt-2">FlowWall</h2>
-                  <p className="text-white/55 text-sm">Canlı foto/video etkinlik duvarı</p>
+                  <Logo size="lg" variant="wall" onDark />
+                  <p className="text-white/55 text-sm mt-3">Canlı foto/video etkinlik duvarı</p>
                 </div>
                 <div className="p-6 pt-4 flex-1 flex flex-col">
                   <p className="text-xs text-white/50 mb-2 tabular-nums">{walls.length} duvar</p>
@@ -347,8 +356,8 @@ export default function DashboardPage() {
                     {walls.length === 0 && <li className="text-sm text-white/45 py-1">Henüz duvar yok</li>}
                   </ul>
                   <div className="mt-auto flex gap-2">
-                    <button onClick={() => selectProduct("walls")} className="flex-1 rounded-xl bg-white/10 border border-white/15 py-2 text-sm font-semibold hover:bg-white/15">Duvarlar →</button>
-                    <button onClick={() => selectProduct("walls")} className="rounded-xl bg-white text-[#141b48] px-4 py-2 text-sm font-semibold">＋ Yeni</button>
+                    <button onClick={() => openProduct("walls")} className="flex-1 rounded-xl bg-white/10 border border-white/15 py-2 text-sm font-semibold hover:bg-white/15">Duvarlar →</button>
+                    <button onClick={() => openProduct("walls", true)} className="rounded-xl bg-white text-[#141b48] px-4 py-2 text-sm font-semibold">＋ Yeni</button>
                   </div>
                 </div>
               </div>
@@ -364,6 +373,7 @@ export default function DashboardPage() {
             </p>
             <form onSubmit={createWallHandler} className="card p-2 flex gap-2 mb-4">
               <input
+                ref={wallTitleRef}
                 value={wallTitle}
                 onChange={(e) => setWallTitle(e.target.value)}
                 placeholder="Yeni duvar adı… (ör. Yılbaşı 2027)"
@@ -416,6 +426,7 @@ export default function DashboardPage() {
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-6">Sunumlarım</h1>
         <form onSubmit={create} className="card p-2 flex gap-2 mb-3">
           <input
+            ref={titleRef}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Yeni sunum adı…"

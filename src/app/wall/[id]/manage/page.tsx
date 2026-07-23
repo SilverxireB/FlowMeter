@@ -229,7 +229,7 @@ export default function WallManage() {
     <main className="min-h-screen bg-wash">
       <header className="bg-white/80 backdrop-blur border-b border-line px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <Link href="/dashboard" className="text-muted hover:text-ink shrink-0 text-lg">←</Link>
+          <Link href="/dashboard?p=walls" className="text-muted hover:text-ink shrink-0 text-lg">←</Link>
           <Logo variant="wall" />
           <span className="font-display font-semibold truncate">{wall.title}</span>
         </div>

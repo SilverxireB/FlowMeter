@@ -108,7 +108,7 @@ export default function EditPage() {
       {/* ── Üst bar ── */}
       <header className="bg-white/80 backdrop-blur border-b border-line px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
-          <Link href="/dashboard" className="text-muted hover:text-ink shrink-0 text-lg px-1" aria-label="Panele dön">←</Link>
+          <Link href="/dashboard?p=decks" className="text-muted hover:text-ink shrink-0 text-lg px-1" aria-label="Panele dön">←</Link>
           <span className="font-display font-semibold truncate">{presentation.title}</span>
           {isLive && (
             <span className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-brand bg-brand-soft rounded-full px-2.5 py-1">
