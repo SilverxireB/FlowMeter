@@ -86,6 +86,19 @@
 - [ ] Paylaşılabilir galeri linki (sonrasında misafirlere read-only galeri)
 - [ ] "En sevilenler" özeti / highlight turu
 
+### 🎬 Anı Filmi kardeşleri (2026-07 — highlight motoru üstüne, sırada)
+> Anı Filmi (canlıda) ile aynı ruhta: duygusal · paylaşılabilir · mevcut canvas/
+> render motorunu kullanır · dış maliyet ~yok. Öncelik sırası kullanıcıyla netleşecek.
+- [ ] **🪪 Kişisel Anı Kartı ("Senin Gecen")**: her misafir KENDİ foto+beğenilerinden
+      kişisel kare/mini-film alır ("6 fotoğraf · 24 ❤") → herkes kendi paylaşır
+      (500 kişi = 500 paylaşım). Aynı render motoru, voterId filtresiyle kişiye özel.
+- [ ] **🎙 Video Tebrik Kabini (sesli anı defteri)**: 10 sn tebrik videosu, moderasyonlu,
+      perdede dalga formu; sonunda tüm tebrikler bir "anı defteri". (Video upload ağır.)
+- [ ] **🖼 Etkinlik Çerçevesi / Sticker**: yüklenen her fotoya marka çerçevesi/overlay
+      (Cloudinary `l_` = bedava, orijinali bozmaz) → her paylaşım etkinliği tanıtır.
+- [ ] **🔗 Paylaşılabilir Galeri Linki (etkinlik sonrası)**: misafirlere read-only galeri
+      (anı filmi + tüm fotolar + kendi yükledikleri, indirilebilir).
+
 ### ✨ Taze fikirler (2026-07 — eğlence / duygusal / yeni perde)
 - [ ] **Foto yarışması + oylama** (en iyi kostüm/kare; misafir oylar, kazanan perdede — FlowMeter köprüsü)
 - [ ] **Sesli/video tebrik kabini** (10 sn tebrik, moderasyonlu, perdede dalga formu)
