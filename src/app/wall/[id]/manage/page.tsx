@@ -644,9 +644,9 @@ export default function WallManage() {
           const annActive = Boolean(wall.announcement?.text) && annUntil > annNow;
           const remain = Math.max(0, Math.round((annUntil - annNow) / 1000));
           return (
-            <div className="card p-5">
-              <p className="eyebrow mb-1">📢 Canlı anons</p>
-              <p className="text-muted text-xs mb-3">Perdeye seçtiğin süre boyunca öne çıkan bir duyuru bas (ör. &quot;Kokteyller dağıtılıyor&quot;). Süre dolunca kendiliğinden kalkar.</p>
+            <details className="card p-5">
+              <summary className="eyebrow cursor-pointer select-none">📢 Canlı anons{annActive ? " · 🔴 yayında" : ""}</summary>
+              <p className="text-muted text-xs mb-3 mt-3">Perdeye seçtiğin süre boyunca öne çıkan bir duyuru bas (ör. &quot;Kokteyller dağıtılıyor&quot;). Süre dolunca kendiliğinden kalkar.</p>
 
               {annActive && (
                 <div className="mb-4 rounded-2xl bg-accent-soft/50 border border-accent/30 px-4 py-3 flex items-center justify-between gap-3">
@@ -690,13 +690,13 @@ export default function WallManage() {
               >
                 {annActive ? "Yeni anonsu yayınla" : "Yayınla"} →
               </button>
-            </div>
+            </details>
           );
         })()}
 
         {/* Foto yarışması */}
-        <div className="card p-5">
-          <p className="eyebrow mb-1">🏆 Foto yarışması</p>
+        <details className="card p-5">
+          <summary className="eyebrow mb-1 cursor-pointer select-none">🏆 Foto yarışması{wall.contest?.status === "running" ? " · 🔴 canlı" : ""}</summary>
           {!wall.contest ? (
             <>
               <p className="text-muted text-xs mb-3">Başlık ver, başlat; misafirler onaylı fotolara oy verir, kazanan perdede taçlanır.</p>
@@ -738,7 +738,7 @@ export default function WallManage() {
               <button onClick={() => clearContest(id).catch(console.error)} className="btn-ghost !py-1.5 !px-3 text-xs">Kapat / Yeni</button>
             </div>
           )}
-        </div>
+        </details>
 
         {/* Dilek moderasyonu */}
         {(pendingWishes.length > 0 || approvedWishes.length > 0) && (

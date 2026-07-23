@@ -96,10 +96,14 @@ export default function WallScreen() {
   const filmPlayedRef = useRef<number>(0);
   const [filmOpts, setFilmOpts] = useState<{ length: FilmLength; musicId: string } | null>(null);
   useEffect(() => {
-    const at = wall?.filmPlay?.startedAt?.toMillis?.();
+    const fp = wall?.filmPlay;
+    const at = fp?.startedAt?.toMillis?.();
     if (at && at > filmMountRef.current && at !== filmPlayedRef.current) {
       filmPlayedRef.current = at;
-      setFilmOpts({ length: (wall?.filmPlay?.length as FilmLength) || "medium", musicId: wall?.filmPlay?.musicId || "warm" });
+      setFilmOpts({ length: (fp?.length as FilmLength) || "medium", musicId: fp?.musicId || "warm" });
+    } else if (!fp) {
+      // Kokpit "⏹ Perdede durdur" → filmPlay temizlendi → perdede filmi kapat.
+      setFilmOpts(null);
     }
   }, [wall?.filmPlay]);
 
