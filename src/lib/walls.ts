@@ -102,6 +102,18 @@ export async function setWallKeepOriginal(id: string, keepOriginal: boolean): Pr
   await updateDoc(doc(db(), "walls", id), { keepOriginal, updatedAt: serverTimestamp() });
 }
 
+/** Anı Filmi'ni perdede canlı oynat (kokpit tetikler; perde startedAt tazeyse gösterir). */
+export async function startWallFilm(id: string, length: string, musicId: string): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), {
+    filmPlay: { startedAt: serverTimestamp(), length, musicId },
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function stopWallFilm(id: string): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { filmPlay: null, updatedAt: serverTimestamp() });
+}
+
 export async function setWallHeadline(id: string, headline: string): Promise<void> {
   await updateDoc(doc(db(), "walls", id), { headline, updatedAt: serverTimestamp() });
 }

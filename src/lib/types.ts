@@ -160,6 +160,9 @@ export interface Wall {
   topLovedEverySec?: number;
   /** Milestone kutlamaları (10/25/50/100… anı → konfeti). Varsayılan açık. */
   milestones?: boolean;
+  /** Anı Filmi'ni perdede canlı oynat (kokpitten tetiklenir; startedAt taze
+   *  olduğunda perde filmi büyük ekranda gösterir). length/musicId film ayarı. */
+  filmPlay?: { startedAt: Timestamp | null; length?: string; musicId?: string } | null;
   /** Foto yarışması (moderasyondan başlatılır; kazanan perdede taçlanır) */
   contest?: {
     id: string;

@@ -12,6 +12,7 @@ import { buildTimeline, FilmLength, FilmOrientation } from "@/lib/wallFilm/timel
 import { filmColors, photoSrc, preloadImage, renderFrame } from "@/lib/wallFilm/render";
 import { BUILTIN_TRACKS, MusicTrack, decodeFile, getLiveAudioContext, getMusicBuffer, loadMusicManifest } from "@/lib/wallFilm/music";
 import { encodeFilm } from "@/lib/wallFilm/encode";
+import { startWallFilm, stopWallFilm } from "@/lib/walls";
 
 const DIMS = { portrait: { W: 1080, H: 1920 }, landscape: { W: 1920, H: 1080 } };
 const FPS = 30;
@@ -286,9 +287,24 @@ export default function WallFilm({ wall, media, wishes }: { wall: Wall; media: W
         </div>
       </div>
 
-      <div className="mt-5">
+      {/* Perdede canlı oynat — indirme yerine büyük ekranda (custom müzik perdede yok) */}
+      <div className="mt-4 flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => startWallFilm(wall.id, length, track.kind === "custom" ? "warm" : musicId).catch(() => setMsg("Perde tetiklenemedi."))}
+          disabled={approvedCount === 0}
+          className="btn-accent !py-2 text-sm"
+        >
+          📽 Perdede oynat
+        </button>
+        <button onClick={() => stopWallFilm(wall.id).catch(() => {})} className="btn-ghost !py-2 text-sm">
+          ⏹ Perdede durdur
+        </button>
+        <span className="text-xs text-muted">Açık olan perde ekranında filmi başlatır.</span>
+      </div>
+
+      <div className="mt-4">
         <button onClick={generate} disabled={busy || approvedCount === 0} className="btn-primary w-full">
-          {busy ? (pct > 0 ? `Oluşturuluyor… %${pct}` : "Hazırlanıyor…") : "🎬 Filmi oluştur"}
+          {busy ? (pct > 0 ? `Oluşturuluyor… %${pct}` : "Hazırlanıyor…") : "🎬 Filmi oluştur (indir)"}
         </button>
         {busy && pct > 0 && (
           <div className="h-1.5 rounded-full bg-line mt-2 overflow-hidden">

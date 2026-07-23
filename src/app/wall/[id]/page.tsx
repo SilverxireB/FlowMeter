@@ -22,6 +22,8 @@ import WallWishes from "@/components/wall/WallWishes";
 import WallAnnouncement from "@/components/wall/WallAnnouncement";
 import WallMilestone from "@/components/wall/WallMilestone";
 import WallTopLoved from "@/components/wall/WallTopLoved";
+import WallFilmStage from "@/components/wall/WallFilmStage";
+import { FilmLength } from "@/lib/wallFilm/timeline";
 import { useWall, useWallMedia, useWallWishes } from "@/lib/hooks";
 import { resolveCode } from "@/lib/walls";
 import { cldFit, cldThumb, cldVideoPoster } from "@/lib/cloudinary";
@@ -77,6 +79,20 @@ export default function WallScreen() {
   const mode: WallScreenMode = stored === "auto" ? autoModes[autoIdx % autoModes.length] : stored;
 
   const { style: themeStyleObj, dark: themeDark } = wallThemeStyle(wall?.theme);
+
+  // Anı Filmi perde oynatma — kokpit tetikleyince (startedAt taze) filmi büyük
+  // ekranda göster. Perde açılmadan ÖNCE tetiklenmiş eski filmi oynatma (geç
+  // katılan cihaz tekrar oynatmasın); her startedAt bir kez oynar.
+  const filmMountRef = useRef<number>(Date.now());
+  const filmPlayedRef = useRef<number>(0);
+  const [filmOpts, setFilmOpts] = useState<{ length: FilmLength; musicId: string } | null>(null);
+  useEffect(() => {
+    const at = wall?.filmPlay?.startedAt?.toMillis?.();
+    if (at && at > filmMountRef.current && at !== filmPlayedRef.current) {
+      filmPlayedRef.current = at;
+      setFilmOpts({ length: (wall?.filmPlay?.length as FilmLength) || "medium", musicId: wall?.filmPlay?.musicId || "warm" });
+    }
+  }, [wall?.filmPlay]);
 
   // Şampanya (dugun) + Sedef (kurumsal): açık temalar, siyah yazı. Resimden
   // türeyen ambient tint `multiply` ile açık zemini karartıp yazıyı okunmaz
@@ -199,6 +215,18 @@ export default function WallScreen() {
 
       {/* Canlı anons (moderasyondan; süresi dolunca kaybolur) */}
       <WallAnnouncement announcement={wall?.announcement} />
+
+      {/* Anı Filmi — perdede canlı oynatma (kokpit tetikler) */}
+      {filmOpts && wall && (
+        <WallFilmStage
+          wall={wall}
+          media={media}
+          wishes={wishes}
+          length={filmOpts.length}
+          musicId={filmOpts.musicId}
+          onEnd={() => setFilmOpts(null)}
+        />
+      )}
 
       <WallStyles />
     </main>
