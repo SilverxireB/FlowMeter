@@ -163,6 +163,8 @@ export interface Wall {
   /** Anı Filmi'ni perdede canlı oynat (kokpitten tetiklenir; startedAt taze
    *  olduğunda perde filmi büyük ekranda gösterir). length/musicId film ayarı. */
   filmPlay?: { startedAt: Timestamp | null; length?: string; musicId?: string } | null;
+  /** Duvar kapalı — yükleme durur, perde "teşekkürler" gösterir. Yeni oturum açar. */
+  closed?: boolean;
   /** Foto yarışması (moderasyondan başlatılır; kazanan perdede taçlanır) */
   contest?: {
     id: string;

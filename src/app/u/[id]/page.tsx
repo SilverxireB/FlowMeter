@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import WallReactionBar from "@/components/wall/WallReactionBar";
 import { useWall } from "@/lib/hooks";
-import { addWallMedia, castContestVote, getMyContestVote, hasLikedMedia, likeMedia, resolveCode, sendWallWish, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
+import { addWallMedia, castContestVote, getMyContestVote, hasLikedMedia, isCurrentSession, likeMedia, resolveCode, sendWallWish, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
 import { cloudinaryStatus, cldFit, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { getStoredNickname, storeIdentity, getStoredAvatarSeed } from "@/lib/participants";
 import { getVoterId } from "@/lib/responses";
@@ -43,6 +43,7 @@ export default function UploadPage() {
   const contestOn = wall?.contest?.status === "running";
   const videoOn = wall?.allowVideo !== false;
   const wishesOn = wall?.wishesEnabled !== false;
+  const closedWall = !!wall?.closed;
 
   const [nickname, setNickname] = useState("");
   useEffect(() => setNickname(getStoredNickname() ?? ""), []);
@@ -64,7 +65,7 @@ export default function UploadPage() {
   const [celebrate, setCelebrate] = useState<string | null>(null);
   const seenMine = useRef<Set<string> | null>(null);
   useEffect(() => {
-    const mine = myMedia.filter((m) => m.status === "approved").map((m) => m.id);
+    const mine = myMedia.filter((m) => m.status === "approved" && isCurrentSession(m, wall)).map((m) => m.id);
     if (seenMine.current === null) {
       seenMine.current = new Set(mine);
       return;
@@ -76,7 +77,7 @@ export default function UploadPage() {
       setCelebrate(m ? (m.type === "video" ? cldVideoPoster(m.url, 500, 500) : cldFit(m.url, 500)) : "");
       window.setTimeout(() => setCelebrate(null), 4500);
     }
-  }, [myMedia]);
+  }, [myMedia, wall]);
 
   useEffect(() => {
     return () => {
@@ -115,7 +116,7 @@ export default function UploadPage() {
   }
 
   async function sendAll() {
-    if (!wallId || !wall || sending) return;
+    if (!wallId || !wall || sending || wall.closed) return;
     const name = nickname.trim().slice(0, 30);
     if (name) storeIdentity(name, getStoredAvatarSeed() ?? "Luna");
     setSending(true);
@@ -211,7 +212,7 @@ export default function UploadPage() {
       {tab === "contest" && contestOn ? (
         <ContestTab wallId={wallId ?? null} contestId={wall!.contest!.id} title={wall!.contest!.title} />
       ) : tab === "browse" ? (
-        <BrowseGallery wallId={wallId ?? null} />
+        <BrowseGallery wallId={wallId ?? null} sessionId={wall?.sessionId} />
       ) : tab === "wish" && wishesOn ? (
         <WishTab wallId={wallId ?? null} defaultName={nickname} moderation={!!wall?.moderation} />
       ) : (
@@ -226,7 +227,13 @@ export default function UploadPage() {
           </div>
         )}
 
-        {finished ? (
+        {closedWall ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <div className="text-6xl mb-4" aria-hidden>🎉</div>
+            <h1 className="text-2xl font-bold mb-2">Bu duvar kapandı</h1>
+            <p className="text-white/65">Etkinlik tamamlandı — katkın için teşekkürler! Anıları &ldquo;🖼 Gez&rdquo; sekmesinden görebilirsin.</p>
+          </div>
+        ) : finished ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             <div className="text-6xl mb-4" aria-hidden>{wall?.moderation ? "🛡" : "🎉"}</div>
             <h1 className="text-2xl font-bold mb-2">{wall?.moderation ? "Onaya gönderildi" : "Duvarda!"}</h1>
@@ -439,13 +446,16 @@ function WishTab({ wallId, defaultName, moderation }: { wallId: string | null; d
 }
 
 /** Duvarı gez — onaylı medya akışı (en yeni 150); ❤ beğen, "Benimkiler" filtresi. */
-function BrowseGallery({ wallId }: { wallId: string | null }) {
+function BrowseGallery({ wallId, sessionId }: { wallId: string | null; sessionId?: string }) {
   const [allMedia, setAllMedia] = useState<WallMedia[]>([]);
   useEffect(() => {
     if (!wallId) return;
     return watchWallMediaRecent(wallId, 150, setAllMedia);
   }, [wallId]);
-  const approved = useMemo(() => allMedia.filter((m) => m.status === "approved"), [allMedia]);
+  const approved = useMemo(
+    () => allMedia.filter((m) => m.status === "approved" && (!sessionId || m.sessionId === sessionId)),
+    [allMedia, sessionId]
+  );
   const [mineOnly, setMineOnly] = useState(false);
   const [voterId, setVoterId] = useState("");
   useEffect(() => setVoterId(getVoterId()), []);

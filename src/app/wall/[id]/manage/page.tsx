@@ -15,7 +15,7 @@ import { generateMemoryBook } from "@/lib/wallMemoryBook";
 import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import WallFilm from "@/components/wall/WallFilm";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
-import { addWallMedia, clearContest, clearWallAnnouncement, deleteMedia, deleteWish, endContest, setMediaStatus, setWallAllowVideo, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallWishesEnabled, setWishStatus, startContest, tallyContest } from "@/lib/walls";
+import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAllowVideo, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallWishesEnabled, setWishStatus, startContest, tallyContest } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
@@ -31,7 +31,10 @@ export default function WallManage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuthUser();
   const { wall, loading } = useWall(id);
-  const allMedia = useWallMedia(id);
+  const rawMedia = useWallMedia(id);
+  // Kokpit yalnız AKTİF oturumu yönetir (yeni oturum → temiz kokpit). Eski
+  // oturumun medyası Firestore/Cloudinary'de kalır; deleteWall hepsini siler.
+  const allMedia = useMemo(() => rawMedia.filter((m) => isCurrentSession(m, wall)), [rawMedia, wall]);
 
   const [screenUrl, setScreenUrl] = useState("");
   const [joinUrl, setJoinUrl] = useState("");
@@ -352,6 +355,34 @@ export default function WallManage() {
             </div>
           </div>
         </div>
+
+        {/* Yaşam döngüsü — kapat / aç / yeni oturum */}
+        {wall && (
+          <div className="card p-5">
+            <p className="eyebrow mb-3">Yaşam döngüsü</p>
+            <div className="flex flex-wrap items-center gap-3">
+              {wall.closed ? (
+                <button onClick={() => reopenWall(id).catch(console.error)} className="btn-ghost !py-2 text-sm">▶ Duvarı yeniden aç</button>
+              ) : (
+                <button
+                  onClick={() => { if (confirm('Duvarı kapat? Yükleme durur, perdede "🎉 Teşekkürler" görünür. (Yeniden açabilir ya da yeni oturum başlatabilirsin.)')) closeWall(id).catch(console.error); }}
+                  className="btn-ghost !py-2 text-sm"
+                >
+                  ⏹ Duvarı kapat
+                </button>
+              )}
+              <button
+                onClick={() => { if (confirm('Yeni oturum başlasın mı? Şu anki anılar perdeden ve kokpitten kalkar (SİLİNMEZ — arşivde kalır, deleteWall hepsini siler); duvar ikinci grup için temizlenir.')) newWallSession(id).catch(console.error); }}
+                className="btn-primary !py-2 text-sm"
+              >
+                🔄 Yeni oturum
+              </button>
+              <span className="text-xs text-muted">
+                {wall.closed ? "Kapalı — yükleme durdu." : "Açık — misafirler yükleyebilir."}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Anı Filmi — highlight video üretimi */}
         {wall && <WallFilm wall={wall} media={allMedia} wishes={wishes} />}

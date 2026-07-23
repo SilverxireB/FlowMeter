@@ -114,6 +114,37 @@ export async function stopWallFilm(id: string): Promise<void> {
   await updateDoc(doc(db(), "walls", id), { filmPlay: null, updatedAt: serverTimestamp() });
 }
 
+// ── Yaşam döngüsü (kapat / aç / yeni oturum) ─────────────────────────────────
+/** Duvarı kapat: yükleme durur, perde "teşekkürler" gösterir (veri silinmez). */
+export async function closeWall(id: string): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { closed: true, updatedAt: serverTimestamp() });
+}
+
+/** Kapalı duvarı yeniden aç (aynı oturum devam eder). */
+export async function reopenWall(id: string): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { closed: false, updatedAt: serverTimestamp() });
+}
+
+/**
+ * Yeni oturum: sessionId döndürülür → perde/misafir/kokpit yalnız YENİ oturumu
+ * gösterir (eski anılar Firestore/Cloudinary'de KALIR, sadece gizlenir). Aynı
+ * duvarı ikinci grupla baştan çalıştırmak için. Kapalıysa açılır.
+ */
+export async function newWallSession(id: string): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), {
+    sessionId: randomSessionId(),
+    sessionStartedAt: serverTimestamp(),
+    closed: false,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/** Medya aktif oturuma mı ait? (perde/kokpit/gez oturum filtresi). Duvarda
+ *  sessionId yoksa (eski) hepsini göster — güvenli varsayılan. */
+export function isCurrentSession(m: WallMedia, wall: Wall | null | undefined): boolean {
+  return !wall?.sessionId || m.sessionId === wall.sessionId;
+}
+
 export async function setWallHeadline(id: string, headline: string): Promise<void> {
   await updateDoc(doc(db(), "walls", id), { headline, updatedAt: serverTimestamp() });
 }

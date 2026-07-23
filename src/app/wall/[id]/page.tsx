@@ -33,7 +33,7 @@ import TimelineMode from "@/components/wall/screen/TimelineMode";
 import CinemaMode from "@/components/wall/screen/CinemaMode";
 import { FilmLength } from "@/lib/wallFilm/timeline";
 import { useWall, useWallMedia, useWallWishes } from "@/lib/hooks";
-import { resolveCode } from "@/lib/walls";
+import { isCurrentSession, resolveCode } from "@/lib/walls";
 import { cldThumb, cldVideoPoster } from "@/lib/cloudinary";
 import { wallThemeStyle } from "@/lib/themes";
 import { BASE_WALL_SCREEN_MODES, WALL_SCREEN_MODES, WallMedia, WallScreenMode, wallEffectOf } from "@/lib/types";
@@ -52,7 +52,11 @@ export default function WallScreen() {
 
   const { wall } = useWall(wallId ?? null);
   const allMedia = useWallMedia(wallId ?? null);
-  const media = useMemo(() => allMedia.filter((m) => m.status === "approved"), [allMedia]);
+  // Yalnız AKTİF oturumun onaylı medyası (yeni oturum → temiz perde).
+  const media = useMemo(
+    () => allMedia.filter((m) => m.status === "approved" && isCurrentSession(m, wall)),
+    [allMedia, wall]
+  );
   const allWishes = useWallWishes(wallId ?? null);
   const wishes = useMemo(() => allWishes.filter((w) => (w.status ?? "approved") === "approved"), [allWishes]);
 
@@ -180,21 +184,28 @@ export default function WallScreen() {
       {/* Dilek bandı (başlık altında dönen kart) */}
       <WallWishes wishes={wishes} themeDark={themeDark} />
 
-      {/* Katılım kartı (alt orta) */}
-      <div className={`absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 rounded-2xl px-4 py-3 backdrop-blur-md shadow-xl ${cardChrome}`}>
-        {joinUrl && (
-          <div className="bg-white rounded-xl p-1.5 shrink-0 shadow-sm border border-black/5">
-            <QrCode text={joinUrl} size={82} />
-          </div>
-        )}
-        <div className="text-left">
-          <p className={`text-[11px] uppercase tracking-[0.2em] ${mutedClass}`}>Katıl · paylaş</p>
-          <p className="font-display text-3xl font-bold tabular-nums tracking-[0.12em] leading-tight">
-            {wall?.joinCode || "——————"}
-          </p>
-          <p className={`text-xs ${mutedClass}`}>flowwall — fotoğrafını at, perdede parla</p>
+      {/* Katılım kartı (alt orta) — kapalıysa "teşekkürler" mesajı */}
+      {wall?.closed ? (
+        <div className={`absolute bottom-5 left-1/2 -translate-x-1/2 z-20 text-center rounded-2xl px-7 py-4 backdrop-blur-md shadow-xl ${cardChrome}`}>
+          <p className="font-display text-2xl font-bold">🎉 Teşekkürler</p>
+          <p className={`text-sm ${mutedClass}`}>Etkinlik tamamlandı — anılar için sağ olun.</p>
         </div>
-      </div>
+      ) : (
+        <div className={`absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 rounded-2xl px-4 py-3 backdrop-blur-md shadow-xl ${cardChrome}`}>
+          {joinUrl && (
+            <div className="bg-white rounded-xl p-1.5 shrink-0 shadow-sm border border-black/5">
+              <QrCode text={joinUrl} size={82} />
+            </div>
+          )}
+          <div className="text-left">
+            <p className={`text-[11px] uppercase tracking-[0.2em] ${mutedClass}`}>Katıl · paylaş</p>
+            <p className="font-display text-3xl font-bold tabular-nums tracking-[0.12em] leading-tight">
+              {wall?.joinCode || "——————"}
+            </p>
+            <p className={`text-xs ${mutedClass}`}>flowwall — fotoğrafını at, perdede parla</p>
+          </div>
+        </div>
+      )}
 
       {/* Köşe süsleri */}
       <div className="absolute top-5 left-5 z-20 opacity-90">
