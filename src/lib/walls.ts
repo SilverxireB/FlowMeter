@@ -478,6 +478,52 @@ export function watchRaffleEntries(wallId: string, cb: (e: RaffleEntry[]) => voi
   });
 }
 
+/** Organizatör toplu liste ekler (Excel/CSV). doc id = sicil (tekilleştirir). */
+export async function bulkAddRaffleEntries(wallId: string, rows: { name: string; sicil: string }[]): Promise<number> {
+  const seen = new Set<string>();
+  const clean = rows
+    .map((r) => ({ name: (r.name ?? "").trim().slice(0, 40), sicil: (r.sicil ?? "").trim().slice(0, 40) }))
+    .filter((r) => r.sicil && r.name && !seen.has(r.sicil) && seen.add(r.sicil));
+  const vid = getVoterId();
+  for (let i = 0; i < clean.length; i += 400) {
+    const batch = writeBatch(db());
+    for (const r of clean.slice(i, i + 400)) {
+      const docId = r.sicil.replace(/[^\w-]/g, "_");
+      batch.set(doc(db(), "walls", wallId, "raffleEntries", docId), {
+        name: r.name,
+        sicil: r.sicil,
+        voterId: vid,
+        createdAt: serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+  return clean.length;
+}
+
+/** Kayıt penceresini aç: registerOpen=true + (dakika>0 ise) registerUntil. 0 = süresiz. */
+export async function openRaffleRegistration(id: string, minutes: number): Promise<void> {
+  const until = minutes > 0 ? new Date(Date.now() + minutes * 60_000) : null;
+  await updateDoc(doc(db(), "walls", id), {
+    "raffle.registerOpen": true,
+    "raffle.registerUntil": until,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/** Kayıt penceresini kapat. */
+export async function closeRaffleRegistration(id: string): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { "raffle.registerOpen": false, updatedAt: serverTimestamp() });
+}
+
+/** Kayıt şu an açık mı? (registerOpen + registerUntil geçmediyse). */
+export function raffleRegistrationOpen(wall: Wall | null | undefined, now = Date.now()): boolean {
+  const r = wall?.raffle;
+  if (!r || r.type !== "registration" || r.registerOpen === false) return false;
+  const until = r.registerUntil?.toMillis?.() ?? 0;
+  return !until || until > now;
+}
+
 function pickUnique<T>(arr: T[], k: number): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -510,17 +556,23 @@ export async function drawRaffle(wall: Wall, entries: RaffleEntry[]): Promise<vo
   }
   if (winners.length === 0) throw new Error("Havuz boş — çekilecek kimse yok.");
   const nonce = Math.random().toString(36).slice(2, 10);
+  // 1) Perde tetikleyicisi ÖNCE (asıl olay bu) — nonce ile saat-bağımsız oynar.
   await updateDoc(doc(db(), "walls", wall.id), {
     "raffle.draw": { startedAt: serverTimestamp(), winners, nonce },
     updatedAt: serverTimestamp(),
   });
-  await addDoc(collection(db(), "walls", wall.id, "draws"), {
-    type: r.type,
-    prize: r.prize ?? "",
-    poolSize,
-    winners,
-    createdAt: serverTimestamp(),
-  });
+  // 2) Kayıt logu best-effort — rules yoksa/başarısızsa çekim yine de oynasın.
+  try {
+    await addDoc(collection(db(), "walls", wall.id, "draws"), {
+      type: r.type,
+      prize: r.prize ?? "",
+      poolSize,
+      winners,
+      createdAt: serverTimestamp(),
+    });
+  } catch {
+    /* log yazılamadı (ör. rules henüz deploy edilmedi) → çekim etkilenmez */
+  }
 }
 
 // ── Beğeni (misafir ❤ — sunum Q&A upvote deseniyle aynı: +1, localStorage dedup) ─

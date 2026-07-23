@@ -16,7 +16,7 @@ import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import WallFilm from "@/components/wall/WallFilm";
 import WallOnboarding from "@/components/wall/WallOnboarding";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
-import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries } from "@/lib/walls";
+import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
@@ -26,6 +26,36 @@ import { BASE_WALL_SCREEN_MODES, RaffleEntry, Wall, WallMedia, WALL_EFFECTS, WAL
 const AUTO_INTERVALS = [20, 30, 45, 60, 90];
 const VIDEO_OPTS: [number, string][] = [[0, "Kapalı"], [15, "≤15 sn"], [30, "≤30 sn"], [60, "≤60 sn"]];
 const PERPERSON_OPTS: [number, string][] = [[0, "Sınırsız"], [10, "10"], [20, "20"], [30, "30"]];
+const RAFFLE_OPEN_OPTS: [number, string][] = [[0, "Süresiz"], [1, "1 dk"], [5, "5 dk"], [10, "10 dk"]];
+
+/** Excel/CSV listesini {name, sicil} satırlarına ayıklar (xlsx lazy-load; CSV de okunur). */
+async function parseRoster(file: File): Promise<{ name: string; sicil: string }[]> {
+  const XLSX = await import("xlsx");
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, blankrows: false, raw: false });
+  if (!rows.length) return [];
+  // Başlık tespiti: ilk satırda sicil/isim geçiyorsa sütunları eşle; yoksa A=sicil, B=isim.
+  let start = 0, sicilCol = 0, nameCol = 1;
+  const head = (rows[0] ?? []).map((c) => String(c ?? "").toLocaleLowerCase("tr-TR"));
+  const si = head.findIndex((h) => h.includes("sicil") || h.includes("no"));
+  const ni = head.findIndex((h) => h.includes("isim") || h.includes("ad") || h.includes("name") || h.includes("soyad"));
+  if (si >= 0 || ni >= 0) {
+    start = 1;
+    if (si >= 0) sicilCol = si;
+    if (ni >= 0) nameCol = ni;
+  }
+  const out: { name: string; sicil: string }[] = [];
+  for (let i = start; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row) continue;
+    const sicil = String(row[sicilCol] ?? "").trim();
+    const name = String(row[nameCol] ?? "").trim();
+    if (sicil && name) out.push({ name, sicil });
+  }
+  return out;
+}
 const fmtInterval = (s: number) => (s < 60 ? `${s} sn` : s % 60 === 0 ? `${s / 60} dk` : `${(s / 60).toFixed(1)} dk`);
 const ANN_MINUTES = [1, 2, 5, 10, 15, 30, 60];
 
@@ -102,6 +132,22 @@ export default function WallManage() {
     if (wall?.raffle?.type !== "registration") { setRaffleEntries([]); return; }
     return watchRaffleEntries(id, setRaffleEntries);
   }, [id, wall?.raffle?.type]);
+  const rosterRef = useRef<HTMLInputElement>(null);
+  const [rosterMsg, setRosterMsg] = useState<string | null>(null);
+  async function onRoster(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (rosterRef.current) rosterRef.current.value = "";
+    if (!f) return;
+    setRosterMsg("Okunuyor…");
+    try {
+      const rows = await parseRoster(f);
+      if (!rows.length) { setRosterMsg("Liste boş / sütunlar okunamadı (1. sütun sicil, 2. isim)."); return; }
+      const n = await bulkAddRaffleEntries(id, rows);
+      setRosterMsg(`✓ ${n} kişi eklendi`);
+    } catch (err) {
+      setRosterMsg(err instanceof Error ? err.message : "Dosya okunamadı.");
+    }
+  }
   const [annText, setAnnText] = useState("");
   const [annMin, setAnnMin] = useState(2);
   const [annNow, setAnnNow] = useState(() => Date.now());
@@ -116,6 +162,14 @@ export default function WallManage() {
       endContest(id, contestRankRef.current[0]?.mediaId ?? null).catch(console.error);
     }
   }, [wall?.contest, annNow, id]);
+  // Çekiliş kayıt penceresi dolunca kapat (organizatör cihazı).
+  useEffect(() => {
+    const r = wall?.raffle;
+    const until = r?.registerUntil?.toMillis?.() ?? 0;
+    if (r?.type === "registration" && r.registerOpen !== false && until && annNow >= until) {
+      closeRaffleRegistration(id).catch(console.error);
+    }
+  }, [wall?.raffle, annNow, id]);
 
   async function downloadAll() {
     if (zipping) return;
@@ -786,9 +840,9 @@ export default function WallManage() {
           <summary className="eyebrow mb-1 cursor-pointer select-none">🎁 Çekiliş{wall.raffle ? " · kurulu" : ""}</summary>
           {!wall.raffle ? (
             <div className="mt-3">
-              <p className="text-muted text-xs mb-3">Perdede tüm ekranı kaplayan animasyonla kazanan çekilir. Tür seç:</p>
+              <p className="text-muted text-xs mb-3">Perdede büyük animasyonlu çekim. Tür seç: misafirler isim+sicil girer (veya Excel liste yüklersin) · ya da numara aralığı.</p>
               <div className="flex gap-2 flex-wrap">
-                <button onClick={() => startRaffle(id, "registration").catch(console.error)} className="btn-accent !py-2 !px-4 text-sm">İsim + sicil kaydı</button>
+                <button onClick={() => startRaffle(id, "registration").catch(console.error)} className="btn-accent !py-2 !px-4 text-sm">İsim + sicil / Excel liste</button>
                 <button onClick={() => startRaffle(id, "number").catch(console.error)} className="btn-ghost !py-2 !px-4 text-sm">Numara aralığı</button>
               </div>
             </div>
@@ -808,12 +862,23 @@ export default function WallManage() {
                   <input type="number" defaultValue={wall.raffle.max ?? 100} onBlur={(e) => setRaffleFields(id, { max: Math.max(1, Number(e.target.value) || 100) }).catch(console.error)} className="input-base !py-1.5 w-24 text-sm" />
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-                    <input type="checkbox" checked={wall.raffle.registerOpen !== false} onChange={(e) => setRaffleFields(id, { registerOpen: e.target.checked }).catch(console.error)} className="w-4 h-4 accent-[#4f46e5]" />
-                    Kayıt açık (misafirler isim+sicil girer)
-                  </label>
-                  <span className="text-muted text-xs tabular-nums">{raffleEntries.length} kayıt</span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap text-sm">
+                    <span className="text-muted">Misafir kaydı:</span>
+                    <button onClick={() => closeRaffleRegistration(id).catch(console.error)} className={`px-3 py-1 rounded-full text-xs font-semibold border ${!raffleRegistrationOpen(wall) ? "bg-ink text-white border-ink" : "border-line text-ink"}`}>Kapalı</button>
+                    {RAFFLE_OPEN_OPTS.map(([m, l]) => (
+                      <button key={m} onClick={() => openRaffleRegistration(id, m).catch(console.error)} className="px-3 py-1 rounded-full text-xs font-semibold border border-line text-ink hover:border-accent">
+                        {m === 0 ? "Aç" : l}
+                      </button>
+                    ))}
+                    <span className="text-muted text-xs tabular-nums ml-auto">👥 {raffleEntries.length}</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button onClick={() => rosterRef.current?.click()} className="btn-ghost !py-1.5 !px-3 text-xs">📋 Liste yükle (Excel/CSV)</button>
+                    <input ref={rosterRef} type="file" accept=".xlsx,.xls,.csv" onChange={onRoster} className="hidden" />
+                    <span className="text-muted text-[11px]">1. sütun sicil · 2. sütun isim</span>
+                    {rosterMsg && <span className="text-xs text-ink w-full">{rosterMsg}</span>}
+                  </div>
                 </div>
               )}
               <div className="flex items-center gap-2 flex-wrap text-sm">

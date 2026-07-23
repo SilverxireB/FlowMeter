@@ -238,9 +238,14 @@ service cloud.firestore {
           && request.resource.data.sicil is string
           && request.resource.data.sicil.size() >= 1 && request.resource.data.sicil.size() <= 40
           && request.resource.data.voterId is string
-          && w().get('raffle', null) != null
-          && w().raffle.get('type','') == 'registration'
-          && w().raffle.get('registerOpen', true) == true;
+          && (
+            // Organizatör toplu liste (Excel) yükleyebilir
+            (request.auth != null && w().ownerId == request.auth.uid)
+            // ya da misafir, kayıt türü + kayıt açıkken kendi girer
+            || (w().get('raffle', null) != null
+                && w().raffle.get('type','') == 'registration'
+                && w().raffle.get('registerOpen', true) == true)
+          );
         allow delete: if request.auth != null && w().ownerId == request.auth.uid;
       }
 

@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import WallReactionBar from "@/components/wall/WallReactionBar";
 import { useWall } from "@/lib/hooks";
-import { addWallMedia, castContestVote, getMyContestVote, getMyRaffleSicil, hasLikedMedia, isCurrentSession, likeMedia, registerRaffle, resolveCode, sendWallWish, wallMaxPerPerson, wallVideoLimitSec, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
+import { addWallMedia, castContestVote, getMyContestVote, getMyRaffleSicil, hasLikedMedia, isCurrentSession, likeMedia, raffleRegistrationOpen, registerRaffle, resolveCode, sendWallWish, wallMaxPerPerson, wallVideoLimitSec, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
 import { cloudinaryStatus, cldFit, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { getStoredNickname, storeIdentity, getStoredAvatarSeed } from "@/lib/participants";
 import { getVoterId } from "@/lib/responses";
@@ -61,7 +61,7 @@ export default function UploadPage() {
 
   const [tab, setTab] = useState<"upload" | "browse" | "wish" | "contest" | "raffle">("upload");
   const contestOn = wall?.contest?.status === "running";
-  const raffleOn = wall?.raffle?.type === "registration" && wall?.raffle?.registerOpen !== false;
+  const raffleOn = raffleRegistrationOpen(wall);
   const videoLimit = wallVideoLimitSec(wall); // sn (0 = kapalı)
   const videoOn = videoLimit > 0;
   const wishesOn = wall?.wishesEnabled !== false;

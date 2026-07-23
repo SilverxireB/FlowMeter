@@ -24,6 +24,7 @@ import WallMilestone from "@/components/wall/WallMilestone";
 import WallTopLoved from "@/components/wall/WallTopLoved";
 import WallFilmStage from "@/components/wall/WallFilmStage";
 import WallRaffle from "@/components/wall/WallRaffle";
+import WallRaffleBanner from "@/components/wall/WallRaffleBanner";
 import { EmptyState, WallNewMemory, WallStyles } from "@/components/wall/screen/shared";
 import { usePagedPlayback, useDominantColor } from "@/components/wall/screen/hooks";
 import StageMode from "@/components/wall/screen/StageMode";
@@ -259,7 +260,10 @@ export default function WallScreen() {
         />
       )}
 
-      {/* Çekiliş — kokpit "Çek!" deyince tüm ekranı kaplayan animasyon */}
+      {/* Çekiliş kayıt bandı (kayıt açıkken; tam kaplamaz) */}
+      {wall && <WallRaffleBanner wall={wall} count={raffleEntries.length} />}
+
+      {/* Çekiliş çekim animasyonu (kokpit "Çek!" deyince) */}
       {wall?.raffle && <WallRaffle wall={wall} entries={raffleEntries} />}
 
       <WallStyles />

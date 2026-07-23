@@ -175,6 +175,7 @@ export interface Wall {
   raffle?: {
     type: "registration" | "number";
     registerOpen?: boolean; // kayıt türünde misafirler girebilir mi
+    registerUntil?: Timestamp | null; // kayıt penceresi sonu (varsa geri sayım); null = süresiz
     min?: number;
     max?: number;
     prize?: string;
