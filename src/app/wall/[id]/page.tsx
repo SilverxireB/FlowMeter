@@ -348,9 +348,15 @@ function WallNewMemory({ media }: { media: WallMedia[] }) {
     known.current = new Set(media.map((m) => m.id));
     if (first || !newest) return;
     setShow(newest);
+  }, [media]);
+
+  // Gizleme YALNIZ `show`'a bağlı — media değişimi (beğeni vb.) timer'ı iptal
+  // edip rozeti kalıcı ekranda bırakmasın.
+  useEffect(() => {
+    if (!show) return;
     const t = window.setTimeout(() => setShow(null), 5000);
     return () => window.clearTimeout(t);
-  }, [media]);
+  }, [show]);
 
   if (!show) return null;
   const poster = mediaPoster(show, 120, 120);
