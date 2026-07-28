@@ -30,6 +30,7 @@ export default function VideowallListPage() {
   const [cols, setCols] = useState(3);
   const [rows, setRows] = useState(1);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (user) setWalls(await listVideowalls(user.uid));
@@ -55,24 +56,38 @@ export default function VideowallListPage() {
     e.preventDefault();
     if (!user || busy) return;
     setBusy(true);
+    setErr(null);
     try {
       const id = await createVideowall(user.uid, name.trim() || "Yeni duvar", w, h, cols, rows);
       router.push(`/videowall/${id}/edit`);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Duvar oluşturulamadı, tekrar dene.");
     } finally {
       setBusy(false);
     }
   }
 
   async function remove(v: Videowall) {
-    if (!confirm(`"${v.name}" silinsin mi?`)) return;
-    await deleteVideowall(v);
-    refresh();
+    if (!confirm(`"${v.name}" ve yüklenmiş medyası silinsin mi? Bu işlem geri alınamaz.`)) return;
+    setErr(null);
+    try {
+      const idToken = user ? await user.getIdToken().catch(() => undefined) : undefined;
+      await deleteVideowall(v, idToken);
+      refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Silme başarısız, tekrar dene.");
+    }
   }
 
   async function duplicate(v: Videowall) {
     if (!user) return;
-    await duplicateVideowall(user.uid, v);
-    refresh();
+    setErr(null);
+    try {
+      await duplicateVideowall(user.uid, v);
+      refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Kopyalanamadı, tekrar dene.");
+    }
   }
 
   if (loading || !user) {
@@ -92,6 +107,8 @@ export default function VideowallListPage() {
       <section className="max-w-4xl mx-auto px-4 py-10">
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">Video duvarların</h1>
         <p className="text-white/50 text-sm mb-6">Çözünürlük + ekran ızgarası tanımla, alanlara içerik yerleştir, tam ekran yayınla.</p>
+
+        {err && <div className="mb-5 rounded-2xl bg-[#ff6b6b]/15 border border-[#ff6b6b]/30 text-[#ffb4b4] px-4 py-3 text-sm font-semibold">{err}</div>}
 
         {/* Oluştur */}
         <form onSubmit={create} className="rounded-2xl bg-white/5 border border-white/10 p-5 mb-8 flex flex-col gap-4">

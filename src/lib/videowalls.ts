@@ -35,6 +35,17 @@ export function slugify(s: string): string {
   );
 }
 
+/** Çakışmayan slug üret: "giris" doluysa "giris-2", "giris-3"… (kendi id'si hariç). */
+async function uniqueSlug(name: string, excludeId?: string): Promise<string> {
+  const base = slugify(name);
+  for (let i = 0; i < 20; i++) {
+    const cand = i === 0 ? base : `${base}-${i + 1}`;
+    const snap = await getDocs(query(collection(db(), "videowalls"), where("slug", "==", cand)));
+    if (!snap.docs.some((d) => d.id !== excludeId)) return cand;
+  }
+  return `${base}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
 /** Bir alanın kapladığı hücre kutusu (ızgara koordinatı, dahil). */
 export interface CellBox {
   c0: number;
@@ -127,7 +138,7 @@ export async function createVideowall(
   const ref = await addDoc(collection(db(), "videowalls"), {
     ownerId,
     name: nm,
-    slug: slugify(nm),
+    slug: await uniqueSlug(nm),
     width: Math.max(1, Math.round(width)),
     height: Math.max(1, Math.round(height)),
     cols: Math.max(1, Math.round(cols)),
@@ -163,13 +174,13 @@ export async function updateVideowall(id: string, patch: Partial<Videowall>): Pr
 
 export async function renameVideowall(id: string, name: string): Promise<void> {
   const nm = name.trim().slice(0, 80);
-  await updateDoc(doc(db(), "videowalls", id), { name: nm, slug: slugify(nm), updatedAt: serverTimestamp() });
+  await updateDoc(doc(db(), "videowalls", id), { name: nm, slug: await uniqueSlug(nm, id), updatedAt: serverTimestamp() });
 }
 
 /** Eski (slug'sız) duvarlara isimden slug doldur (edit sayfası açılınca bir kez). */
 export async function ensureSlug(v: Videowall): Promise<void> {
   if (v.slug) return;
-  await updateDoc(doc(db(), "videowalls", v.id), { slug: slugify(v.name) });
+  await updateDoc(doc(db(), "videowalls", v.id), { slug: await uniqueSlug(v.name, v.id) });
 }
 
 /** Slug ile duvar izle (public yayın linki /flowsign/[slug]). */
@@ -203,9 +214,11 @@ export async function duplicateVideowall(ownerId: string, v: Videowall): Promise
     id: zid(),
     items: (z.items ?? []).map((it) => ({ ...it, id: `it-${Math.random().toString(36).slice(2, 9)}` })),
   }));
+  const name = `${v.name} (kopya)`;
   const ref = await addDoc(collection(db(), "videowalls"), {
     ownerId,
-    name: `${v.name} (kopya)`,
+    name,
+    slug: await uniqueSlug(name),
     width: v.width,
     height: v.height,
     cols: v.cols,
@@ -217,6 +230,18 @@ export async function duplicateVideowall(ownerId: string, v: Videowall): Promise
   return ref.id;
 }
 
-export async function deleteVideowall(v: Videowall): Promise<void> {
+/**
+ * Duvarı sil. idToken verilirse ÖNCE Cloudinary flowsign/{id}/ klasörü sunucu
+ * tarafında topluca temizlenir (yetim dosya/depolama sızıntısı kalmaz), sonra
+ * Firestore dokümanı silinir. Temizlik hatası silmeyi engellemez (best-effort).
+ */
+export async function deleteVideowall(v: Videowall, idToken?: string): Promise<void> {
+  if (idToken) {
+    await fetch("/api/wall/destroy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ wallId: v.id, idToken, mode: "sign" }),
+    }).catch(() => {});
+  }
   await deleteDoc(doc(db(), "videowalls", v.id));
 }

@@ -20,10 +20,11 @@ import {
 } from "@/lib/presentations";
 import { getUserRecord, isAdminUser, upsertUserRecord } from "@/lib/users";
 import { createWall, deleteWall, listWalls } from "@/lib/walls";
+import { listVideowalls } from "@/lib/videowalls";
 import { TEMPLATES } from "@/lib/templates";
 import { themeStyle } from "@/lib/themes";
 import { withTimeout } from "@/lib/withTimeout";
-import { Presentation, Slide, Wall } from "@/lib/types";
+import { Presentation, Slide, Videowall, Wall } from "@/lib/types";
 
 /** Kart önizlemesi — sunumun gerçek 1. slaytını render eder (yoksa başlık). */
 function CardThumb({ presentation, view }: { presentation: Presentation; view: "grid" | "list" }) {
@@ -77,6 +78,7 @@ export default function DashboardPage() {
   // Ürün seçimi: null = HUB (iki markalı kart), decks = FlowMeter, walls = FlowWall
   const [product, setProduct] = useState<"decks" | "walls" | null>(null);
   const [walls, setWalls] = useState<Wall[]>([]);
+  const [signs, setSigns] = useState<Videowall[]>([]);
   const [wallTitle, setWallTitle] = useState("");
 
   const refresh = useCallback(async () => {
@@ -87,10 +89,13 @@ export default function DashboardPage() {
     if (user) setWalls(await listWalls(user.uid));
   }, [user]);
 
-  // Her iki ürünün sayısı/son öğeleri hub'da görünür → ikisini de yükle.
+  // Üç ürünün sayısı/son öğeleri hub'da görünür → hepsini yükle.
   useEffect(() => {
     refreshWalls();
   }, [refreshWalls]);
+  useEffect(() => {
+    if (user) listVideowalls(user.uid).then(setSigns).catch(() => {});
+  }, [user]);
 
   // Ürün seçimi URL'e yansır (geri-tuşu / paylaşılabilir link), join linkleri değişmez.
   const selectProduct = useCallback((p: "decks" | "walls" | null) => {
@@ -363,16 +368,27 @@ export default function DashboardPage() {
               </div>
 
               {/* FlowSign (VideoWall) */}
-              <Link href="/videowall" className="rounded-3xl shadow-sm overflow-hidden flex flex-col text-white group" style={{ background: "linear-gradient(160deg,#062a2a 0%,#0c3b3b 100%)" }}>
+              <div className="rounded-3xl shadow-sm overflow-hidden flex flex-col text-white" style={{ background: "linear-gradient(160deg,#062a2a 0%,#0c3b3b 100%)" }}>
                 <div className="p-6">
                   <Logo size="lg" variant="sign" onDark />
                   <p className="text-white/55 text-sm mt-3">Video-wall & dijital tabela</p>
                 </div>
                 <div className="p-6 pt-4 flex-1 flex flex-col">
-                  <p className="text-white/60 text-sm mb-4">Çözünürlük + ekran ızgarası tanımla, alanlara video/görsel/sayfa yerleştir, tam ekran yayınla.</p>
-                  <span className="mt-auto rounded-xl bg-white text-[#0c3b3b] px-4 py-2 text-sm font-semibold text-center group-hover:opacity-90">Aç →</span>
+                  <p className="text-xs text-white/50 mb-2 tabular-nums">{signs.length} duvar</p>
+                  <ul className="flex flex-col gap-1 mb-4">
+                    {signs.slice(0, 3).map((s) => (
+                      <li key={s.id}>
+                        <button onClick={() => router.push(`/videowall/${s.id}/edit`)} className="w-full text-left text-sm truncate text-white/75 hover:text-white py-1">• {s.name}</button>
+                      </li>
+                    ))}
+                    {signs.length === 0 && <li className="text-sm text-white/45 py-1">Henüz duvar yok</li>}
+                  </ul>
+                  <div className="mt-auto flex gap-2">
+                    <Link href="/videowall" className="flex-1 rounded-xl bg-white/10 border border-white/15 py-2 text-sm font-semibold hover:bg-white/15 text-center">Duvarlar →</Link>
+                    <Link href="/videowall" className="rounded-xl bg-white text-[#0c3b3b] px-4 py-2 text-sm font-semibold">＋ Yeni</Link>
+                  </div>
                 </div>
-              </Link>
+              </div>
             </div>
           </div>
         )}

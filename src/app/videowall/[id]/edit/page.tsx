@@ -69,12 +69,13 @@ export default function VideowallEditPage() {
         <div className="flex items-center gap-2.5 min-w-0">
           <Link href="/videowall" className="text-white/50 hover:text-white shrink-0 text-lg">←</Link>
           <input
+            key={vw.name}
             defaultValue={vw.name}
-            onBlur={(e) => e.target.value.trim() && renameVideowall(id, e.target.value).catch(console.error)}
+            onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== vw.name && renameVideowall(id, e.target.value).catch(console.error)}
             className="bg-transparent font-display font-semibold text-lg focus:outline-none border-b border-transparent focus:border-white/30 min-w-0"
           />
         </div>
-        <a href={playUrl} target="_blank" className="rounded-xl bg-[#2dd4bf] text-[#04231f] px-4 py-2 text-sm font-semibold shrink-0">▶ Yayınla ↗</a>
+        <a href={`/flowsign/${slug}`} target="_blank" className="rounded-xl bg-[#2dd4bf] text-[#04231f] px-4 py-2 text-sm font-semibold shrink-0">▶ Yayınla ↗</a>
       </header>
 
       <section className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
@@ -122,11 +123,11 @@ export default function VideowallEditPage() {
             </div>
             <label className="flex flex-col gap-1">
               <span className="text-white/50 text-xs">Yatay ekran</span>
-              <input type="number" defaultValue={vw.cols} onBlur={(e) => { const c = Math.max(1, Number(e.target.value) || 1); if (c !== vw.cols && confirm("Izgarayı değiştirmek yerleşimi sıfırlar. Devam?")) { resetGrid(id, c, vw.rows).catch(console.error); setSelectedId(null); } else e.target.value = String(vw.cols); }} className="w-20 rounded-lg bg-white/10 border border-white/15 px-3 py-2" />
+              <input key={`c${vw.cols}`} type="number" defaultValue={vw.cols} onBlur={(e) => { const c = Math.max(1, Number(e.target.value) || 1); if (c !== vw.cols && confirm("Izgarayı değiştirmek yerleşimi sıfırlar. Devam?")) { resetGrid(id, c, vw.rows).catch(console.error); setSelectedId(null); } else e.target.value = String(vw.cols); }} className="w-20 rounded-lg bg-white/10 border border-white/15 px-3 py-2" />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-white/50 text-xs">Dikey ekran</span>
-              <input type="number" defaultValue={vw.rows} onBlur={(e) => { const rr = Math.max(1, Number(e.target.value) || 1); if (rr !== vw.rows && confirm("Izgarayı değiştirmek yerleşimi sıfırlar. Devam?")) { resetGrid(id, vw.cols, rr).catch(console.error); setSelectedId(null); } else e.target.value = String(vw.rows); }} className="w-20 rounded-lg bg-white/10 border border-white/15 px-3 py-2" />
+              <input key={`r${vw.rows}`} type="number" defaultValue={vw.rows} onBlur={(e) => { const rr = Math.max(1, Number(e.target.value) || 1); if (rr !== vw.rows && confirm("Izgarayı değiştirmek yerleşimi sıfırlar. Devam?")) { resetGrid(id, vw.cols, rr).catch(console.error); setSelectedId(null); } else e.target.value = String(vw.rows); }} className="w-20 rounded-lg bg-white/10 border border-white/15 px-3 py-2" />
             </label>
             <span className="text-white/40 text-xs pb-2">{vw.zones?.length ?? 0} alan</span>
           </div>
@@ -141,6 +142,7 @@ export default function VideowallEditPage() {
         {/* İçerik paneli (seçili alan) */}
         {selected && selectedIndex >= 0 && (
           <ZonePanel
+            key={selected.id} /* alan değişince panel remount → input'lar taze */
             vw={vw}
             zone={selected}
             index={selectedIndex}

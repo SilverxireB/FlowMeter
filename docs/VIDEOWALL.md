@@ -49,8 +49,11 @@ image=süre, video=bitince, url=iframe+süre. Geçişte crossfade. 7/24 için ö
 | `/flowsign/[slug]` | **Kolay yayın linki** — insan-dostu ad (`/flowsign/giris-holu`); slug ile duvarı bulur. Tabela PC'sinde açması kolay. |
 
 > Oynatma motoru tek yerde: `components/videowall/PlayerStage.tsx` (iki rota da kullanır).
-> Slug: `slugify(name)` create/rename'de yazılır; eski duvarlara edit'te `ensureSlug` doldurur.
+> Slug: `uniqueSlug` (çakışırsa -2, -3…) create/rename/duplicate'te; eskilere edit'te `ensureSlug`.
 > Görseller önceden **decode** edilip yüklenir + enter animasyonu reflow'lu → geçişte flaş yok.
+> Silme: `deleteVideowall(v, idToken)` önce `/api/wall/destroy` `mode:"sign"` ile Cloudinary
+> `flowsign/{id}/` klasörünü temizler (yetim dosya yok), sonra dokümanı siler.
+> LayoutEditor etkileşimi pointer-capture + koordinat matematiği (dokunmatik de çalışır).
 
 ## Layout editörü (en zor UI)
 Model: her zone = `{x,y,w,h}` (0–1 oran) + **grid snap** (cols×rows'a hizalar).

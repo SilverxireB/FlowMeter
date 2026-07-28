@@ -80,7 +80,10 @@ export default function ZonePanel({
       return;
     }
     const media = files.filter((f) => f.type.startsWith("image/") || f.type.startsWith("video/"));
-    if (!media.length) return;
+    if (!media.length) {
+      setErr("Yalnızca görsel veya video dosyaları yüklenebilir.");
+      return;
+    }
     const added: ZoneItem[] = [];
     for (let i = 0; i < media.length; i++) {
       try {

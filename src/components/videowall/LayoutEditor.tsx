@@ -3,10 +3,11 @@
 /**
  * FlowSign yerleşim editörü (v2). Fiziksel ekran ızgarası (cols×rows) üstünde:
  *  - hücrelere SÜRÜKLE → dikdörtgen alanları birleştir
- *  - alana TIKLA → seç (içerik/böl/sığdır paneli için)
- * Alanlar oransal (0–1) saklanır → yayın perdesi çözünürlükten bağımsız böler.
+ *  - alana TIKLA → seç (içerik paneli için)
+ * Etkileşim pointer-capture + koordinat matematiğiyle (fare VE dokunmatik çalışır;
+ * hücre başına DOM yok). Alanlar oransal (0–1) → yayın çözünürlükten bağımsız.
  */
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { cldFit } from "@/lib/cloudinary";
 import { CellBox, mergeCells, zoneCells } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
@@ -54,6 +55,7 @@ export default function LayoutEditor({
   onZones: (zones: Zone[]) => void;
 }) {
   const { cols, rows } = vw;
+  const gridRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ anchor: Cell; hover: Cell } | null>(null);
   const dragRef = useRef(drag);
   dragRef.current = drag;
@@ -65,27 +67,31 @@ export default function LayoutEditor({
     for (let r = cb.r0; r <= cb.r1; r++) for (let c = cb.c0; c <= cb.c1; c++) owner.set(`${c},${r}`, z);
   }
 
-  // Pointer serbest bırakıldığında (dışarıda bile) işlemi bitir.
-  useEffect(() => {
-    function up() {
-      const d = dragRef.current;
-      if (!d) return;
-      setDrag(null);
-      if (d.anchor.c === d.hover.c && d.anchor.r === d.hover.r) {
-        onSelect(owner.get(`${d.anchor.c},${d.anchor.r}`)?.id ?? null);
-      } else {
-        onZones(mergeCells(vw.zones ?? [], cols, rows, boxOf(d.anchor, d.hover)));
-        onSelect(null);
-      }
+  // Koordinat → hücre (pointer-capture sayesinde dışarı taşsa da kenara kilitlenir).
+  const clamp = (v: number, max: number) => Math.min(max, Math.max(0, v));
+  const cellAt = (clientX: number, clientY: number): Cell | null => {
+    const el = gridRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    return {
+      c: clamp(Math.floor(((clientX - rect.left) / rect.width) * cols), cols - 1),
+      r: clamp(Math.floor(((clientY - rect.top) / rect.height) * rows), rows - 1),
+    };
+  };
+
+  const finish = () => {
+    const d = dragRef.current;
+    if (!d) return;
+    setDrag(null);
+    if (d.anchor.c === d.hover.c && d.anchor.r === d.hover.r) {
+      onSelect(owner.get(`${d.anchor.c},${d.anchor.r}`)?.id ?? null);
+    } else {
+      onZones(mergeCells(vw.zones ?? [], cols, rows, boxOf(d.anchor, d.hover)));
+      onSelect(null);
     }
-    window.addEventListener("pointerup", up);
-    return () => window.removeEventListener("pointerup", up);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vw.zones, cols, rows]);
+  };
 
   const selBox = drag ? boxOf(drag.anchor, drag.hover) : null;
-  const inSel = (c: number, r: number) => selBox && c >= selBox.c0 && c <= selBox.c1 && r >= selBox.r0 && r <= selBox.r1;
-
   const aspect = vw.width / vw.height;
 
   return (
@@ -122,22 +128,37 @@ export default function LayoutEditor({
           <div key={`r${i}`} className="absolute left-0 right-0 border-t border-dashed border-white/25 pointer-events-none z-20" style={{ top: `${((i + 1) / rows) * 100}%` }} />
         ))}
 
-        {/* Hücre etkileşim katmanı (üstte, tüm tıklama/sürükleme burada) */}
-        <div className="absolute inset-0 z-30 grid" style={{ gridTemplateColumns: `repeat(${cols},1fr)`, gridTemplateRows: `repeat(${rows},1fr)` }}>
-          {Array.from({ length: rows }).map((_, r) =>
-            Array.from({ length: cols }).map((_, c) => (
-              <div
-                key={`${c},${r}`}
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  setDrag({ anchor: { c, r }, hover: { c, r } });
-                }}
-                onPointerEnter={() => setDrag((d) => (d ? { ...d, hover: { c, r } } : d))}
-                className={inSel(c, r) ? "bg-white/25" : "hover:bg-white/5"}
-              />
-            ))
-          )}
-        </div>
+        {/* Sürükleme seçim kutusu */}
+        {selBox && (
+          <div
+            className="absolute z-[25] bg-[#2dd4bf]/20 border-2 border-[#2dd4bf] pointer-events-none"
+            style={{
+              left: `${(selBox.c0 / cols) * 100}%`,
+              top: `${(selBox.r0 / rows) * 100}%`,
+              width: `${((selBox.c1 - selBox.c0 + 1) / cols) * 100}%`,
+              height: `${((selBox.r1 - selBox.r0 + 1) / rows) * 100}%`,
+            }}
+          />
+        )}
+
+        {/* Etkileşim katmanı — tek yüzey, pointer-capture (fare + dokunmatik) */}
+        <div
+          ref={gridRef}
+          className="absolute inset-0 z-30 cursor-crosshair"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            e.currentTarget.setPointerCapture(e.pointerId);
+            const cell = cellAt(e.clientX, e.clientY);
+            if (cell) setDrag({ anchor: cell, hover: cell });
+          }}
+          onPointerMove={(e) => {
+            if (!dragRef.current) return;
+            const cell = cellAt(e.clientX, e.clientY);
+            if (cell) setDrag((d) => (d ? { ...d, hover: cell } : d));
+          }}
+          onPointerUp={finish}
+          onPointerCancel={() => setDrag(null)}
+        />
       </div>
       <p className="text-white/45 text-xs mt-3">
         Hücrelere <b>sürükle</b> → alanları birleştir · alana <b>tıkla</b> → seç (içerik ekle / böl).

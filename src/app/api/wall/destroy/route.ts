@@ -1,11 +1,12 @@
 /**
- * FlowWall — Cloudinary'den KALICI dosya silme (yalnız duvar sahibi).
+ * FlowWall + FlowSign — Cloudinary'den KALICI dosya silme (yalnız duvar sahibi).
  * Secret istemciye asla inmez; imza burada üretilir.
  *
  * Güvenlik zinciri:
  *  1. Firebase idToken doğrulanır (identitytoolkit REST) → uid
- *  2. walls/{wallId}.ownerId == uid kontrolü (Firestore REST; walls herkese okunur)
+ *  2. (walls|videowalls)/{wallId}.ownerId == uid kontrolü (Firestore REST; herkese okunur)
  *  3. Cloudinary destroy çağrısı imzalanıp yapılır
+ * mode: yok=tek dosya (FlowWall) · "wall"=walls/{id}/ toplu · "sign"=flowsign/{id}/ toplu
  *
  * Env (Vercel, server-side): CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
  * (+ mevcut NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -38,9 +39,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "bad-json" }, { status: 400 });
   }
   const { wallId, cloudinaryId, idToken } = body;
-  const wallMode = body.mode === "wall"; // tüm duvarı topluca temizle (prefix)
+  const wallMode = body.mode === "wall"; // FlowWall: tüm duvarı topluca temizle (prefix)
+  const signMode = body.mode === "sign"; // FlowSign: videowall medyasını topluca temizle
+  const bulk = wallMode || signMode;
   const resourceType = body.resourceType === "video" ? "video" : "image";
-  if (!wallId || !idToken || (!wallMode && !cloudinaryId)) {
+  if (!wallId || !idToken || (!bulk && !cloudinaryId)) {
     return NextResponse.json({ ok: false, error: "missing-params" }, { status: 400 });
   }
 
@@ -55,18 +58,20 @@ export async function POST(req: Request) {
   const uid: string | undefined = (await lookup.json())?.users?.[0]?.localId;
   if (!uid) return NextResponse.json({ ok: false, error: "auth-failed" }, { status: 401 });
 
-  // 2) sahiplik: walls/{wallId}.ownerId == uid
+  // 2) sahiplik: (walls|videowalls)/{wallId}.ownerId == uid
+  const ownerCollection = signMode ? "videowalls" : "walls";
   const wallRes = await fetch(
-    `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/walls/${wallId}`
+    `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/${ownerCollection}/${wallId}`
   );
   if (!wallRes.ok) return NextResponse.json({ ok: false, error: "wall-not-found" }, { status: 404 });
   const ownerId = (await wallRes.json())?.fields?.ownerId?.stringValue;
   if (ownerId !== uid) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
 
-  // ── Duvar toplu temizlik: walls/{wallId}/ altındaki TÜM dosyaları sil ─────────
+  // ── Toplu temizlik: duvarın klasörü altındaki TÜM dosyaları sil ───────────────
   // (duvar silinince yetim Cloudinary dosyası kalmasın → depolama sızıntısı biter)
-  if (wallMode) {
-    const prefix = `walls/${wallId}`;
+  // FlowWall: walls/{id}/ · FlowSign: flowsign/{id}/
+  if (bulk) {
+    const prefix = signMode ? `flowsign/${wallId}` : `walls/${wallId}`;
     const auth = "Basic " + Buffer.from(`${KEY}:${SECRET}`).toString("base64");
     const purged: Record<string, number> = {};
     // image ve video ayrı resource_type → her biri için prefix sil
