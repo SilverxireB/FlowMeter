@@ -1,15 +1,17 @@
 "use client";
 
 /**
- * FlowSign — video-wall listesi + oluştur. Sahibinin duvarları (yetkili = parlak;
- * ileride paylaşılan/rol → sönük bilgi kartları). Online: Firestore videowalls/.
+ * FlowSign — video-wall listesi + oluştur. YETKİ GÖRÜNÜMÜ: senin duvarların
+ * PARLAK (tam yetki: düzenle/yayınla/kopyala/sil), diğer kullanıcılarınki SÖNÜK
+ * bilgi kartı (yalnız izleme — yayın linki zaten public). Self-host'ta fabrika
+ * rolleriyle eşlenecek. Online: Firestore videowalls/.
  */
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Logo from "@/components/Logo";
 import { useAuthUser } from "@/lib/hooks";
-import { createVideowall, deleteVideowall, duplicateVideowall, listVideowalls, slugify } from "@/lib/videowalls";
+import { createVideowall, deleteVideowall, duplicateVideowall, listAllVideowalls, slugify } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
 
 const PRESETS: { label: string; w: number; h: number; cols: number; rows: number }[] = [
@@ -33,8 +35,11 @@ export default function VideowallListPage() {
   const [err, setErr] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (user) setWalls(await listVideowalls(user.uid));
+    if (user) setWalls(await listAllVideowalls());
   }, [user]);
+
+  const mine = useMemo(() => walls.filter((v) => v.ownerId === user?.uid), [walls, user]);
+  const others = useMemo(() => walls.filter((v) => v.ownerId !== user?.uid), [walls, user]);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -58,7 +63,7 @@ export default function VideowallListPage() {
     setBusy(true);
     setErr(null);
     try {
-      const id = await createVideowall(user.uid, name.trim() || "Yeni duvar", w, h, cols, rows);
+      const id = await createVideowall(user.uid, name.trim() || "Yeni duvar", w, h, cols, rows, user.displayName || user.email || "");
       router.push(`/videowall/${id}/edit`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Duvar oluşturulamadı, tekrar dene.");
@@ -168,15 +173,15 @@ export default function VideowallListPage() {
           </div>
         </form>
 
-        {/* Liste */}
-        {walls.length === 0 ? (
+        {/* Senin duvarların — tam yetki (parlak) */}
+        {mine.length === 0 ? (
           <div className="text-center py-16 text-white/40">
             <p className="text-5xl mb-4" aria-hidden>🖥️</p>
-            <p>Henüz duvar yok. Yukarıdan ilkini oluştur.</p>
+            <p>Henüz duvarın yok. Yukarıdan ilkini oluştur.</p>
           </div>
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2">
-            {walls.map((v) => (
+            {mine.map((v) => (
               <li key={v.id} className="rounded-2xl bg-white/5 border border-white/10 p-4 flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -195,6 +200,30 @@ export default function VideowallListPage() {
               </li>
             ))}
           </ul>
+        )}
+
+        {/* Diğer kullanıcıların duvarları — yetkisiz (sönük, bilgi + izleme) */}
+        {others.length > 0 && (
+          <div className="mt-10">
+            <p className="text-white/40 text-xs uppercase tracking-widest mb-3">Diğer duvarlar <span className="normal-case tracking-normal">(yetkin yok — yalnız izleme)</span></p>
+            <ul className="grid gap-4 sm:grid-cols-2">
+              {others.map((v) => (
+                <li key={v.id} className="rounded-2xl bg-white/[0.03] border border-white/5 p-4 flex flex-col gap-3 opacity-60 hover:opacity-80 transition-opacity">
+                  <div className="min-w-0">
+                    <p className="font-display font-semibold truncate text-white/70">{v.name}</p>
+                    <p className="text-white/35 text-xs mt-0.5 tabular-nums">
+                      {v.width}×{v.height} · {v.cols}×{v.rows} ekran
+                      {v.ownerName ? <span> · 👤 {v.ownerName}</span> : null}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <a href={`/flowsign/${v.slug ?? slugify(v.name)}`} target="_blank" className="rounded-lg bg-white/10 border border-white/10 px-4 py-2 text-sm font-semibold text-white/60">▶ İzle ↗</a>
+                    <span className="rounded-lg px-3 py-2 text-xs text-white/30 self-center">🔒 Düzenleme sahibinde</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </section>
     </main>

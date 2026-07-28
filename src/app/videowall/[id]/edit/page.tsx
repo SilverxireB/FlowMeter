@@ -27,10 +27,10 @@ export default function VideowallEditPage() {
 
   useEffect(() => watchVideowall(id, setVw), [id]);
   useEffect(() => setOrigin(window.location.origin), []);
-  // Eski (slug'sız) duvara isimden slug doldur → kolay link çalışsın.
+  // Eski (slug'sız) duvara isimden slug doldur → kolay link çalışsın (yalnız sahibi yazabilir).
   useEffect(() => {
-    if (vw && !vw.slug) ensureSlug(vw).catch(() => {});
-  }, [vw]);
+    if (vw && !vw.slug && user && vw.ownerId === user.uid) ensureSlug(vw).catch(() => {});
+  }, [vw, user]);
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [loading, user, router]);
@@ -58,8 +58,27 @@ export default function VideowallEditPage() {
   const selected = useMemo(() => (vw?.zones ?? []).find((z) => z.id === selectedId) ?? null, [vw, selectedId]);
   const selectedIndex = useMemo(() => (vw?.zones ?? []).findIndex((z) => z.id === selectedId), [vw, selectedId]);
 
-  if (vw === undefined) return <main className="min-h-screen grid place-items-center bg-[#041a1a] text-white/60">Yükleniyor…</main>;
+  if (vw === undefined || loading) return <main className="min-h-screen grid place-items-center bg-[#041a1a] text-white/60">Yükleniyor…</main>;
   if (vw === null) return <main className="min-h-screen grid place-items-center bg-[#041a1a] text-white/60">Duvar bulunamadı.</main>;
+
+  // Yetki: düzenleme yalnız sahibinde — başkası açarsa bilgi + izleme.
+  if (user && vw.ownerId !== user.uid) {
+    return (
+      <main className="min-h-screen grid place-items-center bg-[#041a1a] text-white px-4">
+        <div className="text-center max-w-sm">
+          <p className="text-5xl mb-4" aria-hidden>🔒</p>
+          <h1 className="font-display text-xl font-semibold mb-2">Bu duvarda düzenleme yetkin yok</h1>
+          <p className="text-white/50 text-sm mb-6">
+            &ldquo;{vw.name}&rdquo;{vw.ownerName ? ` ${vw.ownerName} kullanıcısına ait` : " başka bir kullanıcıya ait"}. Yayını izleyebilirsin.
+          </p>
+          <div className="flex gap-2 justify-center">
+            <a href={`/flowsign/${slug}`} target="_blank" className="rounded-xl bg-[#2dd4bf] text-[#04231f] px-5 py-2.5 text-sm font-semibold">▶ İzle ↗</a>
+            <Link href="/videowall" className="rounded-xl bg-white/10 border border-white/15 px-5 py-2.5 text-sm font-semibold">← Duvarlar</Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   const saveZones = (zones: Videowall["zones"]) => updateZones(id, zones).catch(console.error);
 

@@ -480,6 +480,7 @@ export interface Zone {
 export interface Videowall {
   id: string;
   ownerId: string;
+  ownerName?: string; // listede "kimin duvarı" (yetkisiz sönük kartlarda bilgi)
   name: string;
   slug?: string; // insan-dostu yayın linki: /flowsign/{slug}
   width: number; // toplam çözünürlük px

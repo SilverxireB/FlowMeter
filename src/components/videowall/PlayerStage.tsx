@@ -81,7 +81,9 @@ function Layer({ item, transition, loop, onEnded, onError }: { item: ZoneItem; t
       {item.kind === "video" ? (
         <video src={item.src} autoPlay muted playsInline loop={loop} onEnded={onEnded} onError={onError} className="w-full h-full" style={{ objectFit: "fill" }} />
       ) : item.kind === "url" ? (
-        <iframe src={item.src} title={item.name || "sayfa"} className="w-full h-full border-0" />
+        // pointer-events-none: tabela salt-görüntü; iframe fare olaylarını yutup
+        // kontrollerin (tam ekran / ekran tanı) belirmesini engellemesin.
+        <iframe src={item.src} title={item.name || "sayfa"} className="w-full h-full border-0 pointer-events-none" />
       ) : item.kind === "text" ? (
         <TextView item={item} />
       ) : item.kind === "clock" ? (

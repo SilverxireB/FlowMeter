@@ -60,9 +60,11 @@ Model: her zone = `{x,y,w,h}` (0–1 oran) + **grid snap** (cols×rows'a hizalar
 Böl (yatay/dikey) / birleştir (komşu seç) / sürükle-taşı / kenar-çek yeniden boyut.
 Başlangıç: cols×rows tam ızgara; kullanıcı böler/birleştirir.
 
-## Yetkilendirme / liste
-Videowall listesi: `ownerId == uid` (+ ileride paylaşılan/rol). Yetkin olan **parlak**,
-yetkin olmayan **sönük + bilgi amaçlı** (self-host'ta fabrika rolleriyle eşlenecek).
+## Yetkilendirme / liste — YAPILDI
+Liste `listAllVideowalls()`: senin duvarların **parlak** (düzenle/yayınla/kopyala/sil),
+diğer kullanıcılarınki **sönük bilgi kartı** (👤 sahip adı + ▶ İzle; yayın zaten public).
+Edit sayfası sahibi olmayana 🔒 "yetkin yok" ekranı gösterir (İzle + geri).
+`ownerName` create/duplicate'te denormalize edilir. Self-host'ta fabrika rolleriyle eşlenecek.
 
 ## Fazlar
 1. ✅ **v1 (online iskelet):** liste + oluştur + çözünürlük/ızgara config + grid önizleme + yayın rotası.

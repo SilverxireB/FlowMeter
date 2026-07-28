@@ -82,7 +82,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="px-6 py-5 text-xs text-muted">
-        <span>FlowMeter · FlowWall</span>
+        <span>FlowMeter · FlowWall · FlowSign</span>
       </footer>
     </main>
   );

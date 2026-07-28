@@ -132,11 +132,13 @@ export async function createVideowall(
   width: number,
   height: number,
   cols: number,
-  rows: number
+  rows: number,
+  ownerName?: string
 ): Promise<string> {
   const nm = name.trim() || "Yeni duvar";
   const ref = await addDoc(collection(db(), "videowalls"), {
     ownerId,
+    ownerName: ownerName ?? "",
     name: nm,
     slug: await uniqueSlug(nm),
     width: Math.max(1, Math.round(width)),
@@ -150,11 +152,22 @@ export async function createVideowall(
   return ref.id;
 }
 
+const byUpdated = (a: Videowall, b: Videowall) =>
+  (b.updatedAt?.toMillis() ?? b.createdAt?.toMillis() ?? 0) - (a.updatedAt?.toMillis() ?? a.createdAt?.toMillis() ?? 0);
+
 export async function listVideowalls(ownerId: string): Promise<Videowall[]> {
   const snap = await getDocs(query(collection(db(), "videowalls"), where("ownerId", "==", ownerId)));
-  return snap.docs
-    .map((d) => ({ id: d.id, ...d.data() }) as Videowall)
-    .sort((a, b) => (b.updatedAt?.toMillis() ?? b.createdAt?.toMillis() ?? 0) - (a.updatedAt?.toMillis() ?? a.createdAt?.toMillis() ?? 0));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Videowall).sort(byUpdated);
+}
+
+/**
+ * TÜM duvarlar (yetki görünümü): listede senin duvarların PARLAK (tam yetki),
+ * diğer kullanıcılarınki SÖNÜK bilgi kartı (yalnız izleme — yayın zaten public).
+ * Self-host'ta bu, fabrika rolleriyle eşlenecek (bkz. docs/VIDEOWALL.md).
+ */
+export async function listAllVideowalls(): Promise<Videowall[]> {
+  const snap = await getDocs(collection(db(), "videowalls"));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Videowall).sort(byUpdated);
 }
 
 export async function getVideowall(id: string): Promise<Videowall | null> {
@@ -217,6 +230,7 @@ export async function duplicateVideowall(ownerId: string, v: Videowall): Promise
   const name = `${v.name} (kopya)`;
   const ref = await addDoc(collection(db(), "videowalls"), {
     ownerId,
+    ownerName: v.ownerName ?? "",
     name,
     slug: await uniqueSlug(name),
     width: v.width,

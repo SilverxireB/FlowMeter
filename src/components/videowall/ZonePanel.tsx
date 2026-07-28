@@ -57,6 +57,11 @@ export default function ZonePanel({
   const [libOpen, setLibOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Uzun yükleme sırasında kullanıcı sıralama/silme yapabilir → bitişte GÜNCEL
+  // listeye ekle (bayat closure ile eski listeyi ezme).
+  const zoneRef = useRef(zone);
+  zoneRef.current = zone;
+
   const patch = (p: Partial<Zone>) => onZones((vw.zones ?? []).map((z) => (z.id === zone.id ? { ...z, ...p } : z)));
   const setItems = (items: ZoneItem[]) => patch({ items });
 
@@ -95,7 +100,7 @@ export default function ZonePanel({
       }
     }
     setQueue(null);
-    if (added.length) setItems([...zone.items, ...added]);
+    if (added.length) setItems([...zoneRef.current.items, ...added]);
     if (fileRef.current) fileRef.current.value = "";
   }
 
