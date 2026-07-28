@@ -12,7 +12,7 @@ import LayoutEditor from "@/components/videowall/LayoutEditor";
 import ZonePanel from "@/components/videowall/ZonePanel";
 import QrCode from "@/components/present/QrCode";
 import { useAuthUser } from "@/lib/hooks";
-import { renameVideowall, resetGrid, splitZone, updateZones, watchVideowall } from "@/lib/videowalls";
+import { ensureSlug, renameVideowall, resetGrid, slugify, splitZone, updateZones, watchVideowall } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
 
 export default function VideowallEditPage() {
@@ -20,16 +20,23 @@ export default function VideowallEditPage() {
   const router = useRouter();
   const { user, loading } = useAuthUser();
   const [vw, setVw] = useState<Videowall | null | undefined>(undefined);
-  const [playUrl, setPlayUrl] = useState("");
+  const [origin, setOrigin] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [guide, setGuide] = useState(false);
 
   useEffect(() => watchVideowall(id, setVw), [id]);
-  useEffect(() => setPlayUrl(`${window.location.origin}/videowall/${id}/play`), [id]);
+  useEffect(() => setOrigin(window.location.origin), []);
+  // Eski (slug'sız) duvara isimden slug doldur → kolay link çalışsın.
+  useEffect(() => {
+    if (vw && !vw.slug) ensureSlug(vw).catch(() => {});
+  }, [vw]);
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [loading, user, router]);
+
+  const slug = vw ? vw.slug ?? slugify(vw.name) : "";
+  const playUrl = origin ? `${origin}/flowsign/${slug}` : "";
   // İlk kullanım rehberi (bir kez).
   useEffect(() => {
     if (typeof window !== "undefined" && !localStorage.getItem("flowsign-onboarded")) setGuide(true);

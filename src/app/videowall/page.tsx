@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Logo from "@/components/Logo";
 import { useAuthUser } from "@/lib/hooks";
-import { createVideowall, deleteVideowall, duplicateVideowall, listVideowalls } from "@/lib/videowalls";
+import { createVideowall, deleteVideowall, duplicateVideowall, listVideowalls, slugify } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
 
 const PRESETS: { label: string; w: number; h: number; cols: number; rows: number }[] = [
@@ -108,6 +108,25 @@ export default function VideowallListPage() {
               </button>
             ))}
           </div>
+          {/* Canlı ızgara önizleme — tanımladığın duvarı burada gör */}
+          <div className="flex items-center gap-4">
+            <div
+              className="relative bg-black rounded-lg border border-white/15 overflow-hidden shrink-0"
+              style={{ width: w >= h ? 200 : 200 * (w / h), height: w >= h ? 200 * (h / w) : 200, maxWidth: 200, maxHeight: 200 }}
+            >
+              {Array.from({ length: Math.max(0, cols - 1) }).map((_, i) => (
+                <div key={`c${i}`} className="absolute top-0 bottom-0 border-l border-dashed border-[#2dd4bf]/40" style={{ left: `${((i + 1) / cols) * 100}%` }} />
+              ))}
+              {Array.from({ length: Math.max(0, rows - 1) }).map((_, i) => (
+                <div key={`r${i}`} className="absolute left-0 right-0 border-t border-dashed border-[#2dd4bf]/40" style={{ top: `${((i + 1) / rows) * 100}%` }} />
+              ))}
+              <div className="absolute inset-0 grid place-items-center text-[#2dd4bf]/70 text-xs font-semibold tabular-nums">{cols}×{rows}</div>
+            </div>
+            <p className="text-white/45 text-xs leading-relaxed">
+              <span className="text-white/70 font-semibold tabular-nums">{cols * rows} ekran</span> · {w}×{h}px<br />
+              Oluşturunca alanları sürükle-birleştir ile düzenler, içerik eklersin.
+            </p>
+          </div>
           <div className="flex flex-wrap items-end gap-3 text-sm">
             <label className="flex flex-col gap-1">
               <span className="text-white/50 text-xs">Genişlik</span>
@@ -154,7 +173,7 @@ export default function VideowallListPage() {
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <Link href={`/videowall/${v.id}/edit`} className="rounded-lg bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/15">Düzenle</Link>
-                  <a href={`/videowall/${v.id}/play`} target="_blank" className="rounded-lg bg-[#2dd4bf] text-[#04231f] px-4 py-2 text-sm font-semibold">▶ Yayınla ↗</a>
+                  <a href={`/flowsign/${v.slug ?? slugify(v.name)}`} target="_blank" className="rounded-lg bg-[#2dd4bf] text-[#04231f] px-4 py-2 text-sm font-semibold">▶ Yayınla ↗</a>
                 </div>
               </li>
             ))}

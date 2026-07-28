@@ -481,6 +481,7 @@ export interface Videowall {
   id: string;
   ownerId: string;
   name: string;
+  slug?: string; // insan-dostu yayın linki: /flowsign/{slug}
   width: number; // toplam çözünürlük px
   height: number;
   cols: number; // fiziksel ekran ızgarası

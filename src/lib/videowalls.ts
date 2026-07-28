@@ -20,6 +20,21 @@ import { Videowall, Zone } from "./types";
 
 const zid = () => `z-${Math.random().toString(36).slice(2, 8)}`;
 
+/** İnsan-dostu URL parçası: "Giriş Holü" → "giris-holu" (Türkçe karakter map). */
+export function slugify(s: string): string {
+  const map: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", İ: "i", Ç: "c", Ğ: "g", Ö: "o", Ş: "s", Ü: "u" };
+  return (
+    s
+      .replace(/[çğıöşüİÇĞÖŞÜ]/g, (m) => map[m] || m)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "duvar"
+  );
+}
+
 /** Bir alanın kapladığı hücre kutusu (ızgara koordinatı, dahil). */
 export interface CellBox {
   c0: number;
@@ -108,9 +123,11 @@ export async function createVideowall(
   cols: number,
   rows: number
 ): Promise<string> {
+  const nm = name.trim() || "Yeni duvar";
   const ref = await addDoc(collection(db(), "videowalls"), {
     ownerId,
-    name: name.trim() || "Yeni duvar",
+    name: nm,
+    slug: slugify(nm),
     width: Math.max(1, Math.round(width)),
     height: Math.max(1, Math.round(height)),
     cols: Math.max(1, Math.round(cols)),
@@ -145,7 +162,28 @@ export async function updateVideowall(id: string, patch: Partial<Videowall>): Pr
 }
 
 export async function renameVideowall(id: string, name: string): Promise<void> {
-  await updateDoc(doc(db(), "videowalls", id), { name: name.trim().slice(0, 80), updatedAt: serverTimestamp() });
+  const nm = name.trim().slice(0, 80);
+  await updateDoc(doc(db(), "videowalls", id), { name: nm, slug: slugify(nm), updatedAt: serverTimestamp() });
+}
+
+/** Eski (slug'sız) duvarlara isimden slug doldur (edit sayfası açılınca bir kez). */
+export async function ensureSlug(v: Videowall): Promise<void> {
+  if (v.slug) return;
+  await updateDoc(doc(db(), "videowalls", v.id), { slug: slugify(v.name) });
+}
+
+/** Slug ile duvar izle (public yayın linki /flowsign/[slug]). */
+export function watchVideowallBySlug(slug: string, cb: (v: Videowall | null) => void): () => void {
+  return onSnapshot(
+    query(collection(db(), "videowalls"), where("slug", "==", slug)),
+    (snap) => {
+      if (snap.empty) return cb(null);
+      const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Videowall);
+      docs.sort((a, b) => (b.updatedAt?.toMillis() ?? 0) - (a.updatedAt?.toMillis() ?? 0));
+      cb(docs[0]);
+    },
+    () => cb(null)
+  );
 }
 
 /** Yerleşim/içerik yazımı (birleştir/böl/öğe ekle). */

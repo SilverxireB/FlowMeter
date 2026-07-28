@@ -45,7 +45,12 @@ image=süre, video=bitince, url=iframe+süre. Geçişte crossfade. 7/24 için ö
 |---|---|
 | `/videowall` | Duvar listesi (yetkili = parlak, diğer = sönük) + Yeni |
 | `/videowall/[id]/edit` | Editör: çözünürlük/ızgara + sürükle-bırak layout + içerik + sıra/süre/saat + önizleme |
-| `/videowall/[id]/play` | Tam ekran oynatma (duvar çözünürlüğünde tuval, zone'lar mutlak konumlu) |
+| `/videowall/[id]/play` | Tam ekran oynatma (id ile; PlayerStage'i sarar) |
+| `/flowsign/[slug]` | **Kolay yayın linki** — insan-dostu ad (`/flowsign/giris-holu`); slug ile duvarı bulur. Tabela PC'sinde açması kolay. |
+
+> Oynatma motoru tek yerde: `components/videowall/PlayerStage.tsx` (iki rota da kullanır).
+> Slug: `slugify(name)` create/rename'de yazılır; eski duvarlara edit'te `ensureSlug` doldurur.
+> Görseller önceden **decode** edilip yüklenir + enter animasyonu reflow'lu → geçişte flaş yok.
 
 ## Layout editörü (en zor UI)
 Model: her zone = `{x,y,w,h}` (0–1 oran) + **grid snap** (cols×rows'a hizalar).
