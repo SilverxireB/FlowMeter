@@ -1,14 +1,17 @@
 "use client";
 
 /**
- * FlowSign — video-wall editörü (v1). Çözünürlük/ızgara config + ölçekli grid
- * önizleme (drag-drop layout editörü v2'de bunun üstüne gelir) + yayın linki.
+ * FlowSign — video-wall editörü. Çözünürlük/ızgara config + yerleşim editörü
+ * (birleştir/böl, LayoutEditor) + seçili alanın içerik paneli (ZonePanel) +
+ * yayın linki. Yazımlar realtime Firestore'a (updateZones/resetGrid).
  */
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import LayoutEditor from "@/components/videowall/LayoutEditor";
+import ZonePanel from "@/components/videowall/ZonePanel";
 import { useAuthUser } from "@/lib/hooks";
-import { renameVideowall, resetGrid, watchVideowall } from "@/lib/videowalls";
+import { renameVideowall, resetGrid, splitZone, updateZones, watchVideowall } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
 
 export default function VideowallEditPage() {
@@ -17,6 +20,7 @@ export default function VideowallEditPage() {
   const { user, loading } = useAuthUser();
   const [vw, setVw] = useState<Videowall | null | undefined>(undefined);
   const [playUrl, setPlayUrl] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => watchVideowall(id, setVw), [id]);
   useEffect(() => setPlayUrl(`${window.location.origin}/videowall/${id}/play`), [id]);
@@ -24,10 +28,13 @@ export default function VideowallEditPage() {
     if (!loading && !user) router.replace("/login");
   }, [loading, user, router]);
 
+  const selected = useMemo(() => (vw?.zones ?? []).find((z) => z.id === selectedId) ?? null, [vw, selectedId]);
+  const selectedIndex = useMemo(() => (vw?.zones ?? []).findIndex((z) => z.id === selectedId), [vw, selectedId]);
+
   if (vw === undefined) return <main className="min-h-screen grid place-items-center bg-[#041a1a] text-white/60">Yükleniyor…</main>;
   if (vw === null) return <main className="min-h-screen grid place-items-center bg-[#041a1a] text-white/60">Duvar bulunamadı.</main>;
 
-  const aspect = vw.width / vw.height;
+  const saveZones = (zones: Videowall["zones"]) => updateZones(id, zones).catch(console.error);
 
   return (
     <main className="min-h-screen bg-[#041a1a] text-white">
@@ -54,41 +61,33 @@ export default function VideowallEditPage() {
             </div>
             <label className="flex flex-col gap-1">
               <span className="text-white/50 text-xs">Yatay ekran</span>
-              <input type="number" defaultValue={vw.cols} onBlur={(e) => { const c = Math.max(1, Number(e.target.value) || 1); if (c !== vw.cols && confirm("Izgarayı değiştirmek yerleşimi sıfırlar. Devam?")) resetGrid(id, c, vw.rows).catch(console.error); else e.target.value = String(vw.cols); }} className="w-20 rounded-lg bg-white/10 border border-white/15 px-3 py-2" />
+              <input type="number" defaultValue={vw.cols} onBlur={(e) => { const c = Math.max(1, Number(e.target.value) || 1); if (c !== vw.cols && confirm("Izgarayı değiştirmek yerleşimi sıfırlar. Devam?")) { resetGrid(id, c, vw.rows).catch(console.error); setSelectedId(null); } else e.target.value = String(vw.cols); }} className="w-20 rounded-lg bg-white/10 border border-white/15 px-3 py-2" />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-white/50 text-xs">Dikey ekran</span>
-              <input type="number" defaultValue={vw.rows} onBlur={(e) => { const rr = Math.max(1, Number(e.target.value) || 1); if (rr !== vw.rows && confirm("Izgarayı değiştirmek yerleşimi sıfırlar. Devam?")) resetGrid(id, vw.cols, rr).catch(console.error); else e.target.value = String(vw.rows); }} className="w-20 rounded-lg bg-white/10 border border-white/15 px-3 py-2" />
+              <input type="number" defaultValue={vw.rows} onBlur={(e) => { const rr = Math.max(1, Number(e.target.value) || 1); if (rr !== vw.rows && confirm("Izgarayı değiştirmek yerleşimi sıfırlar. Devam?")) { resetGrid(id, vw.cols, rr).catch(console.error); setSelectedId(null); } else e.target.value = String(vw.rows); }} className="w-20 rounded-lg bg-white/10 border border-white/15 px-3 py-2" />
             </label>
             <span className="text-white/40 text-xs pb-2">{vw.zones?.length ?? 0} alan</span>
           </div>
         </div>
 
-        {/* Ölçekli önizleme (grid) — v2'de sürükle-bırak editör buraya gelir */}
+        {/* Yerleşim editörü */}
         <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
-          <p className="text-white/50 text-xs uppercase tracking-widest mb-3">Yerleşim önizleme</p>
-          <div className="relative mx-auto bg-black rounded-lg overflow-hidden border border-white/15" style={{ width: "100%", maxWidth: aspect >= 1 ? 900 : 900 * aspect, aspectRatio: `${vw.width} / ${vw.height}` }}>
-            {/* Fiziksel ekran çizgileri */}
-            {Array.from({ length: vw.cols - 1 }).map((_, i) => (
-              <div key={`c${i}`} className="absolute top-0 bottom-0 border-l border-dashed border-white/20" style={{ left: `${((i + 1) / vw.cols) * 100}%` }} />
-            ))}
-            {Array.from({ length: vw.rows - 1 }).map((_, i) => (
-              <div key={`r${i}`} className="absolute left-0 right-0 border-t border-dashed border-white/20" style={{ top: `${((i + 1) / vw.rows) * 100}%` }} />
-            ))}
-            {/* Zone'lar */}
-            {vw.zones?.map((z, i) => (
-              <div
-                key={z.id}
-                className="absolute border border-[#2dd4bf]/50 bg-[#2dd4bf]/5 grid place-items-center text-[#7ff0e4] text-xs font-semibold"
-                style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%` }}
-              >
-                Alan {i + 1}
-                {z.items.length > 0 && <span className="text-white/40"> · {z.items.length} içerik</span>}
-              </div>
-            ))}
-          </div>
-          <p className="text-white/40 text-xs mt-3">Sıradaki: alanları sürükle-bırak ile böl/birleştir + içerik (video/görsel/URL) atama.</p>
+          <p className="text-white/50 text-xs uppercase tracking-widest mb-3">Yerleşim</p>
+          <LayoutEditor vw={vw} selectedId={selectedId} onSelect={setSelectedId} onZones={saveZones} />
         </div>
+
+        {/* İçerik paneli (seçili alan) */}
+        {selected && selectedIndex >= 0 && (
+          <ZonePanel
+            vw={vw}
+            zone={selected}
+            index={selectedIndex}
+            onZones={saveZones}
+            onSplit={() => { saveZones(splitZone(vw.zones ?? [], vw.cols, vw.rows, selected.id)); setSelectedId(null); }}
+            onClose={() => setSelectedId(null)}
+          />
+        )}
       </section>
     </main>
   );

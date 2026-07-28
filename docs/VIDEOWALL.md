@@ -57,12 +57,18 @@ Videowall listesi: `ownerId == uid` (+ ileride paylaşılan/rol). Yetkin olan **
 yetkin olmayan **sönük + bilgi amaçlı** (self-host'ta fabrika rolleriyle eşlenecek).
 
 ## Fazlar
-1. **v1 (online iskelet):** liste + oluştur + çözünürlük/ızgara config → grid önizleme.
-2. **v2 layout editörü:** böl/birleştir/taşı/boyutlandır (dikdörtgen + snap).
-3. **v3 içerik:** Cloudinary upload + zone'a image/video/URL + sıra/süre.
-4. **v4 oynatma:** tam ekran render + zone playback + saat aralığı + geçiş + dayanıklılık.
-5. **v5 self-host paketi:** medya/veri/auth katmanlarını takas et (online bozulmadan).
+1. ✅ **v1 (online iskelet):** liste + oluştur + çözünürlük/ızgara config + grid önizleme + yayın rotası.
+2. ✅ **v2 layout editörü:** hücre sürükle → **birleştir**, tıkla → seç, **böl** (`LayoutEditor`, `mergeCells`/`splitZone`).
+3. ✅ **v3 içerik:** Cloudinary upload (görsel/video) + URL öğesi + süre/saat aralığı/sıra (`ZonePanel`, `updateZones`).
+4. ✅ **v4 oynatma:** alan başına oynatma listesi + saat aralığı filtresi + crossfade + bozuk öğe atlama (7/24) (`play/page.tsx`).
+5. ⬜ **v5 self-host paketi:** medya/veri/auth katmanlarını takas et (online bozulmadan).
+
+> Not v2: yerleşim **hücre-birleştirme** modeli (video wall'a doğru olan bu — alanlar
+> fiziksel ekran sınırına hizalı kalır). Serbest piksel sürükle-taşı gerekirse v5+.
+> Not v3: FlowSign yüklemeleri `keepOriginal:true` (tabela tam çözünürlük ister).
 
 ## Marka
-Ayrı kimlik (hub'da 3. kart). Geçici ad: **FlowSign** (Flow + ekran/tabela). Logo sonra.
+Ayrı kimlik (hub'da 3. kart). Ad: **FlowSign** (Flow + ekran/tabela). Logo: `Logo`
+bileşeni `variant="sign"` (FLOW O-halkası + SIGN); özel `logo-flowsign.png` çizilince
+o iki satır değişir. Teal kart (#062a2a→#0c3b3b), aksan #2dd4bf.
 ```
