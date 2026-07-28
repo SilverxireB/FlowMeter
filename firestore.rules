@@ -264,5 +264,15 @@ service cloud.firestore {
       allow create, delete: if request.auth != null;
       allow update: if false;
     }
+
+    // ── FlowSign (VideoWall): dijital tabela / video-wall CMS ────────────────
+    // Config herkes okur (oynatma linki auth'suz açılır), sadece sahibi yazar.
+    match /videowalls/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && resource.data.ownerId == request.auth.uid;
+    }
   }
 }

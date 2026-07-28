@@ -315,7 +315,7 @@ export default function DashboardPage() {
           <div>
             <p className="eyebrow mb-2">Panelin</p>
             <h1 className="font-display text-3xl font-semibold tracking-tight mb-7">Ne oluşturmak istersin?</h1>
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {/* FlowMeter */}
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
                 <div className="p-6 bg-gradient-to-br from-accent-soft to-white">
@@ -361,6 +361,18 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+
+              {/* FlowSign (VideoWall) */}
+              <Link href="/videowall" className="rounded-3xl shadow-sm overflow-hidden flex flex-col text-white group" style={{ background: "linear-gradient(160deg,#062a2a 0%,#0c3b3b 100%)" }}>
+                <div className="p-6">
+                  <Logo size="lg" variant="sign" onDark />
+                  <p className="text-white/55 text-sm mt-3">Video-wall & dijital tabela</p>
+                </div>
+                <div className="p-6 pt-4 flex-1 flex flex-col">
+                  <p className="text-white/60 text-sm mb-4">Çözünürlük + ekran ızgarası tanımla, alanlara video/görsel/sayfa yerleştir, tam ekran yayınla.</p>
+                  <span className="mt-auto rounded-xl bg-white text-[#0c3b3b] px-4 py-2 text-sm font-semibold text-center group-hover:opacity-90">Aç →</span>
+                </div>
+              </Link>
             </div>
           </div>
         )}

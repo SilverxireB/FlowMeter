@@ -442,3 +442,40 @@ export const AVAILABLE_SLIDE_TYPES: SlideType[] = [
 
 /** Quiz puanına katılan tipler */
 export const QUIZ_SLIDE_TYPES: SlideType[] = ["quiz", "quiz-type"];
+
+// ── FlowSign (VideoWall) — dijital tabela / video-wall CMS ────────────────────
+/** Bir yerleşim alanının içeriği (playlist öğesi). */
+export interface ZoneItem {
+  id: string;
+  kind: "image" | "video" | "url";
+  src: string;
+  name?: string;
+  durationSec?: number; // image/url için gösterim süresi; video kendi süresi (ya da cap)
+  from?: string; // "HH:MM" saat aralığı başı (boşsa hep)
+  to?: string; // "HH:MM" saat aralığı sonu
+}
+
+/** Duvar üzerinde bir yerleşim alanı (konum 0–1 oran; duvar pikseline çarpılır). */
+export interface Zone {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  fit?: "cover" | "contain";
+  items: ZoneItem[];
+}
+
+/** Video-wall tanımı (videowalls/{id}). */
+export interface Videowall {
+  id: string;
+  ownerId: string;
+  name: string;
+  width: number; // toplam çözünürlük px
+  height: number;
+  cols: number; // fiziksel ekran ızgarası
+  rows: number;
+  zones: Zone[];
+  createdAt: Timestamp | null;
+  updatedAt?: Timestamp | null;
+}

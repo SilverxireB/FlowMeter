@@ -11,6 +11,10 @@ const SIZES = {
 const VARIANTS = {
   meter: { img: "/logo-flow.png", imgDark: "/logo-flow-white.png", word: "METER", full: "FLOWMETER" },
   wall: { img: "/logo-flowwall.png", imgDark: "/logo-flowwall-white.png", word: "WALL", full: "FLOWWALL" },
+  // FlowSign: kendi wordmark PNG'si (ekran glifli O) çizilene dek paylaşılan FLOW
+  // görselini kullanır (O halkası + "SIGN"). logo-flowsign.png eklenince bu iki
+  // satırı değiştirmek yeter.
+  sign: { img: "/logo-flow.png", imgDark: "/logo-flow-white.png", word: "SIGN", full: "FLOWSIGN" },
 } as const;
 
 /**
@@ -18,6 +22,7 @@ const VARIANTS = {
  * yanında benzer puntoda ikinci kelime. `variant`:
  *  - "meter" (varsayılan): O içinde bar-chart + "METER" → FlowMeter
  *  - "wall": AYNI O halkası, içinde fotoğraf makinesi + "WALL" → FlowWall
+ *  - "sign": AYNI O halkası, içinde ekran/tabela + "SIGN" → FlowSign
  * Logo asla deforme edilmez (yükseklik sabit, genişlik otomatik).
  * Koyu zeminde beyaz sürüm kullanılır.
  */
@@ -28,7 +33,7 @@ export default function Logo({
 }: {
   size?: "sm" | "md" | "lg";
   onDark?: boolean;
-  variant?: "meter" | "wall";
+  variant?: "meter" | "wall" | "sign";
 }) {
   const [imgOk, setImgOk] = useState(true);
   const { img, fontSize } = SIZES[size];
