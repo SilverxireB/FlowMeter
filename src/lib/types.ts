@@ -476,7 +476,17 @@ export interface Zone {
   // kırpma/siyah boşluk yok; kullanıcı alana uygun boyutta içerik koyar.
 }
 
-/** Video-wall tanımı (videowalls/{id}). */
+/** Yayındaki (kaydedilmiş) yerleşim anlık görüntüsü — perde BUNU oynatır. */
+export interface VideowallLive {
+  zones: Zone[];
+  cols: number;
+  rows: number;
+  width: number;
+  height: number;
+  publishedAt?: Timestamp | null;
+}
+
+/** Video-wall tanımı (videowalls/{id}). zones = TASLAK (editör); live = YAYIN. */
 export interface Videowall {
   id: string;
   ownerId: string;
@@ -488,6 +498,7 @@ export interface Videowall {
   cols: number; // fiziksel ekran ızgarası
   rows: number;
   zones: Zone[];
+  live?: VideowallLive; // "Kaydet & Yayınla" ile yazılır; yoksa eski duvar → taslak oynar
   createdAt: Timestamp | null;
   updatedAt?: Timestamp | null;
 }

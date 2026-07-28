@@ -94,3 +94,26 @@ Ayrı kimlik (hub'da 3. kart). Ad: **FlowSign** (Flow + ekran/tabela). Logo: `Lo
 bileşeni `variant="sign"` (FLOW O-halkası + SIGN); özel `logo-flowsign.png` çizilince
 o iki satır değişir. Teal kart (#062a2a→#0c3b3b), aksan #2dd4bf.
 ```
+
+## Kaydet & Yayınla modeli (canlı ekran koruması)
+Editör TASLAK (`zones`) üzerinde çalışır; perde YAYIN'ı (`live` anlık görüntüsü)
+oynatır. "👁 Önizle" = `/videowall/{id}/play?draft=1` (taslak, rozetli); "💾 Kaydet
+& Yayınla" = `publishVideowall` → `live{zones,cols,rows,width,height,publishedAt}`.
+Eski duvarda `live` yoksa perde taslağa düşer. Create/duplicate `live`'ı da yazar
+(link ilk andan çalışır). Birleştir/böl İÇERİK KORUR (en büyük içerikli alan
+devralır / sol-üst hücrede kalır) + içerik etkileniyorsa confirm sorusu.
+
+## Marka rengi (turkuaz → indigo, kullanıcı kararı)
+FlowSign paleti tasarım sistemine hizalandı: zemin #0d102f, panel indigo-950
+#1e1b4b / #312e81, aksan #6366f1, açık aksan metni #a5b4fc. Turkuaz (#2dd4bf)
+tamamen kaldırıldı. Hub kartı gradyanı #1e1b4b→#312e81.
+
+## Güvenlik/dayanıklılık (inceleme ajanı bulguları — uygulandı)
+- URL öğesi: yalnız http(s) kabul (editör) + perde `safeSrc` filtresi + iframe
+  `sandbox="allow-scripts allow-same-origin allow-forms"` + no-referrer
+  (javascript: XSS ve üst-pencere yönlendirme kapatıldı).
+- Saat penceresi gece yarısını aşabilir (22:00–06:00 → wrap-around).
+- Rename SLUG'I DEĞİŞTİRMEZ (7/24 ekran linki kararmaz); /flowsign/[slug]
+  slug bulunamazsa id ile de dener.
+- Ekran sayısı ekseni başına 24 ile sınırlı (1MB doküman/tarayıcı koruması).
+- Saat penceresi öğe düşürünce akış başa sarmaz (gösterilen öğe korunur).

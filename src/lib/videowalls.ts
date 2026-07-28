@@ -79,10 +79,16 @@ function unitZone(c: number, r: number, cols: number, rows: number): Zone {
   return { id: zid(), ...rectFromCells({ c0: c, r0: r, c1: c, r1: r }, cols, rows), items: [] };
 }
 
+/** Ekran sayısı üst sınırı — devasa ızgara tarayıcıyı ve 1MB doküman limitini patlatır. */
+export const MAX_SCREENS_PER_AXIS = 24;
+export const clampScreens = (n: number) => Math.min(MAX_SCREENS_PER_AXIS, Math.max(1, Math.round(n) || 1));
+
 /** cols×rows tam ızgara (başlangıç yerleşimi; kullanıcı böler/birleştirir). */
 export function gridZones(cols: number, rows: number): Zone[] {
   const zones: Zone[] = [];
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) zones.push(unitZone(c, r, cols, rows));
+  const cc = clampScreens(cols);
+  const rr = clampScreens(rows);
+  for (let r = 0; r < rr; r++) for (let c = 0; c < cc; c++) zones.push(unitZone(c, r, cc, rr));
   return zones;
 }
 
@@ -91,9 +97,20 @@ function overlaps(a: CellBox, b: CellBox): boolean {
 }
 
 /**
+ * Kutuyla kesişen İÇERİKLİ alanlar, büyükten küçüğe. [0] = birleşmede içeriğini
+ * devralacak "bağışçı" alan (LayoutEditor onay mesajı da aynı sırayı kullanır).
+ */
+export function contentZonesIn(zones: Zone[], cols: number, rows: number, box: CellBox): Zone[] {
+  return zones
+    .filter((z) => (z.items?.length ?? 0) > 0 && overlaps(zoneCells(z, cols, rows), box))
+    .sort((a, b) => b.w * b.h - a.w * a.h);
+}
+
+/**
  * Hücre kutusunu tek alana birleştir. Kutuyla kesişen alanlar sökülür; kutunun
  * DIŞINDA kalan hücreleri tekrar tek-hücre alanlara döner (kısmi çakışma temiz
- * çözülür). Yeni alan kutuyu kaplar (içerik boş). Kesişmeyen alanlar korunur.
+ * çözülür). Yeni alan, kesişen EN BÜYÜK içerikli alanın içeriğini/ayarlarını
+ * DEVRALIR (içerik kaybolmaz); diğer içerikliler onay sorusuyla korunur (UI).
  */
 export function mergeCells(zones: Zone[], cols: number, rows: number, box: CellBox): Zone[] {
   const kept: Zone[] = [];
@@ -108,11 +125,15 @@ export function mergeCells(zones: Zone[], cols: number, rows: number, box: CellB
       for (let c = cb.c0; c <= cb.c1; c++)
         if (c < box.c0 || c > box.c1 || r < box.r0 || r > box.r1) leftovers.push(unitZone(c, r, cols, rows));
   }
-  const merged: Zone = { id: zid(), ...rectFromCells(box, cols, rows), items: [] };
+  const donor = contentZonesIn(zones, cols, rows, box)[0];
+  const merged: Zone = { id: zid(), ...rectFromCells(box, cols, rows), items: donor?.items ?? [] };
+  if (donor?.name) merged.name = donor.name;
+  if (donor?.transition) merged.transition = donor.transition;
+  if (donor?.bg) merged.bg = donor.bg;
   return [...kept, ...leftovers, merged];
 }
 
-/** Bir alanı kapladığı hücrelere böl (tek-hücre alanlar). İçerik kaybolur. */
+/** Bir alanı hücrelere böl. İçerik/ayarlar İLK (sol-üst) hücrede kalır — kaybolmaz. */
 export function splitZone(zones: Zone[], cols: number, rows: number, zoneId: string): Zone[] {
   const out: Zone[] = [];
   for (const z of zones) {
@@ -121,7 +142,19 @@ export function splitZone(zones: Zone[], cols: number, rows: number, zoneId: str
       continue;
     }
     const cb = zoneCells(z, cols, rows);
-    for (let r = cb.r0; r <= cb.r1; r++) for (let c = cb.c0; c <= cb.c1; c++) out.push(unitZone(c, r, cols, rows));
+    let first = true;
+    for (let r = cb.r0; r <= cb.r1; r++)
+      for (let c = cb.c0; c <= cb.c1; c++) {
+        const u = unitZone(c, r, cols, rows);
+        if (first) {
+          u.items = z.items ?? [];
+          if (z.name) u.name = z.name;
+          if (z.transition) u.transition = z.transition;
+          if (z.bg) u.bg = z.bg;
+          first = false;
+        }
+        out.push(u);
+      }
   }
   return out;
 }
@@ -136,16 +169,23 @@ export async function createVideowall(
   ownerName?: string
 ): Promise<string> {
   const nm = name.trim() || "Yeni duvar";
+  const w = Math.max(1, Math.round(width));
+  const h = Math.max(1, Math.round(height));
+  const cc = clampScreens(cols);
+  const rr = clampScreens(rows);
+  const zones = gridZones(cc, rr);
   const ref = await addDoc(collection(db(), "videowalls"), {
     ownerId,
     ownerName: ownerName ?? "",
     name: nm,
     slug: await uniqueSlug(nm),
-    width: Math.max(1, Math.round(width)),
-    height: Math.max(1, Math.round(height)),
-    cols: Math.max(1, Math.round(cols)),
-    rows: Math.max(1, Math.round(rows)),
-    zones: gridZones(Math.max(1, cols), Math.max(1, rows)),
+    width: w,
+    height: h,
+    cols: cc,
+    rows: rr,
+    zones,
+    // Yayın linki ilk andan ölü olmasın: boş ızgara yayına da yazılır.
+    live: { zones, cols: cc, rows: rr, width: w, height: h, publishedAt: serverTimestamp() },
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -185,9 +225,13 @@ export async function updateVideowall(id: string, patch: Partial<Videowall>): Pr
   await updateDoc(doc(db(), "videowalls", id), { ...patch, updatedAt: serverTimestamp() });
 }
 
+/**
+ * Yeniden adlandır. SLUG DEĞİŞMEZ: /flowsign/{slug} linki sahada 7/24 açık
+ * ekranlarda — isim değişikliği yayını asla karartmamalı (link/QR sabit kalır).
+ */
 export async function renameVideowall(id: string, name: string): Promise<void> {
   const nm = name.trim().slice(0, 80);
-  await updateDoc(doc(db(), "videowalls", id), { name: nm, slug: await uniqueSlug(nm, id), updatedAt: serverTimestamp() });
+  await updateDoc(doc(db(), "videowalls", id), { name: nm, updatedAt: serverTimestamp() });
 }
 
 /** Eski (slug'sız) duvarlara isimden slug doldur (edit sayfası açılınca bir kez). */
@@ -210,14 +254,25 @@ export function watchVideowallBySlug(slug: string, cb: (v: Videowall | null) => 
   );
 }
 
-/** Yerleşim/içerik yazımı (birleştir/böl/öğe ekle). */
+/** Firestore `undefined` kabul etmez — opsiyonel alan temizlerken (name/from/to…) düşür. */
+const stripUndefined = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+
+/** TASLAK yerleşim/içerik yazımı (birleştir/böl/öğe ekle). Yayına dokunmaz. */
 export async function updateZones(id: string, zones: Zone[]): Promise<void> {
-  await updateDoc(doc(db(), "videowalls", id), { zones, updatedAt: serverTimestamp() });
+  await updateDoc(doc(db(), "videowalls", id), { zones: stripUndefined(zones), updatedAt: serverTimestamp() });
 }
 
-/** Çözünürlük/ızgara değişince zone'ları taze ızgaraya sıfırla. */
+/** Taslağı YAYINA al ("Kaydet & Yayınla") — perde bundan sonra bu hâli oynatır. */
+export async function publishVideowall(v: Videowall): Promise<void> {
+  const snap = stripUndefined({ zones: v.zones ?? [], cols: v.cols, rows: v.rows, width: v.width, height: v.height });
+  await updateDoc(doc(db(), "videowalls", v.id), { live: { ...snap, publishedAt: serverTimestamp() }, updatedAt: serverTimestamp() });
+}
+
+/** Çözünürlük/ızgara değişince TASLAK zone'ları taze ızgaraya sıfırla. */
 export async function resetGrid(id: string, cols: number, rows: number): Promise<void> {
-  await updateDoc(doc(db(), "videowalls", id), { cols, rows, zones: gridZones(cols, rows), updatedAt: serverTimestamp() });
+  const cc = clampScreens(cols);
+  const rr = clampScreens(rows);
+  await updateDoc(doc(db(), "videowalls", id), { cols: cc, rows: rr, zones: gridZones(cc, rr), updatedAt: serverTimestamp() });
 }
 
 /** Duvarı kopyala (yeni id + taze zone/öğe id'leri; içerik referansları korunur). */
@@ -228,6 +283,7 @@ export async function duplicateVideowall(ownerId: string, v: Videowall): Promise
     items: (z.items ?? []).map((it) => ({ ...it, id: `it-${Math.random().toString(36).slice(2, 9)}` })),
   }));
   const name = `${v.name} (kopya)`;
+  const cleanZones = stripUndefined(zones);
   const ref = await addDoc(collection(db(), "videowalls"), {
     ownerId,
     ownerName: v.ownerName ?? "",
@@ -237,7 +293,8 @@ export async function duplicateVideowall(ownerId: string, v: Videowall): Promise
     height: v.height,
     cols: v.cols,
     rows: v.rows,
-    zones,
+    zones: cleanZones,
+    live: { zones: cleanZones, cols: v.cols, rows: v.rows, width: v.width, height: v.height, publishedAt: serverTimestamp() },
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

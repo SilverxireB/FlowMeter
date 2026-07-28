@@ -368,7 +368,7 @@ export default function DashboardPage() {
               </div>
 
               {/* FlowSign (VideoWall) */}
-              <div className="rounded-3xl shadow-sm overflow-hidden flex flex-col text-white" style={{ background: "linear-gradient(160deg,#062a2a 0%,#0c3b3b 100%)" }}>
+              <div className="rounded-3xl shadow-sm overflow-hidden flex flex-col text-white" style={{ background: "linear-gradient(160deg,#1e1b4b 0%,#312e81 100%)" }}>
                 <div className="p-6">
                   <Logo size="lg" variant="sign" onDark />
                   <p className="text-white/55 text-sm mt-3">Video-wall & dijital tabela</p>
@@ -385,7 +385,7 @@ export default function DashboardPage() {
                   </ul>
                   <div className="mt-auto flex gap-2">
                     <Link href="/videowall" className="flex-1 rounded-xl bg-white/10 border border-white/15 py-2 text-sm font-semibold hover:bg-white/15 text-center">Duvarlar →</Link>
-                    <Link href="/videowall" className="rounded-xl bg-white text-[#0c3b3b] px-4 py-2 text-sm font-semibold">＋ Yeni</Link>
+                    <Link href="/videowall" className="rounded-xl bg-white text-[#312e81] px-4 py-2 text-sm font-semibold">＋ Yeni</Link>
                   </div>
                 </div>
               </div>

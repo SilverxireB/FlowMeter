@@ -17,10 +17,15 @@ function inWindow(item: ZoneItem, now: Date): boolean {
   if (item.days?.length && !item.days.includes(now.getDay())) return false;
   if (!item.from && !item.to) return true;
   const hm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  if (item.from && hm < item.from) return false;
-  if (item.to && hm > item.to) return false;
-  return true;
+  const from = item.from || "00:00";
+  const to = item.to || "23:59";
+  // Gece yarısını aşan pencere (ör. 22:00–06:00): from'dan SONRA veya to'dan ÖNCE.
+  if (from > to) return hm >= from || hm <= to;
+  return hm >= from && hm <= to;
 }
+
+/** Yalnız http(s) kaynaklar oynatılır — javascript:/data: XSS'i keser (derin savunma). */
+const safeSrc = (src?: string) => (src && /^https?:\/\//i.test(src) ? src : undefined);
 
 function ClockView({ item }: { item: ZoneItem }) {
   const [t, setT] = useState(() => new Date());
@@ -29,7 +34,7 @@ function ClockView({ item }: { item: ZoneItem }) {
     return () => window.clearInterval(id);
   }, []);
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-4 text-center" style={{ background: item.bg ?? "#041a1a", color: item.color ?? "#fff" }}>
+    <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-4 text-center" style={{ background: item.bg ?? "#0d102f", color: item.color ?? "#fff" }}>
       <div className="font-display font-bold tabular-nums leading-none" style={{ fontSize: "clamp(28px, 9vw, 200px)" }}>
         {t.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
       </div>
@@ -42,7 +47,7 @@ function ClockView({ item }: { item: ZoneItem }) {
 
 function TextView({ item }: { item: ZoneItem }) {
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center px-[6%]" style={{ background: item.bg ?? "#0c3b3b", color: item.color ?? "#fff" }}>
+    <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center px-[6%]" style={{ background: item.bg ?? "#312e81", color: item.color ?? "#fff" }}>
       {item.title && <div className="font-display font-bold leading-tight" style={{ fontSize: "clamp(24px, 6vw, 130px)" }}>{item.title}</div>}
       {item.text && <div className="font-display opacity-90 leading-snug whitespace-pre-wrap" style={{ fontSize: "clamp(14px, 2.6vw, 52px)" }}>{item.text}</div>}
     </div>
@@ -79,18 +84,25 @@ function Layer({ item, transition, loop, onEnded, onError }: { item: ZoneItem; t
   return (
     <div ref={ref} className="absolute inset-0" style={style}>
       {item.kind === "video" ? (
-        <video src={item.src} autoPlay muted playsInline loop={loop} onEnded={onEnded} onError={onError} className="w-full h-full" style={{ objectFit: "fill" }} />
+        <video src={safeSrc(item.src)} autoPlay muted playsInline loop={loop} onEnded={onEnded} onError={onError} className="w-full h-full" style={{ objectFit: "fill" }} />
       ) : item.kind === "url" ? (
-        // pointer-events-none: tabela salt-görüntü; iframe fare olaylarını yutup
-        // kontrollerin (tam ekran / ekran tanı) belirmesini engellemesin.
-        <iframe src={item.src} title={item.name || "sayfa"} className="w-full h-full border-0 pointer-events-none" />
+        // sandbox: üst pencereye yönlendirme/popup/indirme YOK (dashboard script+
+        // cookie'yle çalışmaya devam eder). pointer-events-none: tabela salt-görüntü;
+        // iframe fare olaylarını yutup kontrollerin belirmesini engellemesin.
+        <iframe
+          src={safeSrc(item.src)}
+          title={item.name || "sayfa"}
+          sandbox="allow-scripts allow-same-origin allow-forms"
+          referrerPolicy="no-referrer"
+          className="w-full h-full border-0 pointer-events-none"
+        />
       ) : item.kind === "text" ? (
         <TextView item={item} />
       ) : item.kind === "clock" ? (
         <ClockView item={item} />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.src} alt={item.name || ""} onError={onError} className="w-full h-full" style={{ objectFit: "fill" }} />
+        <img src={safeSrc(item.src)} alt={item.name || ""} onError={onError} className="w-full h-full" style={{ objectFit: "fill" }} />
       )}
     </div>
   );
@@ -120,9 +132,19 @@ function ZonePlayer({ zone }: { zone: Zone }) {
 
   const [idx, setIdx] = useState(0);
   const advance = useCallback(() => setIdx((i) => i + 1), []);
-  useEffect(() => setIdx(0), [len]);
 
   const cur = len ? items[idx % len] : undefined;
+
+  // Saat penceresi bir öğeyi düşürünce/ekleyince akış BAŞA SARMAZ: gösterilen
+  // öğe hâlâ listedeyse kaldığı yerden sürer, değilse sıradakine geçilir.
+  const curIdRef = useRef<string | undefined>(undefined);
+  curIdRef.current = cur?.id ?? curIdRef.current;
+  useEffect(() => {
+    if (!len) return;
+    const keep = items.findIndex((it) => it.id === curIdRef.current);
+    setIdx((i) => (keep >= 0 ? keep : i % len));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [len]);
   const next = len > 1 ? items[(idx + 1) % len] : undefined;
 
   const keyRef = useRef(0);
@@ -172,10 +194,14 @@ function ZonePlayer({ zone }: { zone: Zone }) {
   );
 }
 
-export default function PlayerStage({ vw }: { vw: Videowall }) {
+export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draft?: boolean }) {
   const [controls, setControls] = useState(false);
   const [fs, setFs] = useState(false);
   const [identify, setIdentify] = useState(false);
+
+  // YAYIN modunda kaydedilmiş anlık görüntü oynar (editör taslağı ekranı bozamaz);
+  // draft=true → editörün "Önizle"si. Eski duvarda live yoksa taslağa düşülür.
+  const stage = draft ? vw : vw.live ?? vw;
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -233,19 +259,26 @@ export default function PlayerStage({ vw }: { vw: Videowall }) {
     window.setTimeout(() => setIdentify(false), 6000);
   };
 
-  const screens = vw.cols * vw.rows;
+  const screens = stage.cols * stage.rows;
 
   return (
     <main className={`relative w-screen h-screen bg-black overflow-hidden ${controls ? "" : "cursor-none"}`} onPointerMove={poke}>
-      {vw.zones?.map((z) => (
+      {stage.zones?.map((z) => (
         <ZonePlayer key={z.id} zone={z} />
       ))}
 
+      {/* Önizleme rozeti — taslağı izlediğin belli olsun */}
+      {draft && (
+        <div className="fixed top-4 left-4 z-50 rounded-full bg-black/60 backdrop-blur border border-white/20 text-white/80 px-4 py-1.5 text-xs font-semibold">
+          👁 Önizleme — taslak (yayında olmayabilir)
+        </div>
+      )}
+
       {identify && (
-        <div className="fixed inset-0 z-40 grid pointer-events-none" style={{ gridTemplateColumns: `repeat(${vw.cols},1fr)`, gridTemplateRows: `repeat(${vw.rows},1fr)` }}>
+        <div className="fixed inset-0 z-40 grid pointer-events-none" style={{ gridTemplateColumns: `repeat(${stage.cols},1fr)`, gridTemplateRows: `repeat(${stage.rows},1fr)` }}>
           {Array.from({ length: screens }).map((_, i) => (
-            <div key={i} className="border border-[#2dd4bf]/60 bg-[#041a1a]/80 grid place-items-center">
-              <span className="font-display font-bold text-[#7ff0e4]" style={{ fontSize: "clamp(40px, 12vw, 260px)" }}>{i + 1}</span>
+            <div key={i} className="border border-[#6366f1]/60 bg-[#0d102f]/80 grid place-items-center">
+              <span className="font-display font-bold text-[#a5b4fc]" style={{ fontSize: "clamp(40px, 12vw, 260px)" }}>{i + 1}</span>
             </div>
           ))}
         </div>

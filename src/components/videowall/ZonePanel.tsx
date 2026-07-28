@@ -28,9 +28,9 @@ function ItemThumb({ item }: { item: ZoneItem }) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={stillOf(item.src)} alt="" className={`${base} object-cover bg-black`} />;
   if (item.kind === "text")
-    return <div className={`${base} font-bold text-sm`} style={{ background: item.bg ?? "#0c3b3b", color: item.color ?? "#fff" }}>Aa</div>;
+    return <div className={`${base} font-bold text-sm`} style={{ background: item.bg ?? "#312e81", color: item.color ?? "#fff" }}>Aa</div>;
   if (item.kind === "clock")
-    return <div className={`${base} text-xl`} style={{ background: item.bg ?? "#041a1a", color: item.color ?? "#fff" }}>🕐</div>;
+    return <div className={`${base} text-xl`} style={{ background: item.bg ?? "#0d102f", color: item.color ?? "#fff" }}>🕐</div>;
   return <div className={`${base} bg-white/10 text-xl`}>🔗</div>;
 }
 
@@ -107,11 +107,17 @@ export default function ZonePanel({
   function addUrl() {
     const src = prompt("Sayfa/dashboard URL'si (https://…):")?.trim();
     if (!src) return;
+    // Güvenlik: yalnız http(s) — javascript:/data: gibi şemalar perde iframe'inde
+    // script çalıştırabilir (XSS). Perde tarafında da ayrıca filtrelenir.
+    if (!/^https?:\/\//i.test(src)) {
+      setErr("URL http:// veya https:// ile başlamalı.");
+      return;
+    }
     const name = prompt("Ad (opsiyonel):", "")?.trim() || "Sayfa";
     setItems([...zone.items, { id: iid(), kind: "url", src, name, durationSec: 15 }]);
   }
-  const addText = () => setItems([...zone.items, { id: iid(), kind: "text", title: "Başlık", text: "", bg: "#0c3b3b", color: "#ffffff", durationSec: 10 }]);
-  const addClock = () => setItems([...zone.items, { id: iid(), kind: "clock", bg: "#041a1a", color: "#ffffff", durationSec: 10 }]);
+  const addText = () => setItems([...zone.items, { id: iid(), kind: "text", title: "Başlık", text: "", bg: "#312e81", color: "#ffffff", durationSec: 10 }]);
+  const addClock = () => setItems([...zone.items, { id: iid(), kind: "clock", bg: "#0d102f", color: "#ffffff", durationSec: 10 }]);
   const addFromLib = (src: ZoneItem) => {
     setItems([...zone.items, { ...src, id: iid() }]);
     setLibOpen(false);
@@ -161,22 +167,22 @@ export default function ZonePanel({
           uploadFiles(Array.from(e.dataTransfer.files));
         }
       }}
-      className={`relative rounded-2xl border p-5 transition-colors ${fileOver ? "border-[#2dd4bf] bg-[#2dd4bf]/10" : "border-white/10 bg-white/[0.06]"}`}
+      className={`relative rounded-2xl border p-5 transition-colors ${fileOver ? "border-[#6366f1] bg-[#6366f1]/10" : "border-white/10 bg-white/[0.06]"}`}
     >
       {fileOver && (
-        <div className="absolute inset-0 z-40 rounded-2xl border-2 border-dashed border-[#2dd4bf] bg-[#041a1a]/70 grid place-items-center pointer-events-none">
-          <p className="text-[#7ff0e4] font-semibold">Bırak → bu alana yükle</p>
+        <div className="absolute inset-0 z-40 rounded-2xl border-2 border-dashed border-[#6366f1] bg-[#0d102f]/70 grid place-items-center pointer-events-none">
+          <p className="text-[#a5b4fc] font-semibold">Bırak → bu alana yükle</p>
         </div>
       )}
 
       {/* Başlık: alan adı + böl + kapat */}
       <div className="flex items-center gap-2 mb-4">
-        <span className="shrink-0 w-8 h-8 rounded-lg bg-[#2dd4bf]/20 text-[#7ff0e4] grid place-items-center text-sm font-bold">{index + 1}</span>
+        <span className="shrink-0 w-8 h-8 rounded-lg bg-[#6366f1]/20 text-[#a5b4fc] grid place-items-center text-sm font-bold">{index + 1}</span>
         <input
           defaultValue={zone.name ?? ""}
           placeholder={`Alan ${index + 1} — ad ver (ör. Giriş)`}
           onBlur={(e) => patch({ name: e.target.value.trim() || undefined })}
-          className="flex-1 min-w-0 bg-transparent border-b border-white/15 focus:border-[#2dd4bf] focus:outline-none px-1 py-1.5 font-display font-semibold"
+          className="flex-1 min-w-0 bg-transparent border-b border-white/15 focus:border-[#6366f1] focus:outline-none px-1 py-1.5 font-display font-semibold"
         />
         {cells > 1 && (
           <button onClick={onSplit} className="shrink-0 rounded-lg border border-white/15 text-white/70 hover:border-white/40 px-3 py-1.5 text-xs font-semibold">⛶ Böl</button>
@@ -192,7 +198,7 @@ export default function ZonePanel({
             <button
               key={tr}
               onClick={() => patch({ transition: tr })}
-              className={`px-2.5 py-1 rounded-full font-semibold border ${transition === tr ? "bg-white text-[#041a1a] border-white" : "border-white/20 text-white/70"}`}
+              className={`px-2.5 py-1 rounded-full font-semibold border ${transition === tr ? "bg-white text-[#0d102f] border-white" : "border-white/20 text-white/70"}`}
             >
               {tr === "fade" ? "Yumuşak" : tr === "cut" ? "Kesme" : "Kaydır"}
             </button>
@@ -208,7 +214,7 @@ export default function ZonePanel({
             key={b.label}
             onClick={b.fn}
             disabled={b.disabled}
-            className="rounded-xl bg-white/[0.06] border border-white/10 hover:border-[#2dd4bf]/50 hover:bg-white/10 px-2 py-3 text-sm font-semibold flex flex-col items-center gap-1 transition-colors disabled:opacity-40"
+            className="rounded-xl bg-white/[0.06] border border-white/10 hover:border-[#6366f1]/50 hover:bg-white/10 px-2 py-3 text-sm font-semibold flex flex-col items-center gap-1 transition-colors disabled:opacity-40"
           >
             <span className="text-lg" aria-hidden>{b.icon}</span>
             {b.label}
@@ -220,7 +226,7 @@ export default function ZonePanel({
       {queue && (
         <div className="mb-4">
           <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-            <div className="h-full bg-[#2dd4bf] transition-[width]" style={{ width: `${queue.pct}%` }} />
+            <div className="h-full bg-[#6366f1] transition-[width]" style={{ width: `${queue.pct}%` }} />
           </div>
           <p className="text-white/50 text-xs mt-1 tabular-nums">Yükleniyor… {queue.done + 1}/{queue.total} · {queue.pct}%</p>
         </div>
@@ -251,7 +257,7 @@ export default function ZonePanel({
                 setOverIdx(null);
               }}
               className={`rounded-xl bg-black/25 border p-2.5 flex flex-col gap-2 transition-colors ${
-                overIdx === i && dragIdx !== null ? "border-[#2dd4bf]" : "border-white/10"
+                overIdx === i && dragIdx !== null ? "border-[#6366f1]" : "border-white/10"
               } ${dragIdx === i ? "opacity-40" : ""}`}
             >
               <div className="flex items-center gap-3">
@@ -269,31 +275,31 @@ export default function ZonePanel({
                 <ItemThumb item={it} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : it.name || it.src}</p>
-                  <span className="inline-block mt-0.5 text-[10px] uppercase tracking-wider text-[#7ff0e4]/80 bg-[#2dd4bf]/10 rounded px-1.5 py-0.5">{KIND_LABEL[it.kind]}</span>
+                  <span className="inline-block mt-0.5 text-[10px] uppercase tracking-wider text-[#a5b4fc]/80 bg-[#6366f1]/10 rounded px-1.5 py-0.5">{KIND_LABEL[it.kind]}</span>
                 </div>
                 <button onClick={() => removeItem(it.id)} className="shrink-0 text-white/40 hover:text-[#ff6b6b] px-1" aria-label="Sil">🗑</button>
               </div>
 
               {it.kind === "text" && (
                 <div className="flex flex-col gap-2 pl-8">
-                  <input defaultValue={it.title ?? ""} placeholder="Başlık" onBlur={(e) => patchItem(it.id, { title: e.target.value })} className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm focus:outline-none focus:border-[#2dd4bf]" />
-                  <textarea defaultValue={it.text ?? ""} placeholder="Mesaj (opsiyonel)" rows={2} onBlur={(e) => patchItem(it.id, { text: e.target.value })} className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm resize-y focus:outline-none focus:border-[#2dd4bf]" />
+                  <input defaultValue={it.title ?? ""} placeholder="Başlık" onBlur={(e) => patchItem(it.id, { title: e.target.value })} className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm focus:outline-none focus:border-[#6366f1]" />
+                  <textarea defaultValue={it.text ?? ""} placeholder="Mesaj (opsiyonel)" rows={2} onBlur={(e) => patchItem(it.id, { text: e.target.value })} className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm resize-y focus:outline-none focus:border-[#6366f1]" />
                 </div>
               )}
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-8 text-xs text-white/60">
                 {(it.kind === "text" || it.kind === "clock") && (
                   <>
-                    <label className="flex items-center gap-1.5">Zemin <input type="color" defaultValue={it.bg ?? "#0c3b3b"} onChange={(e) => patchItem(it.id, { bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
+                    <label className="flex items-center gap-1.5">Zemin <input type="color" defaultValue={it.bg ?? "#312e81"} onChange={(e) => patchItem(it.id, { bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
                     <label className="flex items-center gap-1.5">Yazı <input type="color" defaultValue={it.color ?? "#ffffff"} onChange={(e) => patchItem(it.id, { color: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
                   </>
                 )}
                 {it.kind !== "video" && (
-                  <label className="flex items-center gap-1.5">Süre <input type="number" min={2} defaultValue={it.durationSec ?? 8} onBlur={(e) => patchItem(it.id, { durationSec: Math.max(2, Number(e.target.value) || 8) })} className="w-14 rounded bg-white/10 border border-white/15 px-2 py-1 tabular-nums focus:outline-none focus:border-[#2dd4bf]" /> sn</label>
+                  <label className="flex items-center gap-1.5">Süre <input type="number" min={2} defaultValue={it.durationSec ?? 8} onBlur={(e) => patchItem(it.id, { durationSec: Math.max(2, Number(e.target.value) || 8) })} className="w-14 rounded bg-white/10 border border-white/15 px-2 py-1 tabular-nums focus:outline-none focus:border-[#6366f1]" /> sn</label>
                 )}
                 <label className="flex items-center gap-1.5">Saat
-                  <input type="time" defaultValue={it.from ?? ""} onBlur={(e) => patchItem(it.id, { from: e.target.value || undefined })} className="rounded bg-white/10 border border-white/15 px-2 py-1 focus:outline-none focus:border-[#2dd4bf]" />–
-                  <input type="time" defaultValue={it.to ?? ""} onBlur={(e) => patchItem(it.id, { to: e.target.value || undefined })} className="rounded bg-white/10 border border-white/15 px-2 py-1 focus:outline-none focus:border-[#2dd4bf]" />
+                  <input type="time" defaultValue={it.from ?? ""} onBlur={(e) => patchItem(it.id, { from: e.target.value || undefined })} className="rounded bg-white/10 border border-white/15 px-2 py-1 focus:outline-none focus:border-[#6366f1]" />–
+                  <input type="time" defaultValue={it.to ?? ""} onBlur={(e) => patchItem(it.id, { to: e.target.value || undefined })} className="rounded bg-white/10 border border-white/15 px-2 py-1 focus:outline-none focus:border-[#6366f1]" />
                 </label>
               </div>
 
@@ -306,7 +312,7 @@ export default function ZonePanel({
                     <button
                       key={d.v}
                       onClick={() => toggleDay(it, d.v)}
-                      className={`text-[10px] font-semibold rounded px-1.5 py-1 border ${active ? "bg-[#2dd4bf] text-[#04231f] border-[#2dd4bf]" : "border-white/15 text-white/55"}`}
+                      className={`text-[10px] font-semibold rounded px-1.5 py-1 border ${active ? "bg-[#6366f1] text-white border-[#6366f1]" : "border-white/15 text-white/55"}`}
                     >{d.l}</button>
                   );
                 })}
@@ -321,7 +327,7 @@ export default function ZonePanel({
       {/* Medya kütüphanesi */}
       {libOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 grid place-items-center p-4" onClick={() => setLibOpen(false)}>
-          <div className="bg-[#0a2422] border border-white/10 rounded-2xl p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#171a45] border border-white/10 rounded-2xl p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <p className="font-display font-semibold">🗂 Medya kütüphanesi</p>
               <button onClick={() => setLibOpen(false)} className="text-white/40 hover:text-white text-sm">Kapat ✕</button>
@@ -329,7 +335,7 @@ export default function ZonePanel({
             <p className="text-white/45 text-xs mb-3">Bu duvara daha önce yüklediğin medya — tıkla, bu alana ekle.</p>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {library.map((it) => (
-                <button key={it.src} onClick={() => addFromLib(it)} className="aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-[#2dd4bf] relative">
+                <button key={it.src} onClick={() => addFromLib(it)} className="aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-[#6366f1] relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={it.kind === "video" ? stillOf(it.src!) : cldFit(it.src!, 200)} alt="" className="w-full h-full object-cover bg-black" />
                   {it.kind === "video" && <span className="absolute bottom-1 right-1 text-xs">🎬</span>}

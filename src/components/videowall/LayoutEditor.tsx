@@ -9,7 +9,7 @@
  */
 import { useRef, useState } from "react";
 import { cldFit } from "@/lib/cloudinary";
-import { CellBox, mergeCells, zoneCells } from "@/lib/videowalls";
+import { CellBox, contentZonesIn, mergeCells, zoneCells } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 /** Video ilk-kare posteri (kırpmasız, sığdırılmış). Cloudinary değilse "". */
@@ -31,8 +31,8 @@ function ZonePreview({ item }: { item?: ZoneItem }) {
     // eslint-disable-next-line @next/next/no-img-element
     return still ? <img src={still} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: "fill" }} /> : <div className="absolute inset-0 grid place-items-center bg-black/40 text-lg">🎬</div>;
   }
-  if (item.kind === "text") return <div className="absolute inset-0" style={{ background: item.bg ?? "#0c3b3b" }} />;
-  if (item.kind === "clock") return <div className="absolute inset-0 grid place-items-center text-lg" style={{ background: item.bg ?? "#041a1a" }}>🕐</div>;
+  if (item.kind === "text") return <div className="absolute inset-0" style={{ background: item.bg ?? "#312e81" }} />;
+  if (item.kind === "clock") return <div className="absolute inset-0 grid place-items-center text-lg" style={{ background: item.bg ?? "#0d102f" }}>🕐</div>;
   if (item.kind === "url") return <div className="absolute inset-0 grid place-items-center bg-black/40 text-lg">🔗</div>;
   return null;
 }
@@ -85,10 +85,21 @@ export default function LayoutEditor({
     setDrag(null);
     if (d.anchor.c === d.hover.c && d.anchor.r === d.hover.r) {
       onSelect(owner.get(`${d.anchor.c},${d.anchor.r}`)?.id ?? null);
-    } else {
-      onZones(mergeCells(vw.zones ?? [], cols, rows, boxOf(d.anchor, d.hover)));
-      onSelect(null);
+      return;
     }
+    const box = boxOf(d.anchor, d.hover);
+    // İçerikli alanlar etkileniyorsa ONAY sor — yanlışlıkla birleştirme faciası yok.
+    const withContent = contentZonesIn(vw.zones ?? [], cols, rows, box);
+    if (withContent.length > 0) {
+      const label = (z: Zone) => z.name || `Alan ${(vw.zones ?? []).indexOf(z) + 1}`;
+      const msg =
+        withContent.length === 1
+          ? `Alanlar birleştirilecek; "${label(withContent[0])}" içeriği yeni alana taşınır. Devam?`
+          : `Alanlar birleştirilecek; yalnız "${label(withContent[0])}" içeriği yeni alana taşınır, diğer ${withContent.length - 1} alanın içeriği SİLİNİR. Devam?`;
+      if (!confirm(msg)) return;
+    }
+    onZones(mergeCells(vw.zones ?? [], cols, rows, box));
+    onSelect(null);
   };
 
   const selBox = drag ? boxOf(drag.anchor, drag.hover) : null;
@@ -107,8 +118,8 @@ export default function LayoutEditor({
             <div
               key={z.id}
               className={`absolute overflow-hidden grid place-items-center text-center px-1 ${
-                sel ? "ring-2 ring-[#2dd4bf] z-10" : "border border-[#2dd4bf]/40"
-              } ${z.items.length ? "" : "bg-[#2dd4bf]/5"}`}
+                sel ? "ring-2 ring-[#6366f1] z-10" : "border border-[#6366f1]/40"
+              } ${z.items.length ? "" : "bg-[#6366f1]/5"}`}
               style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%` }}
             >
               <ZonePreview item={z.items[0]} />
@@ -131,7 +142,7 @@ export default function LayoutEditor({
         {/* Sürükleme seçim kutusu */}
         {selBox && (
           <div
-            className="absolute z-[25] bg-[#2dd4bf]/20 border-2 border-[#2dd4bf] pointer-events-none"
+            className="absolute z-[25] bg-[#6366f1]/20 border-2 border-[#6366f1] pointer-events-none"
             style={{
               left: `${(selBox.c0 / cols) * 100}%`,
               top: `${(selBox.r0 / rows) * 100}%`,

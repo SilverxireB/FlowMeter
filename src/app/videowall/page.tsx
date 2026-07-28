@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Logo from "@/components/Logo";
 import { useAuthUser } from "@/lib/hooks";
-import { createVideowall, deleteVideowall, duplicateVideowall, listAllVideowalls, slugify } from "@/lib/videowalls";
+import { clampScreens, createVideowall, deleteVideowall, duplicateVideowall, listAllVideowalls, slugify } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
 
 const PRESETS: { label: string; w: number; h: number; cols: number; rows: number }[] = [
@@ -96,11 +96,11 @@ export default function VideowallListPage() {
   }
 
   if (loading || !user) {
-    return <main className="min-h-screen grid place-items-center bg-[#05201f] text-white/60">Yükleniyor…</main>;
+    return <main className="min-h-screen grid place-items-center bg-[#0d102f] text-white/60">Yükleniyor…</main>;
   }
 
   return (
-    <main className="min-h-screen bg-[#041a1a] text-white">
+    <main className="min-h-screen bg-[#0d102f] text-white">
       <header className="border-b border-white/10 px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <Link href="/dashboard" className="text-white/50 hover:text-white shrink-0 text-lg">←</Link>
@@ -125,7 +125,7 @@ export default function VideowallListPage() {
           />
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((p, i) => (
-              <button type="button" key={i} onClick={() => applyPreset(i)} className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${preset === i ? "bg-white text-[#041a1a] border-white" : "border-white/20 text-white/70"}`}>
+              <button type="button" key={i} onClick={() => applyPreset(i)} className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${preset === i ? "bg-white text-[#0d102f] border-white" : "border-white/20 text-white/70"}`}>
                 {p.label}
               </button>
             ))}
@@ -137,12 +137,12 @@ export default function VideowallListPage() {
               style={{ width: w >= h ? 200 : 200 * (w / h), height: w >= h ? 200 * (h / w) : 200, maxWidth: 200, maxHeight: 200 }}
             >
               {Array.from({ length: Math.max(0, cols - 1) }).map((_, i) => (
-                <div key={`c${i}`} className="absolute top-0 bottom-0 border-l border-dashed border-[#2dd4bf]/40" style={{ left: `${((i + 1) / cols) * 100}%` }} />
+                <div key={`c${i}`} className="absolute top-0 bottom-0 border-l border-dashed border-[#6366f1]/40" style={{ left: `${((i + 1) / cols) * 100}%` }} />
               ))}
               {Array.from({ length: Math.max(0, rows - 1) }).map((_, i) => (
-                <div key={`r${i}`} className="absolute left-0 right-0 border-t border-dashed border-[#2dd4bf]/40" style={{ top: `${((i + 1) / rows) * 100}%` }} />
+                <div key={`r${i}`} className="absolute left-0 right-0 border-t border-dashed border-[#6366f1]/40" style={{ top: `${((i + 1) / rows) * 100}%` }} />
               ))}
-              <div className="absolute inset-0 grid place-items-center text-[#2dd4bf]/70 text-xs font-semibold tabular-nums">{cols}×{rows}</div>
+              <div className="absolute inset-0 grid place-items-center text-[#6366f1]/70 text-xs font-semibold tabular-nums">{cols}×{rows}</div>
             </div>
             <p className="text-white/45 text-xs leading-relaxed">
               <span className="text-white/70 font-semibold tabular-nums">{cols * rows} ekran</span> · {w}×{h}px<br />
@@ -161,13 +161,13 @@ export default function VideowallListPage() {
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-white/50 text-xs">Yatay ekran</span>
-              <input type="number" value={cols} onChange={(e) => setCols(Math.max(1, Number(e.target.value) || 1))} className="w-20 rounded-lg bg-white/10 border border-white/15 px-3 py-2" />
+              <input type="number" value={cols} onChange={(e) => setCols(clampScreens(Number(e.target.value)))} className="w-20 rounded-lg bg-white/10 border border-white/15 px-3 py-2" />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-white/50 text-xs">Dikey ekran</span>
-              <input type="number" value={rows} onChange={(e) => setRows(Math.max(1, Number(e.target.value) || 1))} className="w-20 rounded-lg bg-white/10 border border-white/15 px-3 py-2" />
+              <input type="number" value={rows} onChange={(e) => setRows(clampScreens(Number(e.target.value)))} className="w-20 rounded-lg bg-white/10 border border-white/15 px-3 py-2" />
             </label>
-            <button type="submit" disabled={busy} className="ml-auto rounded-xl bg-[#2dd4bf] text-[#04231f] px-6 py-2.5 font-semibold disabled:opacity-50">
+            <button type="submit" disabled={busy} className="ml-auto rounded-xl bg-[#6366f1] text-white px-6 py-2.5 font-semibold disabled:opacity-50">
               ＋ Oluştur
             </button>
           </div>
@@ -195,7 +195,7 @@ export default function VideowallListPage() {
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <Link href={`/videowall/${v.id}/edit`} className="rounded-lg bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/15">Düzenle</Link>
-                  <a href={`/flowsign/${v.slug ?? slugify(v.name)}`} target="_blank" className="rounded-lg bg-[#2dd4bf] text-[#04231f] px-4 py-2 text-sm font-semibold">▶ Yayınla ↗</a>
+                  <a href={`/flowsign/${v.slug ?? slugify(v.name)}`} target="_blank" className="rounded-lg bg-[#6366f1] text-white px-4 py-2 text-sm font-semibold">▶ Yayınla ↗</a>
                 </div>
               </li>
             ))}
