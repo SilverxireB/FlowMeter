@@ -50,7 +50,7 @@ function rectFromCells(b: CellBox, cols: number, rows: number) {
 
 /** Tek hücrelik alan. */
 function unitZone(c: number, r: number, cols: number, rows: number): Zone {
-  return { id: zid(), ...rectFromCells({ c0: c, r0: r, c1: c, r1: r }, cols, rows), fit: "cover", items: [] };
+  return { id: zid(), ...rectFromCells({ c0: c, r0: r, c1: c, r1: r }, cols, rows), items: [] };
 }
 
 /** cols×rows tam ızgara (başlangıç yerleşimi; kullanıcı böler/birleştirir). */
@@ -82,7 +82,7 @@ export function mergeCells(zones: Zone[], cols: number, rows: number, box: CellB
       for (let c = cb.c0; c <= cb.c1; c++)
         if (c < box.c0 || c > box.c1 || r < box.r0 || r > box.r1) leftovers.push(unitZone(c, r, cols, rows));
   }
-  const merged: Zone = { id: zid(), ...rectFromCells(box, cols, rows), fit: "cover", items: [] };
+  const merged: Zone = { id: zid(), ...rectFromCells(box, cols, rows), items: [] };
   return [...kept, ...leftovers, merged];
 }
 

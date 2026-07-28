@@ -7,22 +7,30 @@
  * Alanlar oransal (0–1) saklanır → yayın perdesi çözünürlükten bağımsız böler.
  */
 import { useEffect, useRef, useState } from "react";
-import { cldThumb, cldVideoPoster } from "@/lib/cloudinary";
+import { cldFit } from "@/lib/cloudinary";
 import { CellBox, mergeCells, zoneCells } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
-/** Alan önizleme arka planı — ilk öğenin küçük gösterimi. */
+/** Video ilk-kare posteri (kırpmasız, sığdırılmış). Cloudinary değilse "". */
+function videoStill(src: string): string {
+  return cldFit(src, 320).replace(/\.(mp4|mov|webm|m4v)$/i, ".jpg");
+}
+
+/**
+ * Alan önizleme arka planı — ilk öğenin gerçek gösterimi (perde ile birebir:
+ * içerik alana STRETCH edilir → editörde ne görüyorsan duvarda o).
+ */
 function ZonePreview({ item }: { item?: ZoneItem }) {
   if (!item) return null;
   if (item.kind === "image" && item.src)
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={cldThumb(item.src, 240, 240)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70" />;
+    return <img src={cldFit(item.src, 320)} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: "fill" }} />;
   if (item.kind === "video" && item.src) {
-    const poster = cldVideoPoster(item.src, 240, 240);
+    const still = videoStill(item.src);
     // eslint-disable-next-line @next/next/no-img-element
-    return poster ? <img src={poster} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70" /> : <div className="absolute inset-0 grid place-items-center bg-black/40 text-lg">🎬</div>;
+    return still ? <img src={still} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: "fill" }} /> : <div className="absolute inset-0 grid place-items-center bg-black/40 text-lg">🎬</div>;
   }
-  if (item.kind === "text") return <div className="absolute inset-0" style={{ background: item.bg ?? "#0c3b3b", opacity: 0.85 }} />;
+  if (item.kind === "text") return <div className="absolute inset-0" style={{ background: item.bg ?? "#0c3b3b" }} />;
   if (item.kind === "clock") return <div className="absolute inset-0 grid place-items-center text-lg" style={{ background: item.bg ?? "#041a1a" }}>🕐</div>;
   if (item.kind === "url") return <div className="absolute inset-0 grid place-items-center bg-black/40 text-lg">🔗</div>;
   return null;

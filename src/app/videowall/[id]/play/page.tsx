@@ -51,16 +51,15 @@ function TextView({ item }: { item: ZoneItem }) {
   );
 }
 
-/** Tek öğe katmanı — mount'ta yumuşak fade-in (crossfade için üst üste yığılır). */
+/** Tek öğe katmanı — mount'ta yumuşak fade-in (crossfade için üst üste yığılır).
+ * İçerik alana STRETCH edilir (object-fit: fill) — kırpma/siyah boşluk yok. */
 function Layer({
   item,
-  fit,
   loop,
   onEnded,
   onError,
 }: {
   item: ZoneItem;
-  fit: "cover" | "contain";
   loop: boolean;
   onEnded?: () => void;
   onError?: () => void;
@@ -74,7 +73,7 @@ function Layer({
   return (
     <div className="absolute inset-0" style={{ opacity: on ? 1 : 0, transition: "opacity 650ms ease" }}>
       {item.kind === "video" ? (
-        <video src={item.src} autoPlay muted playsInline loop={loop} onEnded={onEnded} onError={onError} className="w-full h-full" style={{ objectFit: fit }} />
+        <video src={item.src} autoPlay muted playsInline loop={loop} onEnded={onEnded} onError={onError} className="w-full h-full" style={{ objectFit: "fill" }} />
       ) : item.kind === "url" ? (
         <iframe src={item.src} title={item.name || "sayfa"} className="w-full h-full border-0" />
       ) : item.kind === "text" ? (
@@ -83,15 +82,13 @@ function Layer({
         <ClockView item={item} />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.src} alt={item.name || ""} onError={onError} className="w-full h-full" style={{ objectFit: fit }} />
+        <img src={item.src} alt={item.name || ""} onError={onError} className="w-full h-full" style={{ objectFit: "fill" }} />
       )}
     </div>
   );
 }
 
 function ZonePlayer({ zone }: { zone: Zone }) {
-  const fit = zone.fit === "contain" ? "contain" : "cover";
-
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const t = window.setInterval(() => setNow(new Date()), 30_000);
@@ -118,7 +115,8 @@ function ZonePlayer({ zone }: { zone: Zone }) {
     }
     const k = keyRef.current++;
     setLayers((prev) => [...prev, { key: k, item: cur }].slice(-2));
-    const t = window.setTimeout(() => setLayers((prev) => prev.filter((l) => l.key === k)), 700);
+    // Geçiş bitince yalnız en yeni katman kalsın (hangi key olursa olsun).
+    const t = window.setTimeout(() => setLayers((prev) => prev.slice(-1)), 700);
     return () => window.clearTimeout(t);
   }, [cur?.id, idx]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -144,7 +142,6 @@ function ZonePlayer({ zone }: { zone: Zone }) {
             <Layer
               key={l.key}
               item={l.item}
-              fit={fit}
               loop={top && l.item.kind === "video" && len <= 1}
               onEnded={top && l.item.kind === "video" && len > 1 ? advance : undefined}
               // Bozuk öğe → 2 sn sonra sıradakine geç (tek öğeyse tekrar dener).

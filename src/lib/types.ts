@@ -467,9 +467,10 @@ export interface Zone {
   y: number;
   w: number;
   h: number;
-  fit?: "cover" | "contain";
   name?: string; // kullanıcı etiketi (ör. "Giriş", "Menü"); boşsa "Alan N"
   items: ZoneItem[];
+  // Not: içerik alanın çözünürlüğüne STRETCH (object-fit: fill) edilir —
+  // kırpma/siyah boşluk yok; kullanıcı alana uygun boyutta içerik koyar.
 }
 
 /** Video-wall tanımı (videowalls/{id}). */
