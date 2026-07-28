@@ -10,6 +10,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import LayoutEditor from "@/components/videowall/LayoutEditor";
 import ZonePanel from "@/components/videowall/ZonePanel";
+import QrCode from "@/components/present/QrCode";
 import { useAuthUser } from "@/lib/hooks";
 import { renameVideowall, resetGrid, splitZone, updateZones, watchVideowall } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
@@ -21,12 +22,31 @@ export default function VideowallEditPage() {
   const [vw, setVw] = useState<Videowall | null | undefined>(undefined);
   const [playUrl, setPlayUrl] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [guide, setGuide] = useState(false);
 
   useEffect(() => watchVideowall(id, setVw), [id]);
   useEffect(() => setPlayUrl(`${window.location.origin}/videowall/${id}/play`), [id]);
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [loading, user, router]);
+  // İlk kullanım rehberi (bir kez).
+  useEffect(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem("flowsign-onboarded")) setGuide(true);
+  }, []);
+  const dismissGuide = () => {
+    setGuide(false);
+    try {
+      localStorage.setItem("flowsign-onboarded", "1");
+    } catch {}
+  };
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(playUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {}
+  };
 
   const selected = useMemo(() => (vw?.zones ?? []).find((z) => z.id === selectedId) ?? null, [vw, selectedId]);
   const selectedIndex = useMemo(() => (vw?.zones ?? []).findIndex((z) => z.id === selectedId), [vw, selectedId]);
@@ -51,6 +71,40 @@ export default function VideowallEditPage() {
       </header>
 
       <section className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
+        {/* İlk kullanım rehberi */}
+        {guide && (
+          <div className="rounded-2xl bg-[#2dd4bf]/10 border border-[#2dd4bf]/30 p-5">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <p className="font-display font-semibold text-[#7ff0e4]">👋 FlowSign — 4 adımda tabelan hazır</p>
+              <button onClick={dismissGuide} className="text-white/40 hover:text-white text-sm shrink-0">Anladım ✕</button>
+            </div>
+            <ol className="text-sm text-white/75 space-y-1.5 list-decimal list-inside">
+              <li><b>Yerleşim:</b> hücrelere sürükle → alanları birleştir, tıkla → seç, gerekirse böl.</li>
+              <li><b>İçerik:</b> seçili alana görsel/video/URL/metin/saat ekle (dosyayı sürükleyip de bırakabilirsin).</li>
+              <li><b>Ayar:</b> öğe başına süre, saat aralığı, günler; alan başına geçiş efekti.</li>
+              <li><b>Yayınla:</b> aşağıdaki linki tabela PC'sinde aç → ⛶ tam ekran. Ekran uyumaz.</li>
+            </ol>
+          </div>
+        )}
+
+        {/* Yayın linki + QR */}
+        <div className="rounded-2xl bg-white/5 border border-white/10 p-5 flex flex-col sm:flex-row items-start gap-5">
+          <div className="flex-1 min-w-0">
+            <p className="text-white/50 text-xs uppercase tracking-widest mb-2">Yayın linki</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="text-sm bg-black/30 rounded-lg px-3 py-2 text-[#7ff0e4] break-all min-w-0">{playUrl}</code>
+              <button onClick={copyLink} className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm font-semibold hover:bg-white/15">{copied ? "✓ Kopyalandı" : "Kopyala"}</button>
+              <a href={playUrl} target="_blank" className="rounded-lg bg-[#2dd4bf] text-[#04231f] px-3 py-2 text-sm font-semibold">Aç ↗</a>
+            </div>
+            <p className="text-white/40 text-xs mt-2">Bu linki tabela/ekran bilgisayarında Chrome ile aç, tam ekran yap. Telefonla QR'ı okutup da açabilirsin.</p>
+          </div>
+          {playUrl && (
+            <div className="shrink-0 bg-white rounded-xl p-2">
+              <QrCode text={playUrl} size={104} />
+            </div>
+          )}
+        </div>
+
         {/* Config */}
         <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
           <p className="text-white/50 text-xs uppercase tracking-widest mb-3">Duvar tanımı</p>

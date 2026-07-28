@@ -13,14 +13,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { watchVideowall } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
-/** "HH:MM" saat aralığı filtresi — boşsa hep göster. */
+/** Saat aralığı + haftanın günü filtresi — boşsa hep göster. */
 function inWindow(item: ZoneItem, now: Date): boolean {
+  if (item.days?.length && !item.days.includes(now.getDay())) return false;
   if (!item.from && !item.to) return true;
   const hm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   if (item.from && hm < item.from) return false;
   if (item.to && hm > item.to) return false;
   return true;
 }
+
+type Transition = "fade" | "cut" | "slide";
 
 /** Canlı saat/tarih widget'ı. */
 function ClockView({ item }: { item: ZoneItem }) {
@@ -51,27 +54,37 @@ function TextView({ item }: { item: ZoneItem }) {
   );
 }
 
-/** Tek öğe katmanı — mount'ta yumuşak fade-in (crossfade için üst üste yığılır).
- * İçerik alana STRETCH edilir (object-fit: fill) — kırpma/siyah boşluk yok. */
+/** Tek öğe katmanı — geçiş efektiyle girer (fade/cut/slide). En yeni katman
+ * üstte animasyonla gelir; alttakiler dinlenir. İçerik alana STRETCH edilir. */
 function Layer({
   item,
+  transition,
   loop,
   onEnded,
   onError,
 }: {
   item: ZoneItem;
+  transition: Transition;
   loop: boolean;
   onEnded?: () => void;
   onError?: () => void;
 }) {
-  const [on, setOn] = useState(false);
+  const [on, setOn] = useState(transition === "cut");
   useEffect(() => {
+    if (transition === "cut") return;
     const r = requestAnimationFrame(() => setOn(true));
     return () => cancelAnimationFrame(r);
-  }, []);
+  }, [transition]);
+
+  const style =
+    transition === "slide"
+      ? { transform: on ? "translateX(0)" : "translateX(100%)", transition: "transform 600ms ease" }
+      : transition === "cut"
+      ? {}
+      : { opacity: on ? 1 : 0, transition: "opacity 650ms ease" };
 
   return (
-    <div className="absolute inset-0" style={{ opacity: on ? 1 : 0, transition: "opacity 650ms ease" }}>
+    <div className="absolute inset-0" style={style}>
       {item.kind === "video" ? (
         <video src={item.src} autoPlay muted playsInline loop={loop} onEnded={onEnded} onError={onError} className="w-full h-full" style={{ objectFit: "fill" }} />
       ) : item.kind === "url" ? (
@@ -89,6 +102,7 @@ function Layer({
 }
 
 function ZonePlayer({ zone }: { zone: Zone }) {
+  const transition: Transition = zone.transition ?? "fade";
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const t = window.setInterval(() => setNow(new Date()), 30_000);
@@ -104,8 +118,9 @@ function ZonePlayer({ zone }: { zone: Zone }) {
   useEffect(() => setIdx(0), [len]);
 
   const cur = len ? items[idx % len] : undefined;
+  const next = len > 1 ? items[(idx + 1) % len] : undefined;
 
-  // Crossfade katmanları: geçerli öğeyi yığ, 700ms sonra öncekini at.
+  // Geçiş katmanları: geçerli öğeyi yığ, geçiş bitince yalnız en yeni kalsın.
   const keyRef = useRef(0);
   const [layers, setLayers] = useState<{ key: number; item: ZoneItem }[]>([]);
   useEffect(() => {
@@ -115,8 +130,7 @@ function ZonePlayer({ zone }: { zone: Zone }) {
     }
     const k = keyRef.current++;
     setLayers((prev) => [...prev, { key: k, item: cur }].slice(-2));
-    // Geçiş bitince yalnız en yeni katman kalsın (hangi key olursa olsun).
-    const t = window.setTimeout(() => setLayers((prev) => prev.slice(-1)), 700);
+    const t = window.setTimeout(() => setLayers((prev) => prev.slice(-1)), transition === "cut" ? 30 : 700);
     return () => window.clearTimeout(t);
   }, [cur?.id, idx]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -128,10 +142,20 @@ function ZonePlayer({ zone }: { zone: Zone }) {
     return () => window.clearTimeout(t);
   }, [cur, idx, len, advance]);
 
+  // Sıradaki medyayı ön-yükle (siyah flaş yok).
+  useEffect(() => {
+    if (!next?.src) return;
+    if (next.kind === "image") {
+      const img = new Image();
+      img.src = next.src;
+    }
+    // video: gizli <video preload="auto"> aşağıda mount edilir
+  }, [next?.src, next?.kind]);
+
   return (
     <div
-      className="absolute overflow-hidden bg-black"
-      style={{ left: `${zone.x * 100}%`, top: `${zone.y * 100}%`, width: `${zone.w * 100}%`, height: `${zone.h * 100}%` }}
+      className="absolute overflow-hidden"
+      style={{ left: `${zone.x * 100}%`, top: `${zone.y * 100}%`, width: `${zone.w * 100}%`, height: `${zone.h * 100}%`, background: zone.bg ?? "#000" }}
     >
       {layers.length === 0 ? (
         <div className="w-full h-full grid place-items-center text-white/15 text-sm select-none">FlowSign</div>
@@ -142,6 +166,7 @@ function ZonePlayer({ zone }: { zone: Zone }) {
             <Layer
               key={l.key}
               item={l.item}
+              transition={transition}
               loop={top && l.item.kind === "video" && len <= 1}
               onEnded={top && l.item.kind === "video" && len > 1 ? advance : undefined}
               // Bozuk öğe → 2 sn sonra sıradakine geç (tek öğeyse tekrar dener).
@@ -149,6 +174,10 @@ function ZonePlayer({ zone }: { zone: Zone }) {
             />
           );
         })
+      )}
+      {/* Sıradaki video ön-yükleme (görünmez) */}
+      {next?.kind === "video" && next.src && (
+        <video key={next.src} src={next.src} preload="auto" muted playsInline className="hidden" aria-hidden />
       )}
     </div>
   );
@@ -159,6 +188,7 @@ export default function VideowallPlayPage() {
   const [vw, setVw] = useState<Videowall | null | undefined>(undefined);
   const [controls, setControls] = useState(false);
   const [fs, setFs] = useState(false);
+  const [identify, setIdentify] = useState(false);
 
   useEffect(() => watchVideowall(id, setVw), [id]);
 
@@ -220,21 +250,39 @@ export default function VideowallPlayPage() {
   if (vw === undefined) return <main className="w-screen h-screen grid place-items-center bg-black text-white/40">Yükleniyor…</main>;
   if (vw === null) return <main className="w-screen h-screen grid place-items-center bg-black text-white/40">Duvar bulunamadı.</main>;
 
+  const showIdentify = () => {
+    setIdentify(true);
+    window.setTimeout(() => setIdentify(false), 6000);
+  };
+
+  const screens = vw.cols * vw.rows;
+
   return (
     <main className={`relative w-screen h-screen bg-black overflow-hidden ${controls ? "" : "cursor-none"}`} onPointerMove={poke}>
       {vw.zones?.map((z) => (
         <ZonePlayer key={z.id} zone={z} />
       ))}
 
-      {/* Tam ekran kontrolü (fare hareketinde belirir) */}
-      <button
-        onClick={toggleFs}
-        className={`fixed bottom-4 right-4 z-50 rounded-xl bg-black/60 backdrop-blur border border-white/20 text-white px-4 py-2 text-sm font-semibold transition-opacity ${
-          controls ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        {fs ? "✕ Tam ekrandan çık" : "⛶ Tam ekran"}
-      </button>
+      {/* Ekran tanıma: her fiziksel ekrana büyük numara bas (6 sn) */}
+      {identify && (
+        <div className="fixed inset-0 z-40 grid pointer-events-none" style={{ gridTemplateColumns: `repeat(${vw.cols},1fr)`, gridTemplateRows: `repeat(${vw.rows},1fr)` }}>
+          {Array.from({ length: screens }).map((_, i) => (
+            <div key={i} className="border border-[#2dd4bf]/60 bg-[#041a1a]/80 grid place-items-center">
+              <span className="font-display font-bold text-[#7ff0e4]" style={{ fontSize: "clamp(40px, 12vw, 260px)" }}>{i + 1}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Kontroller (fare hareketinde belirir) */}
+      <div className={`fixed bottom-4 right-4 z-50 flex gap-2 transition-opacity ${controls ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+        {screens > 1 && (
+          <button onClick={showIdentify} className="rounded-xl bg-black/60 backdrop-blur border border-white/20 text-white px-4 py-2 text-sm font-semibold">⊞ Ekranları tanı</button>
+        )}
+        <button onClick={toggleFs} className="rounded-xl bg-black/60 backdrop-blur border border-white/20 text-white px-4 py-2 text-sm font-semibold">
+          {fs ? "✕ Tam ekrandan çık" : "⛶ Tam ekran"}
+        </button>
+      </div>
     </main>
   );
 }

@@ -66,6 +66,18 @@ yetkin olmayan **sönük + bilgi amaçlı** (self-host'ta fabrika rolleriyle eş
 > Not v2: yerleşim **hücre-birleştirme** modeli (video wall'a doğru olan bu — alanlar
 > fiziksel ekran sınırına hizalı kalır). Serbest piksel sürükle-taşı gerekirse v5+.
 > Not v3: FlowSign yüklemeleri `keepOriginal:true` (tabela tam çözünürlük ister).
+> Not: içerik alana **STRETCH** (object-fit: fill) edilir — sığdır/doldur seçeneği YOK.
+
+### Cila turları (online ürünü güçlendirme — hepsi CANLI)
+- **Tier 1:** Wake Lock + tek-tık tam ekran · METİN & SAAT öğesi · editörde canlı
+  içerik önizleme · alan adlandırma.
+- **Tier 2:** sürükle-bırak dosya yükleme + çoklu kuyruk · medya kütüphanesi
+  (tekrar kullan) · geçiş efekti (yumuşak/kesme/kaydır) + alan zemin rengi · yayın
+  linki QR + kopyala · gün/hafta zamanlama (saat aralığı + günler) · duvar kopyala
+  + ilk-kullanım rehberi.
+- **Tier 3:** ekran tanıma (fiziksel ekranlara numara bas) · Firestore offline
+  persistence (`persistentLocalCache`, ağ kesilse son içerik döner) · sıradaki
+  medya ön-yükleme (siyah flaş yok).
 
 ## Marka
 Ayrı kimlik (hub'da 3. kart). Ad: **FlowSign** (Flow + ekran/tabela). Logo: `Logo`

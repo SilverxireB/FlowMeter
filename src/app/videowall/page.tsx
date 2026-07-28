@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Logo from "@/components/Logo";
 import { useAuthUser } from "@/lib/hooks";
-import { createVideowall, deleteVideowall, listVideowalls } from "@/lib/videowalls";
+import { createVideowall, deleteVideowall, duplicateVideowall, listVideowalls } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
 
 const PRESETS: { label: string; w: number; h: number; cols: number; rows: number }[] = [
@@ -66,6 +66,12 @@ export default function VideowallListPage() {
   async function remove(v: Videowall) {
     if (!confirm(`"${v.name}" silinsin mi?`)) return;
     await deleteVideowall(v);
+    refresh();
+  }
+
+  async function duplicate(v: Videowall) {
+    if (!user) return;
+    await duplicateVideowall(user.uid, v);
     refresh();
   }
 
@@ -141,7 +147,10 @@ export default function VideowallListPage() {
                     <p className="font-display font-semibold truncate">{v.name}</p>
                     <p className="text-white/45 text-xs mt-0.5 tabular-nums">{v.width}×{v.height} · {v.cols}×{v.rows} ekran · {v.zones?.length ?? 0} alan</p>
                   </div>
-                  <button onClick={() => remove(v)} className="text-white/40 hover:text-[#ff6b6b] shrink-0" title="Sil" aria-label="Sil">🗑</button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => duplicate(v)} className="text-white/40 hover:text-white" title="Kopyala" aria-label="Kopyala">⧉</button>
+                    <button onClick={() => remove(v)} className="text-white/40 hover:text-[#ff6b6b]" title="Sil" aria-label="Sil">🗑</button>
+                  </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <Link href={`/videowall/${v.id}/edit`} className="rounded-lg bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/15">Düzenle</Link>

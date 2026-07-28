@@ -158,6 +158,27 @@ export async function resetGrid(id: string, cols: number, rows: number): Promise
   await updateDoc(doc(db(), "videowalls", id), { cols, rows, zones: gridZones(cols, rows), updatedAt: serverTimestamp() });
 }
 
+/** Duvarı kopyala (yeni id + taze zone/öğe id'leri; içerik referansları korunur). */
+export async function duplicateVideowall(ownerId: string, v: Videowall): Promise<string> {
+  const zones = (v.zones ?? []).map((z) => ({
+    ...z,
+    id: zid(),
+    items: (z.items ?? []).map((it) => ({ ...it, id: `it-${Math.random().toString(36).slice(2, 9)}` })),
+  }));
+  const ref = await addDoc(collection(db(), "videowalls"), {
+    ownerId,
+    name: `${v.name} (kopya)`,
+    width: v.width,
+    height: v.height,
+    cols: v.cols,
+    rows: v.rows,
+    zones,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+
 export async function deleteVideowall(v: Videowall): Promise<void> {
   await deleteDoc(doc(db(), "videowalls", v.id));
 }

@@ -453,6 +453,7 @@ export interface ZoneItem {
   durationSec?: number; // image/url/text/clock için gösterim süresi; video kendi süresi (ya da cap)
   from?: string; // "HH:MM" saat aralığı başı (boşsa hep)
   to?: string; // "HH:MM" saat aralığı sonu
+  days?: number[]; // haftanın günleri (0=Paz..6=Cmt); boş/yoksa her gün
   // text öğesi:
   title?: string; // büyük başlık
   text?: string; // gövde metni
@@ -468,6 +469,8 @@ export interface Zone {
   w: number;
   h: number;
   name?: string; // kullanıcı etiketi (ör. "Giriş", "Menü"); boşsa "Alan N"
+  transition?: "fade" | "cut" | "slide"; // öğe geçiş efekti (varsayılan fade)
+  bg?: string; // alan arka plan rengi (şeffaf içerik/geçiş arkası); varsayılan siyah
   items: ZoneItem[];
   // Not: içerik alanın çözünürlüğüne STRETCH (object-fit: fill) edilir —
   // kırpma/siyah boşluk yok; kullanıcı alana uygun boyutta içerik koyar.
