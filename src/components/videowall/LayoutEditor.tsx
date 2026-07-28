@@ -7,8 +7,26 @@
  * Alanlar oransal (0–1) saklanır → yayın perdesi çözünürlükten bağımsız böler.
  */
 import { useEffect, useRef, useState } from "react";
+import { cldThumb, cldVideoPoster } from "@/lib/cloudinary";
 import { CellBox, mergeCells, zoneCells } from "@/lib/videowalls";
-import { Videowall, Zone } from "@/lib/types";
+import { Videowall, Zone, ZoneItem } from "@/lib/types";
+
+/** Alan önizleme arka planı — ilk öğenin küçük gösterimi. */
+function ZonePreview({ item }: { item?: ZoneItem }) {
+  if (!item) return null;
+  if (item.kind === "image" && item.src)
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={cldThumb(item.src, 240, 240)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70" />;
+  if (item.kind === "video" && item.src) {
+    const poster = cldVideoPoster(item.src, 240, 240);
+    // eslint-disable-next-line @next/next/no-img-element
+    return poster ? <img src={poster} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70" /> : <div className="absolute inset-0 grid place-items-center bg-black/40 text-lg">🎬</div>;
+  }
+  if (item.kind === "text") return <div className="absolute inset-0" style={{ background: item.bg ?? "#0c3b3b", opacity: 0.85 }} />;
+  if (item.kind === "clock") return <div className="absolute inset-0 grid place-items-center text-lg" style={{ background: item.bg ?? "#041a1a" }}>🕐</div>;
+  if (item.kind === "url") return <div className="absolute inset-0 grid place-items-center bg-black/40 text-lg">🔗</div>;
+  return null;
+}
 
 type Cell = { c: number; r: number };
 
@@ -74,14 +92,15 @@ export default function LayoutEditor({
           return (
             <div
               key={z.id}
-              className={`absolute grid place-items-center text-center px-1 ${
-                sel ? "ring-2 ring-[#2dd4bf] bg-[#2dd4bf]/15 z-10" : "border border-[#2dd4bf]/40 bg-[#2dd4bf]/5"
-              }`}
+              className={`absolute overflow-hidden grid place-items-center text-center px-1 ${
+                sel ? "ring-2 ring-[#2dd4bf] z-10" : "border border-[#2dd4bf]/40"
+              } ${z.items.length ? "" : "bg-[#2dd4bf]/5"}`}
               style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%` }}
             >
-              <span className="text-[#7ff0e4] text-[11px] font-semibold leading-tight pointer-events-none">
-                Alan {i + 1}
-                {z.items.length > 0 && <span className="block text-white/50 font-normal">{z.items.length} içerik</span>}
+              <ZonePreview item={z.items[0]} />
+              <span className="relative z-[1] text-white text-[11px] font-semibold leading-tight pointer-events-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+                {z.name || `Alan ${i + 1}`}
+                {z.items.length > 0 && <span className="block text-white/70 font-normal">{z.items.length} içerik</span>}
               </span>
             </div>
           );

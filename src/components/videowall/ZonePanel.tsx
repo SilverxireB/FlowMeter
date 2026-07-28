@@ -2,15 +2,16 @@
 
 /**
  * FlowSign içerik paneli (v3). Seçili alana içerik ata: görsel/video (Cloudinary'ye
- * yükle) veya URL (dashboard/sayfa). Öğe başına: gösterim süresi, saat aralığı,
- * sıralama. Sığdır (cover/contain) alan bazında. Yazım → updateZones (realtime).
+ * yükle), URL (dashboard/sayfa), METİN (duyuru) veya SAAT (canlı widget). Öğe
+ * başına: gösterim süresi, saat aralığı, sıralama. Sığdır + alan adı alan bazında.
+ * Yazım → updateZones (realtime).
  */
 import { useRef, useState } from "react";
 import { isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 const iid = () => `it-${Math.random().toString(36).slice(2, 9)}`;
-const KIND_ICON = { image: "🖼", video: "🎬", url: "🔗" } as const;
+const KIND_ICON = { image: "🖼", video: "🎬", url: "🔗", text: "📝", clock: "🕐" } as const;
 
 export default function ZonePanel({
   vw,
@@ -38,7 +39,7 @@ export default function ZonePanel({
     if (!files?.length) return;
     setErr(null);
     if (!isCloudinaryConfigured()) {
-      setErr("Cloudinary yapılandırılmadı — görsel/video yüklenemez (URL öğesi ekleyebilirsin).");
+      setErr("Cloudinary yapılandırılmadı — görsel/video yüklenemez (URL/metin/saat ekleyebilirsin).");
       return;
     }
     const added: ZoneItem[] = [];
@@ -69,6 +70,11 @@ export default function ZonePanel({
     setItems([...zone.items, { id: iid(), kind: "url", src, name, durationSec: 15 }]);
   }
 
+  const addText = () =>
+    setItems([...zone.items, { id: iid(), kind: "text", title: "Başlık", text: "", bg: "#0c3b3b", color: "#ffffff", durationSec: 10 }]);
+  const addClock = () =>
+    setItems([...zone.items, { id: iid(), kind: "clock", bg: "#041a1a", color: "#ffffff", durationSec: 10 }]);
+
   const patchItem = (id: string, p: Partial<ZoneItem>) => setItems(zone.items.map((it) => (it.id === id ? { ...it, ...p } : it)));
   const removeItem = (id: string) => setItems(zone.items.filter((it) => it.id !== id));
   const move = (i: number, dir: -1 | 1) => {
@@ -88,9 +94,15 @@ export default function ZonePanel({
         <button onClick={onClose} className="text-white/40 hover:text-white text-sm">Kapat ✕</button>
       </div>
 
-      {/* Alan araçları */}
+      {/* Alan araçları: ad + sığdır + böl */}
       <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">
-        <span className="text-white/45 text-xs">Sığdır:</span>
+        <input
+          defaultValue={zone.name ?? ""}
+          placeholder={`Alan adı (ör. Giriş)`}
+          onBlur={(e) => patch({ name: e.target.value.trim() || undefined })}
+          className="rounded-lg bg-white/10 border border-white/15 px-3 py-1.5 text-sm w-40 placeholder:text-white/30"
+        />
+        <span className="text-white/45 text-xs ml-1">Sığdır:</span>
         {(["cover", "contain"] as const).map((f) => (
           <button
             key={f}
@@ -114,25 +126,47 @@ export default function ZonePanel({
         <button onClick={() => fileRef.current?.click()} disabled={progress !== null} className="rounded-xl bg-[#2dd4bf] text-[#04231f] px-4 py-2 text-sm font-semibold disabled:opacity-50">
           {progress !== null ? `Yükleniyor… ${progress}%` : "＋ Görsel / Video"}
         </button>
-        <button onClick={addUrl} className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/15">＋ URL / Sayfa</button>
+        <button onClick={addUrl} className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/15">＋ URL</button>
+        <button onClick={addText} className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/15">＋ Metin</button>
+        <button onClick={addClock} className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/15">＋ Saat</button>
         <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => onFiles(e.target.files)} />
       </div>
       {err && <p className="text-[#ffb4b4] text-xs mb-3">{err}</p>}
 
       {/* Öğe listesi */}
       {zone.items.length === 0 ? (
-        <p className="text-white/40 text-sm py-4 text-center">Henüz içerik yok. Görsel/video yükle ya da URL ekle.</p>
+        <p className="text-white/40 text-sm py-4 text-center">Henüz içerik yok. Görsel/video yükle ya da URL/metin/saat ekle.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {zone.items.map((it, i) => (
             <li key={it.id} className="rounded-xl bg-black/30 border border-white/10 p-3 flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <span aria-hidden>{KIND_ICON[it.kind]}</span>
-                <span className="text-sm font-semibold truncate flex-1 min-w-0">{it.name || it.src}</span>
+                <span className="text-sm font-semibold truncate flex-1 min-w-0">
+                  {it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : it.name || it.src}
+                </span>
                 <button onClick={() => move(i, -1)} disabled={i === 0} className="text-white/40 hover:text-white disabled:opacity-20 px-1" aria-label="Yukarı">↑</button>
                 <button onClick={() => move(i, 1)} disabled={i === zone.items.length - 1} className="text-white/40 hover:text-white disabled:opacity-20 px-1" aria-label="Aşağı">↓</button>
                 <button onClick={() => removeItem(it.id)} className="text-white/40 hover:text-[#ff6b6b] px-1" aria-label="Sil">🗑</button>
               </div>
+
+              {/* Metin öğesi editörü */}
+              {it.kind === "text" && (
+                <div className="flex flex-col gap-2">
+                  <input defaultValue={it.title ?? ""} placeholder="Başlık" onBlur={(e) => patchItem(it.id, { title: e.target.value })} className="rounded bg-white/10 border border-white/15 px-2 py-1.5 text-sm" />
+                  <textarea defaultValue={it.text ?? ""} placeholder="Mesaj (opsiyonel)" rows={2} onBlur={(e) => patchItem(it.id, { text: e.target.value })} className="rounded bg-white/10 border border-white/15 px-2 py-1.5 text-sm resize-y" />
+                </div>
+              )}
+
+              {/* Metin/Saat renkleri */}
+              {(it.kind === "text" || it.kind === "clock") && (
+                <div className="flex items-center gap-4 text-xs text-white/60">
+                  <label className="flex items-center gap-1">Zemin <input type="color" defaultValue={it.bg ?? "#0c3b3b"} onChange={(e) => patchItem(it.id, { bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5" /></label>
+                  <label className="flex items-center gap-1">Yazı <input type="color" defaultValue={it.color ?? "#ffffff"} onChange={(e) => patchItem(it.id, { color: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5" /></label>
+                </div>
+              )}
+
+              {/* Süre + saat aralığı */}
               <div className="flex flex-wrap items-center gap-3 text-xs text-white/60">
                 {it.kind !== "video" && (
                   <label className="flex items-center gap-1">

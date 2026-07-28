@@ -447,12 +447,17 @@ export const QUIZ_SLIDE_TYPES: SlideType[] = ["quiz", "quiz-type"];
 /** Bir yerleşim alanının içeriği (playlist öğesi). */
 export interface ZoneItem {
   id: string;
-  kind: "image" | "video" | "url";
-  src: string;
+  kind: "image" | "video" | "url" | "text" | "clock";
+  src?: string; // image/video/url için kaynak; text/clock'ta yok
   name?: string;
-  durationSec?: number; // image/url için gösterim süresi; video kendi süresi (ya da cap)
+  durationSec?: number; // image/url/text/clock için gösterim süresi; video kendi süresi (ya da cap)
   from?: string; // "HH:MM" saat aralığı başı (boşsa hep)
   to?: string; // "HH:MM" saat aralığı sonu
+  // text öğesi:
+  title?: string; // büyük başlık
+  text?: string; // gövde metni
+  bg?: string; // arka plan rengi (hex); text/clock
+  color?: string; // metin rengi (hex); text/clock
 }
 
 /** Duvar üzerinde bir yerleşim alanı (konum 0–1 oran; duvar pikseline çarpılır). */
@@ -463,6 +468,7 @@ export interface Zone {
   w: number;
   h: number;
   fit?: "cover" | "contain";
+  name?: string; // kullanıcı etiketi (ör. "Giriş", "Menü"); boşsa "Alan N"
   items: ZoneItem[];
 }
 
