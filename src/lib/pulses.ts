@@ -10,6 +10,7 @@ import {
   deleteDoc,
   doc,
   documentId,
+  endAt,
   getDocs,
   increment,
   limit,
@@ -44,7 +45,8 @@ export function percentOf(type: PulseQuestionType, day?: { total?: number; sum?:
   if (type === "choice" || !day?.total) return null;
   const { min, max } = scaleOf(type);
   const avg = (day.sum ?? 0) / day.total;
-  return Math.round(((avg - min) / (max - min)) * 100);
+  // Clamp: rules tipe göre doğrular ama eski/bozuk veri asla %100 dışına taşmasın.
+  return Math.min(100, Math.max(0, Math.round(((avg - min) / (max - min)) * 100)));
 }
 
 export async function createPulse(
@@ -57,6 +59,8 @@ export async function createPulse(
     title: title.trim() || "Yeni nokta",
     question,
     cooldownSec: 3,
+    // Varsayılan PIN üret — PIN'siz kiosk çıkışı yanlışlıkla tetiklenebiliyor.
+    pin: String(Math.floor(1000 + Math.random() * 9000)),
     commentsEnabled: true,
     moderation: true,
     threshold: 0,
@@ -122,17 +126,34 @@ export async function castVote(pulseId: string, value: number, channel: "kiosk" 
 export async function getRecentDays(pulseId: string, nDays: number): Promise<PulseDay[]> {
   const from = new Date();
   from.setDate(from.getDate() - (nDays - 1));
+  // endAt: gelecekteki/bozuk doküman id'leri trende sızmasın.
   const snap = await getDocs(
-    query(collection(db(), "pulses", pulseId, "days"), orderBy(documentId()), startAt(dayKey(from)))
+    query(collection(db(), "pulses", pulseId, "days"), orderBy(documentId()), startAt(dayKey(from)), endAt(dayKey()))
   );
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as PulseDay);
 }
 
-/** Bugünün özetini canlı izle (kokpit/pano anlık skor). */
+/** Bugünün özetini canlı izle. GECE YARISI yeni güne kendiliğinden geçer —
+ *  7/24 açık pano dünkü skoru "bugün" diye göstermeye devam etmesin. */
 export function watchToday(pulseId: string, cb: (d: PulseDay | null) => void): () => void {
-  return onSnapshot(doc(db(), "pulses", pulseId, "days", dayKey()), (s) =>
-    cb(s.exists() ? ({ id: s.id, ...s.data() } as PulseDay) : null)
-  );
+  let key = dayKey();
+  const sub = () =>
+    onSnapshot(doc(db(), "pulses", pulseId, "days", key), (s) =>
+      cb(s.exists() ? ({ id: s.id, ...s.data() } as PulseDay) : null)
+    );
+  let unsub = sub();
+  const timer = window.setInterval(() => {
+    if (dayKey() !== key) {
+      key = dayKey();
+      unsub();
+      cb(null); // yeni gün boş başlar
+      unsub = sub();
+    }
+  }, 60_000);
+  return () => {
+    window.clearInterval(timer);
+    unsub();
+  };
 }
 
 // ── Yorumlar ──

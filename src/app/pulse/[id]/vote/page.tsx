@@ -26,19 +26,38 @@ export default function PulseVotePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  const [voteErr, setVoteErr] = useState(false);
+  const [sending, setSending] = useState(false);
+  // Telefonda kiosk gibi offline kuyruk mazereti yok: yazım DOĞRULANMADAN
+  // "teşekkürler" deme (sahte başarı + ertesi güne kilitlenme).
   const vote = async (v: number) => {
-    if (done) return;
-    setDone(true);
+    if (done || sending) return;
+    setSending(true);
+    setVoteErr(false);
     try {
-      localStorage.setItem(key, dayKey());
-    } catch {}
-    castVote(id, v, "qr").catch(() => {});
+      await Promise.race([
+        castVote(id, v, "qr"),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000)),
+      ]);
+      setDone(true);
+      try {
+        localStorage.setItem(key, dayKey());
+      } catch {}
+    } catch {
+      setVoteErr(true);
+    } finally {
+      setSending(false);
+    }
   };
 
   const sendComment = async () => {
     if (!pulse || !comment.trim()) return;
-    setCommentSent(true);
-    addComment(id, comment, pulse.moderation !== false).catch(() => {});
+    try {
+      await addComment(id, comment, pulse.moderation !== false);
+      setCommentSent(true);
+    } catch {
+      setVoteErr(true);
+    }
   };
 
   if (pulse === undefined) return <main className="min-h-screen grid place-items-center bg-[#101014] text-white/40 animate-pulse">Yükleniyor…</main>;
@@ -48,10 +67,12 @@ export default function PulseVotePage() {
     <main className="min-h-screen bg-[#101014] text-white flex flex-col items-center justify-center gap-8 px-4 py-10" style={{ colorScheme: "dark" }}>
       {!done ? (
         <>
-          <p className="text-white/40 text-sm">{pulse.title}</p>
+          <p className="text-white/60 text-sm">{pulse.title}</p>
           <h1 className="font-display font-bold text-2xl sm:text-3xl text-center leading-snug">{pulse.question.text}</h1>
           <VoteButtons pulse={pulse} onVote={vote} size="phone" />
-          <p className="text-white/30 text-xs">Geri bildirimin anonimdir · günde 1 oy</p>
+          {sending && <p className="text-white/60 text-sm animate-pulse">Gönderiliyor…</p>}
+          {voteErr && <p className="text-rose-400 text-sm font-semibold">Gönderilemedi — bağlantını kontrol edip tekrar dene.</p>}
+          <p className="text-white/60 text-xs">Geri bildirimin anonimdir · günde 1 oy</p>
         </>
       ) : (
         <div className="text-center max-w-sm w-full animate-pop">

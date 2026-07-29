@@ -287,26 +287,42 @@ service cloud.firestore {
       allow update, delete: if request.auth != null
         && resource.data.ownerId == request.auth.uid;
 
-      // Ham oylar: herkes ekler (anonim), asla değiştirilemez; silme sahibinde.
+      // Ham oylar: herkes ekler (anonim) ama değer SORU TİPİNE bağlı doğrulanır
+      // (smiley 1–5, nps 0–10, yesno 0/1, choice < seçenek sayısı; tam sayı).
+      // get() aynı zamanda ebeveyn pulse'ın varlığını zorlar (yetim yazım yok).
       match /votes/{voteId} {
+        function q() {
+          return get(/databases/$(database)/documents/pulses/$(pulseId)).data.question;
+        }
         allow read: if true;
         allow create: if request.resource.data.keys().hasOnly(['value', 'channel', 'createdAt'])
-          && request.resource.data.value is number
-          && request.resource.data.value >= 0
-          && request.resource.data.value <= 10
-          && request.resource.data.channel in ['kiosk', 'qr'];
+          && request.resource.data.value is int
+          && request.resource.data.channel in ['kiosk', 'qr']
+          && (
+            (q().type == 'smiley' && request.resource.data.value >= 1 && request.resource.data.value <= 5)
+            || (q().type == 'nps' && request.resource.data.value >= 0 && request.resource.data.value <= 10)
+            || (q().type == 'yesno' && (request.resource.data.value == 0 || request.resource.data.value == 1))
+            || (q().type == 'choice' && request.resource.data.value >= 0
+                && request.resource.data.value < q().get('options', []).size())
+          );
         allow update: if false;
         allow delete: if pulseOwner();
       }
 
-      // Günlük özet (rollup): oyla birlikte artar. total tam +1, sum 0..10 artar
-      // → tek yazımla en fazla tek oyluk etki (toplu şişirme yok).
+      // Günlük özet (rollup): oyla birlikte artar. dayId gerçek tarih formatında,
+      // alanlar sabit küme, total tam +1 & sum ≤ +10 → yazım başına en fazla tek
+      // oyluk etki. (counts/hours iç deltaları rules'ta sınırlanamıyor — görsel
+      // grafikleri kirletebilir ama skor/oy sayısı total/sum'dan gelir, dürüst kalır.)
       match /days/{dayId} {
         allow read: if true;
-        allow create: if request.resource.data.get('total', 0) == 1
+        allow create: if dayId.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && exists(/databases/$(database)/documents/pulses/$(pulseId))
+          && request.resource.data.keys().hasOnly(['total', 'sum', 'counts', 'hours'])
+          && request.resource.data.get('total', 0) == 1
           && request.resource.data.get('sum', 0) >= 0
           && request.resource.data.get('sum', 0) <= 10;
-        allow update: if request.resource.data.get('total', 0) == resource.data.get('total', 0) + 1
+        allow update: if request.resource.data.keys().hasOnly(['total', 'sum', 'counts', 'hours'])
+          && request.resource.data.get('total', 0) == resource.data.get('total', 0) + 1
           && request.resource.data.get('sum', 0) >= resource.data.get('sum', 0)
           && request.resource.data.get('sum', 0) <= resource.data.get('sum', 0) + 10;
         allow delete: if pulseOwner();

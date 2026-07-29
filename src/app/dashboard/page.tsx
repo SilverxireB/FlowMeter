@@ -325,7 +325,7 @@ export default function DashboardPage() {
           <div>
             <p className="eyebrow mb-2">Panelin</p>
             <h1 className="font-display text-3xl font-semibold tracking-tight mb-7">Ne oluşturmak istersin?</h1>
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-5 sm:grid-cols-2">
               {/* FlowMeter */}
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
                 <div className="p-6 bg-gradient-to-br from-accent-soft to-white">
@@ -367,7 +367,7 @@ export default function DashboardPage() {
                   </ul>
                   <div className="mt-auto flex gap-2">
                     <button onClick={() => openProduct("walls")} className="flex-1 rounded-xl bg-white/10 border border-white/15 py-2 text-sm font-semibold hover:bg-white/15">Duvarlar →</button>
-                    <button onClick={() => openProduct("walls", true)} className="rounded-xl bg-white text-[#141b48] px-4 py-2 text-sm font-semibold">＋ Yeni</button>
+                    <button onClick={() => openProduct("walls", true)} className="rounded-xl bg-white text-[#141b48] px-4 py-2 text-sm font-semibold hover:bg-white/90">＋ Yeni</button>
                   </div>
                 </div>
               </div>
@@ -410,7 +410,7 @@ export default function DashboardPage() {
                         <button onClick={() => router.push(`/pulse/${p.id}/manage`)} className="w-full text-left text-sm truncate text-ink/80 hover:text-accent py-1">• {p.title}</button>
                       </li>
                     ))}
-                    {pulses.length === 0 && <li className="text-sm text-muted py-1">Henüz nokta yok</li>}
+                    {pulses.length === 0 && <li className="text-sm text-muted py-1">Henüz geri bildirim noktası yok</li>}
                   </ul>
                   <div className="mt-auto flex gap-2">
                     <Link href="/pulse" className="btn-ghost flex-1 !py-2 text-sm text-center">Noktalar →</Link>

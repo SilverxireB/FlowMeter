@@ -31,8 +31,13 @@ export default function PulseBoardPage() {
   if (pulse === undefined) return <main className="w-screen h-screen grid place-items-center bg-[#101014] text-white/40 animate-pulse">Yükleniyor…</main>;
   if (pulse === null) return <main className="w-screen h-screen grid place-items-center bg-[#101014] text-white/40">Nokta bulunamadı.</main>;
 
-  const pct = percentOf(pulse.question.type, today);
+  const type = pulse.question.type;
+  const pct = percentOf(type, today);
   const weekTotals = week.reduce((a, d) => a + (d.total ?? 0), 0);
+  const caption = type === "nps" ? "tavsiye skoru (0–10 ort.)" : type === "yesno" ? "“Evet” oranı" : "bugünkü memnuniyet";
+  // choice: skor yok → bugünün seçenek dağılımı
+  const todayCounts = Object.entries(today?.counts ?? {}).sort((a, b) => Number(a[0]) - Number(b[0]));
+  const countMax = Math.max(1, ...todayCounts.map(([, n]) => n));
 
   return (
     <main className="w-screen h-screen bg-[#101014] text-white flex flex-col items-center justify-center gap-8 px-6 overflow-hidden" style={{ colorScheme: "dark" }}>
@@ -44,20 +49,40 @@ export default function PulseBoardPage() {
           <div className="font-display font-bold tabular-nums leading-none" style={{ fontSize: "clamp(72px, 16vw, 230px)", color: scoreColor(pct) }}>
             %{pct}
           </div>
-          <p className="text-white/50 mt-3" style={{ fontSize: "clamp(13px, 1.8vw, 26px)" }}>
-            bugünkü memnuniyet · {today?.total ?? 0} oy
+          <p className="text-white/55 mt-3" style={{ fontSize: "clamp(13px, 1.8vw, 26px)" }}>
+            {caption} · {today?.total ?? 0} oy
           </p>
+        </div>
+      ) : type === "choice" && (today?.total ?? 0) > 0 ? (
+        // choice: skor yerine bugünün dağılımı (pano "oy yok" yalanı söylemesin)
+        <div className="w-full max-w-2xl flex flex-col gap-3">
+          {todayCounts.map(([k, n]) => (
+            <div key={k} className="flex items-center gap-4">
+              <span className="w-40 truncate font-semibold" style={{ fontSize: "clamp(14px, 2vw, 30px)" }}>{pulse.question.options?.[Number(k)] ?? k}</span>
+              <div className="flex-1 h-7 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full rounded-full bg-accent" style={{ width: `${(n / countMax) * 100}%` }} />
+              </div>
+              <span className="w-12 text-right tabular-nums text-white/70" style={{ fontSize: "clamp(13px, 1.6vw, 24px)" }}>{n}</span>
+            </div>
+          ))}
+          <p className="text-white/55 text-center" style={{ fontSize: "clamp(12px, 1.6vw, 22px)" }}>bugün · {today?.total} oy</p>
         </div>
       ) : (
         <p className="text-white/50 font-display" style={{ fontSize: "clamp(20px, 3vw, 44px)" }}>Bugün ilk oyu sen ver 👇</p>
       )}
 
-      {/* 7 günlük mini trend */}
-      {week.length > 1 && pulse.question.type !== "choice" && (
-        <div className="flex items-end gap-2 h-20">
+      {/* 7 günlük mini trend (TV'de imleç yok → gün baş harfleri altta) */}
+      {week.length > 1 && type !== "choice" && (
+        <div className="flex items-end gap-2">
           {week.map((d) => {
-            const p = percentOf(pulse.question.type, d) ?? 0;
-            return <div key={d.id} title={`${d.id}: %${p}`} className="w-6 rounded-t" style={{ height: `${Math.max(8, p)}%`, background: scoreColor(p), opacity: 0.85 }} />;
+            const p = percentOf(type, d) ?? 0;
+            const g = ["P", "Pt", "S", "Ç", "P", "C", "Ct"][new Date(d.id + "T12:00:00").getDay()];
+            return (
+              <div key={d.id} className="flex flex-col items-center gap-1">
+                <div className="w-6 rounded-t self-stretch" style={{ height: `${Math.max(6, p * 0.7)}px`, background: scoreColor(p), opacity: 0.85 }} />
+                <span className="text-white/50 text-[11px]">{g}</span>
+              </div>
+            );
           })}
         </div>
       )}
@@ -65,7 +90,7 @@ export default function PulseBoardPage() {
       <div className="flex items-center gap-4">
         {voteUrl && (
           <div className="bg-white rounded-xl p-2">
-            <QrCode text={voteUrl} size={110} />
+            <QrCode text={voteUrl} size={150} />
           </div>
         )}
         <p className="text-white/55 max-w-[200px]" style={{ fontSize: "clamp(12px, 1.5vw, 20px)" }}>

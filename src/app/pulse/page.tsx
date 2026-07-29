@@ -68,8 +68,8 @@ export default function PulseListPage() {
     e.preventDefault();
     if (!user || busy) return;
     const options = qOptions.split(",").map((s) => s.trim()).filter(Boolean);
-    if (qType === "choice" && options.length < 2) {
-      setErr("Çoktan seçmeli için virgülle en az 2 seçenek yaz.");
+    if (qType === "choice" && (options.length < 2 || options.length > 11)) {
+      setErr(options.length > 11 ? "En fazla 11 seçenek olabilir." : "Çoktan seçmeli için virgülle en az 2 seçenek yaz.");
       return;
     }
     setBusy(true);

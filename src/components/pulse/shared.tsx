@@ -20,6 +20,9 @@ export function VoteButtons({ pulse, onVote, size }: { pulse: Pulse; onVote: (v:
   const big = size === "kiosk";
   const q = pulse.question;
 
+  const ring = "focus:outline-none focus-visible:ring-4 focus-visible:ring-white/30";
+  const SMILEY_LABELS = ["Çok kötü", "Kötü", "Orta", "İyi", "Çok iyi"];
+
   if (q.type === "smiley")
     return (
       <div className={`flex flex-wrap justify-center ${big ? "gap-6" : "gap-3"}`}>
@@ -27,10 +30,10 @@ export function VoteButtons({ pulse, onVote, size }: { pulse: Pulse; onVote: (v:
           <button
             key={s.v}
             onClick={() => onVote(s.v)}
-            className={`rounded-3xl bg-white/10 border border-white/15 hover:bg-white/20 active:scale-95 transition grid place-items-center ${
+            className={`${ring} rounded-3xl bg-white/10 border border-white/15 hover:bg-white/20 active:scale-95 transition grid place-items-center ${
               big ? "w-32 h-32 text-7xl" : "w-16 h-16 text-4xl"
             }`}
-            aria-label={`Puan ${s.v}`}
+            aria-label={SMILEY_LABELS[s.v - 1]}
           >
             {s.e}
           </button>
@@ -40,37 +43,45 @@ export function VoteButtons({ pulse, onVote, size }: { pulse: Pulse; onVote: (v:
 
   if (q.type === "nps")
     return (
-      <div className={`grid grid-cols-6 sm:grid-cols-11 justify-center ${big ? "gap-4" : "gap-2"}`}>
-        {Array.from({ length: 11 }).map((_, v) => (
-          <button
-            key={v}
-            onClick={() => onVote(v)}
-            className={`rounded-2xl border font-bold tabular-nums active:scale-95 transition grid place-items-center ${
-              big ? "w-20 h-20 text-3xl" : "w-11 h-11 text-base"
-            } ${v <= 6 ? "bg-rose-500/20 border-rose-400/40" : v <= 8 ? "bg-amber-500/20 border-amber-400/40" : "bg-emerald-500/20 border-emerald-400/40"} text-white hover:bg-white/20`}
-          >
-            {v}
-          </button>
-        ))}
+      // Kioskta AKIŞKAN ızgara — sabit 80px buton dar/dikey tablette üst üste biniyordu.
+      <div className={big ? "w-full max-w-4xl" : ""}>
+        <div className={big ? "grid grid-cols-11 gap-2 w-full" : "grid grid-cols-6 sm:grid-cols-11 gap-2"}>
+          {Array.from({ length: 11 }).map((_, v) => (
+            <button
+              key={v}
+              onClick={() => onVote(v)}
+              className={`${ring} rounded-2xl border font-bold tabular-nums active:scale-95 transition grid place-items-center ${
+                big ? "w-full aspect-square" : "w-11 h-11 text-base"
+              } ${v <= 6 ? "bg-rose-500/20 border-rose-400/40" : v <= 8 ? "bg-amber-500/20 border-amber-400/40" : "bg-emerald-500/20 border-emerald-400/40"} text-white hover:bg-white/20`}
+              style={big ? { fontSize: "clamp(16px, 2.4vw, 30px)" } : undefined}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+        <div className={`flex justify-between text-white/60 mt-2 ${big ? "text-base" : "text-xs"}`}>
+          <span>0 · Hiç tavsiye etmem</span>
+          <span>10 · Kesinlikle</span>
+        </div>
       </div>
     );
 
   if (q.type === "yesno")
     return (
       <div className={`flex justify-center ${big ? "gap-8" : "gap-4"}`}>
-        <button onClick={() => onVote(1)} className={`rounded-3xl bg-emerald-500/20 border border-emerald-400/40 text-white hover:bg-emerald-500/30 active:scale-95 transition grid place-items-center ${big ? "w-40 h-32 text-7xl" : "w-24 h-16 text-4xl"}`} aria-label="Evet">👍</button>
-        <button onClick={() => onVote(0)} className={`rounded-3xl bg-rose-500/20 border border-rose-400/40 text-white hover:bg-rose-500/30 active:scale-95 transition grid place-items-center ${big ? "w-40 h-32 text-7xl" : "w-24 h-16 text-4xl"}`} aria-label="Hayır">👎</button>
+        <button onClick={() => onVote(1)} className={`focus:outline-none focus-visible:ring-4 focus-visible:ring-white/30 rounded-3xl bg-emerald-500/20 border border-emerald-400/40 text-white hover:bg-emerald-500/30 active:scale-95 transition grid place-items-center ${big ? "w-40 h-32 text-7xl" : "w-24 h-16 text-4xl"}`} aria-label="Evet">👍</button>
+        <button onClick={() => onVote(0)} className={`focus:outline-none focus-visible:ring-4 focus-visible:ring-white/30 rounded-3xl bg-rose-500/20 border border-rose-400/40 text-white hover:bg-rose-500/30 active:scale-95 transition grid place-items-center ${big ? "w-40 h-32 text-7xl" : "w-24 h-16 text-4xl"}`} aria-label="Hayır">👎</button>
       </div>
     );
 
   // choice
   return (
     <div className={`flex flex-col items-stretch mx-auto w-full ${big ? "gap-4 max-w-2xl" : "gap-2 max-w-sm"}`}>
-      {(q.options ?? []).map((opt, i) => (
+      {(q.options ?? []).slice(0, 11).map((opt, i) => (
         <button
           key={i}
           onClick={() => onVote(i)}
-          className={`rounded-2xl bg-white/10 border border-white/15 text-white font-semibold hover:bg-white/20 active:scale-[0.98] transition ${
+          className={`focus:outline-none focus-visible:ring-4 focus-visible:ring-white/30 rounded-2xl bg-white/10 border border-white/15 text-white font-semibold hover:bg-white/20 active:scale-[0.98] transition ${
             big ? "px-8 py-6 text-3xl" : "px-5 py-3.5 text-base"
           }`}
         >
