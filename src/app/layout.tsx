@@ -10,11 +10,11 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "FlowMeter — İnteraktif Sunumlar",
+  title: "Flow Studio — Canlı Etkinlik Ürünleri",
   description:
-    "Canlı oylamalar, kelime bulutları ve quizlerle izleyicinizi sunuma dahil edin.",
+    "İnteraktif sunum, canlı etkinlik duvarı, dijital tabela ve nabız ölçümü — dört ürün, tek hesap.",
   manifest: "/manifest.webmanifest",
-  applicationName: "FlowMeter",
+  applicationName: "Flow Studio",
   icons: {
     icon: [
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   // "Ana ekrana ekle"de tam ekran (tarayıcı çubuğu olmadan) açılsın
   appleWebApp: {
     capable: true,
-    title: "FlowMeter",
+    title: "Flow Studio",
     statusBarStyle: "black-translucent",
   },
 };

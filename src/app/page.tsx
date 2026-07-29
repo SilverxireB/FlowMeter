@@ -3,14 +3,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import LogoRotating from "@/components/LogoRotating";
+import Logo from "@/components/Logo";
 import { getLastPresentation, LastPresentation } from "@/lib/participants";
 import { resolveCode } from "@/lib/walls";
 
 /**
- * Landing = marka-bağımsız katılım kapısı (menti.com gibi). Kod deck ise
- * sunuma (/join→/p), wall ise duvara (/u) gider. Oluşturma /dashboard'da.
+ * Landing = Flow Studio (çatı marka) katılım kapısı. Kod deck ise sunuma
+ * (/join→/p), wall ise duvara (/u) gider. Oluşturma /dashboard'da; altta
+ * 4 ürünün markalı şeridi (vitrin).
  */
+const PRODUCTS = [
+  { href: "/dashboard?p=decks", variant: "meter", desc: "İnteraktif sunum & oylama", card: "bg-white border border-line", onDark: false },
+  { href: "/dashboard?p=walls", variant: "wall", desc: "Canlı etkinlik foto duvarı", card: "bg-[#0b1533] border border-white/10", onDark: true },
+  { href: "/videowall", variant: "sign", desc: "Dijital tabela & video-wall", card: "bg-[#0d102f] border border-white/10", onDark: true },
+  { href: "/pulse", variant: "pulse", desc: "Sürekli nabız & geri bildirim", card: "bg-white border border-line", onDark: false },
+] as const;
 export default function LandingPage() {
   const router = useRouter();
   const [code, setCode] = useState("");
@@ -38,7 +45,7 @@ export default function LandingPage() {
   return (
     <main className="min-h-screen flex flex-col bg-wash">
       <header className="px-6 py-5 flex items-center justify-between gap-3">
-        <LogoRotating />
+        <Logo variant="studio" />
         <Link href="/login" className="chip !py-1.5 text-accent font-semibold hover:border-accent shrink-0">
           Giriş yap →
         </Link>
@@ -89,11 +96,20 @@ export default function LandingPage() {
         )}
       </section>
 
-      <footer className="px-6 py-5 text-xs text-muted flex gap-1.5">
-        <Link href="/dashboard" className="hover:text-ink">FlowMeter</Link>·
-        <Link href="/dashboard?p=walls" className="hover:text-ink">FlowWall</Link>·
-        <Link href="/videowall" className="hover:text-ink">FlowSign</Link>·
-        <Link href="/pulse" className="hover:text-ink">FlowPulse</Link>
+      {/* Çatı vitrini: 4 ürün, tek hesap — kartlar kendi marka yüzeyinde */}
+      <footer className="px-6 pb-8 pt-2">
+        <div className="max-w-3xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {PRODUCTS.map((p) => (
+            <Link
+              key={p.variant}
+              href={p.href}
+              className={`${p.card} rounded-2xl px-4 py-4 flex flex-col items-start gap-2 hover:-translate-y-0.5 hover:shadow-md transition-all`}
+            >
+              <Logo size="sm" variant={p.variant} onDark={p.onDark} />
+              <span className={`text-xs ${p.onDark ? "text-white/60" : "text-muted"}`}>{p.desc}</span>
+            </Link>
+          ))}
+        </div>
       </footer>
     </main>
   );

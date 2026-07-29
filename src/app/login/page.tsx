@@ -68,9 +68,9 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center px-4 bg-wash">
       <div className="w-full max-w-sm card p-8 text-center">
         <div className="flex items-center justify-center mb-1">
-          <Logo size="lg" />
+          <Logo size="lg" variant="studio" />
         </div>
-        <p className="text-muted text-sm mb-8">Sunum, etkinlik duvarı ve video-wall oluşturmak için giriş yap</p>
+        <p className="text-muted text-sm mb-8">Sunum, etkinlik duvarı, tabela ve nabız ölçümü için giriş yap</p>
 
         <button onClick={signIn} disabled={busy} className="btn-accent w-full py-4">
           {busy ? "Bağlanıyor…" : "Google ile devam et"}

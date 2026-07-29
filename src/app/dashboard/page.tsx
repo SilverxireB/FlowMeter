@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Logo from "@/components/Logo";
-import LogoRotating from "@/components/LogoRotating";
 import SlidePreview from "@/components/editor/SlidePreview";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -289,7 +288,7 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-wash" onClick={() => setMenuFor(null)}>
       <header className="bg-white/80 backdrop-blur border-b border-line px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
         <Link href="/" className="shrink-0">
-          {product === null ? <LogoRotating /> : <Logo variant={product === "walls" ? "wall" : "meter"} />}
+          {product === null ? <Logo variant="studio" /> : <Logo variant={product === "walls" ? "wall" : "meter"} />}
         </Link>
         <div className="flex items-center gap-2 min-w-0">
           {isAdmin && (

@@ -1,7 +1,8 @@
-# Flow Suite — CLAUDE.md
+# Flow Studio — CLAUDE.md
 
-**4 ürün, tek hesap, tek marka** (Next.js 14 App Router + TS + Tailwind + Firebase
-`flowmeter-938a3` + Vercel). Türkçe UI, İngilizce kod. Hub: `/dashboard`.
+**Çatı marka: Flow Studio** — 4 ürün, tek hesap (Next.js 14 App Router + TS +
+Tailwind + Firebase `flowmeter-938a3` + Vercel). Türkçe UI, İngilizce kod.
+Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları sabit.
 
 | Ürün | Ne | Rotalar | Doküman |
 |---|---|---|---|
@@ -32,9 +33,10 @@
   Logo lacisi #001e64. Skor semantiği (Pulse): yeşil ≥70 / amber ≥40 / gül <40.
 - Ürün yüzeyleri: Meter+Pulse kokpiti AYDINLIK; Wall lacivert, Sign #0d102f koyu,
   Pulse kiosk/pano #101014. Koyu ekranlara `[color-scheme:dark]`.
-- **Logo:** ortak FLOW wordmark, O-glifi ürüne göre — bar-chart/kamera/monitör/EKG
-  (`public/logo-flow*.png` + white; `Logo variant`, `LogoRotating` 4'lü). Üretim:
-  sharp ile O içi silinip yeni glif kompoze edilir (bkz. geçmiş; `--no-save sharp`).
+- **Logo:** ortak FLOW wordmark, O-glifi ürüne göre — bar-chart/kamera/monitör/EKG;
+  çatı **Studio** = 2×2 dört nokta (`public/logo-flow*.png` + white; `Logo variant`;
+  `LogoRotating` artık kullanılmıyor, dosya duruyor). Üretim: sharp ile O içi
+  silinip yeni glif kompoze edilir (bkz. geçmiş; `--no-save sharp`).
 - İşlevsel ikonlar SVG (`components/videowall/icons.tsx`); emoji yalnız içerik/dekor.
   Onaylar `ConfirmDialog` (native confirm değil). Girdilere odak reçetesi.
 

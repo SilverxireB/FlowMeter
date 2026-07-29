@@ -1,7 +1,7 @@
 {
-  "name": "FlowMeter — İnteraktif Sunumlar",
-  "short_name": "FlowMeter",
-  "description": "Canlı oylamalar, kelime bulutları ve quizlerle izleyicinizi sunuma dahil edin.",
+  "name": "Flow Studio — Canlı Etkinlik Ürünleri",
+  "short_name": "Flow Studio",
+  "description": "İnteraktif sunum, canlı etkinlik duvarı, dijital tabela ve nabız ölçümü — dört ürün, tek hesap.",
   "lang": "tr",
   "start_url": "/",
   "scope": "/",

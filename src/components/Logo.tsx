@@ -9,6 +9,7 @@ const SIZES = {
 } as const;
 
 const VARIANTS = {
+  studio: { img: "/logo-flowstudio.png", imgDark: "/logo-flowstudio-white.png", word: "STUDIO", full: "FLOW STUDIO" },
   meter: { img: "/logo-flow.png", imgDark: "/logo-flow-white.png", word: "METER", full: "FLOWMETER" },
   wall: { img: "/logo-flowwall.png", imgDark: "/logo-flowwall-white.png", word: "WALL", full: "FLOWWALL" },
   sign: { img: "/logo-flowsign.png", imgDark: "/logo-flowsign-white.png", word: "SIGN", full: "FLOWSIGN" },
@@ -18,6 +19,7 @@ const VARIANTS = {
 /**
  * Marka logosu: FLOW görseli (renkli O halkası, harfler Beko lacisi) +
  * yanında benzer puntoda ikinci kelime. `variant`:
+ *  - "studio": çatı marka — O içinde 4 ürünü temsil eden 2×2 nokta → Flow Studio
  *  - "meter" (varsayılan): O içinde bar-chart + "METER" → FlowMeter
  *  - "wall": AYNI O halkası, içinde fotoğraf makinesi + "WALL" → FlowWall
  *  - "sign": AYNI O halkası, içinde ekran/tabela + "SIGN" → FlowSign
@@ -31,7 +33,7 @@ export default function Logo({
 }: {
   size?: "sm" | "md" | "lg";
   onDark?: boolean;
-  variant?: "meter" | "wall" | "sign" | "pulse";
+  variant?: "studio" | "meter" | "wall" | "sign" | "pulse";
 }) {
   const [imgOk, setImgOk] = useState(true);
   const { img, fontSize } = SIZES[size];
