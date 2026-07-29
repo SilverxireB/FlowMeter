@@ -348,8 +348,8 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* FlowWall */}
-              <div className="rounded-3xl shadow-sm overflow-hidden flex flex-col text-white" style={{ background: "linear-gradient(160deg,#0b1030 0%,#141b48 100%)" }}>
+              {/* FlowWall — lacivert + köşede sıcak festival parıltısı (Sign'dan ayrışır) */}
+              <div className="rounded-3xl shadow-sm overflow-hidden flex flex-col text-white" style={{ background: "radial-gradient(120% 90% at 100% 0%, rgba(240,145,58,0.22), transparent 55%), linear-gradient(160deg,#0b1030 0%,#141b48 100%)" }}>
                 <div className="p-6">
                   <Logo size="lg" variant="wall" onDark />
                   <p className="text-white/55 text-sm mt-3">Canlı foto/video etkinlik duvarı</p>
@@ -365,7 +365,7 @@ export default function DashboardPage() {
                     {walls.length === 0 && <li className="text-sm text-white/45 py-1">Henüz duvar yok</li>}
                   </ul>
                   <div className="mt-auto flex gap-2">
-                    <button onClick={() => openProduct("walls")} className="flex-1 rounded-xl bg-white/10 border border-white/15 py-2 text-sm font-semibold hover:bg-white/15">Duvarlar →</button>
+                    <button onClick={() => openProduct("walls")} className="flex-1 rounded-xl bg-white/15 border border-white/30 py-2 text-sm font-semibold hover:bg-white/25">Duvarlar →</button>
                     <button onClick={() => openProduct("walls", true)} className="rounded-xl bg-white text-[#141b48] px-4 py-2 text-sm font-semibold hover:bg-white/90">＋ Yeni</button>
                   </div>
                 </div>
@@ -389,15 +389,16 @@ export default function DashboardPage() {
                     {signs.length === 0 && <li className="text-sm text-white/45 py-1">Henüz ekran yok</li>}
                   </ul>
                   <div className="mt-auto flex gap-2">
-                    <Link href="/videowall" className="flex-1 rounded-xl bg-white/10 border border-white/15 py-2 text-sm font-semibold hover:bg-white/15 text-center">Ekranlar →</Link>
+                    <Link href="/videowall" className="flex-1 rounded-xl bg-white/15 border border-white/30 py-2 text-sm font-semibold hover:bg-white/25 text-center">Ekranlar →</Link>
                     <Link href="/videowall?new=1" className="rounded-xl bg-white text-[#312e81] px-4 py-2 text-sm font-semibold hover:bg-white/90">＋ Yeni</Link>
                   </div>
                 </div>
               </div>
 
-              {/* FlowPulse — aydınlık kart, sıcak amber yıkama (4. ürün) */}
+              {/* FlowPulse — aydınlık kart, serin nane yıkaması (skor yeşili ailesi;
+                  eski amber ton indigo aileden kopuyordu) */}
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
-                <div className="p-6" style={{ background: "linear-gradient(160deg,#fff7ed 0%,#ffffff 100%)" }}>
+                <div className="p-6" style={{ background: "linear-gradient(160deg,#ecfdf5 0%,#ffffff 100%)" }}>
                   <Logo size="lg" variant="pulse" />
                   <p className="text-muted text-sm mt-3">Sürekli nabız & geri bildirim</p>
                 </div>
