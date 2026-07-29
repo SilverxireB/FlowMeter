@@ -33,10 +33,13 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   Logo lacisi #001e64. Skor semantiği (Pulse): yeşil ≥70 / amber ≥40 / gül <40.
 - Ürün yüzeyleri: Meter+Pulse kokpiti AYDINLIK; Wall lacivert, Sign #0d102f koyu,
   Pulse kiosk/pano #101014. Koyu ekranlara `[color-scheme:dark]`.
-- **Logo:** ortak FLOW wordmark, O-glifi ürüne göre — bar-chart/kamera/monitör/EKG;
-  çatı **Studio** = 2×2 dört nokta (`public/logo-flow*.png` + white; `Logo variant`;
-  `LogoRotating` artık kullanılmıyor, dosya duruyor). Üretim: sharp ile O içi
-  silinip yeni glif kompoze edilir (bkz. geçmiş; `--no-save sharp`).
+- **Logo (yeni dil):** başta yalnız **O-halkası ikonu** + devamında tam ad metni
+  (`Logo variant`; `public/logo-o-{studio|meter|wall|sign|pulse}.png` + `-white`).
+  Glifler: Studio = 4 ürün karosu (yay renklerinde app-grid), Meter bar-chart,
+  Wall kamera, Sign **dikey tabela totemi**, Pulse EKG. Kaynak FLOW wordmark'ları
+  (`logo-flow*.png`) üretim tabanı olarak `public/`ta durur; `LogoRotating` silindi.
+  Üretim: sharp ile O içi silinip yeni glif kompoze edilir + O bölgesi kırpılır
+  (`--no-save sharp`).
 - İşlevsel ikonlar SVG (`components/videowall/icons.tsx`); emoji yalnız içerik/dekor.
   Onaylar `ConfirmDialog` (native confirm değil). Girdilere odak reçetesi.
 

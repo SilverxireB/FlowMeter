@@ -3,28 +3,29 @@
 import { useState } from "react";
 
 const SIZES = {
-  sm: { img: "h-5", fontSize: 23 },
-  md: { img: "h-7", fontSize: 32 },
-  lg: { img: "h-10", fontSize: 46 },
+  sm: { img: "h-5", fontSize: 20 },
+  md: { img: "h-7", fontSize: 27 },
+  lg: { img: "h-10", fontSize: 38 },
 } as const;
 
 const VARIANTS = {
-  studio: { img: "/logo-flowstudio.png", imgDark: "/logo-flowstudio-white.png", word: "STUDIO", full: "FLOW STUDIO" },
-  meter: { img: "/logo-flow.png", imgDark: "/logo-flow-white.png", word: "METER", full: "FLOWMETER" },
-  wall: { img: "/logo-flowwall.png", imgDark: "/logo-flowwall-white.png", word: "WALL", full: "FLOWWALL" },
-  sign: { img: "/logo-flowsign.png", imgDark: "/logo-flowsign-white.png", word: "SIGN", full: "FLOWSIGN" },
-  pulse: { img: "/logo-flowpulse.png", imgDark: "/logo-flowpulse-white.png", word: "PULSE", full: "FLOWPULSE" },
+  studio: { icon: "/logo-o-studio.png", iconDark: "/logo-o-studio-white.png", word: "FLOW STUDIO" },
+  meter: { icon: "/logo-o-meter.png", iconDark: "/logo-o-meter-white.png", word: "FLOWMETER" },
+  wall: { icon: "/logo-o-wall.png", iconDark: "/logo-o-wall-white.png", word: "FLOWWALL" },
+  sign: { icon: "/logo-o-sign.png", iconDark: "/logo-o-sign-white.png", word: "FLOWSIGN" },
+  pulse: { icon: "/logo-o-pulse.png", iconDark: "/logo-o-pulse-white.png", word: "FLOWPULSE" },
 } as const;
 
 /**
- * Marka logosu: FLOW görseli (renkli O halkası, harfler Beko lacisi) +
- * yanında benzer puntoda ikinci kelime. `variant`:
- *  - "studio": çatı marka — O içinde 4 ürünü temsil eden 2×2 nokta → Flow Studio
- *  - "meter" (varsayılan): O içinde bar-chart + "METER" → FlowMeter
- *  - "wall": AYNI O halkası, içinde fotoğraf makinesi + "WALL" → FlowWall
- *  - "sign": AYNI O halkası, içinde ekran/tabela + "SIGN" → FlowSign
- * Logo asla deforme edilmez (yükseklik sabit, genişlik otomatik).
- * Koyu zeminde beyaz sürüm kullanılır.
+ * Marka logosu: başta yalnız O-halkası ikonu (renkli yaylar, glif ürüne göre) +
+ * devamında tam marka adı metni. `variant`:
+ *  - "studio": çatı marka — O içinde 4 ürün karosu (app-grid) → FLOW STUDIO
+ *  - "meter" (varsayılan): bar-chart → FLOWMETER
+ *  - "wall": fotoğraf makinesi → FLOWWALL
+ *  - "sign": dikey dijital tabela (totem) → FLOWSIGN
+ *  - "pulse": EKG nabız çizgisi → FLOWPULSE
+ * İkon asla deforme edilmez (yükseklik sabit, genişlik otomatik).
+ * Koyu zeminde beyaz glifli sürüm + beyaz metin kullanılır.
  */
 export default function Logo({
   size = "md",
@@ -40,12 +41,12 @@ export default function Logo({
   const v = VARIANTS[variant];
 
   return (
-    // Ekran okuyucu markayı TEK kez tam adıyla duyar ("FLOWSIGN"); parçalar gizli.
-    <span className="inline-flex items-center" role="img" aria-label={v.full}>
+    // Ekran okuyucu markayı TEK kez tam adıyla duyar; parçalar gizli.
+    <span className="inline-flex items-center" role="img" aria-label={v.word}>
       {imgOk && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={onDark ? v.imgDark : v.img}
+          src={onDark ? v.iconDark : v.icon}
           alt=""
           className={`${img} w-auto`}
           onError={() => setImgOk(false)}
@@ -59,10 +60,10 @@ export default function Logo({
           fontSize,
           lineHeight: 1,
           letterSpacing: "0.03em",
-          marginLeft: imgOk ? "0.1em" : 0,
+          marginLeft: imgOk ? "0.28em" : 0,
         }}
       >
-        {imgOk ? v.word : v.full}
+        {v.word}
       </span>
     </span>
   );
