@@ -1,139 +1,55 @@
-# FlowMeter — CLAUDE.md
+# Flow Suite — CLAUDE.md
 
-FlowMeter, Mentimeter'ın birebir klonu olan interaktif sunum/oylama uygulamasıdır.
-Sunucu (presenter) slaytlar oluşturur, izleyiciler (audience) telefonlarından
-**6 haneli kod veya QR** ile katılıp oy verir, sonuçlar **canlı** güncellenir.
+**4 ürün, tek hesap, tek marka** (Next.js 14 App Router + TS + Tailwind + Firebase
+`flowmeter-938a3` + Vercel). Türkçe UI, İngilizce kod. Hub: `/dashboard`.
 
-## Teknoloji Yığını (Stack)
-
-| Katman | Teknoloji | Not |
-|---|---|---|
-| Framework | Next.js 14 (App Router, TypeScript) | Vercel'e deploy |
-| UI | Tailwind CSS | Tasarım sistemi aşağıda |
-| Grafikler | Saf CSS/HTML | Kütüphane YOK (recharts kullanılmıyor) |
-| Avatar | @dicebear/core + collection (adventurer) | Client-side SVG, dış servis yok |
-| QR | qrcode | Client-side data-URI |
-| Veritabanı | Firebase Firestore | `onSnapshot` realtime; asla polling yapma |
-| Auth | Firebase Auth | Presenter: sadece Google; audience: auth YOK |
-| Hosting | Vercel | Production branch: `claude/practical-lamport-ls9miq` |
-| State | React hooks | Redux vs. YOK |
+| Ürün | Ne | Rotalar | Doküman |
+|---|---|---|---|
+| **FlowMeter** | İnteraktif sunum/oylama (Menti klonu) | `/edit /present /p /join /results` | `docs/ROADMAP.md` |
+| **FlowWall** | Canlı foto/video etkinlik duvarı + çekiliş + Anı Filmi | `/wall/[id](/manage)` `/u/[id]` | `docs/FLOWWALL-DURUM.md` |
+| **FlowSign** | Video-wall/dijital tabela CMS (taslak→Kaydet&Yayınla) | `/videowall(...)` `/flowsign/[slug]` | `docs/VIDEOWALL.md` |
+| **FlowPulse** | Sürekli nabız/geri bildirim (kiosk+QR, anonim) | `/pulse(...)/manage|kiosk|vote|board` | `docs/FLOWPULSE.md` |
 
 ## Altın Kurallar
+1. Push öncesi MUTLAKA `npm run build`.
+2. **Branch'ler:** geliştirme `claude/flowmeter-paket-3-kota-w3er37`; production
+   `claude/practical-lamport-ls9miq` (Vercel bunu yayınlar; kullanıcı onayıyla
+   fast-forward push edilir — bugüne dek hep birlikte push edildi).
+3. **firestore.rules** değişince TAM halini kullanıcıya ver (konsola elle yapıştırır).
+4. DIŞ SERVİS YOK; tek istisna Cloudinary (yalnız FlowWall medyası + FlowSign
+   içeriği; silmede `/api/wall/destroy` prefix temizliği). Pulse tamamen Firebase.
+5. Realtime = `onSnapshot`; polling yasak. Kota bilinci: Pulse günlük rollup
+   (`days/{yyyy-mm-dd}`), Sign `live` yayın anlık görüntüsü.
+6. Audience/kiosk/perde auth istemez; sunucu Google ile girer. Pulse ANONİM (bilerek).
+7. **ORTAM SIFIRLANABİLİYOR:** çalışma ağacı bazen eski commit'e döner; her oturum
+   başında `git log --oneline -1` kontrol et, gerekirse
+   `git fetch origin <dev-branch> && git checkout -B <dev-branch> origin/<dev-branch>`
+   + `npm install`. Her şey remote'ta güvende tutulur (sık commit+push).
 
-1. **Audience auth istemez.** Kod gir → avatar+ad seç (bir kez, localStorage) → oy ver.
-2. **Realtime her şeydir.** `onSnapshot` (bkz. `src/lib/hooks.ts`); asla polling.
-3. **Mobile-first audience, desktop-first presenter.**
-4. **DIŞ SERVİS YOK.** Kurumsal ağlar 3. parti CDN'leri engelliyor (Cloudinary
-   elendi). Görseller: repo içi `public/` veya sıkıştırılıp Firestore'a base64
-   (`src/lib/images.ts`). Yalnızca kendi domain + firestore.googleapis.com.
-5. **Firestore güvenliği:** `firestore.rules` her koleksiyon değişikliğinde
-   güncellenir ve KULLANICIYA TAM HALİ verilir (konsola elle yapıştırıyor).
-   Oylar create-only; silme sadece sahibi ("sıfırla" için).
-6. **Türkçe UI, İngilizce kod.**
-7. Dosya haritası `docs/SITEMAP.md`, fazlar `docs/ROADMAP.md` — değişince güncelle.
-8. Push öncesi MUTLAKA `npm run build`.
+## Tasarım Sistemi
+- Font Plus Jakarta Sans; renkler: accent indigo #4f46e5 (birincil aksiyon),
+  brand gül #e11d48 (YALNIZ uyarı/danger), ink/paper/line/muted nötrler.
+  Logo lacisi #001e64. Skor semantiği (Pulse): yeşil ≥70 / amber ≥40 / gül <40.
+- Ürün yüzeyleri: Meter+Pulse kokpiti AYDINLIK; Wall lacivert, Sign #0d102f koyu,
+  Pulse kiosk/pano #101014. Koyu ekranlara `[color-scheme:dark]`.
+- **Logo:** ortak FLOW wordmark, O-glifi ürüne göre — bar-chart/kamera/monitör/EKG
+  (`public/logo-flow*.png` + white; `Logo variant`, `LogoRotating` 4'lü). Üretim:
+  sharp ile O içi silinip yeni glif kompoze edilir (bkz. geçmiş; `--no-save sharp`).
+- İşlevsel ikonlar SVG (`components/videowall/icons.tsx`); emoji yalnız içerik/dekor.
+  Onaylar `ConfirmDialog` (native confirm değil). Girdilere odak reçetesi.
 
-## Tasarım Sistemi (ui-ux-pro-max skill önerisi — .claude/skills/ altında kurulu)
+## Kritik Mimari Notlar
+- **FlowSign:** editör TASLAK (`zones`), perde YAYIN (`live`); birleştir/böl içerik
+  korur + onay sorar; slug rename'de SABİT; iframe sandbox + http(s) doğrulama;
+  Wake Lock + offline persistence (`firebase.ts` persistentLocalCache — tüm suite).
+- **FlowPulse:** oy = votes create + days increment tek batch; rules oy değerini
+  soru tipine bağlar, days total tam +1; watchToday gece yarısı yeniden abone olur;
+  kiosk çıkışı sol üst 5 dokunuş + PIN → yönetici menüsü.
+- **FlowWall çekiliş:** adalet+denetim (draws logu); nonce ile perde tetikleme.
+- Silme akışları sayfalı (`limit(450)` batch) + Cloudinary prefix temizliği.
 
-- **Renkler** (tailwind.config.ts): `brand` gül #e11d48, `accent` indigo #4f46e5,
-  `ink` #18181b, `paper` nötr #fafafa, `line` #ececeb, `muted` #78716c (nötr/dingin,
-  pembe tonlu değil). Logo lacisi: **#001e64** (Beko).
-- **Font**: Plus Jakarta Sans — başlık da metin de aynı aile (`--font-sans`,
-  `--font-display` ona eşitlenir; sade + tutarlı, modern).
-- **Renk kullanımı**: birincil aksiyonlar **indigo** (`.btn-primary` = `.btn-accent`,
-  kodlar, ilerleme noktaları); **gül YALNIZCA uyarı/durum** (hata, sil/danger, CANLI
-  rozeti, oylama kapalı, quiz geri sayım aciliyeti). "Niye kırmızı" tutarsızlığı böyle çözüldü.
-- **Bileşen sınıfları** (globals.css): `.card` (yumuşak tek gölge, düz-modern),
-  `.btn-primary`/`.btn-accent` (indigo), `.btn-ghost`, `.input-base`,
-  `.eyebrow`, `.chip`, `.bg-wash`. Animasyonlar: `.animate-pop`, `.animate-float-up`,
-  `.animate-confetti`. `prefers-reduced-motion` destekli.
-- **Grafik paleti**: `--series-1..8` CSS değişkenleri (dataviz doğrulanmış sıra).
-- **Logo**: `src/components/Logo.tsx` — `public/logo-flow.png` (FLOW, harfler
-  lacivert, O = renkli halka) + yanında "METER" yazısı. `logo-flow-white.png`
-  koyu zemin sürümü. **Logo asla deforme edilmez** (h sabit, w auto).
-
-## Domain Modeli
-
-- **Presentation**: joinCode (6 hane), currentSlideIndex (**-1 = QR katılım
-  ekranı**), isLive, ended, votingClosed, chatEnabled, folder,
-  theme{preset,bgImage,logo}, mode, updatedAt.
-- **Slide** `type`: multiple-choice, word-cloud, open-ended, scales, ranking,
-  **quiz** (correctIndex, timeLimit, scoreMode, quizStartedAt), **quiz-type**
-  (yazarak; options = kabul edilen cevaplar), **pin-on-image** (correctArea ile
-  puanlı), **guess-number** (correctNumber/min/max/unit), **hundred-points**,
-  **grid-2x2** (gridLabels), **qna**, content, image, video, instructions,
-  **leaderboard** (podyum slaytı).
-  Settings: allowMultiple, maxEntries, description, label, image, videoUrl,
-  music, scoreMode, correctArea, correctNumber, min, max, unit, gridLabels, skipped.
-- **Response.value**: MC=number|number[]; WC/open-ended=string;
-  scales/ranking=number[]; **quiz=[optionIndex, geçenMs]**;
-  **quiz-type=[metin, geçenMs]**; **pin-on-image / grid-2x2=[x, y] (0–1)**;
-  **guess-number=number**; **hundred-points=number[]** (seçenek başına puan).
-- **Participant**: doc id = voterId (localStorage UUID); nickname + avatarSeed.
-- **Quiz puanı (Menti formülü)**: `1000 × (1 − (t/T)/2)` → 500–1000 arası.
-  Seri bonusu (Kahoot usulü): üst üste 2. doğrudan itibaren +50/soru, max +250.
-  Hesap: `src/lib/quizScores.ts`; podyum: `src/components/present/Podium.tsx`
-  (ilk 3 kürsüde 2-1-3, geri kalan arkada liste).
-
-## Firestore Şeması
-
-```
-presentations/{id}: ownerId, title, joinCode, mode, currentSlideIndex,
-                    isLive, ended, votingClosed, theme{}, createdAt
-  ├─ sessions/{sessionId}: startedAt, endedAt   [geçmiş oturum arşivi; owner-write]
-  ├─ participants/{voterId}: nickname, avatarSeed, sessionId, (eski: emoji), joinedAt
-  ├─ reactions/{autoId}: emoji (❤️👍🎉), createdAt   [create-only]
-  ├─ messages/{autoId}: text, voterId, nickname, createdAt
-  │                      [create-only; silme sadece owner (moderasyon)]
-  ├─ questions/{autoId}: text, voterId, upvotes, hidden?, createdAt
-  │                      [upvote sadece +1; moderasyon owner]
-  └─ slides/{slideId}: type, question, options[], order, settings{}, quizStartedAt?
-       └─ responses/{autoId}: voterId, value, sessionId, createdAt
-                              [create-only; delete sadece owner]
-joinCodes/{code}: presentationId   VEYA {id, kind:"wall"} (FlowWall duvarı)
-
-users/{uid}: email, displayName, photoURL, role("admin"|yok), createdAt,
-             lastSeenAt   [girişte upsert; role sadece admin yazar; /admin sayfası.
-             Bootstrap admin: doganbaharozu@gmail.com (rules'ta hardcode)]
-
-walls/{id}: ownerId, title, joinCode, moderation, headline, sessionId, createdAt
-  └─ media/{autoId}: voterId, nickname?, type(image|video), cloudinaryId, url,
-                     w, h, durationMs?, status(pending|approved|rejected),
-                     sessionId, createdAt   [create-only; moderasyon owner]
-       [byte'lar Cloudinary'de; bu doküman sadece metadata]
-```
-
-## Komutlar & Deploy
-
-```bash
-npm run dev / build / lint     # build push öncesi zorunlu
-```
-Branch `claude/practical-lamport-ls9miq` → Vercel production (kullanıcı böyle
-ayarladı). Firebase env: `NEXT_PUBLIC_FIREBASE_*` (.env.example) Vercel'de tanımlı.
-Firebase projesi: `flowmeter-938a3`. Rules değişince tam halini kullanıcıya ver.
-
-## Durum & Sonraki Adımlar
-
-Tamamlanan/kalan her şey: `docs/ROADMAP.md`. Kısaca kalanlar: Guess the Number,
-audience-pace anket modu, şablon galerisi, profanity filtresi, slayta görsel
-ekleme, editör canlı önizleme/otomatik kayıt, Cloud Function temizlik, i18n.
-
-**FlowWall** (canlı foto/video duvarı — büyük ölçüde CANLIDA): ayrı ürün, bu
-altyapı üstünde (`walls/{id}` koleksiyonu, kendi giriş kapısı; medya Cloudinary,
-gerisi Firebase). Rotalar: `/wall` `/wall/[id]` (perde) `/u/[id]` (misafir)
-`/wall/[id]/manage` (kokpit). **Güncel durum + yol haritası (temiz): `docs/FLOWWALL-DURUM.md`.**
-Dağınık fikir havuzu + kapasite analizi + eski faz notları (arşiv): `docs/FLOWWALL.md`.
-YAPILDI (Grup 1-6 + cila): 6 perde modu + 🔀 otomatik + **akıllı
-ağırlıklı adil oynatma** (usePagedPlayback, page.tsx); 8 renk teması; temadan
-bağımsız 8 ambient efekt (WallEffectLayer); emoji yağmuru; dilek bandı +
-moderasyon; canlı anons; kokpit istatistik; En Sevilenler turu; milestone (aç/kapa);
-"Duvarda göründün"; baskın renk ambiyansı; QR kartı; kolaj (WallCollage) + hatıra
-kitabı PDF (wallMemoryBook, jspdf); foto yarışması+oylama (contest, WallContest).
-Ölçek: misafir büyük koleksiyon dinlemez (watchWallMediaByVoter/Recent);
-contest oylarını yalnız perde+kokpit dinler. **Firestore rules SON hali konsola
-yapıştırılmalı** (media likes, reactions, wishes.status, contestVotes eklendi).
-Ayrıca CANLI: **🎬 Anı Filmi** (highlight video — WebCodecs MP4, `src/lib/wallFilm/`
-+ WallFilm/WallFilmStage; kokpitten indir veya perdede oynat; 5 telifsiz müzik
-`public/music/`). Sıradaki kritik: **duvar yaşam döngüsü** + **kota guard'ları**
-(bkz. `docs/FLOWWALL-DURUM.md` "Yapacaklarımız"). Kalan (park): güvenlik/anonim-auth/
-imzalı yükleme/AI moderasyon, ayrı domain, pricing.
+## Sıradaki (kullanıcı söyleyince)
+- **v5 self-host:** FlowSign (+Pulse) fabrika iç ağı paketi — medya/veri/auth
+  katman takası, online BOZULMADAN (plan: `docs/VIDEOWALL.md`).
+- Park: Sign ekran-sağlık heartbeat/ses/90°; Pulse profanity+e-posta eşiği;
+  Meter kalanları `docs/ROADMAP.md`.
