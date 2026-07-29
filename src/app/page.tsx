@@ -13,10 +13,10 @@ import { resolveCode } from "@/lib/walls";
  * 4 ürünün markalı şeridi (vitrin).
  */
 const PRODUCTS = [
-  { href: "/dashboard?p=decks", variant: "meter", desc: "İnteraktif sunum & oylama", card: "bg-white border border-line", onDark: false },
-  { href: "/dashboard?p=walls", variant: "wall", desc: "Canlı etkinlik foto duvarı", card: "bg-[#0b1533] border border-white/10", onDark: true },
-  { href: "/videowall", variant: "sign", desc: "Dijital tabela & video-wall", card: "bg-[#0d102f] border border-white/10", onDark: true },
-  { href: "/pulse", variant: "pulse", desc: "Sürekli nabız & geri bildirim", card: "bg-white border border-line", onDark: false },
+  { variant: "meter", desc: "İnteraktif sunum & oylama", card: "bg-white border border-line", onDark: false },
+  { variant: "wall", desc: "Canlı etkinlik foto duvarı", card: "bg-[#0b1533] border border-white/10", onDark: true },
+  { variant: "sign", desc: "Dijital tabela & video-wall", card: "bg-[#0d102f] border border-white/10", onDark: true },
+  { variant: "pulse", desc: "Sürekli nabız & geri bildirim", card: "bg-white border border-line", onDark: false },
 ] as const;
 export default function LandingPage() {
   const router = useRouter();
@@ -96,18 +96,18 @@ export default function LandingPage() {
         )}
       </section>
 
-      {/* Çatı vitrini: 4 ürün, tek hesap — kartlar kendi marka yüzeyinde */}
+      {/* Çatı vitrini: 4 ürün, tek hesap — salt görsel şerit (link DEĞİL:
+          katılımcı yüzeyinde dashboard'a kapı olmaz; oluşturma "Giriş yap"tan) */}
       <footer className="px-6 pb-8 pt-2">
         <div className="max-w-3xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3">
           {PRODUCTS.map((p) => (
-            <Link
+            <div
               key={p.variant}
-              href={p.href}
-              className={`${p.card} rounded-2xl px-4 py-4 flex flex-col items-start gap-2 hover:-translate-y-0.5 hover:shadow-md transition-all`}
+              className={`${p.card} rounded-2xl px-4 py-4 flex flex-col items-start gap-2`}
             >
               <Logo size="sm" variant={p.variant} onDark={p.onDark} />
               <span className={`text-xs ${p.onDark ? "text-white/60" : "text-muted"}`}>{p.desc}</span>
-            </Link>
+            </div>
           ))}
         </div>
       </footer>
