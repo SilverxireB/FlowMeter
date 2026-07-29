@@ -33,8 +33,9 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   Logo lacisi #001e64. Skor semantiği (Pulse): yeşil ≥70 / amber ≥40 / gül <40.
 - Ürün yüzeyleri: Meter+Pulse kokpiti AYDINLIK; Wall lacivert, Sign #0d102f koyu,
   Pulse kiosk/pano #101014. Koyu ekranlara `[color-scheme:dark]`.
-- **Logo (yeni dil):** başta yalnız **O-halkası ikonu** + devamında tam ad metni
-  (`Logo variant`; `public/logo-o-{studio|meter|wall|sign|pulse}.png` + `-white`).
+- **Logo (yeni dil):** başta yalnız **O-halkası ikonu** + devamında ad metni;
+  "FLOW" yazısı YALNIZ çatıda (FLOW STUDIO), ürünler O + kısa ad (METER/WALL/
+  SIGN/PULSE) (`Logo variant`; `public/logo-o-*.png` + `-white`).
   Glifler: Studio = 4 ürün karosu (yay renklerinde app-grid), Meter bar-chart,
   Wall kamera, Sign **dikey tabela totemi**, Pulse EKG. Kaynak FLOW wordmark'ları
   (`logo-flow*.png`) üretim tabanı olarak `public/`ta durur; `LogoRotating` silindi.
