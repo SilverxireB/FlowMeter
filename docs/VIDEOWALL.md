@@ -137,4 +137,4 @@ tamamen kaldırıldı. Hub kartı gradyanı #1e1b4b→#312e81.
   işlevsel glifler inline SVG (icons.tsx); [color-scheme:dark]; odak reçetesi;
   44px dokunma hedefleri; mobil başlık sarması; kontrast tabanı white/50.
 - Kalan (bilinçli park): ekran sağlık heartbeat'i, ses aç/kapa, 90° döndürme,
-  alan-seviyesi takvim varsayılanı, FlowSign özel O-glif PNG (Logo.tsx:17 swap).
+  alan-seviyesi takvim varsayılanı, ~~FlowSign özel O-glif PNG~~ → YAPILDI: logo-flowsign(.png/-white.png), 2×2 video-wall ızgaralı monitör glifi.

@@ -11,10 +11,7 @@ const SIZES = {
 const VARIANTS = {
   meter: { img: "/logo-flow.png", imgDark: "/logo-flow-white.png", word: "METER", full: "FLOWMETER" },
   wall: { img: "/logo-flowwall.png", imgDark: "/logo-flowwall-white.png", word: "WALL", full: "FLOWWALL" },
-  // FlowSign: kendi wordmark PNG'si (ekran glifli O) çizilene dek paylaşılan FLOW
-  // görselini kullanır (O halkası + "SIGN"). logo-flowsign.png eklenince bu iki
-  // satırı değiştirmek yeter.
-  sign: { img: "/logo-flow.png", imgDark: "/logo-flow-white.png", word: "SIGN", full: "FLOWSIGN" },
+  sign: { img: "/logo-flowsign.png", imgDark: "/logo-flowsign-white.png", word: "SIGN", full: "FLOWSIGN" },
 } as const;
 
 /**

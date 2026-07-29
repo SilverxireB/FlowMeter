@@ -15,11 +15,11 @@ const SIZES = {
   lg: { img: "h-10", fontSize: 46 },
 } as const;
 
-// Sıra: Meter → Wall → Sign (FlowSign kendi O-glifli PNG'sini alana dek FLOW görseli)
+// Sıra: Meter → Wall → Sign — O-glifi morph olur: bar-chart → kamera → video-wall monitörü
 const STEPS = [
   { img: "/logo-flow.png", imgDark: "/logo-flow-white.png", word: "METER" },
   { img: "/logo-flowwall.png", imgDark: "/logo-flowwall-white.png", word: "WALL" },
-  { img: "/logo-flow.png", imgDark: "/logo-flow-white.png", word: "SIGN" },
+  { img: "/logo-flowsign.png", imgDark: "/logo-flowsign-white.png", word: "SIGN" },
 ] as const;
 
 const PERIOD_MS = 3400;
