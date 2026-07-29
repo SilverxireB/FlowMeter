@@ -18,7 +18,7 @@ export default function VideowallPlayPage() {
   useEffect(() => watchVideowall(id, setVw), [id]);
   useEffect(() => setDraft(new URLSearchParams(window.location.search).get("draft") === "1"), []);
 
-  if (vw === undefined) return <main className="w-screen h-screen grid place-items-center bg-black text-white/40">Yükleniyor…</main>;
+  if (vw === undefined) return <main className="w-screen h-screen grid place-items-center bg-black text-white/40 animate-pulse">Yükleniyor…</main>;
   if (vw === null) return <main className="w-screen h-screen grid place-items-center bg-black text-white/40">Duvar bulunamadı.</main>;
   return <PlayerStage vw={vw} draft={draft} />;
 }

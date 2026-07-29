@@ -16,7 +16,22 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { Videowall, Zone } from "./types";
+import { Videowall, Zone, ZoneItem } from "./types";
+
+/**
+ * Öğe şu an takvimde mi? (gün + saat penceresi; boşsa hep). Gece yarısını aşan
+ * pencere desteklenir (22:00–06:00). Perde OYNATIRKEN ve editör "takvim dışı"
+ * rozetini gösterirken aynı fonksiyon kullanılır — asla ayrışmasınlar.
+ */
+export function itemInWindow(item: ZoneItem, now: Date): boolean {
+  if (item.days?.length && !item.days.includes(now.getDay())) return false;
+  if (!item.from && !item.to) return true;
+  const hm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const from = item.from || "00:00";
+  const to = item.to || "23:59";
+  if (from > to) return hm >= from || hm <= to;
+  return hm >= from && hm <= to;
+}
 
 const zid = () => `z-${Math.random().toString(36).slice(2, 8)}`;
 

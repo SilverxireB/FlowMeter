@@ -2,13 +2,16 @@
 
 /**
  * FlowSign içerik paneli. Seçili alana içerik ata: görsel/video (Cloudinary,
- * sürükle-bırak da yüklenir), URL, METİN, SAAT + medya kütüphanesinden tekrar
- * kullan. Öğe başına süre + saat aralığı + haftanın günleri. Alan: geçiş efekti +
- * arka plan rengi. İçerik alana STRETCH edilir (sığdır/doldur YOK). Öğeler
- * sürükle-bırak sıralanır. Yazım → updateZones (realtime).
+ * sürükle-bırak da yüklenir), URL (inline form, http(s) doğrulamalı), METİN,
+ * SAAT + medya kütüphanesinden tekrar kullan (taslak + yayındaki tüm medya).
+ * Öğe başına süre + saat aralığı + günler; "takvim dışı" rozeti; ⇄ Değiştir
+ * (yerinde yenile — sıra/takvim korunur); sürükle VE ▲▼ ile sıralama (dokunmatik).
+ * İçerik alana STRETCH edilir (sığdır/doldur YOK). Yazım → updateZones (taslak).
  */
 import { useMemo, useRef, useState } from "react";
+import { Icon } from "@/components/videowall/icons";
 import { cldFit, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
+import { itemInWindow } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 const iid = () => `it-${Math.random().toString(36).slice(2, 9)}`;
@@ -17,16 +20,30 @@ const DAYS = [
   { v: 1, l: "Pzt" }, { v: 2, l: "Sal" }, { v: 3, l: "Çar" }, { v: 4, l: "Per" },
   { v: 5, l: "Cum" }, { v: 6, l: "Cmt" }, { v: 0, l: "Paz" },
 ];
-const stillOf = (src: string) => cldFit(src, 160).replace(/\.(mp4|mov|webm|m4v)$/i, ".jpg");
+// Unsigned Cloudinary preset sınırları — aşan dosya "(400)" diye patlıyordu;
+// yüklemeden ÖNCE insanca reddet.
+const MAX_IMAGE_MB = 10;
+const MAX_VIDEO_MB = 100;
+
+const inputCls =
+  "rounded-lg bg-white/10 border border-white/15 focus:outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/30";
+
+/** Cloudinary değilse "" → 🎬 yer tutucu (kırık .jpg üretme). */
+const stillOf = (src: string) =>
+  src.includes("res.cloudinary.com") ? cldFit(src, 160).replace(/\.(mp4|mov|webm|m4v)$/i, ".jpg") : "";
 
 function ItemThumb({ item }: { item: ZoneItem }) {
   const base = "w-14 h-14 rounded-lg overflow-hidden shrink-0 grid place-items-center";
   if (item.kind === "image" && item.src)
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={cldFit(item.src, 160)} alt="" className={`${base} object-cover`} />;
-  if (item.kind === "video" && item.src)
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={stillOf(item.src)} alt="" className={`${base} object-cover bg-black`} />;
+  if (item.kind === "video" && item.src) {
+    const still = stillOf(item.src);
+    if (still)
+      // eslint-disable-next-line @next/next/no-img-element
+      return <img src={still} alt="" className={`${base} object-cover bg-black`} />;
+    return <div className={`${base} bg-black/50 text-xl`}>🎬</div>;
+  }
   if (item.kind === "text")
     return <div className={`${base} font-bold text-sm`} style={{ background: item.bg ?? "#312e81", color: item.color ?? "#fff" }}>Aa</div>;
   if (item.kind === "clock")
@@ -55,7 +72,13 @@ export default function ZonePanel({
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [fileOver, setFileOver] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
+  const [urlForm, setUrlForm] = useState<{ src: string; name: string } | null>(null);
+  const [replacingId, setReplacingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const replaceRef = useRef<HTMLInputElement>(null);
+
+  const cloudReady = isCloudinaryConfigured();
+  const now = new Date();
 
   // Uzun yükleme sırasında kullanıcı sıralama/silme yapabilir → bitişte GÜNCEL
   // listeye ekle (bayat closure ile eski listeyi ezme).
@@ -65,57 +88,102 @@ export default function ZonePanel({
   const patch = (p: Partial<Zone>) => onZones((vw.zones ?? []).map((z) => (z.id === zone.id ? { ...z, ...p } : z)));
   const setItems = (items: ZoneItem[]) => patch({ items });
 
-  // Duvar genelindeki tüm medya (kütüphane) — src'ye göre tekilleştir.
+  // Kütüphane: TASLAK + YAYIN medyası (ızgara sıfırlansa da yüklenenler kaybolmaz).
   const library = useMemo(() => {
     const seen = new Set<string>();
     const out: ZoneItem[] = [];
-    for (const z of vw.zones ?? [])
+    const pools = [...(vw.zones ?? []), ...(vw.live?.zones ?? [])];
+    for (const z of pools)
       for (const it of z.items ?? [])
         if ((it.kind === "image" || it.kind === "video") && it.src && !seen.has(it.src)) {
           seen.add(it.src);
           out.push(it);
         }
     return out;
-  }, [vw.zones]);
+  }, [vw.zones, vw.live?.zones]);
+
+  /** Boyut/tür ön-kontrolü: geçenler + insanca ret nedenleri. */
+  function precheck(files: File[]): { ok: File[]; rejected: string[] } {
+    const ok: File[] = [];
+    const rejected: string[] = [];
+    for (const f of files) {
+      const mb = f.size / (1024 * 1024);
+      if (f.type.startsWith("image/")) {
+        if (mb > MAX_IMAGE_MB) rejected.push(`${f.name} (görsel için sınır ~${MAX_IMAGE_MB} MB)`);
+        else ok.push(f);
+      } else if (f.type.startsWith("video/")) {
+        if (mb > MAX_VIDEO_MB) rejected.push(`${f.name} (video için sınır ~${MAX_VIDEO_MB} MB)`);
+        else ok.push(f);
+      } else rejected.push(`${f.name} (desteklenmeyen tür)`);
+    }
+    return { ok, rejected };
+  }
 
   async function uploadFiles(files: File[]) {
     setErr(null);
-    if (!isCloudinaryConfigured()) {
-      setErr("Cloudinary yapılandırılmadı — görsel/video yüklenemez (URL/metin/saat ekleyebilirsin).");
+    if (!cloudReady) {
+      setErr("Medya deposu yapılandırılmadı — görsel/video yüklenemez (URL/metin/saat ekleyebilirsin).");
       return;
     }
-    const media = files.filter((f) => f.type.startsWith("image/") || f.type.startsWith("video/"));
-    if (!media.length) {
-      setErr("Yalnızca görsel veya video dosyaları yüklenebilir.");
-      return;
-    }
+    const { ok, rejected } = precheck(files);
+    const failed: string[] = [...rejected];
     const added: ZoneItem[] = [];
-    for (let i = 0; i < media.length; i++) {
+    for (let i = 0; i < ok.length; i++) {
       try {
-        setQueue({ done: i, total: media.length, pct: 0 });
-        const res = await uploadToCloudinary(media[i], `flowsign/${vw.id}`, (pct) => setQueue({ done: i, total: media.length, pct }), { keepOriginal: true });
-        added.push({ id: iid(), kind: res.type, src: res.url, name: media[i].name.replace(/\.[^.]+$/, ""), durationSec: res.type === "image" ? 8 : undefined });
+        setQueue({ done: i, total: ok.length, pct: 0 });
+        const res = await uploadToCloudinary(ok[i], `flowsign/${vw.id}`, (pct) => setQueue({ done: i, total: ok.length, pct }), { keepOriginal: true });
+        added.push({ id: iid(), kind: res.type, src: res.url, name: ok[i].name.replace(/\.[^.]+$/, ""), durationSec: res.type === "image" ? 8 : undefined });
       } catch (e) {
-        setErr(e instanceof Error ? e.message : "Yükleme başarısız.");
+        failed.push(`${ok[i].name} (${e instanceof Error ? e.message : "yükleme hatası"})`);
       }
     }
     setQueue(null);
     if (added.length) setItems([...zoneRef.current.items, ...added]);
+    if (failed.length)
+      setErr(`${added.length}/${added.length + failed.length} dosya yüklendi. Yüklenemeyenler: ${failed.join(" · ")}`);
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  function addUrl() {
-    const src = prompt("Sayfa/dashboard URL'si (https://…):")?.trim();
-    if (!src) return;
-    // Güvenlik: yalnız http(s) — javascript:/data: gibi şemalar perde iframe'inde
-    // script çalıştırabilir (XSS). Perde tarafında da ayrıca filtrelenir.
+  /** ⇄ Değiştir: yeni dosya AYNI öğenin yerine geçer — sıra/takvim/süre korunur. */
+  async function replaceFile(itemId: string, file: File) {
+    setErr(null);
+    const { ok, rejected } = precheck([file]);
+    if (!ok.length) {
+      setErr(`Değiştirilemedi: ${rejected[0]}`);
+      return;
+    }
+    try {
+      setQueue({ done: 0, total: 1, pct: 0 });
+      const res = await uploadToCloudinary(ok[0], `flowsign/${vw.id}`, (pct) => setQueue({ done: 0, total: 1, pct }), { keepOriginal: true });
+      setItems(
+        zoneRef.current.items.map((it) =>
+          it.id === itemId
+            ? { ...it, kind: res.type, src: res.url, name: ok[0].name.replace(/\.[^.]+$/, ""), durationSec: res.type === "video" ? it.durationSec : it.durationSec ?? 8 }
+            : it
+        )
+      );
+    } catch (e) {
+      setErr(`Değiştirilemedi: ${e instanceof Error ? e.message : "yükleme hatası"}`);
+    } finally {
+      setQueue(null);
+      setReplacingId(null);
+      if (replaceRef.current) replaceRef.current.value = "";
+    }
+  }
+
+  function submitUrl() {
+    if (!urlForm) return;
+    const src = urlForm.src.trim();
+    // Güvenlik: yalnız http(s) — javascript:/data: perde iframe'inde script çalıştırır.
     if (!/^https?:\/\//i.test(src)) {
       setErr("URL http:// veya https:// ile başlamalı.");
       return;
     }
-    const name = prompt("Ad (opsiyonel):", "")?.trim() || "Sayfa";
-    setItems([...zone.items, { id: iid(), kind: "url", src, name, durationSec: 15 }]);
+    setErr(null);
+    setItems([...zone.items, { id: iid(), kind: "url", src, name: urlForm.name.trim() || "Sayfa", durationSec: 15 }]);
+    setUrlForm(null);
   }
+
   const addText = () => setItems([...zone.items, { id: iid(), kind: "text", title: "Başlık", text: "", bg: "#312e81", color: "#ffffff", durationSec: 10 }]);
   const addClock = () => setItems([...zone.items, { id: iid(), kind: "clock", bg: "#0d102f", color: "#ffffff", durationSec: 10 }]);
   const addFromLib = (src: ZoneItem) => {
@@ -131,7 +199,7 @@ export default function ZonePanel({
     patchItem(it.id, { days: next.length ? next : undefined });
   };
   const reorder = (from: number, to: number) => {
-    if (from === to || from < 0 || to < 0) return;
+    if (from === to || from < 0 || to < 0 || to >= zone.items.length) return;
     const arr = [...zone.items];
     const [m] = arr.splice(from, 1);
     arr.splice(to, 0, m);
@@ -140,11 +208,18 @@ export default function ZonePanel({
 
   const cells = Math.round(zone.w * vw.cols) * Math.round(zone.h * vw.rows);
   const transition = zone.transition ?? "fade";
+  const allOutOfWindow = zone.items.length > 0 && zone.items.every((it) => !itemInWindow(it, now));
 
-  const ADD_BTNS: { label: string; icon: string; fn: () => void; disabled?: boolean }[] = [
-    { label: "Görsel / Video", icon: "🖼", fn: () => fileRef.current?.click(), disabled: queue !== null },
+  const ADD_BTNS: { label: string; icon: string; fn: () => void; disabled?: boolean; title?: string }[] = [
+    {
+      label: "Görsel / Video",
+      icon: "🖼",
+      fn: () => fileRef.current?.click(),
+      disabled: queue !== null || !cloudReady,
+      title: cloudReady ? undefined : "Medya deposu yapılandırılmadı",
+    },
     { label: "Kütüphane", icon: "🗂", fn: () => setLibOpen(true), disabled: library.length === 0 },
-    { label: "URL", icon: "🔗", fn: addUrl },
+    { label: "URL", icon: "🔗", fn: () => setUrlForm({ src: "", name: "" }) },
     { label: "Metin", icon: "📝", fn: addText },
     { label: "Saat", icon: "🕐", fn: addClock },
   ];
@@ -167,7 +242,7 @@ export default function ZonePanel({
           uploadFiles(Array.from(e.dataTransfer.files));
         }
       }}
-      className={`relative rounded-2xl border p-5 transition-colors ${fileOver ? "border-[#6366f1] bg-[#6366f1]/10" : "border-white/10 bg-white/[0.06]"}`}
+      className={`relative rounded-2xl border p-5 transition-colors ${fileOver ? "border-[#6366f1] bg-[#6366f1]/10" : "border-white/10 bg-white/5"}`}
     >
       {fileOver && (
         <div className="absolute inset-0 z-40 rounded-2xl border-2 border-dashed border-[#6366f1] bg-[#0d102f]/70 grid place-items-center pointer-events-none">
@@ -185,9 +260,13 @@ export default function ZonePanel({
           className="flex-1 min-w-0 bg-transparent border-b border-white/15 focus:border-[#6366f1] focus:outline-none px-1 py-1.5 font-display font-semibold"
         />
         {cells > 1 && (
-          <button onClick={onSplit} className="shrink-0 rounded-lg border border-white/15 text-white/70 hover:border-white/40 px-3 py-1.5 text-xs font-semibold">⛶ Böl</button>
+          <button onClick={onSplit} className="shrink-0 rounded-xl border border-white/15 text-white/70 hover:border-white/40 px-3 py-2 text-xs font-semibold inline-flex items-center gap-1.5">
+            <Icon name="split" size={14} /> Böl
+          </button>
         )}
-        <button onClick={onClose} className="shrink-0 text-white/40 hover:text-white text-sm px-1">✕</button>
+        <button onClick={onClose} className="shrink-0 w-9 h-9 grid place-items-center rounded-xl text-white/50 hover:text-white hover:bg-white/10" aria-label="Paneli kapat">
+          <Icon name="close" size={16} />
+        </button>
       </div>
 
       {/* Alan ayarları: geçiş + arka plan */}
@@ -198,7 +277,7 @@ export default function ZonePanel({
             <button
               key={tr}
               onClick={() => patch({ transition: tr })}
-              className={`px-2.5 py-1 rounded-full font-semibold border ${transition === tr ? "bg-white text-[#0d102f] border-white" : "border-white/20 text-white/70"}`}
+              className={`px-2.5 py-1.5 rounded-full font-semibold border ${transition === tr ? "bg-white text-[#0d102f] border-white" : "border-white/20 text-white/70 hover:border-white/40"}`}
             >
               {tr === "fade" ? "Yumuşak" : tr === "cut" ? "Kesme" : "Kaydır"}
             </button>
@@ -207,6 +286,13 @@ export default function ZonePanel({
         <label className="flex items-center gap-1.5">Alan zemini <input type="color" defaultValue={zone.bg ?? "#000000"} onChange={(e) => patch({ bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
       </div>
 
+      {/* Tüm içerik takvim dışıysa uyarı — ekran boş görünür */}
+      {allOutOfWindow && (
+        <div className="mb-4 rounded-xl bg-rose-400/15 border border-rose-400/30 text-rose-300 px-3 py-2 text-xs font-semibold">
+          ⚠ Bu alanın tüm içeriği şu an takvim dışı — ekran bu alanda boş görünür.
+        </div>
+      )}
+
       {/* İçerik ekle */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
         {ADD_BTNS.map((b) => (
@@ -214,14 +300,42 @@ export default function ZonePanel({
             key={b.label}
             onClick={b.fn}
             disabled={b.disabled}
-            className="rounded-xl bg-white/[0.06] border border-white/10 hover:border-[#6366f1]/50 hover:bg-white/10 px-2 py-3 text-sm font-semibold flex flex-col items-center gap-1 transition-colors disabled:opacity-40"
+            title={b.title}
+            className="rounded-xl bg-white/[0.06] border border-white/10 hover:border-[#6366f1]/60 hover:bg-white/10 px-2 py-3 text-sm font-semibold flex flex-col items-center gap-1 transition-colors disabled:opacity-40"
           >
             <span className="text-lg" aria-hidden>{b.icon}</span>
             {b.label}
           </button>
         ))}
         <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => e.target.files && uploadFiles(Array.from(e.target.files))} />
+        <input ref={replaceRef} type="file" accept="image/*,video/*" hidden onChange={(e) => e.target.files?.[0] && replacingId && replaceFile(replacingId, e.target.files[0])} />
       </div>
+
+      {/* URL inline formu (prompt yerine — doğrulama gözünün önünde) */}
+      {urlForm && (
+        <div className="mb-4 rounded-xl bg-black/25 border border-[#6366f1]/40 p-3 flex flex-col gap-2">
+          <input
+            autoFocus
+            value={urlForm.src}
+            onChange={(e) => setUrlForm({ ...urlForm, src: e.target.value })}
+            onKeyDown={(e) => e.key === "Enter" && submitUrl()}
+            placeholder="https://… (sayfa/dashboard adresi)"
+            className={`${inputCls} px-3 py-2 text-sm`}
+          />
+          <input
+            value={urlForm.name}
+            onChange={(e) => setUrlForm({ ...urlForm, name: e.target.value })}
+            onKeyDown={(e) => e.key === "Enter" && submitUrl()}
+            placeholder="Ad (opsiyonel)"
+            className={`${inputCls} px-3 py-2 text-sm`}
+          />
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={submitUrl} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-4 py-2 text-sm font-semibold">Ekle</button>
+            <button onClick={() => { setUrlForm(null); setErr(null); }} className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/15">Vazgeç</button>
+            <span className="text-white/50 text-[11px]">Bazı siteler gömülmeye izin vermez, boş görünür — Önizle ile kontrol et.</span>
+          </div>
+        </div>
+      )}
 
       {queue && (
         <div className="mb-4">
@@ -231,113 +345,158 @@ export default function ZonePanel({
           <p className="text-white/50 text-xs mt-1 tabular-nums">Yükleniyor… {queue.done + 1}/{queue.total} · {queue.pct}%</p>
         </div>
       )}
-      {err && <p className="text-[#ffb4b4] text-xs mb-3">{err}</p>}
+      {err && <p className="text-rose-300 text-xs mb-3 font-semibold">{err}</p>}
 
-      {/* Öğe listesi (sürükle-bırak) */}
+      {/* Öğe listesi (sürükle-bırak + ▲▼) */}
       {zone.items.length === 0 ? (
-        <div className="text-center py-10 text-white/35 border border-dashed border-white/10 rounded-xl">
+        <div className="text-center py-10 text-white/50 border border-dashed border-white/10 rounded-xl">
           <p className="text-3xl mb-2" aria-hidden>📺</p>
           <p className="text-sm">Bu alan boş. İçerik ekle ya da dosyayı buraya sürükle.</p>
         </div>
       ) : (
         <ul className="flex flex-col gap-2">
-          {zone.items.map((it, i) => (
-            <li
-              key={it.id}
-              onDragOver={(e) => {
-                if (dragIdx === null) return;
-                e.preventDefault();
-                setOverIdx(i);
-              }}
-              onDrop={(e) => {
-                if (dragIdx === null) return;
-                e.preventDefault();
-                reorder(dragIdx, i);
-                setDragIdx(null);
-                setOverIdx(null);
-              }}
-              className={`rounded-xl bg-black/25 border p-2.5 flex flex-col gap-2 transition-colors ${
-                overIdx === i && dragIdx !== null ? "border-[#6366f1]" : "border-white/10"
-              } ${dragIdx === i ? "opacity-40" : ""}`}
-            >
-              <div className="flex items-center gap-3">
-                <span
-                  draggable
-                  onDragStart={() => setDragIdx(i)}
-                  onDragEnd={() => {
-                    setDragIdx(null);
-                    setOverIdx(null);
-                  }}
-                  className="shrink-0 cursor-grab active:cursor-grabbing text-white/30 hover:text-white/60 px-0.5 text-lg leading-none select-none"
-                  title="Sürükle sırala"
-                  aria-label="Sürükle sırala"
-                >⠿</span>
-                <ItemThumb item={it} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : it.name || it.src}</p>
-                  <span className="inline-block mt-0.5 text-[10px] uppercase tracking-wider text-[#a5b4fc]/80 bg-[#6366f1]/10 rounded px-1.5 py-0.5">{KIND_LABEL[it.kind]}</span>
-                </div>
-                <button onClick={() => removeItem(it.id)} className="shrink-0 text-white/40 hover:text-[#ff6b6b] px-1" aria-label="Sil">🗑</button>
-              </div>
-
-              {it.kind === "text" && (
-                <div className="flex flex-col gap-2 pl-8">
-                  <input defaultValue={it.title ?? ""} placeholder="Başlık" onBlur={(e) => patchItem(it.id, { title: e.target.value })} className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm focus:outline-none focus:border-[#6366f1]" />
-                  <textarea defaultValue={it.text ?? ""} placeholder="Mesaj (opsiyonel)" rows={2} onBlur={(e) => patchItem(it.id, { text: e.target.value })} className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm resize-y focus:outline-none focus:border-[#6366f1]" />
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-8 text-xs text-white/60">
-                {(it.kind === "text" || it.kind === "clock") && (
-                  <>
-                    <label className="flex items-center gap-1.5">Zemin <input type="color" defaultValue={it.bg ?? "#312e81"} onChange={(e) => patchItem(it.id, { bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
-                    <label className="flex items-center gap-1.5">Yazı <input type="color" defaultValue={it.color ?? "#ffffff"} onChange={(e) => patchItem(it.id, { color: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
-                  </>
-                )}
-                {it.kind !== "video" && (
-                  <label className="flex items-center gap-1.5">Süre <input type="number" min={2} defaultValue={it.durationSec ?? 8} onBlur={(e) => patchItem(it.id, { durationSec: Math.max(2, Number(e.target.value) || 8) })} className="w-14 rounded bg-white/10 border border-white/15 px-2 py-1 tabular-nums focus:outline-none focus:border-[#6366f1]" /> sn</label>
-                )}
-                <label className="flex items-center gap-1.5">Saat
-                  <input type="time" defaultValue={it.from ?? ""} onBlur={(e) => patchItem(it.id, { from: e.target.value || undefined })} className="rounded bg-white/10 border border-white/15 px-2 py-1 focus:outline-none focus:border-[#6366f1]" />–
-                  <input type="time" defaultValue={it.to ?? ""} onBlur={(e) => patchItem(it.id, { to: e.target.value || undefined })} className="rounded bg-white/10 border border-white/15 px-2 py-1 focus:outline-none focus:border-[#6366f1]" />
-                </label>
-              </div>
-
-              {/* Günler (boşsa her gün) */}
-              <div className="flex items-center gap-1 pl-8 flex-wrap">
-                <span className="text-xs text-white/45 mr-1">Gün:</span>
-                {DAYS.map((d) => {
-                  const active = it.days?.includes(d.v);
-                  return (
+          {zone.items.map((it, i) => {
+            const outOfWindow = !itemInWindow(it, now);
+            return (
+              <li
+                key={it.id}
+                onDragOver={(e) => {
+                  if (dragIdx === null) return;
+                  e.preventDefault();
+                  setOverIdx(i);
+                }}
+                onDrop={(e) => {
+                  if (dragIdx === null) return;
+                  e.preventDefault();
+                  reorder(dragIdx, i);
+                  setDragIdx(null);
+                  setOverIdx(null);
+                }}
+                className={`rounded-xl bg-black/25 border p-2.5 flex flex-col gap-2 transition-colors ${
+                  overIdx === i && dragIdx !== null ? "border-[#6366f1]" : "border-white/10"
+                } ${dragIdx === i ? "opacity-40" : ""}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    draggable
+                    onDragStart={() => setDragIdx(i)}
+                    onDragEnd={() => {
+                      setDragIdx(null);
+                      setOverIdx(null);
+                    }}
+                    className="shrink-0 cursor-grab active:cursor-grabbing text-white/40 hover:text-white/70 px-1 py-2 select-none hidden sm:block"
+                    title="Sürükle sırala"
+                    aria-label="Sürükle sırala"
+                  >
+                    <Icon name="grip" size={16} />
+                  </span>
+                  {/* ▲▼ — dokunmatikte HTML5 sürükleme çalışmaz; tek dokunuşla sırala */}
+                  <span className="shrink-0 flex flex-col">
+                    <button onClick={() => reorder(i, i - 1)} disabled={i === 0} className="w-7 h-5 grid place-items-center text-white/40 hover:text-white disabled:opacity-20" aria-label="Yukarı taşı"><Icon name="up" size={13} /></button>
+                    <button onClick={() => reorder(i, i + 1)} disabled={i === zone.items.length - 1} className="w-7 h-5 grid place-items-center text-white/40 hover:text-white disabled:opacity-20" aria-label="Aşağı taşı"><Icon name="down" size={13} /></button>
+                  </span>
+                  <ItemThumb item={it} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : it.name || it.src}</p>
+                    <span className="inline-flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[10px] uppercase tracking-wider text-[#a5b4fc]/90 bg-[#6366f1]/15 rounded px-1.5 py-0.5">{KIND_LABEL[it.kind]}</span>
+                      {outOfWindow && <span className="text-[10px] text-white/60 bg-white/10 rounded px-1.5 py-0.5">şu an takvim dışı</span>}
+                    </span>
+                  </div>
+                  {(it.kind === "image" || it.kind === "video") && (
                     <button
-                      key={d.v}
-                      onClick={() => toggleDay(it, d.v)}
-                      className={`text-[10px] font-semibold rounded px-1.5 py-1 border ${active ? "bg-[#6366f1] text-white border-[#6366f1]" : "border-white/15 text-white/55"}`}
-                    >{d.l}</button>
-                  );
-                })}
-                {!it.days?.length && <span className="text-[10px] text-white/35 ml-1">her gün</span>}
-              </div>
-            </li>
-          ))}
+                      onClick={() => {
+                        setReplacingId(it.id);
+                        replaceRef.current?.click();
+                      }}
+                      disabled={queue !== null || !cloudReady}
+                      className="shrink-0 w-9 h-9 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 disabled:opacity-30"
+                      title="Dosyayı değiştir (sıra ve takvim korunur)"
+                      aria-label="Dosyayı değiştir"
+                    >
+                      <Icon name="swap" size={15} />
+                    </button>
+                  )}
+                  <button onClick={() => removeItem(it.id)} className="shrink-0 w-9 h-9 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10" aria-label="Sil">
+                    <Icon name="trash" size={15} />
+                  </button>
+                </div>
+
+                {it.kind === "text" && (
+                  <div className="flex flex-col gap-2 pl-9">
+                    <input defaultValue={it.title ?? ""} placeholder="Başlık" onBlur={(e) => patchItem(it.id, { title: e.target.value })} className={`${inputCls} px-3 py-2 text-sm`} />
+                    <textarea defaultValue={it.text ?? ""} placeholder="Mesaj (opsiyonel)" rows={2} onBlur={(e) => patchItem(it.id, { text: e.target.value })} className={`${inputCls} px-3 py-2 text-sm resize-y`} />
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-9 text-xs text-white/60">
+                  {(it.kind === "text" || it.kind === "clock") && (
+                    <>
+                      <label className="flex items-center gap-1.5">Zemin <input type="color" defaultValue={it.bg ?? "#312e81"} onChange={(e) => patchItem(it.id, { bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
+                      <label className="flex items-center gap-1.5">Yazı <input type="color" defaultValue={it.color ?? "#ffffff"} onChange={(e) => patchItem(it.id, { color: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
+                    </>
+                  )}
+                  <label className="flex items-center gap-1.5" title={it.kind === "video" ? "Boş bırakılırsa video sonuna kadar oynar" : undefined}>
+                    {it.kind === "video" ? "Maks süre" : "Süre"}
+                    <input
+                      type="number"
+                      min={2}
+                      defaultValue={it.durationSec ?? (it.kind === "video" ? undefined : 8)}
+                      placeholder={it.kind === "video" ? "video sonu" : "8"}
+                      onBlur={(e) => {
+                        const v = Number(e.target.value);
+                        patchItem(it.id, { durationSec: v >= 2 ? Math.round(v) : undefined });
+                      }}
+                      className={`w-20 ${inputCls} px-2 py-1 tabular-nums placeholder:text-white/30`}
+                    />
+                    sn
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    Saat
+                    <input type="time" defaultValue={it.from ?? ""} onBlur={(e) => patchItem(it.id, { from: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
+                    –
+                    <input type="time" defaultValue={it.to ?? ""} onBlur={(e) => patchItem(it.id, { to: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
+                  </label>
+                </div>
+
+                {/* Günler (boşsa her gün) */}
+                <div className="flex items-center gap-1.5 pl-9 flex-wrap">
+                  <span className="text-xs text-white/50 mr-1">Gün:</span>
+                  {DAYS.map((d) => {
+                    const active = it.days?.includes(d.v);
+                    return (
+                      <button
+                        key={d.v}
+                        onClick={() => toggleDay(it, d.v)}
+                        className={`text-xs font-semibold rounded-full px-2.5 py-1.5 border ${active ? "bg-[#6366f1] text-white border-[#6366f1]" : "border-white/15 text-white/60 hover:border-white/40"}`}
+                      >
+                        {d.l}
+                      </button>
+                    );
+                  })}
+                  {!it.days?.length && <span className="text-[11px] text-white/50 ml-1">her gün</span>}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
-      <p className="text-white/35 text-[11px] mt-3">İçerik alana tam oturur (stretch). Dosyayı panele sürükleyip bırakarak da yükleyebilirsin.</p>
+      <p className="text-white/50 text-[11px] mt-3">İçerik alana tam oturur (stretch) · saat/gün boşsa hep döner · dosyayı panele sürükleyip bırakabilirsin.</p>
 
       {/* Medya kütüphanesi */}
       {libOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 grid place-items-center p-4" onClick={() => setLibOpen(false)}>
-          <div className="bg-[#171a45] border border-white/10 rounded-2xl p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#1e1b4b] border border-white/15 rounded-2xl p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <p className="font-display font-semibold">🗂 Medya kütüphanesi</p>
-              <button onClick={() => setLibOpen(false)} className="text-white/40 hover:text-white text-sm">Kapat ✕</button>
+              <button onClick={() => setLibOpen(false)} className="w-9 h-9 grid place-items-center rounded-xl text-white/50 hover:text-white hover:bg-white/10" aria-label="Kapat"><Icon name="close" size={16} /></button>
             </div>
-            <p className="text-white/45 text-xs mb-3">Bu duvara daha önce yüklediğin medya — tıkla, bu alana ekle.</p>
+            <p className="text-white/50 text-xs mb-3">Bu ekrana daha önce yüklediğin medya (taslak + yayın) — tıkla, bu alana ekle.</p>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {library.map((it) => (
                 <button key={it.src} onClick={() => addFromLib(it)} className="aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-[#6366f1] relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={it.kind === "video" ? stillOf(it.src!) : cldFit(it.src!, 200)} alt="" className="w-full h-full object-cover bg-black" />
+                  <img src={it.kind === "video" ? stillOf(it.src!) || undefined : cldFit(it.src!, 200)} alt="" className="w-full h-full object-cover bg-black" />
                   {it.kind === "video" && <span className="absolute bottom-1 right-1 text-xs">🎬</span>}
                 </button>
               ))}

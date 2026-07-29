@@ -37,8 +37,11 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-wash">
-      <header className="px-6 py-5">
+      <header className="px-6 py-5 flex items-center justify-between gap-3">
         <LogoRotating />
+        <Link href="/login" className="chip !py-1.5 text-accent font-semibold hover:border-accent shrink-0">
+          Giriş yap →
+        </Link>
       </header>
 
       <section className="flex-1 flex flex-col items-center justify-center px-4 -mt-14">
@@ -58,12 +61,17 @@ export default function LandingPage() {
             autoFocus
             placeholder="123 456"
             aria-label="Katılım kodu"
-            className="input-base text-center text-4xl tracking-[0.3em] font-bold py-5 placeholder:text-line placeholder:font-semibold"
+            className="input-base text-center text-4xl tracking-[0.3em] font-bold py-5 placeholder:text-ink/15 placeholder:font-semibold"
           />
           <button type="submit" disabled={code.length !== 6 || busy} className="btn-accent py-4 text-lg">
             {busy ? "Bağlanılıyor…" : "Katıl →"}
           </button>
         </form>
+
+        <p className="text-muted text-sm mt-6">
+          Sunum, duvar veya ekran mı oluşturacaksın?{" "}
+          <Link href="/login" className="text-accent font-semibold hover:underline">Giriş yap →</Link>
+        </p>
 
         {last && (
           <Link
@@ -81,8 +89,10 @@ export default function LandingPage() {
         )}
       </section>
 
-      <footer className="px-6 py-5 text-xs text-muted">
-        <span>FlowMeter · FlowWall · FlowSign</span>
+      <footer className="px-6 py-5 text-xs text-muted flex gap-1.5">
+        <Link href="/dashboard" className="hover:text-ink">FlowMeter</Link>·
+        <Link href="/dashboard?p=walls" className="hover:text-ink">FlowWall</Link>·
+        <Link href="/videowall" className="hover:text-ink">FlowSign</Link>
       </footer>
     </main>
   );

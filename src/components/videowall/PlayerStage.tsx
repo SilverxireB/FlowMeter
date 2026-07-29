@@ -9,20 +9,11 @@
  * /videowall/[id]/play ve /flowsign/[slug] bunu kullanır.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Icon } from "@/components/videowall/icons";
+import { itemInWindow as inWindow } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 type Transition = "fade" | "cut" | "slide";
-
-function inWindow(item: ZoneItem, now: Date): boolean {
-  if (item.days?.length && !item.days.includes(now.getDay())) return false;
-  if (!item.from && !item.to) return true;
-  const hm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  const from = item.from || "00:00";
-  const to = item.to || "23:59";
-  // Gece yarısını aşan pencere (ör. 22:00–06:00): from'dan SONRA veya to'dan ÖNCE.
-  if (from > to) return hm >= from || hm <= to;
-  return hm >= from && hm <= to;
-}
 
 /** Yalnız http(s) kaynaklar oynatılır — javascript:/data: XSS'i keser (derin savunma). */
 const safeSrc = (src?: string) => (src && /^https?:\/\//i.test(src) ? src : undefined);
@@ -161,7 +152,10 @@ function ZonePlayer({ zone }: { zone: Zone }) {
   }, [cur?.id, idx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!cur || cur.kind === "video" || len <= 1) return;
+    if (!cur || len <= 1) return;
+    // Video: süre girilmişse ÜST SINIR (10 dk'lık video döngüyü kilitlemesin);
+    // girilmemişse kendi bitişinde ilerler (onEnded). Diğer türler: gösterim süresi.
+    if (cur.kind === "video" && !cur.durationSec) return;
     const secs = Math.max(2, cur.durationSec ?? 8);
     const t = window.setTimeout(advance, secs * 1000);
     return () => window.clearTimeout(t);
@@ -262,7 +256,9 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
   const screens = stage.cols * stage.rows;
 
   return (
-    <main className={`relative w-screen h-screen bg-black overflow-hidden ${controls ? "" : "cursor-none"}`} onPointerMove={poke}>
+    // onPointerDown da poke: dokunmatik ekranda "tap" move üretmez — kontroller
+    // yoksa tam ekran butonuna hiç ulaşılamıyordu.
+    <main className={`relative w-screen h-screen bg-black overflow-hidden ${controls ? "" : "cursor-none"}`} onPointerMove={poke} onPointerDown={poke}>
       {stage.zones?.map((z) => (
         <ZonePlayer key={z.id} zone={z} />
       ))}
@@ -285,9 +281,13 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
       )}
 
       <div className={`fixed bottom-4 right-4 z-50 flex gap-2 transition-opacity ${controls ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-        {screens > 1 && <button onClick={showIdentify} className="rounded-xl bg-black/60 backdrop-blur border border-white/20 text-white px-4 py-2 text-sm font-semibold">⊞ Ekranları tanı</button>}
-        <button onClick={toggleFs} className="rounded-xl bg-black/60 backdrop-blur border border-white/20 text-white px-4 py-2 text-sm font-semibold">
-          {fs ? "✕ Tam ekrandan çık" : "⛶ Tam ekran"}
+        {screens > 1 && (
+          <button onClick={showIdentify} className="rounded-xl bg-black/60 backdrop-blur border border-white/20 text-white px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-1.5">
+            <Icon name="grid" size={15} /> Ekranları tanı
+          </button>
+        )}
+        <button onClick={toggleFs} className="rounded-xl bg-black/60 backdrop-blur border border-white/20 text-white px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-1.5">
+          <Icon name={fs ? "close" : "expand"} size={15} /> {fs ? "Tam ekrandan çık" : "Tam ekran"}
         </button>
       </div>
     </main>

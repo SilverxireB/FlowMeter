@@ -32,7 +32,7 @@ export default function FlowsignPlayPage() {
     };
   }, [slug]);
 
-  if (vw === undefined) return <main className="w-screen h-screen grid place-items-center bg-black text-white/40">Yükleniyor…</main>;
+  if (vw === undefined) return <main className="w-screen h-screen grid place-items-center bg-black text-white/40 animate-pulse">Yükleniyor…</main>;
   if (vw === null) return <main className="w-screen h-screen grid place-items-center bg-black text-white/40">Ekran bulunamadı.</main>;
   return <PlayerStage vw={vw} />;
 }

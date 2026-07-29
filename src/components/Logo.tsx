@@ -40,17 +40,19 @@ export default function Logo({
   const v = VARIANTS[variant];
 
   return (
-    <span className="inline-flex items-center">
+    // Ekran okuyucu markayı TEK kez tam adıyla duyar ("FLOWSIGN"); parçalar gizli.
+    <span className="inline-flex items-center" role="img" aria-label={v.full}>
       {imgOk && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={onDark ? v.imgDark : v.img}
-          alt="Flow"
+          alt=""
           className={`${img} w-auto`}
           onError={() => setImgOk(false)}
         />
       )}
       <span
+        aria-hidden
         className="font-display font-semibold"
         style={{
           color: onDark ? "#ffffff" : "#001e64",

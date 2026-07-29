@@ -117,3 +117,24 @@ tamamen kaldırıldı. Hub kartı gradyanı #1e1b4b→#312e81.
   slug bulunamazsa id ile de dener.
 - Ekran sayısı ekseni başına 24 ile sınırlı (1MB doküman/tarayıcı koruması).
 - Saat penceresi öğe düşürünce akış başa sarmaz (gösterilen öğe korunur).
+
+## Müşteri-hazırlık turu (kullanılabilirlik + UI ajan denetimleri — uygulandı)
+- Terminoloji: FlowSign varlığı artık **"ekran"** (FlowWall "duvar" ile karışmaz).
+- Landing'e "Giriş yap" (blocker: ürüne giden yol yoktu); footer ürün linkleri.
+- Preset düzeltildi: 3 dikey TV yan yana = **3240×1920**; eksen etiketleri
+  "Yan yana / Üst üste kaç ekran?". Liste "Yayınla" → "Ekranı aç" (fiil çakışması).
+- "↩ Yayındaki hâle dön" (taslağı live'dan geri sarma — tek geri-alma yolu).
+- Taslak yazım hataları görünür (banner); yayın sonrası toast + "Son yayın: …".
+- Yükleme: boyut ön-kontrolü (görsel ~10MB / video ~100MB) + dosya bazlı hata
+  listesi; ⇄ Değiştir (yerinde, sıra/takvim korur); ▲▼ dokunmatik sıralama.
+- Kütüphane taslak+yayından beslenir (ızgara sıfırlansa da medya erişilebilir).
+- URL ekleme inline form (prompt kalktı) + iframe-engelleme notu; merge/split/
+  grid-reset onayları markalı ConfirmDialog (native confirm kalktı).
+- "Takvim dışı" rozeti + alan-boş uyarısı; video "Maks süre" (döngü kilidi yok).
+- Çoklu-ekran kurulum notu (Surround/Eyefinity) rehber + link kartında.
+- Rehber ❓ ile her zaman açılır; çözünürlük editörde düzenlenebilir.
+- UI: turkuaz yerine sistem accent (#4f46e5 bg-accent); hatalar rose ailesi;
+  işlevsel glifler inline SVG (icons.tsx); [color-scheme:dark]; odak reçetesi;
+  44px dokunma hedefleri; mobil başlık sarması; kontrast tabanı white/50.
+- Kalan (bilinçli park): ekran sağlık heartbeat'i, ses aç/kapa, 90° döndürme,
+  alan-seviyesi takvim varsayılanı, FlowSign özel O-glif PNG (Logo.tsx:17 swap).

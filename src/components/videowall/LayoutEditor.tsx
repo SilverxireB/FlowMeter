@@ -12,8 +12,10 @@ import { cldFit } from "@/lib/cloudinary";
 import { CellBox, contentZonesIn, mergeCells, zoneCells } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
-/** Video ilk-kare posteri (kırpmasız, sığdırılmış). Cloudinary değilse "". */
+/** Video ilk-kare posteri (kırpmasız). Cloudinary değilse "" → 🎬 yer tutucuya düşer
+ * (self-host'ta yerel video URL'sini .jpg'ye çevirip kırık görsel üretmesin). */
 function videoStill(src: string): string {
+  if (!src.includes("res.cloudinary.com")) return "";
   return cldFit(src, 320).replace(/\.(mp4|mov|webm|m4v)$/i, ".jpg");
 }
 
@@ -48,11 +50,14 @@ export default function LayoutEditor({
   selectedId,
   onSelect,
   onZones,
+  onConfirm,
 }: {
   vw: Videowall;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onZones: (zones: Zone[]) => void;
+  /** Markalı onay penceresi (edit sayfası sağlar) — native confirm yerine. */
+  onConfirm: (c: { title: string; message: string; confirmLabel?: string; danger?: boolean; run: () => void }) => void;
 }) {
   const { cols, rows } = vw;
   const gridRef = useRef<HTMLDivElement>(null);
@@ -88,18 +93,28 @@ export default function LayoutEditor({
       return;
     }
     const box = boxOf(d.anchor, d.hover);
+    const doMerge = () => {
+      onZones(mergeCells(vw.zones ?? [], cols, rows, box));
+      onSelect(null);
+    };
     // İçerikli alanlar etkileniyorsa ONAY sor — yanlışlıkla birleştirme faciası yok.
     const withContent = contentZonesIn(vw.zones ?? [], cols, rows, box);
-    if (withContent.length > 0) {
-      const label = (z: Zone) => z.name || `Alan ${(vw.zones ?? []).indexOf(z) + 1}`;
-      const msg =
-        withContent.length === 1
-          ? `Alanlar birleştirilecek; "${label(withContent[0])}" içeriği yeni alana taşınır. Devam?`
-          : `Alanlar birleştirilecek; yalnız "${label(withContent[0])}" içeriği yeni alana taşınır, diğer ${withContent.length - 1} alanın içeriği SİLİNİR. Devam?`;
-      if (!confirm(msg)) return;
+    if (withContent.length === 0) {
+      doMerge();
+      return;
     }
-    onZones(mergeCells(vw.zones ?? [], cols, rows, box));
-    onSelect(null);
+    const label = (z: Zone) => z.name || `Alan ${(vw.zones ?? []).indexOf(z) + 1}`;
+    onConfirm({
+      title: "Alanları birleştir",
+      message:
+        (withContent.length === 1
+          ? `"${label(withContent[0])}" içeriği yeni alana taşınır (kaybolmaz).`
+          : `Yalnız "${label(withContent[0])}" içeriği yeni alana taşınır; diğer ${withContent.length - 1} alanın içeriği SİLİNİR.`) +
+        "\nSonradan alana tıklayıp “Böl” ile geri ayırabilirsin.",
+      confirmLabel: "Birleştir",
+      danger: withContent.length > 1,
+      run: doMerge,
+    });
   };
 
   const selBox = drag ? boxOf(drag.anchor, drag.hover) : null;
@@ -171,8 +186,9 @@ export default function LayoutEditor({
           onPointerCancel={() => setDrag(null)}
         />
       </div>
-      <p className="text-white/45 text-xs mt-3">
+      <p className="text-white/50 text-xs mt-3 leading-relaxed">
         Hücrelere <b>sürükle</b> → alanları birleştir · alana <b>tıkla</b> → seç (içerik ekle / böl).
+        <span className="text-white/45"> Kesik çizgiler = fiziksel ekran sınırları; renkli çerçeveler = içerik alanların.</span>
       </p>
     </div>
   );
