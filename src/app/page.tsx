@@ -44,11 +44,9 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-wash">
-      <header className="px-6 py-5 flex items-center justify-between gap-3">
+      {/* Salt katılımcı yüzeyi: giriş yolu YOK (oluşturucular /dashboard kısayolundan) */}
+      <header className="px-6 py-5 flex items-center gap-3">
         <Logo variant="studio" />
-        <Link href="/login" className="chip !py-1.5 text-accent font-semibold hover:border-accent shrink-0">
-          Giriş yap →
-        </Link>
       </header>
 
       <section className="flex-1 flex flex-col items-center justify-center px-4 -mt-14">
@@ -74,11 +72,6 @@ export default function LandingPage() {
             {busy ? "Bağlanılıyor…" : "Katıl →"}
           </button>
         </form>
-
-        <p className="text-muted text-sm mt-6">
-          Sunum, duvar veya ekran mı oluşturacaksın?{" "}
-          <Link href="/login" className="text-accent font-semibold hover:underline">Giriş yap →</Link>
-        </p>
 
         {last && (
           <Link
