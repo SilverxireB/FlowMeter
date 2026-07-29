@@ -92,7 +92,8 @@ export default function LandingPage() {
       <footer className="px-6 py-5 text-xs text-muted flex gap-1.5">
         <Link href="/dashboard" className="hover:text-ink">FlowMeter</Link>·
         <Link href="/dashboard?p=walls" className="hover:text-ink">FlowWall</Link>·
-        <Link href="/videowall" className="hover:text-ink">FlowSign</Link>
+        <Link href="/videowall" className="hover:text-ink">FlowSign</Link>·
+        <Link href="/pulse" className="hover:text-ink">FlowPulse</Link>
       </footer>
     </main>
   );

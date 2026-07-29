@@ -12,6 +12,7 @@ const VARIANTS = {
   meter: { img: "/logo-flow.png", imgDark: "/logo-flow-white.png", word: "METER", full: "FLOWMETER" },
   wall: { img: "/logo-flowwall.png", imgDark: "/logo-flowwall-white.png", word: "WALL", full: "FLOWWALL" },
   sign: { img: "/logo-flowsign.png", imgDark: "/logo-flowsign-white.png", word: "SIGN", full: "FLOWSIGN" },
+  pulse: { img: "/logo-flowpulse.png", imgDark: "/logo-flowpulse-white.png", word: "PULSE", full: "FLOWPULSE" },
 } as const;
 
 /**
@@ -30,7 +31,7 @@ export default function Logo({
 }: {
   size?: "sm" | "md" | "lg";
   onDark?: boolean;
-  variant?: "meter" | "wall" | "sign";
+  variant?: "meter" | "wall" | "sign" | "pulse";
 }) {
   const [imgOk, setImgOk] = useState(true);
   const { img, fontSize } = SIZES[size];

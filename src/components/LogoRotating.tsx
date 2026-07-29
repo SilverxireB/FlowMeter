@@ -20,6 +20,7 @@ const STEPS = [
   { img: "/logo-flow.png", imgDark: "/logo-flow-white.png", word: "METER" },
   { img: "/logo-flowwall.png", imgDark: "/logo-flowwall-white.png", word: "WALL" },
   { img: "/logo-flowsign.png", imgDark: "/logo-flowsign-white.png", word: "SIGN" },
+  { img: "/logo-flowpulse.png", imgDark: "/logo-flowpulse-white.png", word: "PULSE" },
 ] as const;
 
 const PERIOD_MS = 3400;
@@ -36,7 +37,7 @@ export default function LogoRotating({ size = "md", onDark = false }: { size?: "
   const color = onDark ? "#ffffff" : "#001e64";
 
   return (
-    <span className="inline-flex items-center" aria-label="FlowMeter · FlowWall · FlowSign">
+    <span className="inline-flex items-center" aria-label="FlowMeter · FlowWall · FlowSign · FlowPulse">
       {/* Wordmark'lar üst üste — FLOW aynı hizada, yalnız O-glifi değişir */}
       <span className={`relative inline-block ${img}`} aria-hidden>
         {STEPS.map((s, i) => (

@@ -21,10 +21,11 @@ import {
 import { getUserRecord, isAdminUser, upsertUserRecord } from "@/lib/users";
 import { createWall, deleteWall, listWalls } from "@/lib/walls";
 import { listVideowalls } from "@/lib/videowalls";
+import { listPulses } from "@/lib/pulses";
 import { TEMPLATES } from "@/lib/templates";
 import { themeStyle } from "@/lib/themes";
 import { withTimeout } from "@/lib/withTimeout";
-import { Presentation, Slide, Videowall, Wall } from "@/lib/types";
+import { Presentation, Pulse, Slide, Videowall, Wall } from "@/lib/types";
 
 /** Kart önizlemesi — sunumun gerçek 1. slaytını render eder (yoksa başlık). */
 function CardThumb({ presentation, view }: { presentation: Presentation; view: "grid" | "list" }) {
@@ -95,6 +96,10 @@ export default function DashboardPage() {
   }, [refreshWalls]);
   useEffect(() => {
     if (user) listVideowalls(user.uid).then(setSigns).catch(() => {});
+  }, [user]);
+  const [pulses, setPulses] = useState<Pulse[]>([]);
+  useEffect(() => {
+    if (user) listPulses(user.uid).then(setPulses).catch(() => {});
   }, [user]);
 
   // Ürün seçimi URL'e yansır (geri-tuşu / paylaşılabilir link), join linkleri değişmez.
@@ -320,7 +325,7 @@ export default function DashboardPage() {
           <div>
             <p className="eyebrow mb-2">Panelin</p>
             <h1 className="font-display text-3xl font-semibold tracking-tight mb-7">Ne oluşturmak istersin?</h1>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
               {/* FlowMeter */}
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
                 <div className="p-6 bg-gradient-to-br from-accent-soft to-white">
@@ -387,6 +392,29 @@ export default function DashboardPage() {
                   <div className="mt-auto flex gap-2">
                     <Link href="/videowall" className="flex-1 rounded-xl bg-white/10 border border-white/15 py-2 text-sm font-semibold hover:bg-white/15 text-center">Ekranlar →</Link>
                     <Link href="/videowall?new=1" className="rounded-xl bg-white text-[#312e81] px-4 py-2 text-sm font-semibold hover:bg-white/90">＋ Yeni</Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* FlowPulse — aydınlık kart, sıcak amber yıkama (4. ürün) */}
+              <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
+                <div className="p-6" style={{ background: "linear-gradient(160deg,#fff7ed 0%,#ffffff 100%)" }}>
+                  <Logo size="lg" variant="pulse" />
+                  <p className="text-muted text-sm mt-3">Sürekli nabız & geri bildirim</p>
+                </div>
+                <div className="p-6 pt-4 flex-1 flex flex-col">
+                  <p className="text-xs text-muted mb-2 tabular-nums">{pulses.length} nokta</p>
+                  <ul className="flex flex-col gap-1 mb-4">
+                    {pulses.slice(0, 3).map((p) => (
+                      <li key={p.id}>
+                        <button onClick={() => router.push(`/pulse/${p.id}/manage`)} className="w-full text-left text-sm truncate text-ink/80 hover:text-accent py-1">• {p.title}</button>
+                      </li>
+                    ))}
+                    {pulses.length === 0 && <li className="text-sm text-muted py-1">Henüz nokta yok</li>}
+                  </ul>
+                  <div className="mt-auto flex gap-2">
+                    <Link href="/pulse" className="btn-ghost flex-1 !py-2 text-sm text-center">Noktalar →</Link>
+                    <Link href="/pulse?new=1" className="btn-primary !py-2 !px-4 text-sm">＋ Yeni</Link>
                   </div>
                 </div>
               </div>

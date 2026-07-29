@@ -274,5 +274,55 @@ service cloud.firestore {
       allow update, delete: if request.auth != null
         && resource.data.ownerId == request.auth.uid;
     }
+
+    // ── FlowPulse: sürekli nabız/geri bildirim (kiosk + QR, tamamen anonim) ──
+    match /pulses/{pulseId} {
+      function pulseOwner() {
+        return request.auth != null
+          && get(/databases/$(database)/documents/pulses/$(pulseId)).data.ownerId == request.auth.uid;
+      }
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && resource.data.ownerId == request.auth.uid;
+
+      // Ham oylar: herkes ekler (anonim), asla değiştirilemez; silme sahibinde.
+      match /votes/{voteId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['value', 'channel', 'createdAt'])
+          && request.resource.data.value is number
+          && request.resource.data.value >= 0
+          && request.resource.data.value <= 10
+          && request.resource.data.channel in ['kiosk', 'qr'];
+        allow update: if false;
+        allow delete: if pulseOwner();
+      }
+
+      // Günlük özet (rollup): oyla birlikte artar. total tam +1, sum 0..10 artar
+      // → tek yazımla en fazla tek oyluk etki (toplu şişirme yok).
+      match /days/{dayId} {
+        allow read: if true;
+        allow create: if request.resource.data.get('total', 0) == 1
+          && request.resource.data.get('sum', 0) >= 0
+          && request.resource.data.get('sum', 0) <= 10;
+        allow update: if request.resource.data.get('total', 0) == resource.data.get('total', 0) + 1
+          && request.resource.data.get('sum', 0) >= resource.data.get('sum', 0)
+          && request.resource.data.get('sum', 0) <= resource.data.get('sum', 0) + 10;
+        allow delete: if pulseOwner();
+      }
+
+      // Anonim yorumlar: moderasyon açıkken 'pending' ZORUNDA; yönetim sahibinde.
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['text', 'status', 'createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 1
+          && request.resource.data.text.size() <= 200
+          && request.resource.data.status ==
+             (get(/databases/$(database)/documents/pulses/$(pulseId)).data.get('moderation', true) == true ? 'pending' : 'approved');
+        allow update, delete: if pulseOwner();
+      }
+    }
   }
 }

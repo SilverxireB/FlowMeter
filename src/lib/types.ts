@@ -502,3 +502,39 @@ export interface Videowall {
   createdAt: Timestamp | null;
   updatedAt?: Timestamp | null;
 }
+
+// ── FlowPulse (sürekli nabız/geri bildirim) ──────────────────────────────────
+/** Soru tipi: smiley 1–5 · nps 0–10 · yesno 0/1 · choice (seçenek index'i). */
+export type PulseQuestionType = "smiley" | "nps" | "yesno" | "choice";
+
+/** Bir geri bildirim NOKTASI (pulses/{id}) — ör. "Yemekhane çıkışı". ANONİM:
+ *  sicil/kimlik bilerek YOK (dürüst oy için). Kiosk + QR kanallarından oy toplar. */
+export interface Pulse {
+  id: string;
+  ownerId: string;
+  title: string;
+  question: { type: PulseQuestionType; text: string; options?: string[] };
+  /** Kiosk'ta üst üste basmayı frenleme (sn; varsayılan 3) */
+  cooldownSec?: number;
+  /** Kiosk'tan çıkış PIN'i (köşeye 5 dokunuş → PIN). Boş = PIN'siz çıkış. */
+  pin?: string;
+  /** Yorum bırakma açık mı (varsayılan açık) + moderasyon (varsayılan açık) */
+  commentsEnabled?: boolean;
+  moderation?: boolean;
+  /** Uyarı eşiği (%0–100; skor altına düşerse kokpitte kırmızı). 0 = kapalı. */
+  threshold?: number;
+  createdAt: Timestamp | null;
+  updatedAt?: Timestamp | null;
+}
+
+/** Günlük özet (pulses/{id}/days/{yyyy-mm-dd}) — kokpit trendi BUNU okur
+ *  (50 bin oy değil, gün başına 1 doküman). Oyla birlikte increment'lenir. */
+export interface PulseDay {
+  id: string; // yyyy-mm-dd
+  total: number;
+  sum: number;
+  /** Değer dağılımı: {"1":12,"2":4,…} (choice'ta seçenek index'leri) */
+  counts?: Record<string, number>;
+  /** Saatlik: {"14":{t:5,s:19}} → gün×saat ısı matrisi */
+  hours?: Record<string, { t: number; s: number }>;
+}
