@@ -40,6 +40,30 @@ export default function Logo({
   const [imgOk, setImgOk] = useState(true);
   const { img, fontSize } = SIZES[size];
   const v = VARIANTS[variant];
+  const color = onDark ? "#ffffff" : "#001e64";
+
+  // Çatı marka: O-halkası kelimenin İÇİNDE — FL◯W STUDIO (başta ikon değil)
+  if (variant === "studio" && imgOk) {
+    return (
+      <span className="inline-flex items-center" role="img" aria-label="FLOW STUDIO">
+        <span
+          aria-hidden
+          className="font-display font-semibold inline-flex items-center"
+          style={{ color, fontSize, lineHeight: 1, letterSpacing: "0.03em" }}
+        >
+          FL
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={onDark ? v.iconDark : v.icon}
+            alt=""
+            style={{ height: "1.06em", width: "auto", margin: "0 0.05em" }}
+            onError={() => setImgOk(false)}
+          />
+          W&nbsp;STUDIO
+        </span>
+      </span>
+    );
+  }
 
   return (
     // Ekran okuyucu markayı TEK kez tam adıyla duyar; parçalar gizli.

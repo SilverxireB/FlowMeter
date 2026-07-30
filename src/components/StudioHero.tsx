@@ -100,18 +100,23 @@ function FlyLogo({ src }: { src: string }) {
 /* ── Sahne 0: FLOW STUDIO — çatı marka açılışı ───────────────────────────── */
 function StudioScene() {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
-      <span className="relative inline-flex">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-o-studio-white.png" alt="" className="fs-mat relative h-16 sm:h-24 w-auto" />
-        <span
-          aria-hidden
-          className="fs-glint absolute inset-0"
-          style={{ WebkitMaskImage: "url(/logo-o-studio-white.png)", maskImage: "url(/logo-o-studio-white.png)", WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat" }}
-        />
-      </span>
-      <span className="fs-studioname mt-3 font-display font-semibold text-3xl sm:text-4xl tracking-tight" aria-label="FLOW STUDIO">
-        FLOW STUDIO
+    <div className="absolute inset-0 flex items-center justify-center px-6">
+      {/* Dev wordmark: halka (O) önce odaklanır, harfler etrafında belirir */}
+      <span
+        className="font-display font-semibold text-4xl sm:text-6xl tracking-tight inline-flex items-center"
+        role="img"
+        aria-label="FLOW STUDIO"
+      >
+        <span aria-hidden className="fs-studioname">FL</span>
+        <span aria-hidden className="relative inline-flex">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-o-studio-white.png" alt="" className="fs-mat relative h-[1.06em] w-auto mx-[0.05em]" />
+          <span
+            className="fs-glint absolute inset-0"
+            style={{ WebkitMaskImage: "url(/logo-o-studio-white.png)", maskImage: "url(/logo-o-studio-white.png)", WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat" }}
+          />
+        </span>
+        <span aria-hidden className="fs-studioname">W&nbsp;STUDIO</span>
       </span>
     </div>
   );
@@ -577,10 +582,12 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
         /* Kompakt: durağan kimlik — logo + ad + akan şerit */
         <div className="absolute inset-0 z-10">
           <div className="fs-in-center absolute inset-0 flex items-center justify-center pb-5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-o-studio-white.png" alt="" className="h-10 w-auto" />
-            <span className="ml-2.5 font-display font-semibold text-2xl tracking-tight" aria-label="FLOW STUDIO">
-              FLOW STUDIO
+            {/* O-halkası kelimenin içinde: FL◯W STUDIO */}
+            <span className="font-display font-semibold text-3xl tracking-tight inline-flex items-center" role="img" aria-label="FLOW STUDIO">
+              FL
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-o-studio-white.png" alt="" className="h-[1.06em] w-auto mx-[0.05em]" />
+              W&nbsp;STUDIO
             </span>
           </div>
           <TickerStrip bottom="bottom-2.5" />
