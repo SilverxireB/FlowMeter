@@ -48,8 +48,9 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-wash">
-      {/* Salt katılımcı yüzeyi: giriş linki YOK; yalnız oturumu AÇIK sahibe çip */}
-      <header className="px-6 py-5 flex items-center justify-between gap-3">
+      {/* Salt katılımcı yüzeyi: giriş linki YOK; yalnız oturumu AÇIK sahibe çip.
+          z-10: -mt-14'lü içerik bloğu başlığın üstüne binip dokunuşu yutmasın */}
+      <header className="relative z-10 px-6 py-5 flex items-center justify-between gap-3">
         <Logo variant="studio" />
         {user && (
           <Link href="/dashboard" className="chip !py-1.5 text-accent font-semibold hover:border-accent shrink-0">
