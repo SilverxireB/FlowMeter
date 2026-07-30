@@ -114,14 +114,14 @@ function SceneFrame({
     <div className="absolute inset-0 flex items-center justify-between gap-4 sm:gap-8 px-5 sm:px-10">
       {/* Marka: logo üstte ortalı, altında ad — soldan büyüyerek girer.
           ml: sol kenara yapışmasın, ortaya doğru dursun */}
-      <div className="fs-in-left flex flex-col items-center shrink-0 ml-4 sm:ml-24">
+      <div className="fs-in-left flex flex-col items-center shrink-0 ml-0 sm:ml-24">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={img} alt="" className="h-16 sm:h-24 w-auto" />
-        <span className="mt-2 font-display font-semibold text-3xl sm:text-5xl tracking-tight">
+        <img src={img} alt="" className="h-12 sm:h-24 w-auto" />
+        <span className="mt-2 font-display font-semibold text-2xl sm:text-5xl tracking-tight">
           {name}
         </span>
       </div>
-      <div className="fs-in-right relative w-[56%] max-w-[400px] h-36 sm:h-40 shrink">
+      <div className="fs-in-right relative w-[60%] max-w-[400px] h-36 sm:h-40 shrink min-w-0">
         {children}
         {floats}
       </div>
@@ -136,24 +136,24 @@ function MeterScene() {
       name="METER"
       floats={
         <>
-          <span className="fs-float absolute -right-1 bottom-1 text-lg" style={{ animationDelay: "0s" }}>❤️</span>
-          <span className="fs-float absolute right-6 bottom-0 text-base" style={{ animationDelay: "1.2s" }}>🎉</span>
-          <span className="fs-float absolute -right-4 bottom-3 text-base" style={{ animationDelay: "2.3s" }}>👍</span>
+          <span className="fs-float pointer-events-none absolute right-0 bottom-1 text-lg" style={{ animationDelay: "0s" }}>❤️</span>
+          <span className="fs-float pointer-events-none absolute right-8 bottom-0 text-base" style={{ animationDelay: "1.2s" }}>🎉</span>
+          <span className="fs-float pointer-events-none absolute right-3 bottom-3 text-base" style={{ animationDelay: "2.3s" }}>👍</span>
         </>
       }
     >
         {/* 1 — Katılım */}
         <Vignette i={0}>
-          <VigHead label="Saniyeler içinde katılım" />
+          <VigHead label="Saniyede katılım" />
           <div className="flex-1 flex flex-col items-center justify-center gap-2">
-            <span className="font-display font-bold text-2xl sm:text-3xl tracking-[0.3em]">
+            <span className="font-display font-bold text-xl sm:text-3xl tracking-[0.2em] sm:tracking-[0.3em]">
               482 193
             </span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 sm:gap-1.5">
               {["🦊", "🐼", "🦁", "🐨", "🐸"].map((a, i) => (
                 <span
                   key={i}
-                  className="fs-pop w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/15 grid place-items-center text-sm"
+                  className={`fs-pop w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-white/15 grid place-items-center text-xs sm:text-sm${i === 4 ? " hidden sm:grid" : ""}`}
                   style={{ animationDelay: `${0.3 + i * 0.18}s` }}
                 >
                   {a}
@@ -238,9 +238,9 @@ function WallScene() {
       name="WALL"
       floats={
         <>
-          <span className="fs-float absolute -right-1 bottom-1 text-lg" style={{ animationDelay: ".4s" }}>❤️</span>
-          <span className="fs-float absolute right-8 bottom-0 text-base" style={{ animationDelay: "1.6s" }}>✨</span>
-          <span className="fs-float absolute -right-4 bottom-3 text-base" style={{ animationDelay: "2.7s" }}>📸</span>
+          <span className="fs-float pointer-events-none absolute right-0 bottom-1 text-lg" style={{ animationDelay: ".4s" }}>❤️</span>
+          <span className="fs-float pointer-events-none absolute right-8 bottom-0 text-base" style={{ animationDelay: "1.6s" }}>✨</span>
+          <span className="fs-float pointer-events-none absolute right-3 bottom-3 text-base" style={{ animationDelay: "2.7s" }}>📸</span>
         </>
       }
     >
@@ -263,7 +263,7 @@ function WallScene() {
 
       {/* 2 — Beğeni + en sevilen */}
       <Vignette i={1}>
-        <VigHead label="Beğen — en sevilen taçlanır" />
+        <VigHead label="👑 En sevilen taçlanır" />
         <div className="flex-1 flex items-center justify-center gap-3">
           <div className="fs-pop relative w-24 h-16 sm:w-28 sm:h-20" style={{ animationDelay: "3.9s" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -291,7 +291,7 @@ function WallScene() {
 
       {/* 4 — Anı Filmi */}
       <Vignette i={3}>
-        <VigHead label="🎬 Anı Filmi — müzikli hatıra videosu" />
+        <VigHead label="🎬 Anı Filmi" />
         <div className="flex-1 flex items-center justify-center">
           <div className="fs-pop relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden" style={{ animationDelay: "10.7s" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -313,7 +313,7 @@ function SignScene() {
     <SceneFrame img="/logo-o-sign-white.png" name="SIGN">
       {/* 1 — Ekranını böl, tasarla */}
       <Vignette i={0}>
-        <VigHead label="Ekranını böl, alanları tasarla" />
+        <VigHead label="Ekranı böl, tasarla" />
         <div className="flex-1 grid grid-cols-3 grid-rows-2 gap-1.5 content-stretch">
           <div className="fs-pop col-span-2 row-span-2 rounded-lg bg-white/15 border border-white/25" style={{ animationDelay: ".25s" }} />
           <div className="fs-pop rounded-lg bg-white/10 border border-white/25" style={{ animationDelay: ".45s" }} />
@@ -323,7 +323,7 @@ function SignScene() {
 
       {/* 2 — İçerik + saat/takvim */}
       <Vignette i={1}>
-        <VigHead label="Görsel, video, URL — saatli takvim" />
+        <VigHead label="İçerik + saatli takvim" />
         <div className="flex-1 flex items-center gap-2">
           <div className="fs-pop flex-1 h-full max-h-20 rounded-lg overflow-hidden relative" style={{ animationDelay: "3.9s" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -340,7 +340,7 @@ function SignScene() {
 
       {/* 3 — Kaydet & Yayınla */}
       <Vignette i={2}>
-        <VigHead label="Taslakta dene, tek tıkla yayınla" />
+        <VigHead label="Tek tıkla yayınla" />
         <div className="flex-1 flex flex-col items-center justify-center gap-2">
           <span className="fs-pop rounded-full bg-[#6366f1] px-4 py-1.5 text-xs font-bold" style={{ animationDelay: "7.4s" }}>
             💾 Kaydet &amp; Yayınla
@@ -374,7 +374,7 @@ function PulseScene() {
     <SceneFrame img="/logo-o-pulse-white.png" name="PULSE">
       {/* 1 — Tek dokunuş */}
       <Vignette i={0}>
-        <VigHead label="Tek dokunuşla nabız — anonim" />
+        <VigHead label="Tek dokunuşla nabız" />
         <div className="flex-1 flex items-center justify-center gap-2.5 sm:gap-3 text-2xl sm:text-3xl">
           {["😠", "😕", "🙂"].map((s, i) => (
             <span key={s} className="fs-pop opacity-70" style={{ animationDelay: `${0.3 + i * 0.15}s` }}>{s}</span>
@@ -399,7 +399,7 @@ function PulseScene() {
 
       {/* 3 — 30 günlük trend */}
       <Vignette i={2}>
-        <VigHead label="30 günlük trend + gün×saat ısı" />
+        <VigHead label="30 günlük trend" />
         <div className="flex-1 flex items-center justify-center px-2">
           <svg viewBox="0 0 120 36" className="w-full max-w-56 h-14 overflow-visible">
             <polyline
