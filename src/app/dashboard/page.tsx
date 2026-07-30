@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { signOut } from "firebase/auth";
 import Logo from "@/components/Logo";
+import StudioHero from "@/components/StudioHero";
 import SlidePreview from "@/components/editor/SlidePreview";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { auth } from "@/lib/firebase";
 import { useAuthUser } from "@/lib/hooks";
 import {
   createFromTemplate,
@@ -299,6 +302,13 @@ export default function DashboardPage() {
           <span className="chip text-muted min-w-0 max-w-[45vw]">
             <span className="truncate">{user.email}</span>
           </span>
+          <button
+            onClick={() => signOut(auth()).then(() => router.replace("/login"))}
+            className="chip !py-1.5 shrink-0 text-muted hover:text-ink hover:border-ink/30"
+            title="Çıkış yap"
+          >
+            Çıkış
+          </button>
         </div>
       </header>
 
@@ -319,11 +329,10 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* HUB — iki markalı ürün kartı */}
+        {/* HUB — Studio açılış animasyonu + markalı ürün kartları */}
         {product === null && (
           <div>
-            <p className="eyebrow mb-2">Panelin</p>
-            <h1 className="font-display text-3xl font-semibold tracking-tight mb-7">Ne oluşturmak istersin?</h1>
+            <StudioHero />
             <div className="grid gap-5 sm:grid-cols-2">
               {/* FlowMeter */}
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
