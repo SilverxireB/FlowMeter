@@ -337,7 +337,7 @@ export default function DashboardPage() {
               {/* FlowMeter */}
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
                 {/* Panel tonları O-halkasının dört yayından (kullanıcı kararı):
-                    Meter mavi, Wall turuncu, Sign kırmızı, Pulse yeşil */}
+                    Meter mavi, Wall turuncu, Sign yeşil, Pulse kırmızı (EKG) */}
                 <div className="p-6" style={{ background: "linear-gradient(160deg,#e7f2fe 0%,#ffffff 100%)" }}>
                   <Logo size="lg" />
                   <p className="text-muted text-sm mt-3">İnteraktif sunum & canlı oylama</p>
@@ -382,9 +382,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* FlowSign — beyaz gövde, üst panel kırmızı yay tonu */}
+              {/* FlowSign — beyaz gövde, üst panel yeşil yay tonu */}
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
-                <div className="p-6" style={{ background: "linear-gradient(160deg,#fdeceb 0%,#ffffff 100%)" }}>
+                <div className="p-6" style={{ background: "linear-gradient(160deg,#ecfdf5 0%,#ffffff 100%)" }}>
                   <Logo size="lg" variant="sign" />
                   <p className="text-muted text-sm mt-3">Video-wall & dijital tabela</p>
                 </div>
@@ -405,10 +405,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* FlowPulse — aydınlık kart, serin nane yıkaması (skor yeşili ailesi;
-                  eski amber ton indigo aileden kopuyordu) */}
+              {/* FlowPulse — beyaz gövde, üst panel kırmızı yay tonu (EKG kırmızısı) */}
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
-                <div className="p-6" style={{ background: "linear-gradient(160deg,#ecfdf5 0%,#ffffff 100%)" }}>
+                <div className="p-6" style={{ background: "linear-gradient(160deg,#fdeceb 0%,#ffffff 100%)" }}>
                   <Logo size="lg" variant="pulse" />
                   <p className="text-muted text-sm mt-3">Sürekli nabız & geri bildirim</p>
                 </div>
