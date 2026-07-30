@@ -472,10 +472,22 @@ function PulseScene() {
  * variant="compact": küçük yüzeyler (ör. login) için durağan marka sahnesi —
  * aurora + FLOW STUDIO + akan şerit; sahne turu yok, yükseklik düşük.
  */
+// Aurora sahne paleti: bulutlar aktif sahnenin renk ailesine yumuşakça boyanır
+const BLOB_TINTS: Record<Scene, [string, string, string]> = {
+  intro: ["#2094f3", "#d62027", "#f0913a"],
+  meter: ["#2094f3", "#6366f1", "#38bdf8"],
+  wall: ["#f0913a", "#d62027", "#f472b6"],
+  sign: ["#1b7d3a", "#34d399", "#2094f3"],
+  pulse: ["#d62027", "#f472b6", "#f0913a"],
+};
+
 export default function StudioHero({ variant = "full" }: { variant?: "full" | "compact" }) {
   const [idx, setIdx] = useState(0);
+  // tick: kaçıncı sahne geçişi — süpürme yalnız gerçek geçişlerde oynar (ilk açılışta değil)
+  const [tick, setTick] = useState(0);
   const scene = SCENES[idx];
   const compact = variant === "compact";
+  const tints = BLOB_TINTS[compact ? "intro" : scene];
 
   // Dokunma dalgası: markaya dokununca aurora'da halka gibi yayılan ışık
   const [ripples, setRipples] = useState<{ x: number; y: number; id: number }[]>([]);
@@ -487,7 +499,10 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
   useEffect(() => {
     if (compact) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const t = window.setTimeout(() => setIdx((i) => (i + 1) % SCENES.length), DURATION[scene]);
+    const t = window.setTimeout(() => {
+      setIdx((i) => (i + 1) % SCENES.length);
+      setTick((n) => n + 1);
+    }, DURATION[scene]);
     return () => window.clearTimeout(t);
   }, [idx, scene, compact]);
 
@@ -499,10 +514,10 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
       style={{ background: "linear-gradient(150deg,#001e64 0%,#0b1030 55%,#131847 100%)" }}
       onPointerDown={addRipple}
     >
-      {/* Ambiyans: tüm sahnelerde sabit süzülen ışık bulutları */}
-      <div aria-hidden className="fs-blob fs-blob-a" />
-      <div aria-hidden className="fs-blob fs-blob-b" />
-      <div aria-hidden className="fs-blob fs-blob-c" />
+      {/* Ambiyans: süzülen ışık bulutları — renk, aktif sahnenin ailesine akar */}
+      <div aria-hidden className="fs-blob fs-blob-a" style={{ background: tints[0], transition: "background 1.6s ease" }} />
+      <div aria-hidden className="fs-blob fs-blob-b" style={{ background: tints[1], transition: "background 1.6s ease" }} />
+      <div aria-hidden className="fs-blob fs-blob-c" style={{ background: tints[2], transition: "background 1.6s ease" }} />
 
       {compact ? (
         /* Kompakt: durağan kimlik — logo + ad + akan şerit */
@@ -527,14 +542,17 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
             {scene === "pulse" && <PulseScene />}
           </div>
 
-          {/* İmza geçişi: her sahne değişiminde O-halkası süpürerek açar */}
-          <div key={`sweep-${scene}`} aria-hidden className="fs-sweep absolute inset-0 z-20 pointer-events-none grid place-items-center">
-            <svg viewBox="0 0 120 120" className="w-44 h-44 sm:w-56 sm:h-56">
-              {SWEEP_ARCS.map((a) => (
-                <path key={a.color} d={a.d} fill="none" stroke={a.color} strokeWidth={a.w} strokeLinecap="round" />
-              ))}
-            </svg>
-          </div>
+          {/* İmza geçişi: yalnız sahne DEĞİŞİMİNDE O-halkası süpürerek açar
+              (ilk açılışta oynamaz; içerik girişinden önce görünür) */}
+          {tick > 0 && (
+            <div key={`sweep-${tick}`} aria-hidden className="fs-sweep absolute inset-0 z-20 pointer-events-none grid place-items-center">
+              <svg viewBox="0 0 120 120" className="w-44 h-44 sm:w-56 sm:h-56">
+                {SWEEP_ARCS.map((a) => (
+                  <path key={a.color} d={a.d} fill="none" stroke={a.color} strokeWidth={a.w} strokeLinecap="round" />
+                ))}
+              </svg>
+            </div>
+          )}
         </>
       )}
 
@@ -549,15 +567,16 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
       ))}
 
       <style>{`
-        .fs-scene { animation: fs-scene-in 0.6s ease-out; }
+        /* Sahne içeriği süpürmenin hemen ardından gelir (koreografi) */
+        .fs-scene { animation: fs-scene-in 0.55s ease-out both; animation-delay: 0.2s; }
         @keyframes fs-scene-in { from { opacity: 0; } }
 
-        /* O-halkası süpürmesi: geçişte belirip büyüyerek kaybolur */
-        .fs-sweep { opacity: 0; animation: fs-sweep 0.9s cubic-bezier(0.22, 1, 0.36, 1); }
+        /* O-halkası süpürmesi: hızlı belirir, büyüyerek yumuşakça dağılır */
+        .fs-sweep { opacity: 0; animation: fs-sweep 0.8s cubic-bezier(0.3, 0.7, 0.4, 1); }
         @keyframes fs-sweep {
-          0% { opacity: 0; transform: scale(0.25) rotate(-50deg); }
-          30% { opacity: 0.9; }
-          100% { opacity: 0; transform: scale(2.1) rotate(15deg); }
+          0% { opacity: 0; transform: scale(0.35) rotate(-40deg); }
+          22% { opacity: 0.85; }
+          100% { opacity: 0; transform: scale(1.8) rotate(10deg); }
         }
 
         /* Ürün rengi imza çizgisi: yumuşak nefes */
