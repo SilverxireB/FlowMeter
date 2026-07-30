@@ -19,10 +19,16 @@ const TICKER = [
 
 const WORDS = ["Bugün", "ne", "oluşturmak", "istersin?"];
 
-// Sahne sırası + süreleri (ms). Ürün sahneleri buraya eklenerek çoğalır.
-const SCENES = ["intro", "meter"] as const;
+// Sahne sırası + süreleri (ms). Ürün sahneleri 10sn (4 pencere × 2.5sn).
+const SCENES = ["intro", "meter", "wall", "sign", "pulse"] as const;
 type Scene = (typeof SCENES)[number];
-const DURATION: Record<Scene, number> = { intro: 5000, meter: 10000 };
+const DURATION: Record<Scene, number> = {
+  intro: 5000,
+  meter: 10000,
+  wall: 10000,
+  sign: 10000,
+  pulse: 10000,
+};
 
 /* ── Sahne 1: soru + imza çizgisi + hayalet marka şeridi ─────────────────── */
 function IntroScene() {
@@ -49,7 +55,7 @@ function IntroScene() {
           {strip.map((t, i) => (
             <span key={i} className="flex items-center gap-3 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={t.o} alt="" className="h-6 w-auto opacity-60" />
+              <img src={t.o} alt="" className="h-6 w-auto opacity-90" />
               <span className="fs-ghost text-2xl font-bold tracking-[0.25em]">{t.name}</span>
             </span>
           ))}
@@ -91,20 +97,49 @@ function VigHead({ label, live }: { label: string; live?: boolean }) {
   );
 }
 
-function MeterScene() {
+/** Ürün sahnesi çerçevesi: solda dikey marka bloğu, sağda 4 pencereli reklam. */
+function SceneFrame({
+  img,
+  name,
+  floats,
+  children,
+}: {
+  img: string;
+  name: string;
+  floats?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <div className="absolute inset-0 flex items-center justify-between gap-4 sm:gap-8 px-5 sm:px-10">
       {/* Marka: logo üstte ortalı, altında ad — soldan büyüyerek girer */}
       <div className="fs-in-left flex flex-col items-center shrink-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-o-meter-white.png" alt="" className="h-14 sm:h-20 w-auto" />
+        <img src={img} alt="" className="h-14 sm:h-20 w-auto" />
         <span className="mt-1.5 font-display font-semibold text-2xl sm:text-4xl tracking-tight">
-          METER
+          {name}
         </span>
       </div>
-
-      {/* Dönen özellik reklamı: Katılım → Oylama → Skor → Soru-Cevap */}
       <div className="fs-in-right relative w-[56%] max-w-[400px] h-36 sm:h-40 shrink">
+        {children}
+        {floats}
+      </div>
+    </div>
+  );
+}
+
+function MeterScene() {
+  return (
+    <SceneFrame
+      img="/logo-o-meter-white.png"
+      name="METER"
+      floats={
+        <>
+          <span className="fs-float absolute -right-1 bottom-1 text-lg" style={{ animationDelay: "0s" }}>❤️</span>
+          <span className="fs-float absolute right-6 bottom-0 text-base" style={{ animationDelay: "1.2s" }}>🎉</span>
+          <span className="fs-float absolute -right-4 bottom-3 text-base" style={{ animationDelay: "2.3s" }}>👍</span>
+        </>
+      }
+    >
         {/* 1 — Katılım */}
         <Vignette i={0}>
           <VigHead label="Saniyeler içinde katılım" />
@@ -185,13 +220,212 @@ function MeterScene() {
             </div>
           </div>
         </Vignette>
+    </SceneFrame>
+  );
+}
 
-        {/* Uçuşan emoji tepkileri — tüm tur boyunca */}
-        <span className="fs-float absolute -right-1 bottom-1 text-lg" style={{ animationDelay: "0s" }}>❤️</span>
-        <span className="fs-float absolute right-6 bottom-0 text-base" style={{ animationDelay: "1.2s" }}>🎉</span>
-        <span className="fs-float absolute -right-4 bottom-3 text-base" style={{ animationDelay: "2.3s" }}>👍</span>
-      </div>
-    </div>
+/* ── Sahne 3: FlowWall — anı duvarı ──────────────────────────────────────── */
+const WALL_TILES = [
+  "linear-gradient(135deg,#f0913a,#d62027)",
+  "linear-gradient(135deg,#2094f3,#131847)",
+  "linear-gradient(135deg,#1b7d3a,#2094f3)",
+  "linear-gradient(135deg,#d62027,#f0913a)",
+  "linear-gradient(135deg,#131847,#1b7d3a)",
+  "linear-gradient(135deg,#2094f3,#f0913a)",
+];
+
+function WallScene() {
+  return (
+    <SceneFrame
+      img="/logo-o-wall-white.png"
+      name="WALL"
+      floats={
+        <>
+          <span className="fs-float absolute -right-1 bottom-1 text-lg" style={{ animationDelay: ".4s" }}>❤️</span>
+          <span className="fs-float absolute right-8 bottom-0 text-base" style={{ animationDelay: "1.6s" }}>✨</span>
+          <span className="fs-float absolute -right-4 bottom-3 text-base" style={{ animationDelay: "2.7s" }}>📸</span>
+        </>
+      }
+    >
+      {/* 1 — Anılar duvara akar */}
+      <Vignette i={0}>
+        <VigHead label="Anılar duvara akar" live />
+        <div className="flex-1 grid grid-cols-3 gap-1.5 content-center">
+          {WALL_TILES.map((g, i) => (
+            <div
+              key={i}
+              className="fs-pop h-9 sm:h-11 rounded-lg grid place-items-center text-xs"
+              style={{ background: g, animationDelay: `${0.25 + i * 0.14}s` }}
+            >
+              {i === 4 ? "📷" : ""}
+            </div>
+          ))}
+        </div>
+      </Vignette>
+
+      {/* 2 — Beğeni + en sevilen */}
+      <Vignette i={1}>
+        <VigHead label="Beğen — en sevilen taçlanır" />
+        <div className="flex-1 flex items-center justify-center gap-3">
+          <div
+            className="fs-pop relative w-24 h-16 sm:w-28 sm:h-20 rounded-xl"
+            style={{ background: WALL_TILES[0], animationDelay: "2.8s" }}
+          >
+            <span className="absolute -top-2.5 -right-1.5 text-lg">👑</span>
+            <span className="fs-heart absolute -bottom-2 left-2 rounded-full bg-white/90 text-[#d62027] text-[10px] font-bold px-2 py-0.5">
+              ❤ 42
+            </span>
+          </div>
+          <div className="fs-pop w-16 h-12 sm:w-20 sm:h-14 rounded-xl opacity-70" style={{ background: WALL_TILES[2], animationDelay: "3.1s" }} />
+        </div>
+      </Vignette>
+
+      {/* 3 — Dilekler perdede */}
+      <Vignette i={2}>
+        <VigHead label="Dilekler perdede 💌" />
+        <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
+          <div className="fs-pop rounded-xl bg-white/10 px-4 py-2 max-w-full" style={{ animationDelay: "5.3s" }}>
+            <span className="text-[11px] sm:text-xs text-white/85 italic">&ldquo;İyi ki varsınız, unutulmaz bir gece!&rdquo;</span>
+          </div>
+          <span className="fs-pop text-[9px] text-white/55 font-semibold" style={{ animationDelay: "5.7s" }}>— Ayşe & Deniz</span>
+        </div>
+      </Vignette>
+
+      {/* 4 — Anı Filmi */}
+      <Vignette i={3}>
+        <VigHead label="🎬 Anı Filmi — müzikli hatıra videosu" />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="fs-pop relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden" style={{ animationDelay: "7.75s" }}>
+            <div className="fs-kenburns absolute inset-0" style={{ background: WALL_TILES[5] }} />
+            <span className="absolute inset-0 grid place-items-center text-2xl drop-shadow">▶</span>
+            <div className="absolute bottom-1 inset-x-2 h-1 rounded-full bg-white/25">
+              <div className="fs-poll-bar h-full rounded-full bg-white/90" style={{ "--wa": "20%", "--wb": "85%" } as CSSProperties} />
+            </div>
+          </div>
+        </div>
+      </Vignette>
+    </SceneFrame>
+  );
+}
+
+/* ── Sahne 4: FlowSign — dijital tabela ──────────────────────────────────── */
+function SignScene() {
+  return (
+    <SceneFrame img="/logo-o-sign-white.png" name="SIGN">
+      {/* 1 — Ekranını böl, tasarla */}
+      <Vignette i={0}>
+        <VigHead label="Ekranını böl, alanları tasarla" />
+        <div className="flex-1 grid grid-cols-3 grid-rows-2 gap-1.5 content-stretch">
+          <div className="fs-pop col-span-2 row-span-2 rounded-lg bg-white/15 border border-white/25" style={{ animationDelay: ".25s" }} />
+          <div className="fs-pop rounded-lg bg-white/10 border border-white/25" style={{ animationDelay: ".45s" }} />
+          <div className="fs-pop rounded-lg bg-white/10 border border-white/25" style={{ animationDelay: ".65s" }} />
+        </div>
+      </Vignette>
+
+      {/* 2 — İçerik + saat/takvim */}
+      <Vignette i={1}>
+        <VigHead label="Görsel, video, URL — saatli takvim" />
+        <div className="flex-1 flex items-center gap-2">
+          <div className="fs-pop flex-1 h-full max-h-20 rounded-lg overflow-hidden relative" style={{ animationDelay: "2.8s", background: "linear-gradient(135deg,#312e81,#2094f3)" }}>
+            <span className="absolute top-1 right-1.5 rounded bg-black/40 px-1.5 py-0.5 text-[9px] font-bold tabular-nums">12:45</span>
+          </div>
+          <div className="flex flex-col gap-1.5 w-20 sm:w-24">
+            <span className="fs-pop rounded-md bg-white/10 px-2 py-1 text-[9px] text-white/75 font-semibold" style={{ animationDelay: "3.05s" }}>🖼 Menü.png</span>
+            <span className="fs-pop rounded-md bg-white/10 px-2 py-1 text-[9px] text-white/75 font-semibold" style={{ animationDelay: "3.25s" }}>🎞 Tanıtım.mp4</span>
+            <span className="fs-pop rounded-md bg-white/10 px-2 py-1 text-[9px] text-white/75 font-semibold" style={{ animationDelay: "3.45s" }}>⏰ 09:00–18:00</span>
+          </div>
+        </div>
+      </Vignette>
+
+      {/* 3 — Kaydet & Yayınla */}
+      <Vignette i={2}>
+        <VigHead label="Taslakta dene, tek tıkla yayınla" />
+        <div className="flex-1 flex flex-col items-center justify-center gap-2">
+          <span className="fs-pop rounded-full bg-[#6366f1] px-4 py-1.5 text-xs font-bold" style={{ animationDelay: "5.3s" }}>
+            💾 Kaydet &amp; Yayınla
+          </span>
+          <span className="fs-pop flex items-center gap-1.5 text-[10px] font-semibold text-emerald-300" style={{ animationDelay: "5.9s" }}>
+            <span className="fs-live-dot !bg-emerald-400" /> Perde yayında
+          </span>
+        </div>
+      </Vignette>
+
+      {/* 4 — 7/24 kesintisiz */}
+      <Vignette i={3}>
+        <VigHead label="7/24 kesintisiz oynatma" />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="fs-pop relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden" style={{ animationDelay: "7.75s" }}>
+            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#131847,#1b7d3a)" }} />
+            <div className="fs-xfade absolute inset-0" style={{ background: "linear-gradient(135deg,#312e81,#d62027)" }} />
+            <span className="absolute bottom-1 right-1.5 rounded bg-black/40 px-1.5 py-0.5 text-[9px] font-bold">7/24</span>
+          </div>
+        </div>
+      </Vignette>
+    </SceneFrame>
+  );
+}
+
+/* ── Sahne 5: FlowPulse — sürekli nabız ──────────────────────────────────── */
+function PulseScene() {
+  return (
+    <SceneFrame img="/logo-o-pulse-white.png" name="PULSE">
+      {/* 1 — Tek dokunuş */}
+      <Vignette i={0}>
+        <VigHead label="Tek dokunuşla nabız — anonim" />
+        <div className="flex-1 flex items-center justify-center gap-2.5 sm:gap-3 text-2xl sm:text-3xl">
+          {["😠", "😕", "🙂"].map((s, i) => (
+            <span key={s} className="fs-pop opacity-70" style={{ animationDelay: `${0.3 + i * 0.15}s` }}>{s}</span>
+          ))}
+          <span className="fs-pop fs-heart rounded-full ring-2 ring-emerald-300/80 p-1" style={{ animationDelay: "0.75s" }}>😍</span>
+        </div>
+      </Vignette>
+
+      {/* 2 — Canlı skor */}
+      <Vignette i={1}>
+        <VigHead label="Bugünün skoru" live />
+        <div className="flex-1 flex items-center justify-center gap-4">
+          <span className="fs-pop font-display font-bold text-4xl sm:text-5xl text-emerald-300" style={{ animationDelay: "2.85s" }}>78</span>
+          <div className="flex-1 max-w-40">
+            <div className="h-3 rounded-full bg-white/10 overflow-hidden">
+              <div className="fs-poll-bar h-full rounded-full bg-emerald-400" style={{ "--wa": "58%", "--wb": "82%" } as CSSProperties} />
+            </div>
+            <span className="text-[9px] text-white/55 font-semibold">düne göre +6</span>
+          </div>
+        </div>
+      </Vignette>
+
+      {/* 3 — 30 günlük trend */}
+      <Vignette i={2}>
+        <VigHead label="30 günlük trend + gün×saat ısı" />
+        <div className="flex-1 flex items-center justify-center px-2">
+          <svg viewBox="0 0 120 36" className="w-full max-w-56 h-14 overflow-visible">
+            <polyline
+              points="0,30 15,26 30,28 45,20 60,22 75,14 90,16 105,9 120,6"
+              fill="none"
+              stroke="#34d399"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              pathLength={100}
+              className="fs-line"
+            />
+            <circle cx="120" cy="6" r="3" fill="#34d399" className="fs-pop" style={{ animationDelay: "6.3s" }} />
+          </svg>
+        </div>
+      </Vignette>
+
+      {/* 4 — Kiosk + QR */}
+      <Vignette i={3}>
+        <VigHead label="Kapıda kiosk, cepte QR" />
+        <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
+          <div className="flex items-center gap-2">
+            <span className="fs-pop rounded-lg bg-white/10 px-3 py-1.5 text-[11px] font-semibold" style={{ animationDelay: "7.75s" }}>🖥 Kiosk</span>
+            <span className="fs-pop rounded-lg bg-white/10 px-3 py-1.5 text-[11px] font-semibold" style={{ animationDelay: "7.95s" }}>📱 QR ile oy</span>
+          </div>
+          <span className="fs-pop text-[9px] text-white/55 font-semibold" style={{ animationDelay: "8.3s" }}>günde 1 oy · tamamen anonim</span>
+        </div>
+      </Vignette>
+    </SceneFrame>
   );
 }
 
@@ -218,7 +452,11 @@ export default function StudioHero() {
 
       {/* Aktif sahne (remount → giriş animasyonları her turda oynar) */}
       <div key={scene} className="fs-scene absolute inset-0 z-10">
-        {scene === "intro" ? <IntroScene /> : <MeterScene />}
+        {scene === "intro" && <IntroScene />}
+        {scene === "meter" && <MeterScene />}
+        {scene === "wall" && <WallScene />}
+        {scene === "sign" && <SignScene />}
+        {scene === "pulse" && <PulseScene />}
       </div>
 
       <style>{`
@@ -259,10 +497,7 @@ export default function StudioHero() {
         .fs-ticker { animation: fs-ticker 36s linear infinite; }
         @keyframes fs-ticker { to { transform: translateX(-33.3333%); } }
 
-        .fs-ghost {
-          color: transparent;
-          -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
-        }
+        .fs-ghost { color: rgba(255, 255, 255, 0.92); }
 
         .fs-in-left {
           animation: fs-in-left 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -322,6 +557,32 @@ export default function StudioHero() {
           27%, 100% { transform: scaleY(0); }
         }
 
+        .fs-heart { animation: fs-heart 1.3s ease-in-out infinite; }
+        @keyframes fs-heart { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+
+        .fs-kenburns { animation: fs-kenburns 8s ease-in-out infinite alternate; }
+        @keyframes fs-kenburns {
+          from { transform: scale(1) translate(0, 0); }
+          to { transform: scale(1.18) translate(4%, -3%); }
+        }
+
+        .fs-xfade { animation: fs-xfade 3.4s ease-in-out infinite alternate; }
+        @keyframes fs-xfade { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Trend çizgisi: 10sn döngüde kendi penceresinde (5.0–7.5sn) çizilir */
+        .fs-line {
+          stroke-dasharray: 100;
+          stroke-dashoffset: 100;
+          animation: fs-line 10s ease-out infinite;
+          animation-delay: 5.2s;
+        }
+        @keyframes fs-line {
+          0% { stroke-dashoffset: 100; }
+          10% { stroke-dashoffset: 0; }
+          24% { stroke-dashoffset: 0; }
+          26%, 100% { stroke-dashoffset: 100; }
+        }
+
         .fs-live-dot {
           width: 7px; height: 7px; border-radius: 999px; background: #f87171;
           animation: fs-live 1.6s ease-in-out infinite;
@@ -357,8 +618,8 @@ export default function StudioHero() {
 
         @media (prefers-reduced-motion: reduce) {
           .fs-scene, .fs-word, .fs-bar, .fs-in-left, .fs-in-right, .fs-vig,
-          .fs-pop, .fs-podium, .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker,
-          .fs-blob { animation: none; }
+          .fs-pop, .fs-podium, .fs-heart, .fs-kenburns, .fs-xfade, .fs-line,
+          .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker, .fs-blob { animation: none; }
           .fs-word { transform: none; }
           .fs-bar { transform: none; }
           .fs-shine { display: none; }
