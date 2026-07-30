@@ -10,13 +10,13 @@ import { resolveCode } from "@/lib/walls";
 /**
  * Landing = Flow Studio (çatı marka) katılım kapısı. Kod deck ise sunuma
  * (/join→/p), wall ise duvara (/u) gider. Oluşturma /dashboard'da; altta
- * 4 ürünün markalı şeridi (vitrin).
+ * 4 ürünün minik O+ad şeridi (vitrin — kart değil, tıklanmaz).
  */
 const PRODUCTS = [
-  { variant: "meter", desc: "İnteraktif sunum & oylama", card: "bg-white border border-line", onDark: false },
-  { variant: "wall", desc: "Canlı etkinlik foto duvarı", card: "bg-[#0b1533] border border-white/10", onDark: true },
-  { variant: "sign", desc: "Dijital tabela & video-wall", card: "bg-[#0d102f] border border-white/10", onDark: true },
-  { variant: "pulse", desc: "Sürekli nabız & geri bildirim", card: "bg-white border border-line", onDark: false },
+  { o: "/logo-o-meter.png", name: "METER" },
+  { o: "/logo-o-wall.png", name: "WALL" },
+  { o: "/logo-o-sign.png", name: "SIGN" },
+  { o: "/logo-o-pulse.png", name: "PULSE" },
 ] as const;
 export default function LandingPage() {
   const router = useRouter();
@@ -89,20 +89,15 @@ export default function LandingPage() {
         )}
       </section>
 
-      {/* Çatı vitrini: 4 ürün, tek hesap — salt görsel şerit (link DEĞİL:
-          katılımcı yüzeyinde dashboard'a kapı olmaz; oluşturma "Giriş yap"tan) */}
-      <footer className="px-6 pb-8 pt-2">
-        <div className="max-w-3xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {PRODUCTS.map((p) => (
-            <div
-              key={p.variant}
-              className={`${p.card} rounded-2xl px-4 py-4 flex flex-col items-start gap-2`}
-            >
-              <Logo size="sm" variant={p.variant} onDark={p.onDark} />
-              <span className={`text-xs ${p.onDark ? "text-white/60" : "text-muted"}`}>{p.desc}</span>
-            </div>
-          ))}
-        </div>
+      {/* Çatı vitrini: minik O + ad — salt görsel, tıklanmaz */}
+      <footer className="px-6 pb-8 pt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+        {PRODUCTS.map((p) => (
+          <span key={p.name} className="inline-flex items-center gap-1.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.o} alt="" className="h-4 w-auto" />
+            <span className="text-xs font-semibold tracking-wide text-ink/45">{p.name}</span>
+          </span>
+        ))}
       </footer>
     </main>
   );
