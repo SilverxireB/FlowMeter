@@ -30,11 +30,13 @@ const TICKER = [
 
 const WORDS = ["Bugün", "ne", "oluşturmak", "istersin?"];
 
-// Sahne sırası + süreleri (ms). Ürün sahneleri 14sn (4 pencere × 3.5sn) —
+// Sahne sırası + süreleri (ms). Tur FLOW STUDIO ile açılır (ilk yüklemede 3sn,
+// dönüşlerde 5sn), sonra soru gelir. Ürün sahneleri 14sn (4 pencere × 3.5sn) —
 // pencere-içi animasyon delay'leri 0 / 3.5 / 7 / 10.5 sn başlangıçlarına ayarlı.
-const SCENES = ["intro", "meter", "wall", "sign", "pulse"] as const;
+const SCENES = ["studio", "intro", "meter", "wall", "sign", "pulse"] as const;
 type Scene = (typeof SCENES)[number];
 const DURATION: Record<Scene, number> = {
+  studio: 5000, // ilk yüklemede 3sn'e düşer (tick === 0)
   intro: 7000,
   meter: 14000,
   wall: 14000,
@@ -92,6 +94,26 @@ function FlyLogo({ src }: { src: string }) {
         style={{ WebkitMaskImage: `url(${src})`, maskImage: `url(${src})`, WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat" }}
       />
     </span>
+  );
+}
+
+/* ── Sahne 0: FLOW STUDIO — çatı marka açılışı ───────────────────────────── */
+function StudioScene() {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
+      <span className="relative inline-flex">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-o-studio-white.png" alt="" className="fs-mat relative h-16 sm:h-24 w-auto" />
+        <span
+          aria-hidden
+          className="fs-glint absolute inset-0"
+          style={{ WebkitMaskImage: "url(/logo-o-studio-white.png)", maskImage: "url(/logo-o-studio-white.png)", WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat" }}
+        />
+      </span>
+      <span className="fs-studioname mt-3 font-display font-semibold text-3xl sm:text-4xl tracking-tight" aria-label="FLOW STUDIO">
+        FLOW STUDIO
+      </span>
+    </div>
   );
 }
 
@@ -502,6 +524,7 @@ function PulseScene() {
  */
 // Aurora sahne paleti: bulutlar aktif sahnenin renk ailesine yumuşakça boyanır
 const BLOB_TINTS: Record<Scene, [string, string, string]> = {
+  studio: ["#2094f3", "#d62027", "#f0913a"],
   intro: ["#2094f3", "#d62027", "#f0913a"],
   meter: ["#2094f3", "#6366f1", "#38bdf8"],
   wall: ["#f0913a", "#d62027", "#f472b6"],
@@ -527,10 +550,12 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
   useEffect(() => {
     if (compact) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    // İlk yüklemede Studio sahnesi kısa (3sn); dönüşlerde 5sn durur
+    const dur = scene === "studio" && tick === 0 ? 3000 : DURATION[scene];
     const t = window.setTimeout(() => {
       setIdx((i) => (i + 1) % SCENES.length);
       setTick((n) => n + 1);
-    }, DURATION[scene]);
+    }, dur);
     return () => window.clearTimeout(t);
   }, [idx, scene, compact]);
 
@@ -564,28 +589,13 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
         <>
           {/* Aktif sahne (remount → giriş animasyonları her turda oynar) */}
           <div key={scene} className="fs-scene absolute inset-0 z-10">
+            {scene === "studio" && <StudioScene />}
             {scene === "intro" && <IntroScene />}
             {scene === "meter" && <MeterScene />}
             {scene === "wall" && <WallScene />}
             {scene === "sign" && <SignScene />}
             {scene === "pulse" && <PulseScene />}
           </div>
-
-          {/* Intro'ya dönüş imzası: Studio-O ortada belirip soruya dönüşerek
-              erir (ürün sahnelerinde geçiş FlyLogo'nun kendisi). */}
-          {tick > 0 && scene === "intro" && (
-            <div key={`sweep-${tick}`} aria-hidden className="fs-logosweep fs-ls-intro absolute z-20 pointer-events-none">
-              <span className="relative inline-flex">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo-o-studio-white.png" alt="" className="fs-mat relative h-16 sm:h-24 w-auto" />
-                <span
-                  aria-hidden
-                  className="fs-glint absolute inset-0"
-                  style={{ WebkitMaskImage: "url(/logo-o-studio-white.png)", maskImage: "url(/logo-o-studio-white.png)", WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat" }}
-                />
-              </span>
-            </div>
-          )}
         </>
       )}
 
@@ -638,14 +648,8 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
           to { opacity: 1; transform: translateY(0); }
         }
 
-        .fs-logosweep { top: 50%; left: 50%; opacity: 0; }
-        .fs-ls-intro { animation: fs-ls-intro 0.85s cubic-bezier(0.22, 1, 0.36, 1) both; }
-        @keyframes fs-ls-intro {
-          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
-          30% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-          55% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-          100% { opacity: 0; transform: translate(-50%, -50%) scale(1.35); }
-        }
+        /* Studio sahnesi: ad, logo netleştikten sonra belirir */
+        .fs-studioname { animation: fs-brandname 0.5s 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
         /* Ürün rengi imza çizgisi: yumuşak nefes */
         .fs-accentline { animation: fs-accent 3s ease-in-out infinite; }
@@ -818,9 +822,9 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
           .fs-scene, .fs-word, .fs-bar, .fs-flyin, .fs-brandname, .fs-in-right,
           .fs-vig, .fs-pop, .fs-podium, .fs-heart, .fs-kenburns, .fs-xfade,
           .fs-line, .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker, .fs-blob,
-          .fs-logosweep, .fs-accentline, .fs-ripple, .fs-mat,
-          .fs-glint { animation: none; }
-          .fs-ripple, .fs-logosweep { opacity: 0; }
+          .fs-accentline, .fs-ripple, .fs-mat, .fs-glint,
+          .fs-studioname { animation: none; }
+          .fs-ripple { opacity: 0; }
           .fs-flyin { transform: none; }
           .fs-word { transform: none; }
           .fs-bar { transform: none; }
