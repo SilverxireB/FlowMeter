@@ -83,11 +83,14 @@ function FlyLogo({ src }: { src: string }) {
   }, []);
   return (
     <span ref={ref} className={`relative inline-flex ${vars ? "fs-flyin" : "opacity-0"}`} style={vars ?? undefined}>
-      {/* Doğuş anı: ışık patlaması + dışa yayılan dört-renk şok halkası */}
-      <span aria-hidden className="fs-birth-glow" />
-      <span aria-hidden className="fs-birth-ring" />
+      {/* Doğuş: bulanıktan netleşme; uçuştan önce logonun kendi hatlarından glint geçer */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" className="relative h-12 sm:h-24 w-auto" />
+      <img src={src} alt="" className="fs-mat relative h-12 sm:h-24 w-auto" />
+      <span
+        aria-hidden
+        className="fs-glint absolute inset-0"
+        style={{ WebkitMaskImage: `url(${src})`, maskImage: `url(${src})`, WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat" }}
+      />
     </span>
   );
 }
@@ -573,10 +576,13 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
           {tick > 0 && scene === "intro" && (
             <div key={`sweep-${tick}`} aria-hidden className="fs-logosweep fs-ls-intro absolute z-20 pointer-events-none">
               <span className="relative inline-flex">
-                <span className="fs-birth-glow" />
-                <span className="fs-birth-ring" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo-o-studio-white.png" alt="" className="relative h-16 sm:h-24 w-auto" />
+                <img src="/logo-o-studio-white.png" alt="" className="fs-mat relative h-16 sm:h-24 w-auto" />
+                <span
+                  aria-hidden
+                  className="fs-glint absolute inset-0"
+                  style={{ WebkitMaskImage: "url(/logo-o-studio-white.png)", maskImage: "url(/logo-o-studio-white.png)", WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat" }}
+                />
               </span>
             </div>
           )}
@@ -602,41 +608,30 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
            gerçek konumuna süzülür ve KALIR — hedef, logonun kendisi */
         .fs-flyin { animation: fs-flyin 1.15s cubic-bezier(0.22, 1, 0.36, 1) both; }
         @keyframes fs-flyin {
-          0% { opacity: 0; transform: translate(var(--fsdx), var(--fsdy)) scale(0.35); }
-          24% { opacity: 1; transform: translate(var(--fsdx), var(--fsdy)) scale(1.08); }
-          36%, 52% { transform: translate(var(--fsdx), var(--fsdy)) scale(1); }
+          0% { opacity: 0; transform: translate(var(--fsdx), var(--fsdy)) scale(1.28); }
+          24%, 52% { opacity: 1; transform: translate(var(--fsdx), var(--fsdy)) scale(1); }
           100% { opacity: 1; transform: translate(0, 0) scale(1); }
         }
-        /* Doğuş efekti: ışık patlaması + dört-renk şok halkası (uçuştan önce biter) */
-        .fs-birth-glow {
-          position: absolute; left: 50%; top: 50%;
-          width: 160px; height: 160px; margin: -80px 0 0 -80px;
-          border-radius: 9999px;
-          background: radial-gradient(circle, rgba(255,255,255,0.5), rgba(255,255,255,0) 65%);
-          opacity: 0;
-          animation: fs-birth-glow 0.75s ease-out 0.05s;
-        }
-        @keyframes fs-birth-glow {
-          0% { opacity: 0; transform: scale(0.3); }
-          30% { opacity: 1; }
-          100% { opacity: 0; transform: scale(1.5); }
-        }
-        .fs-birth-ring {
-          position: absolute; left: 50%; top: 50%;
-          width: 110px; height: 110px; margin: -55px 0 0 -55px;
-          border-radius: 9999px;
-          background: conic-gradient(#2094f3, #1b7d3a, #f0913a, #d62027, #2094f3);
-          -webkit-mask: radial-gradient(closest-side, transparent 78%, #000 81%);
-          mask: radial-gradient(closest-side, transparent 78%, #000 81%);
-          opacity: 0;
-          animation: fs-birth-ring 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.12s;
-        }
-        @keyframes fs-birth-ring {
-          0% { opacity: 0; transform: scale(0.35) rotate(0deg); }
-          25% { opacity: 0.9; }
-          100% { opacity: 0; transform: scale(2.2) rotate(40deg); }
+
+        /* Bulanıktan netleşme (focus-pull) — doğuşun kendisi */
+        .fs-mat { animation: fs-mat 1.15s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        @keyframes fs-mat {
+          0% { filter: blur(16px); }
+          26%, 100% { filter: blur(0); }
         }
 
+        /* Logonun hatlarından geçen ışık parıltısı (maske = logonun kendisi) */
+        .fs-glint {
+          background: linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.9) 50%, transparent 58%);
+          background-size: 220% 100%;
+          background-repeat: no-repeat;
+          background-position: 180% 0;
+          animation: fs-glint 0.55s ease-in-out 0.45s;
+        }
+        @keyframes fs-glint {
+          from { background-position: 180% 0; }
+          to { background-position: -80% 0; }
+        }
         .fs-brandname { animation: fs-brandname 0.45s 1s cubic-bezier(0.22, 1, 0.36, 1) both; }
         @keyframes fs-brandname {
           from { opacity: 0; transform: translateY(8px); }
@@ -823,9 +818,9 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
           .fs-scene, .fs-word, .fs-bar, .fs-flyin, .fs-brandname, .fs-in-right,
           .fs-vig, .fs-pop, .fs-podium, .fs-heart, .fs-kenburns, .fs-xfade,
           .fs-line, .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker, .fs-blob,
-          .fs-logosweep, .fs-accentline, .fs-ripple, .fs-birth-glow,
-          .fs-birth-ring { animation: none; }
-          .fs-ripple, .fs-logosweep, .fs-birth-glow, .fs-birth-ring { opacity: 0; }
+          .fs-logosweep, .fs-accentline, .fs-ripple, .fs-mat,
+          .fs-glint { animation: none; }
+          .fs-ripple, .fs-logosweep { opacity: 0; }
           .fs-flyin { transform: none; }
           .fs-word { transform: none; }
           .fs-bar { transform: none; }
