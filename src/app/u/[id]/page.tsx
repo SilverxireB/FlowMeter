@@ -15,6 +15,7 @@ import { cloudinaryStatus, cldFit, cldVideoPoster, isCloudinaryConfigured, uploa
 import { getStoredNickname, storeIdentity, getStoredAvatarSeed } from "@/lib/participants";
 import { getVoterId } from "@/lib/responses";
 import { WallMedia } from "@/lib/types";
+import { withTimeout } from "@/lib/withTimeout";
 
 interface Item {
   id: string;
@@ -23,6 +24,18 @@ interface Item {
   isVideo: boolean;
   status: "queued" | "uploading" | "done" | "error";
   pct: number;
+  /** Cloudinary adımı bitti — retry yalnız Firestore yazımını tekrarlar
+   *  (çift yükleme + yetim dosya + kota israfı önlenir). */
+  uploaded?: {
+    type: "image" | "video";
+    cloudinaryId: string;
+    url: string;
+    w?: number;
+    h?: number;
+    durationMs?: number;
+  };
+  /** Kullanıcıya gösterilecek hata nedeni (sessiz ⚠ yerine). */
+  error?: string;
 }
 
 const MAX_VIDEO_BYTES = 80 * 1024 * 1024; // saçma büyüklükte dosyayı engelle (süre asıl kontrol)
@@ -57,7 +70,7 @@ export default function UploadPage() {
     }
   }, [raw]);
 
-  const { wall } = useWall(wallId ?? null);
+  const { wall, loading: wallLoading } = useWall(wallId ?? null);
 
   const [tab, setTab] = useState<"upload" | "browse" | "wish" | "contest" | "raffle">("upload");
   const contestOn = wall?.contest?.status === "running";
@@ -148,8 +161,8 @@ export default function UploadPage() {
       setItems((prev) => [...prev, ...next]);
       setFinished(false);
     }
-    setPickMsg(notices[0] ?? null);
-    if (notices.length) window.setTimeout(() => setPickMsg(null), 4500);
+    setPickMsg(notices.length ? notices[0] + (notices.length > 1 ? ` (+${notices.length - 1} dosya daha eklenmedi)` : "") : null);
+    if (notices.length) window.setTimeout(() => setPickMsg(null), 5500);
   }
 
   function removeItem(id: string) {
@@ -171,32 +184,43 @@ export default function UploadPage() {
     setSending(true);
     for (const it of itemsRef.current) {
       if (it.status === "done") continue;
-      patch(it.id, { status: "uploading", pct: 0 });
+      patch(it.id, { status: "uploading", pct: 0, error: undefined });
       try {
-        const res = await uploadToCloudinary(
-          it.file,
-          `walls/${wallId}/${wall.sessionId ?? "s"}`,
-          (pct) => patch(it.id, { pct }),
-          { keepOriginal: !!wall.keepOriginal }
-        );
-        await addWallMedia(
-          wallId,
-          {
-            voterId: getVoterId(),
-            nickname: name || undefined,
-            type: res.type,
-            cloudinaryId: res.cloudinaryId,
-            url: res.url,
-            w: res.w,
-            h: res.h,
-            durationMs: res.durationMs,
-          },
-          !!wall.moderation,
-          wall.sessionId
+        // Cloudinary adımı daha önce bittiyse tekrarlanmaz (retry = yalnız kayıt)
+        let res = it.uploaded;
+        if (!res) {
+          res = await uploadToCloudinary(
+            it.file,
+            `walls/${wallId}/${wall.sessionId ?? "s"}`,
+            (pct) => patch(it.id, { pct }),
+            { keepOriginal: !!wall.keepOriginal }
+          );
+          patch(it.id, { uploaded: res, pct: 100 });
+        }
+        // Ağ koparsa yazım askıda kalmasın: timeout → görünür hata + tekrar dene
+        await withTimeout(
+          addWallMedia(
+            wallId,
+            {
+              voterId: getVoterId(),
+              nickname: name || undefined,
+              type: res.type,
+              cloudinaryId: res.cloudinaryId,
+              url: res.url,
+              w: res.w,
+              h: res.h,
+              durationMs: res.durationMs,
+            },
+            !!wall.moderation,
+            wall.sessionId
+          )
         );
         patch(it.id, { status: "done", pct: 100 });
-      } catch {
-        patch(it.id, { status: "error" });
+      } catch (e) {
+        patch(it.id, {
+          status: "error",
+          error: e instanceof Error ? e.message : "Yükleme başarısız — tekrar dene.",
+        });
       }
     }
     setSending(false);
@@ -209,10 +233,11 @@ export default function UploadPage() {
 
   const pendingCount = items.filter((i) => i.status !== "done").length;
 
-  if (wallId === null) {
+  // Geçersiz kod VEYA geçersiz/silinmiş doğrudan link → ölü sayfa yerine net mesaj
+  if (wallId === null || (wallId !== undefined && !wallLoading && !wall)) {
     return (
       <main className="min-h-screen grid place-items-center bg-[#070c22] text-white/70 px-6 text-center">
-        Duvar bulunamadı — kodu kontrol et.
+        Duvar bulunamadı — kodu ya da linki kontrol et.
       </main>
     );
   }
@@ -269,7 +294,7 @@ export default function UploadPage() {
       {tab === "raffle" && raffleOn ? (
         <RaffleTab wallId={wallId ?? null} prize={wall?.raffle?.prize} defaultName={nickname} />
       ) : tab === "contest" && contestOn ? (
-        <ContestTab wallId={wallId ?? null} contestId={wall!.contest!.id} title={wall!.contest!.title} />
+        <ContestTab wallId={wallId ?? null} contestId={wall!.contest!.id} title={wall!.contest!.title} sessionId={wall!.sessionId} />
       ) : tab === "browse" ? (
         <BrowseGallery wallId={wallId ?? null} sessionId={wall?.sessionId} />
       ) : tab === "wish" && wishesOn ? (
@@ -378,6 +403,17 @@ export default function UploadPage() {
               <p className="mt-3 rounded-xl bg-[#eda100]/15 border border-[#eda100]/40 px-3 py-2 text-xs text-[#ffdd99]">{pickMsg}</p>
             )}
 
+            {/* Hata nedeni görünür olsun: ⚠ tek başına yetmez */}
+            {(() => {
+              const failed = items.find((i) => i.status === "error");
+              return failed ? (
+                <p className="mt-3 rounded-xl bg-[#e34948]/15 border border-[#e34948]/40 px-3 py-2 text-xs text-[#ffb3b3]">
+                  ⚠ {failed.error ?? "Yükleme başarısız."} &ldquo;Gönder&rdquo; ile tekrar deneyebilirsin
+                  {failed.uploaded ? " (dosya yüklendi, yalnız kayıt tekrarlanır)" : ""}.
+                </p>
+              ) : null;
+            })()}
+
             {items.length > 0 && (
               <button
                 onClick={sendAll}
@@ -412,12 +448,16 @@ export default function UploadPage() {
 }
 
 /** 🏆 Yarışma — aday fotolara oy ver (kişi başı tek, değiştirilebilir). */
-function ContestTab({ wallId, contestId, title }: { wallId: string | null; contestId: string; title: string }) {
+function ContestTab({ wallId, contestId, title, sessionId }: { wallId: string | null; contestId: string; title: string; sessionId?: string }) {
   const [media, setMedia] = useState<WallMedia[]>([]);
   const [myVote, setMyVote] = useState<string | null>(null);
   useEffect(() => { if (!wallId) return; return watchWallMediaRecent(wallId, 150, setMedia); }, [wallId]);
   useEffect(() => { setMyVote(getMyContestVote(contestId)); }, [contestId]);
-  const approved = useMemo(() => [...media].filter((m) => m.status === "approved").reverse(), [media]);
+  // Yalnız AKTİF oturumun onaylı fotoğrafları aday olur (eski oturum arşivi karışmaz)
+  const approved = useMemo(
+    () => [...media].filter((m) => m.status === "approved" && (!sessionId || !m.sessionId || m.sessionId === sessionId)).reverse(),
+    [media, sessionId]
+  );
 
   async function vote(mediaId: string) {
     if (!wallId) return;
@@ -455,16 +495,25 @@ function WishTab({ wallId, defaultName, moderation }: { wallId: string | null; d
   const [name, setName] = useState(defaultName);
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   useEffect(() => setName(defaultName), [defaultName]);
 
   async function send() {
     if (!wallId || !text.trim() || busy) return;
     setBusy(true);
+    setErr(null);
     try {
-      await sendWallWish(wallId, text, name, moderation);
+      const ok = await withTimeout(sendWallWish(wallId, text, name, moderation));
+      if (!ok) {
+        setErr("Biraz hızlı oldu — bir saniye sonra tekrar dene.");
+        return;
+      }
       setText("");
       setSent(true);
       window.setTimeout(() => setSent(false), 3500);
+    } catch (e) {
+      // Metin kutuda kalır; misafir sebebi görür (yutulan hata yok)
+      setErr(e instanceof Error ? e.message : "Dilek gönderilemedi — tekrar dene.");
     } finally {
       setBusy(false);
     }
@@ -502,6 +551,9 @@ function WishTab({ wallId, defaultName, moderation }: { wallId: string | null; d
           <p className="mt-3 text-center text-[#8be2b0] text-sm font-semibold animate-pop">
             {moderation ? "✓ Dileğin onaya gönderildi — onaylanınca perdede görünür." : "✓ Dileğin duvara düştü, teşekkürler!"}
           </p>
+        )}
+        {err && (
+          <p className="mt-3 text-center text-[#ffb3b3] text-sm font-semibold">⚠ {err}</p>
         )}
       </div>
     </section>

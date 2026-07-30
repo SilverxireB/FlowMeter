@@ -164,6 +164,9 @@ export function useWall(id: string | null) {
       setLoading(false);
       return;
     }
+    // id sonradan gelirse (ör. kod çözümü) yükleme durumu yeniden başlar —
+    // yoksa "bulunamadı" kontrolü ilk snapshot'tan önce yanlış tetiklenir.
+    setLoading(true);
     return watchWall(id, (w) => {
       setWall(w);
       setLoading(false);

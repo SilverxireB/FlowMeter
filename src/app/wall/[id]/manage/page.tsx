@@ -15,6 +15,7 @@ import { generateMemoryBook } from "@/lib/wallMemoryBook";
 import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import WallFilm from "@/components/wall/WallFilm";
 import WallOnboarding from "@/components/wall/WallOnboarding";
+import ConfirmDialog from "@/components/videowall/ConfirmDialog";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
 import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, endRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, watchDraws, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
@@ -114,6 +115,10 @@ export default function WallManage() {
   // Tümünü indir (ZIP) — tarayıcıda paketlenir, sunucu gerekmez
   const [zipping, setZipping] = useState(false);
   const [zipMsg, setZipMsg] = useState<string | null>(null);
+  // Markalı onay penceresi (native confirm yerine — kurumsal profillerde bastırılabiliyor)
+  const [confirmReq, setConfirmReq] = useState<{
+    title: string; message: string; confirmLabel?: string; danger?: boolean; action: () => void;
+  } | null>(null);
   const [bookMsg, setBookMsg] = useState<string | null>(null);
   const [contestTitle, setContestTitle] = useState("");
   const [contestMin, setContestMin] = useState(0); // 0 = süresiz
@@ -150,7 +155,7 @@ export default function WallManage() {
       await drawRaffle(wall, raffleEntries);
     } catch (e) {
       setDrawing(false);
-      alert(e instanceof Error ? e.message : "Çekim başarısız");
+      setZipMsg(`Çekim başarısız: ${e instanceof Error ? e.message : "tekrar dene"}`);
     }
   }
   async function onRoster(e: React.ChangeEvent<HTMLInputElement>) {
@@ -234,7 +239,6 @@ export default function WallManage() {
 
   // KALICI silme: önce Cloudinary'deki dosya (API route), sonra Firestore kaydı
   async function hardDelete(m: WallMedia) {
-    if (!confirm("Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?")) return;
     try {
       if (user && m.cloudinaryId && !m.cloudinaryId.startsWith("seed/")) {
         const idToken = await user.getIdToken();
@@ -263,7 +267,8 @@ export default function WallManage() {
     setUpPct(0);
     setUpErr(null);
     try {
-      const res = await uploadToCloudinary(f, `walls/${id}/${wall.sessionId ?? "s"}`, setUpPct);
+      // Misafir yüklemesiyle aynı kural: "Orijinal kalite" ayarına saygı
+      const res = await uploadToCloudinary(f, `walls/${id}/${wall.sessionId ?? "s"}`, setUpPct, { keepOriginal: !!wall.keepOriginal });
       await addWallMedia(
         id,
         {
@@ -318,6 +323,14 @@ export default function WallManage() {
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
+        {/* İşlem mesajları: hangi sekmede olursan ol görünür (ZIP, silme, çekim…) */}
+        {zipMsg && (
+          <div className="rounded-2xl bg-white border border-line px-4 py-3 text-sm text-ink/80 shadow-sm flex items-start justify-between gap-3">
+            <span>{zipMsg}</span>
+            <button onClick={() => setZipMsg(null)} className="text-muted hover:text-ink shrink-0" aria-label="Kapat">✕</button>
+          </div>
+        )}
+
         {/* İlk-kullanım rehberi (duvar tazeyken; kapatılabilir) */}
         <WallOnboarding wall={wall} joinUrl={joinUrl} mediaCount={approved.length} onGoSettings={() => setTab("ayarlar")} />
 
@@ -447,7 +460,7 @@ export default function WallManage() {
               >
                 {bookMsg ? `📖 ${bookMsg}` : "📖 Hatıra kitabı (PDF)"}
               </button>
-              {zipMsg && <span className="text-muted text-xs">{zipMsg}</span>}
+
             </div>
           </div>
         </div>
@@ -461,14 +474,14 @@ export default function WallManage() {
                 <button onClick={() => reopenWall(id).catch(console.error)} className="btn-ghost !py-2 text-sm">▶ Duvarı yeniden aç</button>
               ) : (
                 <button
-                  onClick={() => { if (confirm('Duvarı kapat? Yükleme durur, perdede "🎉 Teşekkürler" görünür. (Yeniden açabilir ya da yeni oturum başlatabilirsin.)')) closeWall(id).catch(console.error); }}
+                  onClick={() => setConfirmReq({ title: "Duvarı kapat", message: 'Yükleme durur, perdede "🎉 Teşekkürler" görünür. Yeniden açabilir ya da yeni oturum başlatabilirsin.', confirmLabel: "Kapat", action: () => closeWall(id).catch(() => setZipMsg("Duvar kapatılamadı — tekrar dene.")) })}
                   className="btn-ghost !py-2 text-sm"
                 >
                   ⏹ Duvarı kapat
                 </button>
               )}
               <button
-                onClick={() => { if (confirm('Yeni oturum başlasın mı? Şu anki anılar perdeden ve kokpitten kalkar (SİLİNMEZ — arşivde kalır, deleteWall hepsini siler); duvar ikinci grup için temizlenir.')) newWallSession(id).catch(console.error); }}
+                onClick={() => setConfirmReq({ title: "Yeni oturum", message: "Şu anki anılar perdeden ve kokpitten kalkar (SİLİNMEZ — arşivde kalır); duvar ikinci grup için temizlenir.", confirmLabel: "Yeni oturum başlat", action: () => newWallSession(id).catch(() => setZipMsg("Yeni oturum başlatılamadı — tekrar dene.")) })}
                 className="btn-primary !py-2 text-sm"
               >
                 🔄 Yeni oturum
@@ -916,8 +929,8 @@ export default function WallManage() {
                 <button onClick={doDraw} disabled={drawing} className="btn-primary !py-2 !px-5 text-sm disabled:opacity-50">
                   {drawing ? "🎬 Çekiliyor…" : "🎉 Çek!"}
                 </button>
-                <button onClick={() => { if (confirm("Çekilişi bitir? (perdeden kalkar, kayıtlar SİLİNMEZ)")) endRaffle(id).catch(console.error); }} className="btn-ghost !py-2 !px-4 text-sm">Bitir</button>
-                <button onClick={() => { if (confirm("Çekilişi ve TÜM kayıtları sil? Geri alınamaz.")) clearRaffle(id).catch(console.error); }} className="!py-2 !px-3 text-sm rounded-full border border-line text-brand font-semibold">🗑 Sil</button>
+                <button onClick={() => setConfirmReq({ title: "Çekilişi bitir", message: "Perdeden kalkar; kayıtlar SİLİNMEZ.", confirmLabel: "Bitir", action: () => endRaffle(id).catch(() => setZipMsg("Çekiliş bitirilemedi — tekrar dene.")) })} className="btn-ghost !py-2 !px-4 text-sm">Bitir</button>
+                <button onClick={() => setConfirmReq({ title: "Çekilişi sil", message: "Çekiliş ve TÜM kayıtlar silinir. Geri alınamaz.", confirmLabel: "Sil", danger: true, action: () => clearRaffle(id).catch(() => setZipMsg("Çekiliş silinemedi — tekrar dene.")) })} className="!py-2 !px-3 text-sm rounded-full border border-line text-brand font-semibold">🗑 Sil</button>
                 {wall.raffle.draw?.winners?.length ? (
                   <span className="text-xs text-muted truncate w-full">Son çekim: {wall.raffle.draw.winners.map((w) => w.label).join(", ")}</span>
                 ) : null}
@@ -1047,7 +1060,7 @@ export default function WallManage() {
                 <MediaCard key={m.id} m={m}>
                   <div className="flex gap-1.5">
                     <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="flex-1 btn-ghost !py-1.5 text-xs">Kaldır</button>
-                    <button onClick={() => hardDelete(m)} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil (Cloudinary dahil)">🗑</button>
+                    <button onClick={() => setConfirmReq({ title: "Kalıcı silme", message: "Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?", confirmLabel: "Kalıcı sil", danger: true, action: () => hardDelete(m) })} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil (Cloudinary dahil)">🗑</button>
                   </div>
                 </MediaCard>
               ))}
@@ -1064,7 +1077,7 @@ export default function WallManage() {
                 <MediaCard key={m.id} m={m}>
                   <div className="flex gap-1.5">
                     <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 btn-accent !py-1.5 text-xs">↩ Geri al</button>
-                    <button onClick={() => hardDelete(m)} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil (Cloudinary dahil)">🗑</button>
+                    <button onClick={() => setConfirmReq({ title: "Kalıcı silme", message: "Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?", confirmLabel: "Kalıcı sil", danger: true, action: () => hardDelete(m) })} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil (Cloudinary dahil)">🗑</button>
                   </div>
                 </MediaCard>
               ))}
@@ -1074,6 +1087,21 @@ export default function WallManage() {
           </>
         )}
       </div>
+
+      {/* Markalı onay penceresi */}
+      {confirmReq && (
+        <ConfirmDialog
+          title={confirmReq.title}
+          message={confirmReq.message}
+          confirmLabel={confirmReq.confirmLabel}
+          danger={confirmReq.danger}
+          onConfirm={() => {
+            confirmReq.action();
+            setConfirmReq(null);
+          }}
+          onCancel={() => setConfirmReq(null)}
+        />
+      )}
     </main>
   );
 }

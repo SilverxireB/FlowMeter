@@ -202,16 +202,24 @@ export async function setWallAutoInterval(id: string, autoIntervalSec: number): 
  *  yine de tamamlanır (best-effort — buton donmaz). */
 export async function deleteWall(w: Wall, idToken?: string): Promise<void> {
   // 1) Cloudinary dosyaları (secret sunucuda; wall dokümanı hâlâ dururken çağır —
-  //    route sahiplik kontrolü için okuyor)
+  //    route sahiplik kontrolü için okuyor). Temizlik BAŞARISIZSA silme durur:
+  //    doküman gidince route'un sahiplik kontrolü bir daha geçemez → dosyalar
+  //    KALICI yetim kalırdı. (env tanımsız "not-configured" ise devam edilir.)
   if (idToken) {
+    let purgeFailed = false;
     try {
-      await fetch("/api/wall/destroy", {
+      const res = await fetch("/api/wall/destroy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "wall", wallId: w.id, idToken }),
       });
+      const j = await res.json().catch(() => ({}) as { error?: string });
+      purgeFailed = !res.ok && j?.error !== "not-configured";
     } catch {
-      /* Cloudinary temizliği başarısız olsa da Firestore temizliğine devam et */
+      purgeFailed = true; // ağ hatası: yarım silme yapma
+    }
+    if (purgeFailed) {
+      throw new Error("Medya dosyaları temizlenemedi — duvar silinmedi, lütfen tekrar dene.");
     }
   }
   // 2) Alt koleksiyonlar (yetim kalmasın)
@@ -312,12 +320,13 @@ export async function sendWallReaction(wallId: string, emoji: WallReactionEmoji)
 // ── Dilek/not mesajları (misafir yazılı → perdede akan dilek bandı) ───────────
 let lastWishSent = 0;
 
-/** Duvara dilek/not bırakır (create-only). Moderasyon açıksa status=pending. */
-export async function sendWallWish(wallId: string, text: string, nickname: string | undefined, moderation: boolean): Promise<void> {
+/** Duvara dilek/not bırakır (create-only). Moderasyon açıksa status=pending.
+ *  Dönüş: yazıldı mı? (throttle/boş metin → false; UI sahte başarı göstermesin) */
+export async function sendWallWish(wallId: string, text: string, nickname: string | undefined, moderation: boolean): Promise<boolean> {
   const clean = text.trim().slice(0, 140);
-  if (!clean) return;
+  if (!clean) return false;
   const now = Date.now();
-  if (now - lastWishSent < 800) return;
+  if (now - lastWishSent < 800) return false;
   lastWishSent = now;
   const data: Record<string, unknown> = {
     text: clean,
@@ -327,6 +336,7 @@ export async function sendWallWish(wallId: string, text: string, nickname: strin
   };
   if (nickname && nickname.trim()) data.nickname = nickname.trim().slice(0, 30);
   await addDoc(collection(db(), "walls", wallId, "wishes"), data);
+  return true;
 }
 
 export function watchWallWishes(id: string, cb: (w: WallWish[]) => void): () => void {
@@ -400,12 +410,13 @@ export function getMyContestVote(contestId: string): string | null {
   return localStorage.getItem(contestVoteKey(contestId));
 }
 export async function castContestVote(wallId: string, contestId: string, mediaId: string): Promise<void> {
-  localStorage.setItem(contestVoteKey(contestId), mediaId);
+  // İşaret yazım BAŞARISINDA düşülür — sunucu reddederse oy "verilmiş" görünmez.
   await setDoc(doc(db(), "walls", wallId, "contestVotes", getVoterId()), {
     mediaId,
     contestId,
     createdAt: serverTimestamp(),
   });
+  localStorage.setItem(contestVoteKey(contestId), mediaId);
 }
 
 /** Oyları dinler — YALNIZ perde + kokpit kullanır (misafir değil, ölçek). */
@@ -601,11 +612,13 @@ export function hasLikedMedia(mediaId: string): boolean {
   return localStorage.getItem(likeKey(mediaId)) === "1";
 }
 
-/** Medyayı beğen (+1). Tekrarları localStorage engeller; sunucuda +1 kuralı var. */
+/** Medyayı beğen (+1). Tekrarları localStorage engeller; sunucuda +1 kuralı var.
+ *  İşaret yazım BAŞARISINDA düşülür — hata olursa cihaz tekrar deneyebilir
+ *  (önce yazılırsa başarısız beğeni kalıcı "beğenilmiş" görünürdü). */
 export async function likeMedia(wallId: string, mediaId: string): Promise<void> {
   if (hasLikedMedia(mediaId)) return;
-  localStorage.setItem(likeKey(mediaId), "1");
   await updateDoc(doc(db(), "walls", wallId, "media", mediaId), { likes: increment(1) });
+  localStorage.setItem(likeKey(mediaId), "1");
 }
 
 // ── Canlı dinleyiciler ───────────────────────────────────────────────────────
