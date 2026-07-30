@@ -445,7 +445,7 @@ export default function StudioHero() {
 
   return (
     <div
-      className="relative overflow-hidden rounded-3xl mb-8 text-white shadow-sm h-60 sm:h-72"
+      className="relative overflow-hidden rounded-3xl mb-8 text-white shadow-sm h-52 sm:h-60"
       style={{ background: "linear-gradient(150deg,#001e64 0%,#0b1030 55%,#131847 100%)" }}
     >
       {/* Ambiyans: tüm sahnelerde sabit süzülen ışık bulutları */}
