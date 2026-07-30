@@ -357,49 +357,48 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* FlowWall — lacivert + köşede sıcak festival parıltısı (Sign'dan ayrışır) */}
-              <div className="rounded-3xl shadow-sm overflow-hidden flex flex-col text-white" style={{ background: "radial-gradient(120% 90% at 100% 0%, rgba(240,145,58,0.22), transparent 55%), linear-gradient(160deg,#0b1030 0%,#141b48 100%)" }}>
-                <div className="p-6">
-                  <Logo size="lg" variant="wall" onDark />
-                  <p className="text-white/55 text-sm mt-3">Canlı foto/video etkinlik duvarı</p>
+              {/* FlowWall — beyaz gövde, üst panel şeftali tonu */}
+              <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
+                <div className="p-6" style={{ background: "linear-gradient(160deg,#fff1e4 0%,#ffffff 100%)" }}>
+                  <Logo size="lg" variant="wall" />
+                  <p className="text-muted text-sm mt-3">Canlı foto/video etkinlik duvarı</p>
                 </div>
                 <div className="p-6 pt-4 flex-1 flex flex-col">
-                  <p className="text-xs text-white/50 mb-2 tabular-nums">{walls.length} duvar</p>
+                  <p className="text-xs text-muted mb-2 tabular-nums">{walls.length} duvar</p>
                   <ul className="flex flex-col gap-1 mb-4">
                     {walls.slice(0, 3).map((w) => (
                       <li key={w.id}>
-                        <button onClick={() => router.push(`/wall/${w.id}/manage`)} className="w-full text-left text-sm truncate text-white/75 hover:text-white py-1">• {w.title}</button>
+                        <button onClick={() => router.push(`/wall/${w.id}/manage`)} className="w-full text-left text-sm truncate text-ink/80 hover:text-accent py-1">• {w.title}</button>
                       </li>
                     ))}
-                    {walls.length === 0 && <li className="text-sm text-white/45 py-1">Henüz duvar yok</li>}
+                    {walls.length === 0 && <li className="text-sm text-muted py-1">Henüz duvar yok</li>}
                   </ul>
                   <div className="mt-auto flex gap-2">
-                    <button onClick={() => openProduct("walls")} className="flex-1 rounded-xl bg-white/15 border border-white/30 py-2 text-sm font-semibold hover:bg-white/25">Duvarlar →</button>
-                    <button onClick={() => openProduct("walls", true)} className="rounded-xl bg-white text-[#141b48] px-4 py-2 text-sm font-semibold hover:bg-white/90">＋ Yeni</button>
+                    <button onClick={() => openProduct("walls")} className="btn-ghost flex-1 !py-2 text-sm">Duvarlar →</button>
+                    <button onClick={() => openProduct("walls", true)} className="btn-primary !py-2 !px-4 text-sm">＋ Yeni</button>
                   </div>
                 </div>
               </div>
 
-              {/* FlowSign (VideoWall) */}
-              {/* Gradyan FlowSign sayfa zeminine (#0d102f) akar → kart→sayfa sürekli */}
-              <div className="rounded-3xl shadow-sm overflow-hidden flex flex-col text-white" style={{ background: "linear-gradient(160deg,#312e81 0%,#0d102f 100%)" }}>
-                <div className="p-6">
-                  <Logo size="lg" variant="sign" onDark />
-                  <p className="text-white/55 text-sm mt-3">Video-wall & dijital tabela</p>
+              {/* FlowSign — beyaz gövde, üst panel mor tonu */}
+              <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
+                <div className="p-6" style={{ background: "linear-gradient(160deg,#f0eeff 0%,#ffffff 100%)" }}>
+                  <Logo size="lg" variant="sign" />
+                  <p className="text-muted text-sm mt-3">Video-wall & dijital tabela</p>
                 </div>
                 <div className="p-6 pt-4 flex-1 flex flex-col">
-                  <p className="text-xs text-white/50 mb-2 tabular-nums">{signs.length} ekran</p>
+                  <p className="text-xs text-muted mb-2 tabular-nums">{signs.length} ekran</p>
                   <ul className="flex flex-col gap-1 mb-4">
                     {signs.slice(0, 3).map((s) => (
                       <li key={s.id}>
-                        <button onClick={() => router.push(`/videowall/${s.id}/edit`)} className="w-full text-left text-sm truncate text-white/75 hover:text-white py-1">• {s.name}</button>
+                        <button onClick={() => router.push(`/videowall/${s.id}/edit`)} className="w-full text-left text-sm truncate text-ink/80 hover:text-accent py-1">• {s.name}</button>
                       </li>
                     ))}
-                    {signs.length === 0 && <li className="text-sm text-white/45 py-1">Henüz ekran yok</li>}
+                    {signs.length === 0 && <li className="text-sm text-muted py-1">Henüz ekran yok</li>}
                   </ul>
                   <div className="mt-auto flex gap-2">
-                    <Link href="/videowall" className="flex-1 rounded-xl bg-white/15 border border-white/30 py-2 text-sm font-semibold hover:bg-white/25 text-center">Ekranlar →</Link>
-                    <Link href="/videowall?new=1" className="rounded-xl bg-white text-[#312e81] px-4 py-2 text-sm font-semibold hover:bg-white/90">＋ Yeni</Link>
+                    <Link href="/videowall" className="btn-ghost flex-1 !py-2 text-sm text-center">Ekranlar →</Link>
+                    <Link href="/videowall?new=1" className="btn-primary !py-2 !px-4 text-sm">＋ Yeni</Link>
                   </div>
                 </div>
               </div>
