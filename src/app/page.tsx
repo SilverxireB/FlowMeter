@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import Logo from "@/components/Logo";
+import { useAuthUser } from "@/lib/hooks";
 import { getLastPresentation, LastPresentation } from "@/lib/participants";
 import { resolveCode } from "@/lib/walls";
 
@@ -23,6 +24,9 @@ export default function LandingPage() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState<LastPresentation | null>(null);
+  // Sahip cihazında (Google oturumu açık) panele kestirme; katılımcı hiç
+  // giriş yapmadığından bu çipi asla görmez. PWA'da adres çubuğu yok → tek yol bu.
+  const { user } = useAuthUser();
 
   useEffect(() => {
     setLast(getLastPresentation());
@@ -44,9 +48,14 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-wash">
-      {/* Salt katılımcı yüzeyi: giriş yolu YOK (oluşturucular /dashboard kısayolundan) */}
-      <header className="px-6 py-5 flex items-center gap-3">
+      {/* Salt katılımcı yüzeyi: giriş linki YOK; yalnız oturumu AÇIK sahibe çip */}
+      <header className="px-6 py-5 flex items-center justify-between gap-3">
         <Logo variant="studio" />
+        {user && (
+          <Link href="/dashboard" className="chip !py-1.5 text-accent font-semibold hover:border-accent shrink-0">
+            Panelim →
+          </Link>
+        )}
       </header>
 
       <section className="flex-1 flex flex-col items-center justify-center px-4 -mt-14">
