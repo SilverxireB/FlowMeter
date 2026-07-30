@@ -19,15 +19,16 @@ const TICKER = [
 
 const WORDS = ["Bugün", "ne", "oluşturmak", "istersin?"];
 
-// Sahne sırası + süreleri (ms). Ürün sahneleri 10sn (4 pencere × 2.5sn).
+// Sahne sırası + süreleri (ms). Ürün sahneleri 14sn (4 pencere × 3.5sn) —
+// pencere-içi animasyon delay'leri 0 / 3.5 / 7 / 10.5 sn başlangıçlarına ayarlı.
 const SCENES = ["intro", "meter", "wall", "sign", "pulse"] as const;
 type Scene = (typeof SCENES)[number];
 const DURATION: Record<Scene, number> = {
-  intro: 5000,
-  meter: 10000,
-  wall: 10000,
-  sign: 10000,
-  pulse: 10000,
+  intro: 7000,
+  meter: 14000,
+  wall: 14000,
+  sign: 14000,
+  pulse: 14000,
 };
 
 /* ── Sahne 1: soru + imza çizgisi + hayalet marka şeridi ─────────────────── */
@@ -72,10 +73,10 @@ const METER_BARS = [
   { label: "Ayran", color: "#1b7d3a", a: "28%", b: "58%", delay: "1s" },
 ];
 
-/** Sağdaki mini reklam turu: her pencere 2.5sn — sahne süresi (10sn) ile senkron. */
+/** Sağdaki mini reklam turu: her pencere 3.5sn — sahne süresi (14sn) ile senkron. */
 function Vignette({ i, children }: { i: number; children: ReactNode }) {
   return (
-    <div className="fs-vig absolute inset-0" style={{ animationDelay: `${i * 2.5}s` }}>
+    <div className="fs-vig absolute inset-0" style={{ animationDelay: `${i * 3.5}s` }}>
       <div className="h-full rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm px-4 py-3 sm:px-5 sm:py-3.5 flex flex-col">
         {children}
       </div>
@@ -198,7 +199,7 @@ function MeterScene() {
                 <span className="text-sm mb-0.5">{p.m}</span>
                 <div
                   className="fs-podium w-full rounded-t-lg bg-gradient-to-b from-white/30 to-white/10"
-                  style={{ height: p.h, animationDelay: `${5.2 + i * 0.15}s` }}
+                  style={{ height: p.h, animationDelay: `${7.3 + i * 0.15}s` }}
                 />
                 <span className="text-[9px] text-white/60 font-semibold mt-0.5">{p.n}</span>
               </div>
@@ -210,11 +211,11 @@ function MeterScene() {
         <Vignette i={3}>
           <VigHead label="Soru-Cevap" />
           <div className="flex-1 flex flex-col justify-center gap-1.5">
-            <div className="fs-pop flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5" style={{ animationDelay: "7.7s" }}>
+            <div className="fs-pop flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5" style={{ animationDelay: "10.7s" }}>
               <span className="text-[10px] sm:text-xs text-white/85 truncate flex-1 text-left">Bir sonraki etkinlik nerede?</span>
               <span className="text-[9px] font-bold text-white/70 shrink-0">▲ 14</span>
             </div>
-            <div className="fs-pop flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5" style={{ animationDelay: "7.95s" }}>
+            <div className="fs-pop flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5" style={{ animationDelay: "10.95s" }}>
               <span className="text-[10px] sm:text-xs text-white/85 truncate flex-1 text-left">Kulis turu olacak mı?</span>
               <span className="text-[9px] font-bold text-white/70 shrink-0">▲ 9</span>
               <span className="text-[10px] text-emerald-300 shrink-0">✓</span>
@@ -226,14 +227,9 @@ function MeterScene() {
 }
 
 /* ── Sahne 3: FlowWall — anı duvarı ──────────────────────────────────────── */
-const WALL_TILES = [
-  "linear-gradient(135deg,#f0913a,#d62027)",
-  "linear-gradient(135deg,#2094f3,#131847)",
-  "linear-gradient(135deg,#1b7d3a,#2094f3)",
-  "linear-gradient(135deg,#d62027,#f0913a)",
-  "linear-gradient(135deg,#131847,#1b7d3a)",
-  "linear-gradient(135deg,#2094f3,#f0913a)",
-];
+// Etkinlik görselleri (public/hero/): gerçek etkinlik fotoğraflarıyla değişebilir.
+const EVENT = (n: number) => `/hero/event-${n}.jpg`;
+const WALL_PHOTOS = [EVENT(1), EVENT(2), EVENT(3), EVENT(4), EVENT(5), EVENT(2)];
 
 function WallScene() {
   return (
@@ -252,14 +248,15 @@ function WallScene() {
       <Vignette i={0}>
         <VigHead label="Anılar duvara akar" live />
         <div className="flex-1 grid grid-cols-3 gap-1.5 content-center">
-          {WALL_TILES.map((g, i) => (
-            <div
+          {WALL_PHOTOS.map((src, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               key={i}
-              className="fs-pop h-9 sm:h-11 rounded-lg grid place-items-center text-xs"
-              style={{ background: g, animationDelay: `${0.25 + i * 0.14}s` }}
-            >
-              {i === 4 ? "📷" : ""}
-            </div>
+              src={src}
+              alt=""
+              className="fs-pop h-9 sm:h-11 w-full object-cover rounded-lg"
+              style={{ animationDelay: `${0.25 + i * 0.14}s` }}
+            />
           ))}
         </div>
       </Vignette>
@@ -268,16 +265,16 @@ function WallScene() {
       <Vignette i={1}>
         <VigHead label="Beğen — en sevilen taçlanır" />
         <div className="flex-1 flex items-center justify-center gap-3">
-          <div
-            className="fs-pop relative w-24 h-16 sm:w-28 sm:h-20 rounded-xl"
-            style={{ background: WALL_TILES[0], animationDelay: "2.8s" }}
-          >
+          <div className="fs-pop relative w-24 h-16 sm:w-28 sm:h-20" style={{ animationDelay: "3.9s" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={EVENT(3)} alt="" className="w-full h-full object-cover rounded-xl" />
             <span className="absolute -top-2.5 -right-1.5 text-lg">👑</span>
             <span className="fs-heart absolute -bottom-2 left-2 rounded-full bg-white/90 text-[#d62027] text-[10px] font-bold px-2 py-0.5">
               ❤ 42
             </span>
           </div>
-          <div className="fs-pop w-16 h-12 sm:w-20 sm:h-14 rounded-xl opacity-70" style={{ background: WALL_TILES[2], animationDelay: "3.1s" }} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={EVENT(1)} alt="" className="fs-pop w-16 h-12 sm:w-20 sm:h-14 rounded-xl object-cover opacity-70" style={{ animationDelay: "4.2s" }} />
         </div>
       </Vignette>
 
@@ -285,10 +282,10 @@ function WallScene() {
       <Vignette i={2}>
         <VigHead label="Dilekler perdede 💌" />
         <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
-          <div className="fs-pop rounded-xl bg-white/10 px-4 py-2 max-w-full" style={{ animationDelay: "5.3s" }}>
+          <div className="fs-pop rounded-xl bg-white/10 px-4 py-2 max-w-full" style={{ animationDelay: "7.4s" }}>
             <span className="text-[11px] sm:text-xs text-white/85 italic">&ldquo;İyi ki varsınız, unutulmaz bir gece!&rdquo;</span>
           </div>
-          <span className="fs-pop text-[9px] text-white/55 font-semibold" style={{ animationDelay: "5.7s" }}>— Ayşe & Deniz</span>
+          <span className="fs-pop text-[9px] text-white/55 font-semibold" style={{ animationDelay: "7.8s" }}>— Ayşe & Deniz</span>
         </div>
       </Vignette>
 
@@ -296,8 +293,9 @@ function WallScene() {
       <Vignette i={3}>
         <VigHead label="🎬 Anı Filmi — müzikli hatıra videosu" />
         <div className="flex-1 flex items-center justify-center">
-          <div className="fs-pop relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden" style={{ animationDelay: "7.75s" }}>
-            <div className="fs-kenburns absolute inset-0" style={{ background: WALL_TILES[5] }} />
+          <div className="fs-pop relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden" style={{ animationDelay: "10.7s" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={EVENT(5)} alt="" className="fs-kenburns absolute inset-0 w-full h-full object-cover" />
             <span className="absolute inset-0 grid place-items-center text-2xl drop-shadow">▶</span>
             <div className="absolute bottom-1 inset-x-2 h-1 rounded-full bg-white/25">
               <div className="fs-poll-bar h-full rounded-full bg-white/90" style={{ "--wa": "20%", "--wb": "85%" } as CSSProperties} />
@@ -327,13 +325,15 @@ function SignScene() {
       <Vignette i={1}>
         <VigHead label="Görsel, video, URL — saatli takvim" />
         <div className="flex-1 flex items-center gap-2">
-          <div className="fs-pop flex-1 h-full max-h-20 rounded-lg overflow-hidden relative" style={{ animationDelay: "2.8s", background: "linear-gradient(135deg,#312e81,#2094f3)" }}>
+          <div className="fs-pop flex-1 h-full max-h-20 rounded-lg overflow-hidden relative" style={{ animationDelay: "3.9s" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={EVENT(6)} alt="" className="absolute inset-0 w-full h-full object-cover" />
             <span className="absolute top-1 right-1.5 rounded bg-black/40 px-1.5 py-0.5 text-[9px] font-bold tabular-nums">12:45</span>
           </div>
           <div className="flex flex-col gap-1.5 w-20 sm:w-24">
-            <span className="fs-pop rounded-md bg-white/10 px-2 py-1 text-[9px] text-white/75 font-semibold" style={{ animationDelay: "3.05s" }}>🖼 Menü.png</span>
-            <span className="fs-pop rounded-md bg-white/10 px-2 py-1 text-[9px] text-white/75 font-semibold" style={{ animationDelay: "3.25s" }}>🎞 Tanıtım.mp4</span>
-            <span className="fs-pop rounded-md bg-white/10 px-2 py-1 text-[9px] text-white/75 font-semibold" style={{ animationDelay: "3.45s" }}>⏰ 09:00–18:00</span>
+            <span className="fs-pop rounded-md bg-white/10 px-2 py-1 text-[9px] text-white/75 font-semibold" style={{ animationDelay: "4.15s" }}>🖼 Menü.png</span>
+            <span className="fs-pop rounded-md bg-white/10 px-2 py-1 text-[9px] text-white/75 font-semibold" style={{ animationDelay: "4.35s" }}>🎞 Tanıtım.mp4</span>
+            <span className="fs-pop rounded-md bg-white/10 px-2 py-1 text-[9px] text-white/75 font-semibold" style={{ animationDelay: "4.55s" }}>⏰ 09:00–18:00</span>
           </div>
         </div>
       </Vignette>
@@ -342,10 +342,10 @@ function SignScene() {
       <Vignette i={2}>
         <VigHead label="Taslakta dene, tek tıkla yayınla" />
         <div className="flex-1 flex flex-col items-center justify-center gap-2">
-          <span className="fs-pop rounded-full bg-[#6366f1] px-4 py-1.5 text-xs font-bold" style={{ animationDelay: "5.3s" }}>
+          <span className="fs-pop rounded-full bg-[#6366f1] px-4 py-1.5 text-xs font-bold" style={{ animationDelay: "7.4s" }}>
             💾 Kaydet &amp; Yayınla
           </span>
-          <span className="fs-pop flex items-center gap-1.5 text-[10px] font-semibold text-emerald-300" style={{ animationDelay: "5.9s" }}>
+          <span className="fs-pop flex items-center gap-1.5 text-[10px] font-semibold text-emerald-300" style={{ animationDelay: "8.0s" }}>
             <span className="fs-live-dot !bg-emerald-400" /> Perde yayında
           </span>
         </div>
@@ -355,9 +355,11 @@ function SignScene() {
       <Vignette i={3}>
         <VigHead label="7/24 kesintisiz oynatma" />
         <div className="flex-1 flex items-center justify-center">
-          <div className="fs-pop relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden" style={{ animationDelay: "7.75s" }}>
-            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#131847,#1b7d3a)" }} />
-            <div className="fs-xfade absolute inset-0" style={{ background: "linear-gradient(135deg,#312e81,#d62027)" }} />
+          <div className="fs-pop relative w-36 sm:w-44 h-16 sm:h-20 rounded-xl overflow-hidden" style={{ animationDelay: "10.7s" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={EVENT(6)} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={EVENT(4)} alt="" className="fs-xfade absolute inset-0 w-full h-full object-cover" />
             <span className="absolute bottom-1 right-1.5 rounded bg-black/40 px-1.5 py-0.5 text-[9px] font-bold">7/24</span>
           </div>
         </div>
@@ -385,7 +387,7 @@ function PulseScene() {
       <Vignette i={1}>
         <VigHead label="Bugünün skoru" live />
         <div className="flex-1 flex items-center justify-center gap-4">
-          <span className="fs-pop font-display font-bold text-4xl sm:text-5xl text-emerald-300" style={{ animationDelay: "2.85s" }}>78</span>
+          <span className="fs-pop font-display font-bold text-4xl sm:text-5xl text-emerald-300" style={{ animationDelay: "3.9s" }}>78</span>
           <div className="flex-1 max-w-40">
             <div className="h-3 rounded-full bg-white/10 overflow-hidden">
               <div className="fs-poll-bar h-full rounded-full bg-emerald-400" style={{ "--wa": "58%", "--wb": "82%" } as CSSProperties} />
@@ -410,7 +412,7 @@ function PulseScene() {
               pathLength={100}
               className="fs-line"
             />
-            <circle cx="120" cy="6" r="3" fill="#34d399" className="fs-pop" style={{ animationDelay: "6.3s" }} />
+            <circle cx="120" cy="6" r="3" fill="#34d399" className="fs-pop" style={{ animationDelay: "8.7s" }} />
           </svg>
         </div>
       </Vignette>
@@ -420,10 +422,10 @@ function PulseScene() {
         <VigHead label="Kapıda kiosk, cepte QR" />
         <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
           <div className="flex items-center gap-2">
-            <span className="fs-pop rounded-lg bg-white/10 px-3 py-1.5 text-[11px] font-semibold" style={{ animationDelay: "7.75s" }}>🖥 Kiosk</span>
-            <span className="fs-pop rounded-lg bg-white/10 px-3 py-1.5 text-[11px] font-semibold" style={{ animationDelay: "7.95s" }}>📱 QR ile oy</span>
+            <span className="fs-pop rounded-lg bg-white/10 px-3 py-1.5 text-[11px] font-semibold" style={{ animationDelay: "10.7s" }}>🖥 Kiosk</span>
+            <span className="fs-pop rounded-lg bg-white/10 px-3 py-1.5 text-[11px] font-semibold" style={{ animationDelay: "10.95s" }}>📱 QR ile oy</span>
           </div>
-          <span className="fs-pop text-[9px] text-white/55 font-semibold" style={{ animationDelay: "8.3s" }}>günde 1 oy · tamamen anonim</span>
+          <span className="fs-pop text-[9px] text-white/55 font-semibold" style={{ animationDelay: "11.3s" }}>günde 1 oy · tamamen anonim</span>
         </div>
       </Vignette>
     </SceneFrame>
@@ -521,10 +523,10 @@ export default function StudioHero() {
         }
         @keyframes fs-poll { from { width: var(--wa); } to { width: var(--wb); } }
 
-        /* Mini reklam turu: 4 pencere × 2.5sn = 10sn (sahne süresiyle senkron) */
+        /* Mini reklam turu: 4 pencere × 3.5sn = 14sn (sahne süresiyle senkron) */
         .fs-vig {
           opacity: 0;
-          animation: fs-vig 10s linear infinite;
+          animation: fs-vig 14s linear infinite;
         }
         @keyframes fs-vig {
           0% { opacity: 0; transform: translateY(10px); }
@@ -532,11 +534,11 @@ export default function StudioHero() {
           25%, 100% { opacity: 0; transform: translateY(-8px); }
         }
 
-        /* Pencere içi girişler: 10sn döngüye senkron — her turda yeniden oynar.
+        /* Pencere içi girişler: 14sn döngüye senkron — her turda yeniden oynar.
            delay, elemanın ait olduğu pencerenin başlangıcına ayarlanır. */
         .fs-pop {
           opacity: 0;
-          animation: fs-pop 10s ease-out infinite;
+          animation: fs-pop 14s ease-out infinite;
         }
         @keyframes fs-pop {
           0% { opacity: 0; transform: scale(0.5); }
@@ -549,7 +551,7 @@ export default function StudioHero() {
         .fs-podium {
           transform-origin: bottom;
           transform: scaleY(0);
-          animation: fs-podium 10s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+          animation: fs-podium 14s cubic-bezier(0.22, 1, 0.36, 1) infinite;
         }
         @keyframes fs-podium {
           0% { transform: scaleY(0); }
@@ -570,12 +572,12 @@ export default function StudioHero() {
         .fs-xfade { animation: fs-xfade 3.4s ease-in-out infinite alternate; }
         @keyframes fs-xfade { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Trend çizgisi: 10sn döngüde kendi penceresinde (5.0–7.5sn) çizilir */
+        /* Trend çizgisi: 14sn döngüde kendi penceresinde (7.0–10.5sn) çizilir */
         .fs-line {
           stroke-dasharray: 100;
           stroke-dashoffset: 100;
-          animation: fs-line 10s ease-out infinite;
-          animation-delay: 5.2s;
+          animation: fs-line 14s ease-out infinite;
+          animation-delay: 7.3s;
         }
         @keyframes fs-line {
           0% { stroke-dashoffset: 100; }
