@@ -68,7 +68,7 @@ function TickerStrip({ bottom = "bottom-4" }: { bottom?: string }) {
  * runtime'da ölçülür (banner merkezi − logonun doğal konumu) → sapma olmaz.
  */
 function FlyLogo({ src }: { src: string }) {
-  const ref = useRef<HTMLImageElement>(null);
+  const ref = useRef<HTMLSpanElement>(null);
   const [vars, setVars] = useState<CSSProperties | null>(null);
   useIsoLayoutEffect(() => {
     const el = ref.current;
@@ -82,14 +82,13 @@ function FlyLogo({ src }: { src: string }) {
     } as CSSProperties);
   }, []);
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      ref={ref}
-      src={src}
-      alt=""
-      className={`h-12 sm:h-24 w-auto ${vars ? "fs-flyin" : "opacity-0"}`}
-      style={vars ?? undefined}
-    />
+    <span ref={ref} className={`relative inline-flex ${vars ? "fs-flyin" : "opacity-0"}`} style={vars ?? undefined}>
+      {/* Doğuş anı: ışık patlaması + dışa yayılan dört-renk şok halkası */}
+      <span aria-hidden className="fs-birth-glow" />
+      <span aria-hidden className="fs-birth-ring" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" className="relative h-12 sm:h-24 w-auto" />
+    </span>
   );
 }
 
@@ -573,8 +572,12 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
               erir (ürün sahnelerinde geçiş FlyLogo'nun kendisi). */}
           {tick > 0 && scene === "intro" && (
             <div key={`sweep-${tick}`} aria-hidden className="fs-logosweep fs-ls-intro absolute z-20 pointer-events-none">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo-o-studio-white.png" alt="" className="h-16 sm:h-24 w-auto" />
+              <span className="relative inline-flex">
+                <span className="fs-birth-glow" />
+                <span className="fs-birth-ring" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo-o-studio-white.png" alt="" className="relative h-16 sm:h-24 w-auto" />
+              </span>
             </div>
           )}
         </>
@@ -604,6 +607,36 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
           36%, 52% { transform: translate(var(--fsdx), var(--fsdy)) scale(1); }
           100% { opacity: 1; transform: translate(0, 0) scale(1); }
         }
+        /* Doğuş efekti: ışık patlaması + dört-renk şok halkası (uçuştan önce biter) */
+        .fs-birth-glow {
+          position: absolute; left: 50%; top: 50%;
+          width: 160px; height: 160px; margin: -80px 0 0 -80px;
+          border-radius: 9999px;
+          background: radial-gradient(circle, rgba(255,255,255,0.5), rgba(255,255,255,0) 65%);
+          opacity: 0;
+          animation: fs-birth-glow 0.75s ease-out 0.05s;
+        }
+        @keyframes fs-birth-glow {
+          0% { opacity: 0; transform: scale(0.3); }
+          30% { opacity: 1; }
+          100% { opacity: 0; transform: scale(1.5); }
+        }
+        .fs-birth-ring {
+          position: absolute; left: 50%; top: 50%;
+          width: 110px; height: 110px; margin: -55px 0 0 -55px;
+          border-radius: 9999px;
+          background: conic-gradient(#2094f3, #1b7d3a, #f0913a, #d62027, #2094f3);
+          -webkit-mask: radial-gradient(closest-side, transparent 78%, #000 81%);
+          mask: radial-gradient(closest-side, transparent 78%, #000 81%);
+          opacity: 0;
+          animation: fs-birth-ring 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.12s;
+        }
+        @keyframes fs-birth-ring {
+          0% { opacity: 0; transform: scale(0.35) rotate(0deg); }
+          25% { opacity: 0.9; }
+          100% { opacity: 0; transform: scale(2.2) rotate(40deg); }
+        }
+
         .fs-brandname { animation: fs-brandname 0.45s 1s cubic-bezier(0.22, 1, 0.36, 1) both; }
         @keyframes fs-brandname {
           from { opacity: 0; transform: translateY(8px); }
@@ -790,8 +823,9 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
           .fs-scene, .fs-word, .fs-bar, .fs-flyin, .fs-brandname, .fs-in-right,
           .fs-vig, .fs-pop, .fs-podium, .fs-heart, .fs-kenburns, .fs-xfade,
           .fs-line, .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker, .fs-blob,
-          .fs-logosweep, .fs-accentline, .fs-ripple { animation: none; }
-          .fs-ripple, .fs-logosweep { opacity: 0; }
+          .fs-logosweep, .fs-accentline, .fs-ripple, .fs-birth-glow,
+          .fs-birth-ring { animation: none; }
+          .fs-ripple, .fs-logosweep, .fs-birth-glow, .fs-birth-ring { opacity: 0; }
           .fs-flyin { transform: none; }
           .fs-word { transform: none; }
           .fs-bar { transform: none; }
