@@ -1,6 +1,17 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
+
+// SSR uyarısız layout-effect (sayfa client bileşeni ama prerender ediliyor)
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /**
  * Hub açılış bannerı — Flow Studio "sahne"si + marka tanıtım turu.
@@ -37,12 +48,13 @@ function TickerStrip({ bottom = "bottom-4" }: { bottom?: string }) {
   const strip = [...TICKER, ...TICKER, ...TICKER];
   return (
     <div aria-hidden className={`absolute inset-x-0 ${bottom} overflow-hidden`}>
-      <div className="fs-ticker flex items-center gap-8 w-max pl-4">
+      {/* Masaüstünde geniş aralık: ekranda aynı anda tek set görünür (tekrar hissi yok) */}
+      <div className="fs-ticker flex items-center gap-8 sm:gap-32 w-max pl-4">
         {strip.map((t, i) => (
           <span key={i} className="flex items-center gap-1.5 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={t.o} alt="" className="h-3 w-auto opacity-90" />
-            <span className="fs-ghost text-xs font-bold tracking-[0.25em]">{t.name}</span>
+            <img src={t.o} alt="" className="h-3 sm:h-4 w-auto opacity-90" />
+            <span className="fs-ghost text-xs sm:text-sm font-bold tracking-[0.25em]">{t.name}</span>
           </span>
         ))}
       </div>
@@ -50,15 +62,36 @@ function TickerStrip({ bottom = "bottom-4" }: { bottom?: string }) {
   );
 }
 
-// Geçiş logosu: gelen sahnenin O-ikonu ortada belirir, ürün sahnelerinde
-// sola (marka bloğunun yerine) süzülür; intro'da soruya dönüşerek erir.
-const SCENE_O: Record<Scene, string> = {
-  intro: "/logo-o-studio-white.png",
-  meter: "/logo-o-meter-white.png",
-  wall: "/logo-o-wall-white.png",
-  sign: "/logo-o-sign-white.png",
-  pulse: "/logo-o-pulse-white.png",
-};
+/**
+ * Uçan marka logosu: marka bloğunun logosunun KENDİSİ — banner merkezinde
+ * doğar, gerçek (akıştaki) konumuna süzülür ve orada kalır. Hedef nokta
+ * runtime'da ölçülür (banner merkezi − logonun doğal konumu) → sapma olmaz.
+ */
+function FlyLogo({ src }: { src: string }) {
+  const ref = useRef<HTMLImageElement>(null);
+  const [vars, setVars] = useState<CSSProperties | null>(null);
+  useIsoLayoutEffect(() => {
+    const el = ref.current;
+    const banner = el?.closest("[data-fs-banner]");
+    if (!el || !banner) return;
+    const b = banner.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    setVars({
+      "--fsdx": `${b.left + b.width / 2 - (r.left + r.width / 2)}px`,
+      "--fsdy": `${b.top + b.height / 2 - (r.top + r.height / 2)}px`,
+    } as CSSProperties);
+  }, []);
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      ref={ref}
+      src={src}
+      alt=""
+      className={`h-12 sm:h-24 w-auto ${vars ? "fs-flyin" : "opacity-0"}`}
+      style={vars ?? undefined}
+    />
+  );
+}
 
 /* ── Sahne 1: soru + imza çizgisi + hayalet marka şeridi ─────────────────── */
 function IntroScene() {
@@ -138,12 +171,11 @@ function SceneFrame({
         className="fs-accentline absolute bottom-0 inset-x-0 h-1"
         style={{ background: `linear-gradient(90deg, transparent 5%, ${accent}, transparent 95%)` }}
       />
-      {/* Marka: logo üstte ortalı, altında ad — soldan büyüyerek girer.
-          ml: sol kenara yapışmasın, ortaya doğru dursun */}
-      <div className="fs-in-left flex flex-col items-center shrink-0 ml-0 sm:ml-24">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={img} alt="" className="h-12 sm:h-24 w-auto" />
-        <span className="mt-2 font-display font-semibold text-2xl sm:text-5xl tracking-tight">
+      {/* Marka: logo banner merkezinden gerçek konumuna uçar (FlyLogo),
+          adı vardığında altından belirir. ml: ortaya doğru dursun */}
+      <div className="flex flex-col items-center shrink-0 ml-0 sm:ml-24">
+        <FlyLogo src={img} />
+        <span className="fs-brandname mt-2 font-display font-semibold text-2xl sm:text-5xl tracking-tight">
           {name}
         </span>
       </div>
@@ -507,6 +539,7 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
       }`}
       style={{ background: "linear-gradient(150deg,#001e64 0%,#0b1030 55%,#131847 100%)" }}
       onPointerDown={addRipple}
+      data-fs-banner
     >
       {/* Ambiyans: süzülen ışık bulutları — renk, aktif sahnenin ailesine akar */}
       <div aria-hidden className="fs-blob fs-blob-a" style={{ background: tints[0], transition: "background 1.6s ease" }} />
@@ -536,17 +569,12 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
             {scene === "pulse" && <PulseScene />}
           </div>
 
-          {/* Marka geçişi: gelen sahnenin O-logosu ortada belirir; ürün
-              sahnesinde sola (marka bloğunun yerine) süzülür, intro'da erir.
-              Yalnız gerçek geçişlerde oynar (ilk açılışta değil). */}
-          {tick > 0 && (
-            <div
-              key={`sweep-${tick}`}
-              aria-hidden
-              className={`fs-logosweep absolute z-20 pointer-events-none ${scene === "intro" ? "fs-ls-intro" : "fs-ls-prod"}`}
-            >
+          {/* Intro'ya dönüş imzası: Studio-O ortada belirip soruya dönüşerek
+              erir (ürün sahnelerinde geçiş FlyLogo'nun kendisi). */}
+          {tick > 0 && scene === "intro" && (
+            <div key={`sweep-${tick}`} aria-hidden className="fs-logosweep fs-ls-intro absolute z-20 pointer-events-none">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={SCENE_O[scene]} alt="" className="h-16 sm:h-24 w-auto" />
+              <img src="/logo-o-studio-white.png" alt="" className="h-16 sm:h-24 w-auto" />
             </div>
           )}
         </>
@@ -567,22 +595,22 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
         .fs-scene { animation: fs-scene-in 0.5s ease-out both; }
         @keyframes fs-scene-in { from { opacity: 0; } }
 
-        /* Marka geçişi: O-logo ortada doğar → sola süzülüp yerine kilitlenir.
-           --endx: marka bloğu merkezinin banner merkezine uzaklığı (yaklaşık;
-           varıştaki çapraz-geçiş küçük sapmayı gizler) */
+        /* Uçan marka logosu: merkezde doğar (ölçülmüş --fsdx/--fsdy ofsetiyle),
+           gerçek konumuna süzülür ve KALIR — hedef, logonun kendisi */
+        .fs-flyin { animation: fs-flyin 1.15s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        @keyframes fs-flyin {
+          0% { opacity: 0; transform: translate(var(--fsdx), var(--fsdy)) scale(0.35); }
+          24% { opacity: 1; transform: translate(var(--fsdx), var(--fsdy)) scale(1.08); }
+          36%, 52% { transform: translate(var(--fsdx), var(--fsdy)) scale(1); }
+          100% { opacity: 1; transform: translate(0, 0) scale(1); }
+        }
+        .fs-brandname { animation: fs-brandname 0.45s 1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        @keyframes fs-brandname {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
         .fs-logosweep { top: 50%; left: 50%; opacity: 0; }
-        .fs-ls-prod {
-          --endx: -252px;
-          animation: fs-ls-prod 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-        @media (max-width: 640px) { .fs-ls-prod { --endx: -27vw; } }
-        @keyframes fs-ls-prod {
-          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-          26% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
-          38% { transform: translate(-50%, -50%) scale(1); }
-          82% { opacity: 1; transform: translate(calc(-50% + var(--endx)), calc(-50% - 14px)) scale(1); }
-          100% { opacity: 0; transform: translate(calc(-50% + var(--endx)), calc(-50% - 14px)) scale(1); }
-        }
         .fs-ls-intro { animation: fs-ls-intro 0.85s cubic-bezier(0.22, 1, 0.36, 1) both; }
         @keyframes fs-ls-intro {
           0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
@@ -643,15 +671,6 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
 
         .fs-ghost { color: rgba(255, 255, 255, 0.92); }
 
-        /* Marka bloğu, süzülen logonun varışıyla çapraz-geçişle belirir
-           (yerinde yumuşak büyüme — logo zaten oraya "taşındı") */
-        .fs-in-left {
-          animation: fs-in-left 0.45s 0.88s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-        @keyframes fs-in-left {
-          from { opacity: 0; transform: scale(0.94); }
-          to { opacity: 1; transform: scale(1); }
-        }
         .fs-in-right {
           animation: fs-in-right 0.7s 1s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
@@ -768,11 +787,12 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
         @keyframes fs-float-c { to { transform: translate(-60px, 60px) scale(1.2); } }
 
         @media (prefers-reduced-motion: reduce) {
-          .fs-scene, .fs-word, .fs-bar, .fs-in-left, .fs-in-right, .fs-vig,
-          .fs-pop, .fs-podium, .fs-heart, .fs-kenburns, .fs-xfade, .fs-line,
-          .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker, .fs-blob,
+          .fs-scene, .fs-word, .fs-bar, .fs-flyin, .fs-brandname, .fs-in-right,
+          .fs-vig, .fs-pop, .fs-podium, .fs-heart, .fs-kenburns, .fs-xfade,
+          .fs-line, .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker, .fs-blob,
           .fs-logosweep, .fs-accentline, .fs-ripple { animation: none; }
           .fs-ripple, .fs-logosweep { opacity: 0; }
+          .fs-flyin { transform: none; }
           .fs-word { transform: none; }
           .fs-bar { transform: none; }
           .fs-shine { display: none; }
