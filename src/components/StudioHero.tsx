@@ -111,11 +111,12 @@ function SceneFrame({
 }) {
   return (
     <div className="absolute inset-0 flex items-center justify-between gap-4 sm:gap-8 px-5 sm:px-10">
-      {/* Marka: logo üstte ortalı, altında ad — soldan büyüyerek girer */}
-      <div className="fs-in-left flex flex-col items-center shrink-0">
+      {/* Marka: logo üstte ortalı, altında ad — soldan büyüyerek girer.
+          ml: sol kenara yapışmasın, ortaya doğru dursun */}
+      <div className="fs-in-left flex flex-col items-center shrink-0 ml-2 sm:ml-16">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={img} alt="" className="h-14 sm:h-20 w-auto" />
-        <span className="mt-1.5 font-display font-semibold text-2xl sm:text-4xl tracking-tight">
+        <img src={img} alt="" className="h-16 sm:h-24 w-auto" />
+        <span className="mt-2 font-display font-semibold text-3xl sm:text-5xl tracking-tight">
           {name}
         </span>
       </div>
