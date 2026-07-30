@@ -50,21 +50,15 @@ function TickerStrip({ bottom = "bottom-4" }: { bottom?: string }) {
   );
 }
 
-// O-halkası süpürmesi: sahne geçişinde imza hareket (logodaki dört yay).
-function sweepArc(r: number, startDeg: number, endDeg: number): string {
-  const rad = (d: number) => ((d - 90) * Math.PI) / 180;
-  const x1 = 60 + r * Math.cos(rad(startDeg));
-  const y1 = 60 + r * Math.sin(rad(startDeg));
-  const x2 = 60 + r * Math.cos(rad(endDeg));
-  const y2 = 60 + r * Math.sin(rad(endDeg));
-  return `M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`;
-}
-const SWEEP_ARCS = [
-  { d: sweepArc(48, 265, 395), color: "#2094f3", w: 8 },
-  { d: sweepArc(48, 85, 215), color: "#d62027", w: 8 },
-  { d: sweepArc(36, 350, 480), color: "#1b7d3a", w: 7 },
-  { d: sweepArc(36, 170, 300), color: "#f0913a", w: 7 },
-];
+// Geçiş logosu: gelen sahnenin O-ikonu ortada belirir, ürün sahnelerinde
+// sola (marka bloğunun yerine) süzülür; intro'da soruya dönüşerek erir.
+const SCENE_O: Record<Scene, string> = {
+  intro: "/logo-o-studio-white.png",
+  meter: "/logo-o-meter-white.png",
+  wall: "/logo-o-wall-white.png",
+  sign: "/logo-o-sign-white.png",
+  pulse: "/logo-o-pulse-white.png",
+};
 
 /* ── Sahne 1: soru + imza çizgisi + hayalet marka şeridi ─────────────────── */
 function IntroScene() {
@@ -522,7 +516,7 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
       {compact ? (
         /* Kompakt: durağan kimlik — logo + ad + akan şerit */
         <div className="absolute inset-0 z-10">
-          <div className="fs-in-left absolute inset-0 flex items-center justify-center pb-5">
+          <div className="fs-in-center absolute inset-0 flex items-center justify-center pb-5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo-o-studio-white.png" alt="" className="h-10 w-auto" />
             <span className="ml-2.5 font-display font-semibold text-2xl tracking-tight" aria-label="FLOW STUDIO">
@@ -542,15 +536,17 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
             {scene === "pulse" && <PulseScene />}
           </div>
 
-          {/* İmza geçişi: yalnız sahne DEĞİŞİMİNDE O-halkası süpürerek açar
-              (ilk açılışta oynamaz; içerik girişinden önce görünür) */}
+          {/* Marka geçişi: gelen sahnenin O-logosu ortada belirir; ürün
+              sahnesinde sola (marka bloğunun yerine) süzülür, intro'da erir.
+              Yalnız gerçek geçişlerde oynar (ilk açılışta değil). */}
           {tick > 0 && (
-            <div key={`sweep-${tick}`} aria-hidden className="fs-sweep absolute inset-0 z-20 pointer-events-none grid place-items-center">
-              <svg viewBox="0 0 120 120" className="w-44 h-44 sm:w-56 sm:h-56">
-                {SWEEP_ARCS.map((a) => (
-                  <path key={a.color} d={a.d} fill="none" stroke={a.color} strokeWidth={a.w} strokeLinecap="round" />
-                ))}
-              </svg>
+            <div
+              key={`sweep-${tick}`}
+              aria-hidden
+              className={`fs-logosweep absolute z-20 pointer-events-none ${scene === "intro" ? "fs-ls-intro" : "fs-ls-prod"}`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={SCENE_O[scene]} alt="" className="h-16 sm:h-24 w-auto" />
             </div>
           )}
         </>
@@ -567,16 +563,32 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
       ))}
 
       <style>{`
-        /* Sahne içeriği süpürmenin hemen ardından gelir (koreografi) */
-        .fs-scene { animation: fs-scene-in 0.55s ease-out both; animation-delay: 0.2s; }
+        /* Sahne zemini hemen, marka bloğu logo-devir teslimini bekler */
+        .fs-scene { animation: fs-scene-in 0.5s ease-out both; }
         @keyframes fs-scene-in { from { opacity: 0; } }
 
-        /* O-halkası süpürmesi: hızlı belirir, büyüyerek yumuşakça dağılır */
-        .fs-sweep { opacity: 0; animation: fs-sweep 0.8s cubic-bezier(0.3, 0.7, 0.4, 1); }
-        @keyframes fs-sweep {
-          0% { opacity: 0; transform: scale(0.35) rotate(-40deg); }
-          22% { opacity: 0.85; }
-          100% { opacity: 0; transform: scale(1.8) rotate(10deg); }
+        /* Marka geçişi: O-logo ortada doğar → sola süzülüp yerine kilitlenir.
+           --endx: marka bloğu merkezinin banner merkezine uzaklığı (yaklaşık;
+           varıştaki çapraz-geçiş küçük sapmayı gizler) */
+        .fs-logosweep { top: 50%; left: 50%; opacity: 0; }
+        .fs-ls-prod {
+          --endx: -252px;
+          animation: fs-ls-prod 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @media (max-width: 640px) { .fs-ls-prod { --endx: -27vw; } }
+        @keyframes fs-ls-prod {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+          26% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+          38% { transform: translate(-50%, -50%) scale(1); }
+          82% { opacity: 1; transform: translate(calc(-50% + var(--endx)), calc(-50% - 14px)) scale(1); }
+          100% { opacity: 0; transform: translate(calc(-50% + var(--endx)), calc(-50% - 14px)) scale(1); }
+        }
+        .fs-ls-intro { animation: fs-ls-intro 0.85s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        @keyframes fs-ls-intro {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+          30% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+          55% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(1.35); }
         }
 
         /* Ürün rengi imza çizgisi: yumuşak nefes */
@@ -631,19 +643,26 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
 
         .fs-ghost { color: rgba(255, 255, 255, 0.92); }
 
+        /* Marka bloğu, süzülen logonun varışıyla çapraz-geçişle belirir
+           (yerinde yumuşak büyüme — logo zaten oraya "taşındı") */
         .fs-in-left {
-          animation: fs-in-left 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+          animation: fs-in-left 0.45s 0.88s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         @keyframes fs-in-left {
-          from { opacity: 0; transform: translateX(-36px) scale(0.72); }
-          to { opacity: 1; transform: translateX(0) scale(1); }
+          from { opacity: 0; transform: scale(0.94); }
+          to { opacity: 1; transform: scale(1); }
         }
         .fs-in-right {
-          animation: fs-in-right 0.8s 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+          animation: fs-in-right 0.7s 1s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         @keyframes fs-in-right {
           from { opacity: 0; transform: translateX(36px); }
           to { opacity: 1; transform: translateX(0); }
+        }
+        .fs-in-center { animation: fs-in-center 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        @keyframes fs-in-center {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
         }
 
         .fs-poll-bar {
@@ -752,8 +771,8 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
           .fs-scene, .fs-word, .fs-bar, .fs-in-left, .fs-in-right, .fs-vig,
           .fs-pop, .fs-podium, .fs-heart, .fs-kenburns, .fs-xfade, .fs-line,
           .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker, .fs-blob,
-          .fs-sweep, .fs-accentline, .fs-ripple { animation: none; }
-          .fs-ripple { opacity: 0; }
+          .fs-logosweep, .fs-accentline, .fs-ripple { animation: none; }
+          .fs-ripple, .fs-logosweep { opacity: 0; }
           .fs-word { transform: none; }
           .fs-bar { transform: none; }
           .fs-shine { display: none; }
