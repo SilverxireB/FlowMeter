@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
 /**
  * Hub açılış bannerı — Flow Studio "sahne"si + marka tanıtım turu.
@@ -22,7 +22,7 @@ const WORDS = ["Bugün", "ne", "oluşturmak", "istersin?"];
 // Sahne sırası + süreleri (ms). Ürün sahneleri buraya eklenerek çoğalır.
 const SCENES = ["intro", "meter"] as const;
 type Scene = (typeof SCENES)[number];
-const DURATION: Record<Scene, number> = { intro: 5000, meter: 9000 };
+const DURATION: Record<Scene, number> = { intro: 5000, meter: 10000 };
 
 /* ── Sahne 1: soru + imza çizgisi + hayalet marka şeridi ─────────────────── */
 function IntroScene() {
@@ -66,54 +66,127 @@ const METER_BARS = [
   { label: "Ayran", color: "#1b7d3a", a: "28%", b: "58%", delay: "1s" },
 ];
 
+/** Sağdaki mini reklam turu: her pencere 2.5sn — sahne süresi (10sn) ile senkron. */
+function Vignette({ i, children }: { i: number; children: ReactNode }) {
+  return (
+    <div className="fs-vig absolute inset-0" style={{ animationDelay: `${i * 2.5}s` }}>
+      <div className="h-full rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm px-4 py-3 sm:px-5 sm:py-3.5 flex flex-col">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function VigHead({ label, live }: { label: string; live?: boolean }) {
+  return (
+    <div className="flex items-center justify-between mb-2 gap-2 shrink-0">
+      <span className="text-[11px] sm:text-xs text-white/80 font-semibold truncate">{label}</span>
+      {live && (
+        <span className="flex items-center gap-1.5 text-[9px] font-bold tracking-widest text-white/70 shrink-0">
+          <span className="fs-live-dot" />
+          CANLI
+        </span>
+      )}
+    </div>
+  );
+}
+
 function MeterScene() {
   return (
     <div className="absolute inset-0 flex items-center justify-between gap-4 sm:gap-8 px-5 sm:px-10">
-      {/* Marka: soldan büyüyerek girer */}
-      <div className="fs-in-left flex items-center shrink-0">
+      {/* Marka: logo üstte ortalı, altında ad — soldan büyüyerek girer */}
+      <div className="fs-in-left flex flex-col items-center shrink-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-o-meter-white.png" alt="" className="h-10 sm:h-16 w-auto" />
-        <span className="ml-2 font-display font-semibold text-3xl sm:text-5xl tracking-tight">
+        <img src="/logo-o-meter-white.png" alt="" className="h-14 sm:h-20 w-auto" />
+        <span className="mt-1.5 font-display font-semibold text-2xl sm:text-4xl tracking-tight">
           METER
         </span>
       </div>
 
-      {/* Canlı oylama kartı + uçuşan tepkiler */}
-      <div className="fs-in-right relative w-[54%] max-w-[400px] shrink">
-        <div className="rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm px-4 py-3.5 sm:px-5 sm:py-4">
-          <div className="flex items-center justify-between mb-3 gap-2">
-            <span className="text-xs sm:text-sm text-white/80 font-semibold truncate">
-              Mola içeceği hangisi?
+      {/* Dönen özellik reklamı: Katılım → Oylama → Skor → Soru-Cevap */}
+      <div className="fs-in-right relative w-[56%] max-w-[400px] h-36 sm:h-40 shrink">
+        {/* 1 — Katılım */}
+        <Vignette i={0}>
+          <VigHead label="Saniyeler içinde katılım" />
+          <div className="flex-1 flex flex-col items-center justify-center gap-2">
+            <span className="font-display font-bold text-2xl sm:text-3xl tracking-[0.3em]">
+              482 193
             </span>
-            <span className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-white/70 shrink-0">
-              <span className="fs-live-dot" />
-              CANLI
-            </span>
+            <div className="flex items-center gap-1.5">
+              {["🦊", "🐼", "🦁", "🐨", "🐸"].map((a, i) => (
+                <span
+                  key={i}
+                  className="fs-pop w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/15 grid place-items-center text-sm"
+                  style={{ animationDelay: `${0.3 + i * 0.18}s` }}
+                >
+                  {a}
+                </span>
+              ))}
+              <span className="text-[10px] text-white/60 font-semibold ml-1">+38</span>
+            </div>
           </div>
-          <div className="flex flex-col gap-2.5">
+        </Vignette>
+
+        {/* 2 — Canlı oylama */}
+        <Vignette i={1}>
+          <VigHead label="Mola içeceği hangisi?" live />
+          <div className="flex-1 flex flex-col justify-center gap-2">
             {METER_BARS.map((b) => (
               <div key={b.label} className="flex items-center gap-2">
                 <span className="text-[10px] sm:text-xs text-white/70 font-semibold w-10 sm:w-12 shrink-0 text-left">
                   {b.label}
                 </span>
-                <div className="flex-1 h-3 sm:h-3.5 rounded-full bg-white/10 overflow-hidden">
+                <div className="flex-1 h-3 rounded-full bg-white/10 overflow-hidden">
                   <div
                     className="fs-poll-bar h-full rounded-full"
                     style={
-                      {
-                        background: b.color,
-                        animationDelay: b.delay,
-                        "--wa": b.a,
-                        "--wb": b.b,
-                      } as CSSProperties
+                      { background: b.color, animationDelay: b.delay, "--wa": b.a, "--wb": b.b } as CSSProperties
                     }
                   />
                 </div>
               </div>
             ))}
           </div>
-        </div>
-        {/* Uçuşan emoji tepkileri (present ekranındaki gibi) */}
+        </Vignette>
+
+        {/* 3 — Quiz skor tablosu (podyum) */}
+        <Vignette i={2}>
+          <VigHead label="Quiz — skor tablosu 🏆" />
+          <div className="flex-1 flex items-end justify-center gap-2 sm:gap-3 pb-1">
+            {[
+              { m: "🥈", h: "58%", n: "Ece" },
+              { m: "🥇", h: "88%", n: "Mert" },
+              { m: "🥉", h: "42%", n: "Can" },
+            ].map((p, i) => (
+              <div key={p.n} className="flex flex-col items-center justify-end w-12 sm:w-14 h-full">
+                <span className="text-sm mb-0.5">{p.m}</span>
+                <div
+                  className="fs-podium w-full rounded-t-lg bg-gradient-to-b from-white/30 to-white/10"
+                  style={{ height: p.h, animationDelay: `${5.2 + i * 0.15}s` }}
+                />
+                <span className="text-[9px] text-white/60 font-semibold mt-0.5">{p.n}</span>
+              </div>
+            ))}
+          </div>
+        </Vignette>
+
+        {/* 4 — Soru-Cevap */}
+        <Vignette i={3}>
+          <VigHead label="Soru-Cevap" />
+          <div className="flex-1 flex flex-col justify-center gap-1.5">
+            <div className="fs-pop flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5" style={{ animationDelay: "7.7s" }}>
+              <span className="text-[10px] sm:text-xs text-white/85 truncate flex-1 text-left">Bir sonraki etkinlik nerede?</span>
+              <span className="text-[9px] font-bold text-white/70 shrink-0">▲ 14</span>
+            </div>
+            <div className="fs-pop flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5" style={{ animationDelay: "7.95s" }}>
+              <span className="text-[10px] sm:text-xs text-white/85 truncate flex-1 text-left">Kulis turu olacak mı?</span>
+              <span className="text-[9px] font-bold text-white/70 shrink-0">▲ 9</span>
+              <span className="text-[10px] text-emerald-300 shrink-0">✓</span>
+            </div>
+          </div>
+        </Vignette>
+
+        {/* Uçuşan emoji tepkileri — tüm tur boyunca */}
         <span className="fs-float absolute -right-1 bottom-1 text-lg" style={{ animationDelay: "0s" }}>❤️</span>
         <span className="fs-float absolute right-6 bottom-0 text-base" style={{ animationDelay: "1.2s" }}>🎉</span>
         <span className="fs-float absolute -right-4 bottom-3 text-base" style={{ animationDelay: "2.3s" }}>👍</span>
@@ -212,6 +285,43 @@ export default function StudioHero() {
         }
         @keyframes fs-poll { from { width: var(--wa); } to { width: var(--wb); } }
 
+        /* Mini reklam turu: 4 pencere × 2.5sn = 10sn (sahne süresiyle senkron) */
+        .fs-vig {
+          opacity: 0;
+          animation: fs-vig 10s linear infinite;
+        }
+        @keyframes fs-vig {
+          0% { opacity: 0; transform: translateY(10px); }
+          3%, 22% { opacity: 1; transform: translateY(0); }
+          25%, 100% { opacity: 0; transform: translateY(-8px); }
+        }
+
+        /* Pencere içi girişler: 10sn döngüye senkron — her turda yeniden oynar.
+           delay, elemanın ait olduğu pencerenin başlangıcına ayarlanır. */
+        .fs-pop {
+          opacity: 0;
+          animation: fs-pop 10s ease-out infinite;
+        }
+        @keyframes fs-pop {
+          0% { opacity: 0; transform: scale(0.5); }
+          4% { opacity: 1; transform: scale(1.06); }
+          6% { transform: scale(1); }
+          22% { opacity: 1; transform: scale(1); }
+          26%, 100% { opacity: 0; transform: scale(0.9); }
+        }
+
+        .fs-podium {
+          transform-origin: bottom;
+          transform: scaleY(0);
+          animation: fs-podium 10s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+        }
+        @keyframes fs-podium {
+          0% { transform: scaleY(0); }
+          6% { transform: scaleY(1); }
+          24% { transform: scaleY(1); }
+          27%, 100% { transform: scaleY(0); }
+        }
+
         .fs-live-dot {
           width: 7px; height: 7px; border-radius: 999px; background: #f87171;
           animation: fs-live 1.6s ease-in-out infinite;
@@ -246,8 +356,9 @@ export default function StudioHero() {
         @keyframes fs-float-c { to { transform: translate(-60px, 60px) scale(1.2); } }
 
         @media (prefers-reduced-motion: reduce) {
-          .fs-scene, .fs-word, .fs-bar, .fs-in-left, .fs-in-right,
-          .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker, .fs-blob { animation: none; }
+          .fs-scene, .fs-word, .fs-bar, .fs-in-left, .fs-in-right, .fs-vig,
+          .fs-pop, .fs-podium, .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker,
+          .fs-blob { animation: none; }
           .fs-word { transform: none; }
           .fs-bar { transform: none; }
           .fs-shine { display: none; }
