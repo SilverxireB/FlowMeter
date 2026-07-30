@@ -8,7 +8,7 @@ import {
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Logo from "@/components/Logo";
+import StudioHero from "@/components/StudioHero";
 import { auth } from "@/lib/firebase";
 
 /** Kurulu PWA (standalone) veya iOS ana ekran modunda mıyız? */
@@ -66,10 +66,10 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 bg-wash">
-      <div className="w-full max-w-sm card p-8 text-center">
-        <div className="flex items-center justify-center mb-1">
-          <Logo size="lg" variant="studio" />
-        </div>
+      <div className="w-full max-w-sm">
+        {/* Çatı kimlik: hub'daki sahnenin kompakt hâli — giriş markayla açılır */}
+        <StudioHero variant="compact" />
+        <div className="card p-8 text-center">
         <p className="text-muted text-sm mb-8">Sunum, etkinlik duvarı, tabela ve nabız ölçümü için giriş yap</p>
 
         <button onClick={signIn} disabled={busy} className="btn-accent w-full py-4">
@@ -81,6 +81,7 @@ export default function LoginPage() {
         <p className="text-muted text-xs mt-8">
           İzleyicilerin girişe ihtiyacı yok — onlar sadece kod girer.
         </p>
+        </div>
       </div>
     </main>
   );

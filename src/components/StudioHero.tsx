@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 
 /**
  * Hub açılış bannerı — Flow Studio "sahne"si + marka tanıtım turu.
@@ -31,9 +31,43 @@ const DURATION: Record<Scene, number> = {
   pulse: 14000,
 };
 
+/* ── Ortak parçalar ──────────────────────────────────────────────────────── */
+/** Alttan akan minik marka şeridi (intro + kompakt yüzeyler). */
+function TickerStrip({ bottom = "bottom-4" }: { bottom?: string }) {
+  const strip = [...TICKER, ...TICKER, ...TICKER];
+  return (
+    <div aria-hidden className={`absolute inset-x-0 ${bottom} overflow-hidden`}>
+      <div className="fs-ticker flex items-center gap-8 w-max pl-4">
+        {strip.map((t, i) => (
+          <span key={i} className="flex items-center gap-1.5 shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={t.o} alt="" className="h-3 w-auto opacity-90" />
+            <span className="fs-ghost text-xs font-bold tracking-[0.25em]">{t.name}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// O-halkası süpürmesi: sahne geçişinde imza hareket (logodaki dört yay).
+function sweepArc(r: number, startDeg: number, endDeg: number): string {
+  const rad = (d: number) => ((d - 90) * Math.PI) / 180;
+  const x1 = 60 + r * Math.cos(rad(startDeg));
+  const y1 = 60 + r * Math.sin(rad(startDeg));
+  const x2 = 60 + r * Math.cos(rad(endDeg));
+  const y2 = 60 + r * Math.sin(rad(endDeg));
+  return `M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`;
+}
+const SWEEP_ARCS = [
+  { d: sweepArc(48, 265, 395), color: "#2094f3", w: 8 },
+  { d: sweepArc(48, 85, 215), color: "#d62027", w: 8 },
+  { d: sweepArc(36, 350, 480), color: "#1b7d3a", w: 7 },
+  { d: sweepArc(36, 170, 300), color: "#f0913a", w: 7 },
+];
+
 /* ── Sahne 1: soru + imza çizgisi + hayalet marka şeridi ─────────────────── */
 function IntroScene() {
-  const strip = [...TICKER, ...TICKER, ...TICKER];
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
       <h1 className="font-display font-semibold tracking-tight text-3xl sm:text-5xl leading-tight">
@@ -51,17 +85,7 @@ function IntroScene() {
       <div className="fs-bar mt-6" aria-hidden>
         <span className="fs-shine" />
       </div>
-      <div aria-hidden className="absolute inset-x-0 bottom-4 overflow-hidden">
-        <div className="fs-ticker flex items-center gap-8 w-max pl-4">
-          {strip.map((t, i) => (
-            <span key={i} className="flex items-center gap-1.5 shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={t.o} alt="" className="h-3 w-auto opacity-90" />
-              <span className="fs-ghost text-xs font-bold tracking-[0.25em]">{t.name}</span>
-            </span>
-          ))}
-        </div>
-      </div>
+      <TickerStrip />
     </div>
   );
 }
@@ -102,16 +126,24 @@ function VigHead({ label, live }: { label: string; live?: boolean }) {
 function SceneFrame({
   img,
   name,
+  accent,
   floats,
   children,
 }: {
   img: string;
   name: string;
+  accent: string;
   floats?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <div className="absolute inset-0 flex items-center justify-between gap-4 sm:gap-8 px-5 sm:px-10">
+      {/* İmza çizgisi ürün rengine akar: sahne hangi ürünse alt çizgi o yayın rengi */}
+      <div
+        aria-hidden
+        className="fs-accentline absolute bottom-0 inset-x-0 h-1"
+        style={{ background: `linear-gradient(90deg, transparent 5%, ${accent}, transparent 95%)` }}
+      />
       {/* Marka: logo üstte ortalı, altında ad — soldan büyüyerek girer.
           ml: sol kenara yapışmasın, ortaya doğru dursun */}
       <div className="fs-in-left flex flex-col items-center shrink-0 ml-0 sm:ml-24">
@@ -134,6 +166,7 @@ function MeterScene() {
     <SceneFrame
       img="/logo-o-meter-white.png"
       name="METER"
+      accent="#2094f3"
       floats={
         <>
           <span className="fs-float pointer-events-none absolute right-0 bottom-1 text-lg" style={{ animationDelay: "0s" }}>❤️</span>
@@ -236,6 +269,7 @@ function WallScene() {
     <SceneFrame
       img="/logo-o-wall-white.png"
       name="WALL"
+      accent="#f0913a"
       floats={
         <>
           <span className="fs-float pointer-events-none absolute right-0 bottom-1 text-lg" style={{ animationDelay: ".4s" }}>❤️</span>
@@ -310,7 +344,7 @@ function WallScene() {
 /* ── Sahne 4: FlowSign — dijital tabela ──────────────────────────────────── */
 function SignScene() {
   return (
-    <SceneFrame img="/logo-o-sign-white.png" name="SIGN">
+    <SceneFrame img="/logo-o-sign-white.png" name="SIGN" accent="#1b7d3a">
       {/* 1 — Ekranını böl, tasarla */}
       <Vignette i={0}>
         <VigHead label="Ekranı böl, tasarla" />
@@ -371,7 +405,7 @@ function SignScene() {
 /* ── Sahne 5: FlowPulse — sürekli nabız ──────────────────────────────────── */
 function PulseScene() {
   return (
-    <SceneFrame img="/logo-o-pulse-white.png" name="PULSE">
+    <SceneFrame img="/logo-o-pulse-white.png" name="PULSE" accent="#d62027">
       {/* 1 — Tek dokunuş */}
       <Vignette i={0}>
         <VigHead label="Tek dokunuşla nabız" />
@@ -433,38 +467,114 @@ function PulseScene() {
 }
 
 /* ── Sahne makinesi ──────────────────────────────────────────────────────── */
-export default function StudioHero() {
+/**
+ * variant="full": hub'daki 5 sahnelik tanıtım turu.
+ * variant="compact": küçük yüzeyler (ör. login) için durağan marka sahnesi —
+ * aurora + FLOW STUDIO + akan şerit; sahne turu yok, yükseklik düşük.
+ */
+export default function StudioHero({ variant = "full" }: { variant?: "full" | "compact" }) {
   const [idx, setIdx] = useState(0);
   const scene = SCENES[idx];
+  const compact = variant === "compact";
+
+  // Dokunma dalgası: markaya dokununca aurora'da halka gibi yayılan ışık
+  const [ripples, setRipples] = useState<{ x: number; y: number; id: number }[]>([]);
+  function addRipple(e: ReactPointerEvent<HTMLDivElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    setRipples((rs) => [...rs.slice(-3), { x: e.clientX - r.left, y: e.clientY - r.top, id: Date.now() }]);
+  }
 
   useEffect(() => {
+    if (compact) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const t = window.setTimeout(() => setIdx((i) => (i + 1) % SCENES.length), DURATION[scene]);
     return () => window.clearTimeout(t);
-  }, [idx, scene]);
+  }, [idx, scene, compact]);
 
   return (
     <div
-      className="relative overflow-hidden rounded-3xl mb-8 text-white shadow-sm h-52 sm:h-60"
+      className={`relative overflow-hidden rounded-3xl text-white shadow-sm ${
+        compact ? "h-36 mb-6" : "h-52 sm:h-60 mb-8"
+      }`}
       style={{ background: "linear-gradient(150deg,#001e64 0%,#0b1030 55%,#131847 100%)" }}
+      onPointerDown={addRipple}
     >
       {/* Ambiyans: tüm sahnelerde sabit süzülen ışık bulutları */}
       <div aria-hidden className="fs-blob fs-blob-a" />
       <div aria-hidden className="fs-blob fs-blob-b" />
       <div aria-hidden className="fs-blob fs-blob-c" />
 
-      {/* Aktif sahne (remount → giriş animasyonları her turda oynar) */}
-      <div key={scene} className="fs-scene absolute inset-0 z-10">
-        {scene === "intro" && <IntroScene />}
-        {scene === "meter" && <MeterScene />}
-        {scene === "wall" && <WallScene />}
-        {scene === "sign" && <SignScene />}
-        {scene === "pulse" && <PulseScene />}
-      </div>
+      {compact ? (
+        /* Kompakt: durağan kimlik — logo + ad + akan şerit */
+        <div className="absolute inset-0 z-10">
+          <div className="fs-in-left absolute inset-0 flex items-center justify-center pb-5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-o-studio-white.png" alt="" className="h-10 w-auto" />
+            <span className="ml-2.5 font-display font-semibold text-2xl tracking-tight" aria-label="FLOW STUDIO">
+              FLOW STUDIO
+            </span>
+          </div>
+          <TickerStrip bottom="bottom-2.5" />
+        </div>
+      ) : (
+        <>
+          {/* Aktif sahne (remount → giriş animasyonları her turda oynar) */}
+          <div key={scene} className="fs-scene absolute inset-0 z-10">
+            {scene === "intro" && <IntroScene />}
+            {scene === "meter" && <MeterScene />}
+            {scene === "wall" && <WallScene />}
+            {scene === "sign" && <SignScene />}
+            {scene === "pulse" && <PulseScene />}
+          </div>
+
+          {/* İmza geçişi: her sahne değişiminde O-halkası süpürerek açar */}
+          <div key={`sweep-${scene}`} aria-hidden className="fs-sweep absolute inset-0 z-20 pointer-events-none grid place-items-center">
+            <svg viewBox="0 0 120 120" className="w-44 h-44 sm:w-56 sm:h-56">
+              {SWEEP_ARCS.map((a) => (
+                <path key={a.color} d={a.d} fill="none" stroke={a.color} strokeWidth={a.w} strokeLinecap="round" />
+              ))}
+            </svg>
+          </div>
+        </>
+      )}
+
+      {/* Dokunma dalgaları */}
+      {ripples.map((rp) => (
+        <span
+          key={rp.id}
+          className="fs-ripple absolute z-30 pointer-events-none"
+          style={{ left: rp.x, top: rp.y }}
+          onAnimationEnd={() => setRipples((rs) => rs.filter((x) => x.id !== rp.id))}
+        />
+      ))}
 
       <style>{`
         .fs-scene { animation: fs-scene-in 0.6s ease-out; }
         @keyframes fs-scene-in { from { opacity: 0; } }
+
+        /* O-halkası süpürmesi: geçişte belirip büyüyerek kaybolur */
+        .fs-sweep { opacity: 0; animation: fs-sweep 0.9s cubic-bezier(0.22, 1, 0.36, 1); }
+        @keyframes fs-sweep {
+          0% { opacity: 0; transform: scale(0.25) rotate(-50deg); }
+          30% { opacity: 0.9; }
+          100% { opacity: 0; transform: scale(2.1) rotate(15deg); }
+        }
+
+        /* Ürün rengi imza çizgisi: yumuşak nefes */
+        .fs-accentline { animation: fs-accent 3s ease-in-out infinite; }
+        @keyframes fs-accent { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.95; } }
+
+        /* Dokunma dalgası */
+        .fs-ripple {
+          width: 260px; height: 260px; margin-left: -130px; margin-top: -130px;
+          border-radius: 9999px;
+          background: radial-gradient(circle, rgba(255,255,255,0.25), transparent 62%);
+          animation: fs-ripple 0.7s ease-out forwards;
+        }
+        @keyframes fs-ripple {
+          from { transform: scale(0.15); opacity: 0.9; }
+          to { transform: scale(1.7); opacity: 0; }
+        }
 
         .fs-word {
           transform: translateY(130%);
@@ -622,7 +732,9 @@ export default function StudioHero() {
         @media (prefers-reduced-motion: reduce) {
           .fs-scene, .fs-word, .fs-bar, .fs-in-left, .fs-in-right, .fs-vig,
           .fs-pop, .fs-podium, .fs-heart, .fs-kenburns, .fs-xfade, .fs-line,
-          .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker, .fs-blob { animation: none; }
+          .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker, .fs-blob,
+          .fs-sweep, .fs-accentline, .fs-ripple { animation: none; }
+          .fs-ripple { opacity: 0; }
           .fs-word { transform: none; }
           .fs-bar { transform: none; }
           .fs-shine { display: none; }
