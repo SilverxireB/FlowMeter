@@ -336,8 +336,8 @@ export default function DashboardPage() {
             <div className="grid gap-5 sm:grid-cols-2">
               {/* FlowMeter */}
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
-                {/* Panel tonları O-halkasının yaylarından: Meter mavi, Wall turuncu,
-                    Pulse yeşil, Sign kendi moru; kırmızı yay yalnız uyarıya saklı */}
+                {/* Panel tonları O-halkasının dört yayından (kullanıcı kararı):
+                    Meter mavi, Wall turuncu, Sign kırmızı, Pulse yeşil */}
                 <div className="p-6" style={{ background: "linear-gradient(160deg,#e7f2fe 0%,#ffffff 100%)" }}>
                   <Logo size="lg" />
                   <p className="text-muted text-sm mt-3">İnteraktif sunum & canlı oylama</p>
@@ -382,9 +382,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* FlowSign — beyaz gövde, üst panel mor tonu */}
+              {/* FlowSign — beyaz gövde, üst panel kırmızı yay tonu */}
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
-                <div className="p-6" style={{ background: "linear-gradient(160deg,#f0eeff 0%,#ffffff 100%)" }}>
+                <div className="p-6" style={{ background: "linear-gradient(160deg,#fdeceb 0%,#ffffff 100%)" }}>
                   <Logo size="lg" variant="sign" />
                   <p className="text-muted text-sm mt-3">Video-wall & dijital tabela</p>
                 </div>
