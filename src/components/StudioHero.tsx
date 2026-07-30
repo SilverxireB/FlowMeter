@@ -52,12 +52,12 @@ function IntroScene() {
         <span className="fs-shine" />
       </div>
       <div aria-hidden className="absolute inset-x-0 bottom-4 overflow-hidden">
-        <div className="fs-ticker flex items-center gap-12 w-max pl-4">
+        <div className="fs-ticker flex items-center gap-8 w-max pl-4">
           {strip.map((t, i) => (
-            <span key={i} className="flex items-center gap-3 shrink-0">
+            <span key={i} className="flex items-center gap-1.5 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={t.o} alt="" className="h-6 w-auto opacity-90" />
-              <span className="fs-ghost text-2xl font-bold tracking-[0.25em]">{t.name}</span>
+              <img src={t.o} alt="" className="h-3 w-auto opacity-90" />
+              <span className="fs-ghost text-xs font-bold tracking-[0.25em]">{t.name}</span>
             </span>
           ))}
         </div>
@@ -114,7 +114,7 @@ function SceneFrame({
     <div className="absolute inset-0 flex items-center justify-between gap-4 sm:gap-8 px-5 sm:px-10">
       {/* Marka: logo üstte ortalı, altında ad — soldan büyüyerek girer.
           ml: sol kenara yapışmasın, ortaya doğru dursun */}
-      <div className="fs-in-left flex flex-col items-center shrink-0 ml-2 sm:ml-16">
+      <div className="fs-in-left flex flex-col items-center shrink-0 ml-4 sm:ml-24">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={img} alt="" className="h-16 sm:h-24 w-auto" />
         <span className="mt-2 font-display font-semibold text-3xl sm:text-5xl tracking-tight">
