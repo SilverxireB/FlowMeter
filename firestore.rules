@@ -161,20 +161,38 @@ service cloud.firestore {
 
       // Medya: misafir (anonim) ekler; byte'lar Cloudinary'de, burada metadata.
       // Moderasyon açıkken status 'pending' olmak ZORUNDA (kendi kendini onaylayamaz).
+      // SUNUCU KAPILARI (istemci kontrolü aşılamaz): kapalı duvara yazma YOK,
+      // url yalnız Cloudinary, nickname ≤30, aktif oturum eşleşmesi, video süresi
+      // duvar limitine bağlı (+3 sn tolerans).
       match /media/{mediaId} {
         function wall() {
           return get(/databases/$(database)/documents/walls/$(wallId)).data;
         }
-        allow read: if true;
-        allow create: if request.resource.data.keys().hasOnly(
+        function mediaShapeOk() {
+          return request.resource.data.keys().hasOnly(
               ['voterId','nickname','type','cloudinaryId','url','w','h','durationMs','status','likes','sessionId','createdAt'])
-          && request.resource.data.voterId is string
-          && request.resource.data.type in ['image','video']
-          && request.resource.data.url is string
-          && request.resource.data.get('likes', 0) == 0
-          && (request.resource.data.type == 'image' || wall().get('allowVideo', true) == true)
-          && request.resource.data.status ==
-             (wall().get('moderation', false) == true ? 'pending' : 'approved');
+            && request.resource.data.voterId is string
+            && request.resource.data.type in ['image','video']
+            && request.resource.data.url is string
+            && request.resource.data.url.matches('https://res\\.cloudinary\\.com/.*')
+            && (!('nickname' in request.resource.data)
+                || (request.resource.data.nickname is string
+                    && request.resource.data.nickname.size() <= 30))
+            && request.resource.data.get('sessionId', '') == wall().get('sessionId', '')
+            && request.resource.data.get('likes', 0) == 0
+            && request.resource.data.status ==
+               (wall().get('moderation', false) == true ? 'pending' : 'approved');
+        }
+        allow read: if true;
+        allow create: if mediaShapeOk() && (
+          // Sahip kendi duvarına her zaman ekleyebilir (kapalıyken de)
+          (request.auth != null && wall().ownerId == request.auth.uid)
+          // Misafir: duvar açıkken + video kurallarına uyarak
+          || (wall().get('closed', false) != true
+              && (request.resource.data.type == 'image'
+                  || (wall().get('allowVideo', true) == true
+                      && request.resource.data.get('durationMs', 0) <= (wall().get('videoLimitSec', 60) + 3) * 1000)))
+        );
         // Beğeni: herkes yalnız 'likes' alanını +1 artırabilir (misafir ❤);
         // diğer tüm değişiklikler (moderasyon/onayla/reddet) ve silme sadece sahibinde.
         allow update: if
@@ -214,7 +232,8 @@ service cloud.firestore {
       }
 
       // Yarışma oyları: misafir KENDİ oyunu yazar (doc id = voterId → kişi başı
-      // tek, değiştirilebilir). Aktif yarışmanın contestId'si zorunlu; silme sahibinde.
+      // tek, değiştirilebilir). Aktif yarışmanın contestId'si zorunlu; süre
+      // dolduysa oy YOK (+2 sn ağ toleransı — kokpit kapatmasa bile). Silme sahibinde.
       match /contestVotes/{voterId} {
         function w() { return get(/databases/$(database)/documents/walls/$(wallId)).data; }
         allow read: if true;
@@ -222,30 +241,39 @@ service cloud.firestore {
           && request.resource.data.mediaId is string
           && w().get('contest', null) != null
           && w().contest.get('status','') == 'running'
-          && request.resource.data.contestId == w().contest.id;
+          && request.resource.data.contestId == w().contest.id
+          && (w().contest.get('endsAt', null) == null
+              || request.time.toMillis() < w().contest.endsAt.toMillis() + 2000);
         allow delete: if request.auth != null
           && get(/databases/$(database)/documents/walls/$(wallId)).data.ownerId == request.auth.uid;
       }
 
       // Çekiliş kayıtları: misafir isim+sicil girer (doc id = sicil → aynı sicil
-      // tek kayıt). Yalnız kayıt türünde + kayıt açıkken. Silme sahibinde.
+      // tek kayıt). Yalnız kayıt türünde + kayıt açıkken. GÜNCELLEME yalnız aynı
+      // cihazdan (voterId eşleşmeli) — misafir başkasının kaydını ezemez. Silme sahibinde.
       match /raffleEntries/{sicil} {
         function w() { return get(/databases/$(database)/documents/walls/$(wallId)).data; }
+        function entryShapeOk() {
+          return request.resource.data.keys().hasOnly(['name','sicil','voterId','createdAt'])
+            && request.resource.data.name is string
+            && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 40
+            && request.resource.data.sicil is string
+            && request.resource.data.sicil.size() >= 1 && request.resource.data.sicil.size() <= 40
+            && request.resource.data.voterId is string;
+        }
+        function guestWindowOpen() {
+          return w().get('raffle', null) != null
+            && w().raffle.get('type','') == 'registration'
+            && w().raffle.get('registerOpen', true) == true;
+        }
         allow read: if true;
-        allow create, update: if request.resource.data.keys().hasOnly(['name','sicil','voterId','createdAt'])
-          && request.resource.data.name is string
-          && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 40
-          && request.resource.data.sicil is string
-          && request.resource.data.sicil.size() >= 1 && request.resource.data.sicil.size() <= 40
-          && request.resource.data.voterId is string
-          && (
-            // Organizatör toplu liste (Excel) yükleyebilir
-            (request.auth != null && w().ownerId == request.auth.uid)
-            // ya da misafir, kayıt türü + kayıt açıkken kendi girer
-            || (w().get('raffle', null) != null
-                && w().raffle.get('type','') == 'registration'
-                && w().raffle.get('registerOpen', true) == true)
-          );
+        allow create: if entryShapeOk()
+          && ((request.auth != null && w().ownerId == request.auth.uid) // toplu liste (Excel)
+              || guestWindowOpen());
+        allow update: if entryShapeOk()
+          && ((request.auth != null && w().ownerId == request.auth.uid)
+              || (guestWindowOpen()
+                  && request.resource.data.voterId == resource.data.get('voterId', '')));
         allow delete: if request.auth != null && w().ownerId == request.auth.uid;
       }
 
@@ -259,9 +287,28 @@ service cloud.firestore {
     }
 
     // Join kodu -> sunum/duvar lookup tablosu ({presentationId} veya {id,kind:"wall"}).
+    // Oluşturma/silme HEDEFİN SAHİBİNE bağlı — başka bir hesap, bir etkinliğin
+    // kodunu silip katılımı kıramaz. (Parent doküman koddan ÖNCE yaratılır;
+    // silmede batch içi get() ön-durumu okur → sahiplik kontrolü geçer.)
     match /joinCodes/{code} {
+      function ownsWall(id) {
+        return get(/databases/$(database)/documents/walls/$(id)).data.ownerId == request.auth.uid;
+      }
+      function ownsDeck(id) {
+        return get(/databases/$(database)/documents/presentations/$(id)).data.ownerId == request.auth.uid;
+      }
       allow read: if true;
-      allow create, delete: if request.auth != null;
+      allow create: if request.auth != null && (
+        (request.resource.data.keys().hasOnly(['id', 'kind'])
+          && request.resource.data.kind == 'wall'
+          && ownsWall(request.resource.data.id))
+        || (request.resource.data.keys().hasOnly(['presentationId'])
+          && ownsDeck(request.resource.data.presentationId))
+      );
+      allow delete: if request.auth != null && (
+        (resource.data.get('kind', '') == 'wall' && ownsWall(resource.data.id))
+        || (resource.data.get('kind', '') != 'wall' && ownsDeck(resource.data.presentationId))
+      );
       allow update: if false;
     }
 

@@ -575,10 +575,16 @@ function RaffleTab({ wallId, prize, defaultName }: { wallId: string | null; priz
     setBusy(true);
     setErr(null);
     try {
-      await registerRaffle(wallId, name, sicil);
+      await withTimeout(registerRaffle(wallId, name, sicil));
       setDone(sicil.trim());
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Kayıt başarısız.");
+      // Rules reddi (başka cihazın kaydını ezme girişimi / kayıt kapandı) anlaşılır olsun
+      const code = (e as { code?: string })?.code ?? "";
+      setErr(
+        code === "permission-denied"
+          ? "Bu sicil zaten başka bir telefondan kayıtlı (ya da kayıt kapandı). Sicilini kontrol et; sorun sürerse organizatöre söyle."
+          : e instanceof Error ? e.message : "Kayıt başarısız."
+      );
     } finally {
       setBusy(false);
     }
