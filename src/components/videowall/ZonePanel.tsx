@@ -461,6 +461,18 @@ export default function ZonePanel({
                 {/* Ayrıntılar yalnız ⚙ ile açılınca — panel kompakt kalır */}
                 {openItemId === it.id && (
                   <>
+                    {(it.kind === "image" || it.kind === "video" || it.kind === "url") && (
+                      <div className="pl-9">
+                        {/* Yeniden adlandırma: kütüphanede/listede ayırt etmek için */}
+                        <input
+                          defaultValue={it.name ?? ""}
+                          placeholder="Ad (ör. Yaz Kampanyası Afişi)"
+                          onBlur={(e) => patchItem(it.id, { name: e.target.value.trim().slice(0, 60) || undefined })}
+                          className={`${inputCls} px-3 py-2 text-sm w-full`}
+                          aria-label="Öğe adı"
+                        />
+                      </div>
+                    )}
                     {it.kind === "text" && (
                       <div className="flex flex-col gap-2 pl-9">
                         <input defaultValue={it.title ?? ""} placeholder="Başlık" onBlur={(e) => patchItem(it.id, { title: e.target.value })} className={`${inputCls} px-3 py-2 text-sm`} />
