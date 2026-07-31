@@ -76,7 +76,16 @@ Edit sayfası sahibi olmayana 🔒 "yetkin yok" ekranı gösterir (İzle + geri)
 > Not v2: yerleşim **hücre-birleştirme** modeli (video wall'a doğru olan bu — alanlar
 > fiziksel ekran sınırına hizalı kalır). Serbest piksel sürükle-taşı gerekirse v5+.
 > Not v3: FlowSign yüklemeleri `keepOriginal:true` (tabela tam çözünürlük ister).
-> Not: içerik alana **STRETCH** (object-fit: fill) edilir — sığdır/doldur seçeneği YOK.
+> Not: içerik alana **STRETCH** (object-fit: fill) edilir — sığdır/doldur seçeneği YOK
+> (kullanıcı kararı, 2026-07: standart bu; editör bunun yerine alanın **hedef
+> çözünürlüğünü** söyler — panelde 📐 bandı). URL öğesinde **zoom** (%25–150):
+> iframe büyük sanal pencerede render edilip ölçeklenir (şirket dashboard'ları
+> için Chrome zoom derdi biter; `ZoneItem.zoom`).
+> Editör güvenlik ağları (2026-07): tek adım **Geri Al** (yerleşim/içerik),
+> ızgara değişiminde içerik İLK ALANA taşınır (silinmez), yayın netliği
+> (yeşil "✓ Yayında" şeridi + çevrimdışı publish mesajı), kütüphane kopyası
+> takvim taşımaz. Perde: video ilk-kare bekler (kırpışma yok) + unmount'ta
+> kaynak bırakır.
 
 ### Cila turları (online ürünü güçlendirme — hepsi CANLI)
 - **Tier 1:** Wake Lock + tek-tık tam ekran · METİN & SAAT öğesi · editörde canlı
