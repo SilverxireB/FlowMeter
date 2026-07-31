@@ -31,7 +31,25 @@ function ItemFace({ item }: { item?: ZoneItem }) {
     );
   if (item.kind === "clock")
     return <div className="absolute inset-0 grid place-items-center text-base" style={{ background: item.bg ?? "#0d102f" }}>🕐</div>;
-  return <div className="absolute inset-0 grid place-items-center bg-black/40 text-base">🔗</div>;
+  // URL: gerçek sayfanın minyatürü (editör önizlemesiyle aynı; lazy — görünene
+  // kadar yüklenmez). Site iframe'i reddederse alttaki 🔗 kalır.
+  const src = /^https?:\/\//i.test(item.src ?? "") ? item.src : undefined;
+  if (!src) return <div className="absolute inset-0 grid place-items-center bg-black/40 text-base">🔗</div>;
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 grid place-items-center bg-black/40 text-base">🔗</div>
+      <iframe
+        src={src}
+        title={item.name || "sayfa"}
+        sandbox="allow-scripts allow-same-origin"
+        referrerPolicy="no-referrer"
+        loading="lazy"
+        tabIndex={-1}
+        className="absolute top-0 left-0 border-0 pointer-events-none"
+        style={{ width: "400%", height: "400%", transform: "scale(0.25)", transformOrigin: "top left" }}
+      />
+    </div>
+  );
 }
 
 export default function WallThumb({ vw }: { vw: Videowall }) {
