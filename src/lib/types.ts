@@ -514,7 +514,8 @@ export interface Videowall {
   ownerId: string;
   ownerName?: string; // listede "kimin duvarı" (yetkisiz sönük kartlarda bilgi)
   name: string;
-  slug?: string; // insan-dostu yayın linki: /flowsign/{slug}
+  slug?: string; // insan-dostu yayın linki: /flowsign/{slug} — ad değişince YENİLENİR
+  slugHistory?: string[]; // eski sluglar (yeniden adlandırma) — eski linkler kararmasın
   width: number; // toplam çözünürlük px
   height: number;
   cols: number; // fiziksel ekran ızgarası

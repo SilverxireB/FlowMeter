@@ -269,12 +269,27 @@ export async function updateVideowall(id: string, patch: Partial<Videowall>): Pr
 }
 
 /**
- * Yeniden adlandır. SLUG DEĞİŞMEZ: /flowsign/{slug} linki sahada 7/24 açık
- * ekranlarda — isim değişikliği yayını asla karartmamalı (link/QR sabit kalır).
+ * Yeniden adlandır. Kullanıcı kararı (2026-07): yayın linki (slug) ekran
+ * adıyla BİRLİKTE değişir. Sahadaki 7/24 ekranlar kararmasın diye eski slug
+ * `slugHistory`ye eklenir — /flowsign/[slug] geçmiş sluglarla da bulur.
  */
 export async function renameVideowall(id: string, name: string): Promise<void> {
   const nm = name.trim().slice(0, 80);
-  await updateDoc(doc(db(), "videowalls", id), { name: nm, updatedAt: serverTimestamp() });
+  const patch: Record<string, unknown> = { name: nm, updatedAt: serverTimestamp() };
+  try {
+    const snap = await getDoc(doc(db(), "videowalls", id));
+    const cur = snap.exists() ? (snap.data() as Videowall) : null;
+    const newSlug = await uniqueSlug(nm, id);
+    if (cur && cur.slug !== newSlug) {
+      patch.slug = newSlug;
+      const hist = new Set([...(cur.slugHistory ?? []), ...(cur.slug ? [cur.slug] : [])]);
+      hist.delete(newSlug);
+      patch.slugHistory = Array.from(hist).slice(-10); // sınırsız büyümesin
+    }
+  } catch {
+    /* slug üretilemezse yalnız ad değişir (link bozulmaz) */
+  }
+  await updateDoc(doc(db(), "videowalls", id), patch);
 }
 
 /** Eski (slug'sız) duvarlara isimden slug doldur (edit sayfası açılınca bir kez). */
@@ -374,6 +389,40 @@ export function watchScreens(vwId: string, cb: (s: ScreenBeat[]) => void): () =>
 /** Bayat ekran kaydını sil (kokpit temizliği). */
 export async function deleteScreenBeat(vwId: string, screenId: string): Promise<void> {
   await deleteDoc(doc(db(), "videowalls", vwId, "screens", screenId));
+}
+
+/** ESKİ (yeniden adlandırma öncesi) slug ile duvar izle — eski link/QR kararmasın.
+ *  Aynı dayanıklı-abonelik kalıbı (hata → içerik korunur + backoff yeniden bağlanma). */
+export function watchVideowallBySlugHistory(slug: string, cb: (v: Videowall | null) => void): () => void {
+  let stopped = false;
+  let unsub: (() => void) | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let attempt = 0;
+  const start = () => {
+    if (stopped) return;
+    unsub = onSnapshot(
+      query(collection(db(), "videowalls"), where("slugHistory", "array-contains", slug)),
+      (snap) => {
+        attempt = 0;
+        if (snap.empty) return cb(null);
+        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Videowall);
+        docs.sort((a, b) => (b.updatedAt?.toMillis() ?? 0) - (a.updatedAt?.toMillis() ?? 0));
+        cb(docs[0]);
+      },
+      () => {
+        unsub?.();
+        unsub = null;
+        attempt += 1;
+        timer = setTimeout(start, Math.min(60_000, 2000 * 2 ** Math.min(attempt - 1, 5)));
+      }
+    );
+  };
+  start();
+  return () => {
+    stopped = true;
+    unsub?.();
+    if (timer) clearTimeout(timer);
+  };
 }
 
 /** Liste kartları için canlılık özeti (tek seferlik okuma — polling yok). */

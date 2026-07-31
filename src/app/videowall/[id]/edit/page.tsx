@@ -293,7 +293,7 @@ export default function VideowallEditPage() {
               <a href={playUrl} target="_blank" className="rounded-xl bg-accent hover:bg-accent-dark text-white px-3 py-2 text-sm font-semibold">Aç ↗</a>
             </div>
             <p className="text-white/50 text-xs mt-2 leading-relaxed">
-              Linki tabela PC&apos;sinde Chrome ile aç, tam ekran yap — her zaman <b>son yayınlanan</b> hâli oynatır ve adı değiştirsen de <b>sabit kalır</b>.
+              Linki tabela PC&apos;sinde Chrome ile aç, tam ekran yap — her zaman <b>son yayınlanan</b> hâli oynatır. Adı değiştirince link de yenilenir; <b>eski link çalışmaya devam eder</b>.
               {lastPublished && <span className="text-white/60"> · Son yayın: {lastPublished}</span>}
               <br />
               Birden çok TV&apos;yi tek duvar yapacaksan: ekran kartında TV&apos;leri <b>tek birleşik görüntü</b> olarak ayarla (Surround/Eyefinity ya da video-wall denetleyici); yayında ⊞ ile sırayı kontrol et.

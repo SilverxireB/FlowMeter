@@ -127,8 +127,9 @@ tamamen kaldırıldı. Hub kartı gradyanı #1e1b4b→#312e81.
   `sandbox="allow-scripts allow-same-origin allow-forms"` + no-referrer
   (javascript: XSS ve üst-pencere yönlendirme kapatıldı).
 - Saat penceresi gece yarısını aşabilir (22:00–06:00 → wrap-around).
-- Rename SLUG'I DEĞİŞTİRMEZ (7/24 ekran linki kararmaz); /flowsign/[slug]
-  slug bulunamazsa id ile de dener.
+- Rename SLUG'I DA DEĞİŞTİRİR (kullanıcı kararı 2026-07: link ekran adını
+  izler); eski sluglar `slugHistory`de tutulur → /flowsign/[slug] zinciri
+  güncel slug → eski slug → id (7/24 ekran linki YİNE kararmaz).
 - Ekran sayısı ekseni başına 24 ile sınırlı (1MB doküman/tarayıcı koruması).
 - Saat penceresi öğe düşürünce akış başa sarmaz (gösterilen öğe korunur).
 

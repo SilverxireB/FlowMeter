@@ -8,7 +8,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import PlayerStage from "@/components/videowall/PlayerStage";
-import { watchVideowall, watchVideowallBySlug } from "@/lib/videowalls";
+import { watchVideowall, watchVideowallBySlug, watchVideowallBySlugHistory } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
 
 export default function FlowsignPlayPage() {
@@ -17,17 +17,27 @@ export default function FlowsignPlayPage() {
 
   useEffect(() => {
     const key = decodeURIComponent(slug);
+    // Bulma zinciri: güncel slug → eski slug (yeniden adlandırma) → doküman id.
+    // Eski link/QR sahadaki 7/24 ekranı asla karartmaz.
+    let unsubHist: (() => void) | null = null;
     let unsubId: (() => void) | null = null;
     const unsubSlug = watchVideowallBySlug(key, (v) => {
       if (v) {
         setVw(v);
         return;
       }
-      // Slug bulunamadı → id ile dene (bir kez bağlan, sonra o da canlı izler).
-      if (!unsubId) unsubId = watchVideowall(key, setVw);
+      if (!unsubHist)
+        unsubHist = watchVideowallBySlugHistory(key, (h) => {
+          if (h) {
+            setVw(h);
+            return;
+          }
+          if (!unsubId) unsubId = watchVideowall(key, setVw);
+        });
     });
     return () => {
       unsubSlug();
+      unsubHist?.();
       unsubId?.();
     };
   }, [slug]);
