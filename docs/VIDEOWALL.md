@@ -81,6 +81,11 @@ Edit sayfası sahibi olmayana 🔒 "yetkin yok" ekranı gösterir (İzle + geri)
 > çözünürlüğünü** söyler — panelde 📐 bandı). URL öğesinde **zoom** (%25–150):
 > iframe büyük sanal pencerede render edilip ölçeklenir (şirket dashboard'ları
 > için Chrome zoom derdi biter; `ZoneItem.zoom`).
+> **Sunum Modu** (2026-07, `playMode: "auto"|"manual"` kök alanı — yayından
+> bağımsız, perde anında uyar): ekran başına seçim; manual'da otomatik akış
+> kapalı, kumanda/klavye gezinir (→/←/boşluk/PgUp-PgDn, 150ms debounce),
+> uçlarda durur, sağ altta sönen sayaç (en büyük alan), B=siyah, F=tam ekran,
+> F5 yenilemez. Normal tabela ekranları etkilenmez.
 > Editör güvenlik ağları (2026-07): tek adım **Geri Al** (yerleşim/içerik),
 > ızgara değişiminde içerik İLK ALANA taşınır (silinmez), yayın netliği
 > (yeşil "✓ Yayında" şeridi + çevrimdışı publish mesajı), kütüphane kopyası
