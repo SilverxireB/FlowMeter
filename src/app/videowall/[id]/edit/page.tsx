@@ -35,6 +35,19 @@ import { withTimeout } from "@/lib/withTimeout";
 const inputCls =
   "rounded-lg bg-white/10 border border-white/15 px-3 py-2 focus:outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/30";
 
+// Sıra-bağımsız derin karşılaştırma: Firestore map alan sırasını değiştirebiliyor —
+// içerik AYNIYKEN "yayınlanmamış değişiklik var" uyarısı kalıcı görünüyordu.
+function sortDeep(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(sortDeep);
+  if (v && typeof v === "object") {
+    const o: Record<string, unknown> = {};
+    for (const k of Object.keys(v as Record<string, unknown>).sort()) o[k] = sortDeep((v as Record<string, unknown>)[k]);
+    return o;
+  }
+  return v;
+}
+const stable = (v: unknown) => JSON.stringify(sortDeep(v));
+
 type Confirm = { title: string; message: string; confirmLabel?: string; danger?: boolean; run: () => void };
 
 export default function VideowallEditPage() {
@@ -95,7 +108,7 @@ export default function VideowallEditPage() {
     if (!vw) return false;
     if (!vw.live) return true; // eski ekran: hiç yayınlanmamış
     const pick = (s: { zones?: Videowall["zones"]; cols: number; rows: number; width: number; height: number }) =>
-      JSON.stringify({ z: s.zones ?? [], c: s.cols, r: s.rows, w: s.width, h: s.height });
+      stable({ z: s.zones ?? [], c: s.cols, r: s.rows, w: s.width, h: s.height });
     return pick(vw) !== pick(vw.live);
   }, [vw]);
   const [publishing, setPublishing] = useState(false);

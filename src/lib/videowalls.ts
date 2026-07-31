@@ -376,6 +376,33 @@ export async function deleteScreenBeat(vwId: string, screenId: string): Promise<
   await deleteDoc(doc(db(), "videowalls", vwId, "screens", screenId));
 }
 
+/** Liste kartları için canlılık özeti (tek seferlik okuma — polling yok). */
+export async function fetchScreenSummaries(
+  ids: string[]
+): Promise<Record<string, { online: number; lastSeen: number }>> {
+  const ONLINE_MS = 5 * 60_000;
+  const now = Date.now();
+  const out: Record<string, { online: number; lastSeen: number }> = {};
+  await Promise.all(
+    ids.map(async (id) => {
+      try {
+        const snap = await getDocs(collection(db(), "videowalls", id, "screens"));
+        let online = 0;
+        let lastSeen = 0;
+        snap.docs.forEach((d) => {
+          const t = (d.data().lastSeenAt as { toMillis?: () => number } | null)?.toMillis?.() ?? 0;
+          if (t > lastSeen) lastSeen = t;
+          if (now - t < ONLINE_MS) online += 1;
+        });
+        out[id] = { online, lastSeen };
+      } catch {
+        /* rules henüz yayınlanmadıysa sessiz geç */
+      }
+    })
+  );
+  return out;
+}
+
 /** Taslağı YAYINA al ("Kaydet & Yayınla") — perde bundan sonra bu hâli oynatır. */
 export async function publishVideowall(v: Videowall): Promise<void> {
   const snap = stripUndefined({ zones: v.zones ?? [], cols: v.cols, rows: v.rows, width: v.width, height: v.height });

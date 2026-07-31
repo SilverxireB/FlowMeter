@@ -13,7 +13,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import Logo from "@/components/Logo";
 import { Icon } from "@/components/videowall/icons";
 import { useAuthUser } from "@/lib/hooks";
-import { clampScreens, createVideowall, deleteVideowall, duplicateVideowall, listAllVideowalls } from "@/lib/videowalls";
+import { clampScreens, createVideowall, deleteVideowall, duplicateVideowall, fetchScreenSummaries, listAllVideowalls } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
 
 // DİKKAT: preset çözünürlükleri fiziksel gerçek — 3 dikey (portre) TV yan yana
@@ -48,9 +48,23 @@ export default function VideowallListPage() {
   const [err, setErr] = useState<string | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
 
+  // Kart canlılığı: ekran başına çevrimiçi cihaz sayısı + son görülme (heartbeat)
+  const [beats, setBeats] = useState<Record<string, { online: number; lastSeen: number }>>({});
   const refresh = useCallback(async () => {
-    if (user) setWalls(await listAllVideowalls());
+    if (!user) return;
+    const list = await listAllVideowalls();
+    setWalls(list);
+    setBeats(await fetchScreenSummaries(list.map((v) => v.id)));
   }, [user]);
+
+  const beatLabel = (id: string) => {
+    const b = beats[id];
+    if (!b || (!b.online && !b.lastSeen)) return null;
+    if (b.online) return { text: `● ${b.online} çevrimiçi`, cls: "text-emerald-300" };
+    const d = Date.now() - b.lastSeen;
+    const ago = d < 3600_000 ? `${Math.max(1, Math.round(d / 60_000))} dk` : d < 86_400_000 ? `${Math.round(d / 3600_000)} sa` : `${Math.round(d / 86_400_000)} gün`;
+    return { text: `○ son görülme ${ago} önce`, cls: "text-white/40" };
+  };
 
   const mine = useMemo(() => walls.filter((v) => v.ownerId === user?.uid), [walls, user]);
   const others = useMemo(() => walls.filter((v) => v.ownerId !== user?.uid), [walls, user]);
@@ -211,6 +225,9 @@ export default function VideowallListPage() {
                   <div className="min-w-0">
                     <p className="font-display font-semibold truncate">{v.name}</p>
                     <p className="text-white/50 text-xs mt-0.5 tabular-nums">{v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan</p>
+                    {beatLabel(v.id) && (
+                      <p className={`text-xs mt-1 font-semibold ${beatLabel(v.id)!.cls}`}>{beatLabel(v.id)!.text}</p>
+                    )}
                   </div>
                   <div className="flex items-center shrink-0">
                     <button onClick={() => duplicate(v)} className="w-9 h-9 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10" title="Kopyala" aria-label="Kopyala">
@@ -248,6 +265,9 @@ export default function VideowallListPage() {
                       {v.width}×{v.height} · {v.cols}×{v.rows}
                       {v.ownerName ? <span> · 👤 {v.ownerName}</span> : null}
                     </p>
+                    {beatLabel(v.id) && (
+                      <p className={`text-xs mt-1 font-semibold ${beatLabel(v.id)!.cls}`}>{beatLabel(v.id)!.text}</p>
+                    )}
                   </div>
                   <div className="flex gap-2 items-center">
                     <a href={playHref(v)} target="_blank" className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold text-white/70 hover:bg-white/15">▶ İzle ↗</a>

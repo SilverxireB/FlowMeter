@@ -171,9 +171,7 @@ export default function AdminStatsPage() {
 
       <section className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">Kullanıcı aktivitesi</h1>
-        <p className="text-muted text-sm mb-6">
-          Doküman düzeyinde sayım (oy/medya adedi değil) — kota dostu tek seferlik okuma.
-        </p>
+        <p className="text-muted text-sm mb-6">Kim neyi ne kadar kullanıyor — içerikler ve son etkinlikler.</p>
 
         {err && <div className="mb-4 rounded-2xl bg-brand-soft text-brand px-4 py-3 text-sm font-semibold">{err}</div>}
         {!content && !err && <p className="text-muted animate-pulse py-10 text-center">Veriler toplanıyor…</p>}
@@ -261,11 +259,6 @@ export default function AdminStatsPage() {
               {rows.length === 0 && <p className="text-muted text-center py-10">Kayıt yok.</p>}
             </div>
 
-            <p className="text-muted text-xs mt-4 max-w-prose">
-              &ldquo;Son aktivite&rdquo; = son giriş ya da son içerik düzenlemesinden yenisi.
-              Sahipsiz içerik (kayıtsız/silinmiş kullanıcı) tabloda görünmez ama üstteki
-              toplamlara dahildir.
-            </p>
           </>
         )}
       </section>
