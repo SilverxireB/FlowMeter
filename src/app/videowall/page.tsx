@@ -79,6 +79,23 @@ export default function VideowallListPage() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+  // Editörden geri dönüşte kartlar bayat kalmasın: mobil Chrome geri tuşu
+  // sayfayı önbellekten (bfcache) geri getirir — veri çekilmez, yayınlanan
+  // değişiklik kartta görünmezdi. Sekme geri görünür olunca da tazele.
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) refresh();
+    };
+    const onVis = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("pageshow", onShow);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("pageshow", onShow);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [refresh]);
   // Hub'daki "＋ Yeni" → oluşturma alanına odaklan (Meter/Wall kartlarıyla aynı davranış).
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("new") === "1") {
