@@ -37,10 +37,13 @@ export default function VideowallListPage() {
   const [walls, setWalls] = useState<Videowall[]>([]);
   const [name, setName] = useState("");
   const [preset, setPreset] = useState(0);
-  const [w, setW] = useState(3240);
-  const [h, setH] = useState(1920);
-  const [cols, setCols] = useState(3);
-  const [rows, setRows] = useState(1);
+  // number | "" — yazarken alan BOŞ kalabilsin ("1'i silemiyorum, 12 yazıp
+  // baştan siliyorum" derdi); değer blur'da ve oluştururken toparlanır.
+  const [w, setW] = useState<number | "">(3240);
+  const [h, setH] = useState<number | "">(1920);
+  const [cols, setCols] = useState<number | "">(3);
+  const [rows, setRows] = useState<number | "">(1);
+  const numOr = (v: number | "", fallback: number) => (v === "" ? fallback : v);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -80,7 +83,7 @@ export default function VideowallListPage() {
     setBusy(true);
     setErr(null);
     try {
-      const id = await createVideowall(user.uid, name.trim() || "Yeni ekran", w, h, cols, rows, user.displayName || user.email || "");
+      const id = await createVideowall(user.uid, name.trim() || "Yeni ekran", Math.max(1, numOr(w, 1920)), Math.max(1, numOr(h, 1080)), clampScreens(numOr(cols, 1)), clampScreens(numOr(rows, 1)), user.displayName || user.email || "");
       router.push(`/videowall/${id}/edit`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Ekran oluşturulamadı, tekrar dene.");
@@ -152,18 +155,18 @@ export default function VideowallListPage() {
           <div className="flex items-center gap-4">
             <div
               className="relative bg-black rounded-lg border border-white/15 overflow-hidden shrink-0"
-              style={{ width: w >= h ? 200 : 200 * (w / h), height: w >= h ? 200 * (h / w) : 200, maxWidth: 200, maxHeight: 200 }}
+              style={{ width: numOr(w, 1920) >= numOr(h, 1080) ? 200 : 200 * (numOr(w, 1920) / numOr(h, 1080)), height: numOr(w, 1920) >= numOr(h, 1080) ? 200 * (numOr(h, 1080) / numOr(w, 1920)) : 200, maxWidth: 200, maxHeight: 200 }}
             >
-              {Array.from({ length: Math.max(0, cols - 1) }).map((_, i) => (
-                <div key={`c${i}`} className="absolute top-0 bottom-0 border-l border-dashed border-[#6366f1]/40" style={{ left: `${((i + 1) / cols) * 100}%` }} />
+              {Array.from({ length: Math.max(0, numOr(cols, 1) - 1) }).map((_, i) => (
+                <div key={`c${i}`} className="absolute top-0 bottom-0 border-l border-dashed border-[#6366f1]/40" style={{ left: `${((i + 1) / numOr(cols, 1)) * 100}%` }} />
               ))}
-              {Array.from({ length: Math.max(0, rows - 1) }).map((_, i) => (
-                <div key={`r${i}`} className="absolute left-0 right-0 border-t border-dashed border-[#6366f1]/40" style={{ top: `${((i + 1) / rows) * 100}%` }} />
+              {Array.from({ length: Math.max(0, numOr(rows, 1) - 1) }).map((_, i) => (
+                <div key={`r${i}`} className="absolute left-0 right-0 border-t border-dashed border-[#6366f1]/40" style={{ top: `${((i + 1) / numOr(rows, 1)) * 100}%` }} />
               ))}
-              <div className="absolute inset-0 grid place-items-center text-[#a5b4fc]/80 text-xs font-semibold tabular-nums">{cols}×{rows}</div>
+              <div className="absolute inset-0 grid place-items-center text-[#a5b4fc]/80 text-xs font-semibold tabular-nums">{numOr(cols, 1)}×{numOr(rows, 1)}</div>
             </div>
             <p className="text-white/50 text-xs leading-relaxed">
-              <span className="text-white/70 font-semibold tabular-nums">{cols * rows} fiziksel ekran</span> · {w}×{h}px<br />
+              <span className="text-white/70 font-semibold tabular-nums">{numOr(cols, 1) * numOr(rows, 1)} fiziksel ekran</span> · {numOr(w, 1920)}×{numOr(h, 1080)}px<br />
               Oluşturunca alanları sürükle-birleştir ile düzenler, içerik eklersin.
             </p>
           </div>
@@ -171,22 +174,22 @@ export default function VideowallListPage() {
             <div className="flex items-end gap-3">
               <label className="flex flex-col gap-1">
                 <span className="text-white/50 text-xs">Genişlik (px)</span>
-                <input type="number" value={w} onChange={(e) => setW(Math.max(1, Number(e.target.value) || 0))} className={`w-28 ${inputCls}`} />
+                <input type="number" min={1} value={w} onChange={(e) => setW(e.target.value === "" ? "" : Math.max(1, Math.round(Number(e.target.value) || 0)))} onBlur={() => w === "" && setW(1920)} className={`w-28 ${inputCls}`} />
               </label>
               <span className="pb-2 text-white/40">×</span>
               <label className="flex flex-col gap-1">
                 <span className="text-white/50 text-xs">Yükseklik (px)</span>
-                <input type="number" value={h} onChange={(e) => setH(Math.max(1, Number(e.target.value) || 0))} className={`w-28 ${inputCls}`} />
+                <input type="number" min={1} value={h} onChange={(e) => setH(e.target.value === "" ? "" : Math.max(1, Math.round(Number(e.target.value) || 0)))} onBlur={() => h === "" && setH(1080)} className={`w-28 ${inputCls}`} />
               </label>
             </div>
             {/* "Yatay/Dikey ekran" TV yönü sanılıyordu → eksen sorusu olarak yazıldı */}
             <label className="flex flex-col gap-1">
               <span className="text-white/50 text-xs">Yan yana kaç ekran?</span>
-              <input type="number" min={1} max={24} value={cols} onChange={(e) => setCols(clampScreens(Number(e.target.value)))} className={`w-24 ${inputCls}`} />
+              <input type="number" min={1} max={24} value={cols} onChange={(e) => setCols(e.target.value === "" ? "" : clampScreens(Number(e.target.value)))} onBlur={() => cols === "" && setCols(1)} className={`w-24 ${inputCls}`} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-white/50 text-xs">Üst üste kaç ekran?</span>
-              <input type="number" min={1} max={24} value={rows} onChange={(e) => setRows(clampScreens(Number(e.target.value)))} className={`w-24 ${inputCls}`} />
+              <input type="number" min={1} max={24} value={rows} onChange={(e) => setRows(e.target.value === "" ? "" : clampScreens(Number(e.target.value)))} onBlur={() => rows === "" && setRows(1)} className={`w-24 ${inputCls}`} />
             </label>
             <button type="submit" disabled={busy} className="w-full sm:w-auto sm:ml-auto rounded-xl bg-accent hover:bg-accent-dark text-white px-6 py-2.5 font-semibold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#a5b4fc]/60">
               ＋ Oluştur
