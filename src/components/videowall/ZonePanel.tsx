@@ -175,6 +175,18 @@ export default function ZonePanel({
     }
   }
 
+  // Gömülebilirlik kontrolü: site iframe'i reddediyorsa (Google gibi) kullanıcıyı
+  // EKLERKEN uyar — perdede "neden boş?" aramasın. Erişilemeyen adreste susar.
+  async function warnIfNotEmbeddable(src: string) {
+    try {
+      const r = await fetch(`/api/sign/embed-check?url=${encodeURIComponent(src)}`);
+      const d = (await r.json()) as { verdict: string; host?: string };
+      if (d.verdict === "blocked") {
+        setErr(`⚠ ${d.host ?? "Bu site"} başka sayfaya gömülmeye izin vermiyor — tabelada boş görünür. (Google/YouTube gibi büyük siteler bunu yasaklar; pano/dashboard siteleri genelde izin verir.)`);
+      }
+    } catch {}
+  }
+
   function submitUrl() {
     if (!urlForm) return;
     const src = urlForm.src.trim();
@@ -186,6 +198,7 @@ export default function ZonePanel({
     setErr(null);
     setItems([...zone.items, { id: iid(), kind: "url", src, name: urlForm.name.trim() || "Sayfa", durationSec: 15 }]);
     setUrlForm(null);
+    void warnIfNotEmbeddable(src);
   }
 
   const addText = () => setItems([...zone.items, { id: iid(), kind: "text", title: "Başlık", text: "", bg: "#312e81", color: "#ffffff", durationSec: 10 }]);
@@ -479,8 +492,10 @@ export default function ZonePanel({
                             inputMode="url"
                             onBlur={(e) => {
                               const v = e.target.value.trim();
-                              if (/^https?:\/\//i.test(v) && v !== it.src) patchItem(it.id, { src: v });
-                              else e.target.value = it.src ?? "";
+                              if (/^https?:\/\//i.test(v) && v !== it.src) {
+                                patchItem(it.id, { src: v });
+                                void warnIfNotEmbeddable(v);
+                              } else e.target.value = it.src ?? "";
                             }}
                             className={`${inputCls} px-3 py-2 text-xs w-full font-mono`}
                             aria-label="Sayfa adresi (URL)"
