@@ -74,6 +74,9 @@ export default function ZonePanel({
   const [libOpen, setLibOpen] = useState(false);
   const [urlForm, setUrlForm] = useState<{ src: string; name: string } | null>(null);
   const [replacingId, setReplacingId] = useState<string | null>(null);
+  // Sadeleştirme: süre/takvim/gün ayarları öğe başına AÇILIR (⚙) — panel
+  // varsayılanda kompakt liste gösterir ("çok fazla şey var" şikâyeti).
+  const [openItemId, setOpenItemId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
 
@@ -291,6 +294,14 @@ export default function ZonePanel({
         <label className="flex items-center gap-1.5">Alan zemini <input type="color" defaultValue={zone.bg ?? "#000000"} onChange={(e) => patch({ bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
       </div>
 
+      {/* Hedef çözünürlük: içerik alana tam yayılır (stretch) → doğru boyutta
+          hazırlansın diye alanın gerçek piksel ölçüsü söylenir */}
+      <div className="mb-4 rounded-xl bg-[#6366f1]/10 border border-[#6366f1]/25 px-3 py-2 text-xs text-[#a5b4fc]">
+        📐 Bu alanın hedef çözünürlüğü:{" "}
+        <b className="tabular-nums">{Math.round(vw.width * zone.w)} × {Math.round(vw.height * zone.h)} px</b>
+        {" "}— görsel/videoyu bu boyutta hazırla; içerik alana tam yayılır.
+      </div>
+
       {/* Tüm içerik takvim dışıysa uyarı — ekran boş görünür */}
       {allOutOfWindow && (
         <div className="mb-4 rounded-xl bg-rose-400/15 border border-rose-400/30 text-rose-300 px-3 py-2 text-xs font-semibold">
@@ -403,11 +414,30 @@ export default function ZonePanel({
                   <ItemThumb item={it} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : it.name || it.src}</p>
-                    <span className="inline-flex items-center gap-1.5 mt-0.5">
+                    <span className="inline-flex items-center gap-1.5 mt-0.5 flex-wrap">
                       <span className="text-[10px] uppercase tracking-wider text-[#a5b4fc]/90 bg-[#6366f1]/15 rounded px-1.5 py-0.5">{KIND_LABEL[it.kind]}</span>
+                      {/* Kompakt özet: ayrıntılar ⚙ ile açılır */}
+                      <span className="text-[10px] text-white/50 bg-white/5 rounded px-1.5 py-0.5 tabular-nums">
+                        ⏱ {it.kind === "video" && !it.durationSec ? "video sonu" : `${it.durationSec ?? 8} sn`}
+                      </span>
+                      {(it.from || it.to || it.days?.length) && (
+                        <span className="text-[10px] text-white/50 bg-white/5 rounded px-1.5 py-0.5">🗓 takvimli</span>
+                      )}
+                      {it.kind === "url" && (it.zoom ?? 100) !== 100 && (
+                        <span className="text-[10px] text-white/50 bg-white/5 rounded px-1.5 py-0.5">🔍 %{it.zoom}</span>
+                      )}
                       {outOfWindow && <span className="text-[10px] text-white/60 bg-white/10 rounded px-1.5 py-0.5">şu an takvim dışı</span>}
                     </span>
                   </div>
+                  <button
+                    onClick={() => setOpenItemId(openItemId === it.id ? null : it.id)}
+                    className={`shrink-0 w-9 h-9 grid place-items-center rounded-lg hover:bg-white/10 ${openItemId === it.id ? "text-[#a5b4fc] bg-white/10" : "text-white/40 hover:text-white"}`}
+                    title="Süre / takvim / ayarlar"
+                    aria-label="Öğe ayarları"
+                    aria-expanded={openItemId === it.id}
+                  >
+                    <Icon name="settings" size={15} />
+                  </button>
                   {(it.kind === "image" || it.kind === "video") && (
                     <button
                       onClick={() => {
@@ -427,66 +457,85 @@ export default function ZonePanel({
                   </button>
                 </div>
 
-                {it.kind === "text" && (
-                  <div className="flex flex-col gap-2 pl-9">
-                    <input defaultValue={it.title ?? ""} placeholder="Başlık" onBlur={(e) => patchItem(it.id, { title: e.target.value })} className={`${inputCls} px-3 py-2 text-sm`} />
-                    <textarea defaultValue={it.text ?? ""} placeholder="Mesaj (opsiyonel)" rows={2} onBlur={(e) => patchItem(it.id, { text: e.target.value })} className={`${inputCls} px-3 py-2 text-sm resize-y`} />
-                  </div>
+                {/* Ayrıntılar yalnız ⚙ ile açılınca — panel kompakt kalır */}
+                {openItemId === it.id && (
+                  <>
+                    {it.kind === "text" && (
+                      <div className="flex flex-col gap-2 pl-9">
+                        <input defaultValue={it.title ?? ""} placeholder="Başlık" onBlur={(e) => patchItem(it.id, { title: e.target.value })} className={`${inputCls} px-3 py-2 text-sm`} />
+                        <textarea defaultValue={it.text ?? ""} placeholder="Mesaj (opsiyonel)" rows={2} onBlur={(e) => patchItem(it.id, { text: e.target.value })} className={`${inputCls} px-3 py-2 text-sm resize-y`} />
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-9 text-xs text-white/60">
+                      {(it.kind === "text" || it.kind === "clock") && (
+                        <>
+                          <label className="flex items-center gap-1.5">Zemin <input type="color" defaultValue={it.bg ?? "#312e81"} onChange={(e) => patchItem(it.id, { bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
+                          <label className="flex items-center gap-1.5">Yazı <input type="color" defaultValue={it.color ?? "#ffffff"} onChange={(e) => patchItem(it.id, { color: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
+                        </>
+                      )}
+                      {it.kind === "url" && (
+                        <label className="flex items-center gap-1.5" title="Sayfa daha büyük sanal pencerede açılıp ölçeklenir — dashboard grafikleri Chrome zoom'una gerek kalmadan sığar">
+                          Yakınlaştırma
+                          <select
+                            defaultValue={it.zoom ?? 100}
+                            onChange={(e) => patchItem(it.id, { zoom: Number(e.target.value) === 100 ? undefined : Number(e.target.value) })}
+                            className={`${inputCls} px-2 py-1`}
+                          >
+                            {[25, 33, 50, 67, 75, 100, 125, 150].map((z) => (
+                              <option key={z} value={z}>%{z}</option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                      <label className="flex items-center gap-1.5" title={it.kind === "video" ? "Boş bırakılırsa video sonuna kadar oynar" : undefined}>
+                        {it.kind === "video" ? "Maks süre" : "Süre"}
+                        <input
+                          type="number"
+                          min={2}
+                          defaultValue={it.durationSec ?? (it.kind === "video" ? undefined : 8)}
+                          placeholder={it.kind === "video" ? "video sonu" : "8"}
+                          onBlur={(e) => {
+                            const v = Number(e.target.value);
+                            patchItem(it.id, { durationSec: v >= 2 ? Math.round(v) : undefined });
+                          }}
+                          className={`w-20 ${inputCls} px-2 py-1 tabular-nums placeholder:text-white/30`}
+                        />
+                        sn
+                      </label>
+                      <label className="flex items-center gap-1.5">
+                        Saat
+                        <input type="time" defaultValue={it.from ?? ""} onBlur={(e) => patchItem(it.id, { from: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
+                        –
+                        <input type="time" defaultValue={it.to ?? ""} onBlur={(e) => patchItem(it.id, { to: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
+                      </label>
+                    </div>
+
+                    {/* Günler (boşsa her gün) */}
+                    <div className="flex items-center gap-1.5 pl-9 flex-wrap">
+                      <span className="text-xs text-white/50 mr-1">Gün:</span>
+                      {DAYS.map((d) => {
+                        const active = it.days?.includes(d.v);
+                        return (
+                          <button
+                            key={d.v}
+                            onClick={() => toggleDay(it, d.v)}
+                            className={`text-xs font-semibold rounded-full px-2.5 py-1.5 border ${active ? "bg-[#6366f1] text-white border-[#6366f1]" : "border-white/15 text-white/60 hover:border-white/40"}`}
+                          >
+                            {d.l}
+                          </button>
+                        );
+                      })}
+                      {!it.days?.length && <span className="text-[11px] text-white/50 ml-1">her gün</span>}
+                    </div>
+                  </>
                 )}
-
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-9 text-xs text-white/60">
-                  {(it.kind === "text" || it.kind === "clock") && (
-                    <>
-                      <label className="flex items-center gap-1.5">Zemin <input type="color" defaultValue={it.bg ?? "#312e81"} onChange={(e) => patchItem(it.id, { bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
-                      <label className="flex items-center gap-1.5">Yazı <input type="color" defaultValue={it.color ?? "#ffffff"} onChange={(e) => patchItem(it.id, { color: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
-                    </>
-                  )}
-                  <label className="flex items-center gap-1.5" title={it.kind === "video" ? "Boş bırakılırsa video sonuna kadar oynar" : undefined}>
-                    {it.kind === "video" ? "Maks süre" : "Süre"}
-                    <input
-                      type="number"
-                      min={2}
-                      defaultValue={it.durationSec ?? (it.kind === "video" ? undefined : 8)}
-                      placeholder={it.kind === "video" ? "video sonu" : "8"}
-                      onBlur={(e) => {
-                        const v = Number(e.target.value);
-                        patchItem(it.id, { durationSec: v >= 2 ? Math.round(v) : undefined });
-                      }}
-                      className={`w-20 ${inputCls} px-2 py-1 tabular-nums placeholder:text-white/30`}
-                    />
-                    sn
-                  </label>
-                  <label className="flex items-center gap-1.5">
-                    Saat
-                    <input type="time" defaultValue={it.from ?? ""} onBlur={(e) => patchItem(it.id, { from: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
-                    –
-                    <input type="time" defaultValue={it.to ?? ""} onBlur={(e) => patchItem(it.id, { to: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
-                  </label>
-                </div>
-
-                {/* Günler (boşsa her gün) */}
-                <div className="flex items-center gap-1.5 pl-9 flex-wrap">
-                  <span className="text-xs text-white/50 mr-1">Gün:</span>
-                  {DAYS.map((d) => {
-                    const active = it.days?.includes(d.v);
-                    return (
-                      <button
-                        key={d.v}
-                        onClick={() => toggleDay(it, d.v)}
-                        className={`text-xs font-semibold rounded-full px-2.5 py-1.5 border ${active ? "bg-[#6366f1] text-white border-[#6366f1]" : "border-white/15 text-white/60 hover:border-white/40"}`}
-                      >
-                        {d.l}
-                      </button>
-                    );
-                  })}
-                  {!it.days?.length && <span className="text-[11px] text-white/50 ml-1">her gün</span>}
-                </div>
               </li>
             );
           })}
         </ul>
       )}
-      <p className="text-white/50 text-[11px] mt-3">İçerik alana tam oturur (stretch) · saat/gün boşsa hep döner · dosyayı panele sürükleyip bırakabilirsin.</p>
+      <p className="text-white/50 text-[11px] mt-3">İçerik alana tam yayılır — hedef çözünürlük yukarıda 📐 · süre/takvim öğedeki ⚙ ile · dosyayı panele sürükleyip bırakabilirsin.</p>
 
       {/* Medya kütüphanesi */}
       {libOpen && (

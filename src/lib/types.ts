@@ -454,6 +454,10 @@ export interface ZoneItem {
   from?: string; // "HH:MM" saat aralığı başı (boşsa hep)
   to?: string; // "HH:MM" saat aralığı sonu
   days?: number[]; // haftanın günleri (0=Paz..6=Cmt); boş/yoksa her gün
+  // url öğesi: iframe yakınlaştırma yüzdesi (25–150; boşsa 100). Şirket
+  // dashboard'ları tabela ekranında ancak %25–50 zoom'la sığıyor — Chrome'da
+  // elle zoom ayarlama yerine ekran başına kalıcı ayar.
+  zoom?: number;
   // text öğesi:
   title?: string; // büyük başlık
   text?: string; // gövde metni

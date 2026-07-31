@@ -117,12 +117,20 @@ function Layer({ item, transition, loop, onEnded, onError }: { item: ZoneItem; t
         // sandbox: üst pencereye yönlendirme/popup/indirme YOK (dashboard script+
         // cookie'yle çalışmaya devam eder). pointer-events-none: tabela salt-görüntü;
         // iframe fare olaylarını yutup kontrollerin belirmesini engellemesin.
+        // zoom: sayfa daha BÜYÜK sanal pencerede render edilip ölçeklenir —
+        // dashboard grafiklerinin sığması için Chrome'da elle zoom gerekmez.
         <iframe
           src={safeSrc(item.src)}
           title={item.name || "sayfa"}
           sandbox="allow-scripts allow-same-origin allow-forms"
           referrerPolicy="no-referrer"
-          className="w-full h-full border-0 pointer-events-none"
+          className="absolute top-0 left-0 border-0 pointer-events-none"
+          style={{
+            width: `${10000 / Math.min(150, Math.max(25, item.zoom ?? 100))}%`,
+            height: `${10000 / Math.min(150, Math.max(25, item.zoom ?? 100))}%`,
+            transform: `scale(${Math.min(150, Math.max(25, item.zoom ?? 100)) / 100})`,
+            transformOrigin: "top left",
+          }}
         />
       ) : item.kind === "text" ? (
         <TextView item={item} />
