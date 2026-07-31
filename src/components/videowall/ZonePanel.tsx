@@ -72,6 +72,7 @@ export default function ZonePanel({
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [fileOver, setFileOver] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
+  const [libFilter, setLibFilter] = useState<"all" | "image" | "video">("all");
   const [urlForm, setUrlForm] = useState<{ src: string; name: string } | null>(null);
   const [replacingId, setReplacingId] = useState<string | null>(null);
   // Sadeleştirme: süre/takvim/gün ayarları öğe başına AÇILIR (⚙) — panel
@@ -546,15 +547,46 @@ export default function ZonePanel({
               <button onClick={() => setLibOpen(false)} className="w-9 h-9 grid place-items-center rounded-xl text-white/50 hover:text-white hover:bg-white/10" aria-label="Kapat"><Icon name="close" size={16} /></button>
             </div>
             <p className="text-white/50 text-xs mb-3">Bu ekrana daha önce yüklediğin medya (taslak + yayın) — tıkla, bu alana ekle.</p>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {library.map((it) => (
-                <button key={it.src} onClick={() => addFromLib(it)} className="aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-[#6366f1] relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={it.kind === "video" ? stillOf(it.src!) || undefined : cldFit(it.src!, 200)} alt="" className="w-full h-full object-cover bg-black" />
-                  {it.kind === "video" && <span className="absolute bottom-1 right-1 text-xs">🎬</span>}
+
+            {/* Tür sekmeleri: Tümü / Foto / Video */}
+            <div className="flex gap-1.5 mb-3">
+              {([
+                { v: "all", label: `Tümü (${library.length})` },
+                { v: "image", label: `📷 Foto (${library.filter((i) => i.kind === "image").length})` },
+                { v: "video", label: `🎬 Video (${library.filter((i) => i.kind === "video").length})` },
+              ] as const).map((t) => (
+                <button
+                  key={t.v}
+                  onClick={() => setLibFilter(t.v)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                    libFilter === t.v ? "bg-white text-[#0d102f] border-white" : "border-white/20 text-white/70 hover:border-white/40"
+                  }`}
+                >
+                  {t.label}
                 </button>
               ))}
             </div>
+
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {library
+                .filter((it) => libFilter === "all" || it.kind === libFilter)
+                .map((it) => (
+                  <button key={it.src} onClick={() => addFromLib(it)} className="rounded-lg overflow-hidden border border-white/10 hover:border-[#6366f1] text-left">
+                    <span className="block aspect-square relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={it.kind === "video" ? stillOf(it.src!) || undefined : cldFit(it.src!, 200)} alt="" className="w-full h-full object-cover bg-black" />
+                      {it.kind === "video" && <span className="absolute bottom-1 right-1 text-xs">🎬</span>}
+                    </span>
+                    {/* Dosya adı — hangi dosya olduğu görünsün */}
+                    <span className="block px-1.5 py-1 text-[10px] text-white/70 truncate bg-black/30">
+                      {it.name || "adsız"}
+                    </span>
+                  </button>
+                ))}
+            </div>
+            {library.filter((it) => libFilter === "all" || it.kind === libFilter).length === 0 && (
+              <p className="text-white/40 text-sm text-center py-8">Bu türde medya yok.</p>
+            )}
           </div>
         </div>
       )}
