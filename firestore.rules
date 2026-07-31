@@ -320,6 +320,19 @@ service cloud.firestore {
         && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if request.auth != null
         && resource.data.ownerId == request.auth.uid;
+
+      // Ekran sağlığı (heartbeat): perde AUTH'SUZ "canlıyım" yazar — alan seti
+      // sabit ve zararsız (yalnız görünürlük bilgisi; içerik/yayına dokunamaz).
+      // Silme (bayat kayıt temizliği) sadece sahibinde.
+      match /screens/{screenId} {
+        allow read: if true;
+        allow create, update: if request.resource.data.keys()
+            .hasOnly(['ua', 'vwPx', 'vhPx', 'startedAt', 'lastSeenAt'])
+          && (!('ua' in request.resource.data)
+              || (request.resource.data.ua is string && request.resource.data.ua.size() <= 160));
+        allow delete: if request.auth != null
+          && get(/databases/$(database)/documents/videowalls/$(id)).data.ownerId == request.auth.uid;
+      }
     }
 
     // ── FlowPulse: sürekli nabız/geri bildirim (kiosk + QR, tamamen anonim) ──

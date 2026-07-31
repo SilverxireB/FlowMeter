@@ -11,6 +11,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import ConfirmDialog from "@/components/videowall/ConfirmDialog";
 import LayoutEditor from "@/components/videowall/LayoutEditor";
+import ScreensCard from "@/components/videowall/ScreensCard";
 import ZonePanel from "@/components/videowall/ZonePanel";
 import QrCode from "@/components/present/QrCode";
 import { Icon } from "@/components/videowall/icons";
@@ -291,6 +292,9 @@ export default function VideowallEditPage() {
             </div>
           )}
         </div>
+
+        {/* Ekran sağlığı: bu yayını açık tutan cihazlar (heartbeat) */}
+        <ScreensCard id={id} />
 
         {/* Config */}
         <div className="rounded-2xl bg-white/5 border border-white/10 p-5">

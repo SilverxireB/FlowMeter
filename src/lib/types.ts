@@ -486,6 +486,18 @@ export interface Zone {
   // kırpma/siyah boşluk yok; kullanıcı alana uygun boyutta içerik koyar.
 }
 
+/** Perde cihazının "canlıyım" kaydı (videowalls/{id}/screens/{screenId}).
+ *  Perde ~2dk'da bir yazar; kokpit 5dk eşiğiyle "çevrimiçi" sayar. Ana
+ *  dokümana YAZILMAZ — heartbeat tüm perdelere snapshot indirmesin. */
+export interface ScreenBeat {
+  id: string;
+  ua?: string; // tarayıcı/OS teşhisi (kısaltılmış userAgent)
+  vwPx?: number; // cihazın görünür alanı — çözünürlük uyuşmazlığı teşhisi
+  vhPx?: number;
+  startedAt?: Timestamp | null; // bu sayfa oturumu ne zaman açıldı
+  lastSeenAt?: Timestamp | null;
+}
+
 /** Yayındaki (kaydedilmiş) yerleşim anlık görüntüsü — perde BUNU oynatır. */
 export interface VideowallLive {
   zones: Zone[];

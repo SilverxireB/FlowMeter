@@ -10,7 +10,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/videowall/icons";
-import { itemInWindow as inWindow } from "@/lib/videowalls";
+import { itemInWindow as inWindow, sendScreenBeat } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 type Transition = "fade" | "cut" | "slide";
@@ -414,6 +414,15 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
       wakeRef.current?.release?.().catch(() => {});
     };
   }, [requestWake]);
+
+  // EKRAN SAĞLIĞI: perde ~2dk'da bir "canlıyım" yazar (alt koleksiyon — ana
+  // dokümanı ve diğer perdeleri tetiklemez); kokpit çevrimiçi/son görülme gösterir.
+  useEffect(() => {
+    if (draft) return;
+    sendScreenBeat(vw.id, true).catch(() => {});
+    const iv = window.setInterval(() => sendScreenBeat(vw.id).catch(() => {}), 120_000);
+    return () => window.clearInterval(iv);
+  }, [draft, vw.id]);
 
   // GECE TAZELEME (yalnız gerçek yayın): ~04:00-04:10 arası sessiz reload —
   // günlerce birikmiş bellek temizlenir, kopuk ne varsa tazelenir ve yeni

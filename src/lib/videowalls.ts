@@ -12,11 +12,12 @@ import {
   onSnapshot,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { Videowall, VideowallPlayMode, Zone, ZoneItem } from "./types";
+import { ScreenBeat, Videowall, VideowallPlayMode, Zone, ZoneItem } from "./types";
 
 /**
  * Öğe şu an takvimde mi? (gün + saat penceresi; boşsa hep). Gece yarısını aşan
@@ -331,6 +332,50 @@ export async function setPlayMode(id: string, playMode: VideowallPlayMode): Prom
   await updateDoc(doc(db(), "videowalls", id), { playMode, updatedAt: serverTimestamp() });
 }
 
+// ── Ekran sağlığı (heartbeat) ────────────────────────────────────────────────
+// Perde ~2dk'da bir "canlıyım" yazar → alt koleksiyon (ana doküman TETİKLENMEZ;
+// heartbeat tüm perdelere snapshot indirmesin). Kokpit 5dk eşiğiyle çevrimiçi der.
+const SCREEN_ID_KEY = "flowsign-screen-id";
+
+/** Bu cihazın kalıcı ekran kimliği (localStorage). */
+export function getScreenId(): string {
+  if (typeof localStorage === "undefined") return "anon";
+  let id = localStorage.getItem(SCREEN_ID_KEY);
+  if (!id) {
+    id = `scr-${Math.random().toString(36).slice(2, 10)}`;
+    try {
+      localStorage.setItem(SCREEN_ID_KEY, id);
+    } catch {}
+  }
+  return id;
+}
+
+/** "Canlıyım" yaz (perde). includeStart: sayfa oturumu başlangıcında true. */
+export async function sendScreenBeat(vwId: string, includeStart = false): Promise<void> {
+  const data: Record<string, unknown> = {
+    ua: (typeof navigator !== "undefined" ? navigator.userAgent : "").slice(0, 140),
+    vwPx: typeof window !== "undefined" ? window.innerWidth : 0,
+    vhPx: typeof window !== "undefined" ? window.innerHeight : 0,
+    lastSeenAt: serverTimestamp(),
+  };
+  if (includeStart) data.startedAt = serverTimestamp();
+  await setDoc(doc(db(), "videowalls", vwId, "screens", getScreenId()), data, { merge: true });
+}
+
+/** Ekran kayıtlarını canlı izle (kokpit). */
+export function watchScreens(vwId: string, cb: (s: ScreenBeat[]) => void): () => void {
+  return onSnapshot(collection(db(), "videowalls", vwId, "screens"), (snap) => {
+    const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ScreenBeat);
+    arr.sort((a, b) => (b.lastSeenAt?.toMillis() ?? 0) - (a.lastSeenAt?.toMillis() ?? 0));
+    cb(arr);
+  });
+}
+
+/** Bayat ekran kaydını sil (kokpit temizliği). */
+export async function deleteScreenBeat(vwId: string, screenId: string): Promise<void> {
+  await deleteDoc(doc(db(), "videowalls", vwId, "screens", screenId));
+}
+
 /** Taslağı YAYINA al ("Kaydet & Yayınla") — perde bundan sonra bu hâli oynatır. */
 export async function publishVideowall(v: Videowall): Promise<void> {
   const snap = stripUndefined({ zones: v.zones ?? [], cols: v.cols, rows: v.rows, width: v.width, height: v.height });
@@ -389,5 +434,10 @@ export async function deleteVideowall(v: Videowall, idToken?: string): Promise<v
       body: JSON.stringify({ wallId: v.id, idToken, mode: "sign" }),
     }).catch(() => {});
   }
+  // Ekran sağlığı kayıtları yetim kalmasın (heartbeat alt koleksiyonu)
+  try {
+    const beats = await getDocs(collection(db(), "videowalls", v.id, "screens"));
+    await Promise.all(beats.docs.map((d) => deleteDoc(d.ref)));
+  } catch {}
   await deleteDoc(doc(db(), "videowalls", v.id));
 }
