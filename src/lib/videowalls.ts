@@ -230,10 +230,37 @@ export async function getVideowall(id: string): Promise<Videowall | null> {
   return snap.exists() ? ({ id: snap.id, ...snap.data() } as Videowall) : null;
 }
 
+/** 7/24 BEKÇİ: abonelik kurtarılamaz hatayla ölürse (ör. rules yayını anı,
+ *  uzun kesinti) perde SESSİZCE güncelleme alamaz duruma düşüyordu. Hata
+ *  anında mevcut içerik KORUNUR (cb çağrılmaz) ve artan aralıkla (2sn→60sn)
+ *  yeniden abone olunur. */
 export function watchVideowall(id: string, cb: (v: Videowall | null) => void): () => void {
-  return onSnapshot(doc(db(), "videowalls", id), (snap) => {
-    cb(snap.exists() ? ({ id: snap.id, ...snap.data() } as Videowall) : null);
-  });
+  let stopped = false;
+  let unsub: (() => void) | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let attempt = 0;
+  const start = () => {
+    if (stopped) return;
+    unsub = onSnapshot(
+      doc(db(), "videowalls", id),
+      (snap) => {
+        attempt = 0;
+        cb(snap.exists() ? ({ id: snap.id, ...snap.data() } as Videowall) : null);
+      },
+      () => {
+        unsub?.();
+        unsub = null;
+        attempt += 1;
+        timer = setTimeout(start, Math.min(60_000, 2000 * 2 ** Math.min(attempt - 1, 5)));
+      }
+    );
+  };
+  start();
+  return () => {
+    stopped = true;
+    unsub?.();
+    if (timer) clearTimeout(timer);
+  };
 }
 
 export async function updateVideowall(id: string, patch: Partial<Videowall>): Promise<void> {
@@ -255,18 +282,40 @@ export async function ensureSlug(v: Videowall): Promise<void> {
   await updateDoc(doc(db(), "videowalls", v.id), { slug: await uniqueSlug(v.name, v.id) });
 }
 
-/** Slug ile duvar izle (public yayın linki /flowsign/[slug]). */
+/** Slug ile duvar izle (public yayın linki /flowsign/[slug]).
+ *  7/24 BEKÇİ: hata OYNAYAN EKRANI "Ekran bulunamadı"ya düşürmez — mevcut
+ *  içerik korunur, artan aralıkla yeniden abone olunur. cb(null) yalnız
+ *  slug GERÇEKTEN yokken çağrılır (id fallback'i sayfada). */
 export function watchVideowallBySlug(slug: string, cb: (v: Videowall | null) => void): () => void {
-  return onSnapshot(
-    query(collection(db(), "videowalls"), where("slug", "==", slug)),
-    (snap) => {
-      if (snap.empty) return cb(null);
-      const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Videowall);
-      docs.sort((a, b) => (b.updatedAt?.toMillis() ?? 0) - (a.updatedAt?.toMillis() ?? 0));
-      cb(docs[0]);
-    },
-    () => cb(null)
-  );
+  let stopped = false;
+  let unsub: (() => void) | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let attempt = 0;
+  const start = () => {
+    if (stopped) return;
+    unsub = onSnapshot(
+      query(collection(db(), "videowalls"), where("slug", "==", slug)),
+      (snap) => {
+        attempt = 0;
+        if (snap.empty) return cb(null);
+        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Videowall);
+        docs.sort((a, b) => (b.updatedAt?.toMillis() ?? 0) - (a.updatedAt?.toMillis() ?? 0));
+        cb(docs[0]);
+      },
+      () => {
+        unsub?.();
+        unsub = null;
+        attempt += 1;
+        timer = setTimeout(start, Math.min(60_000, 2000 * 2 ** Math.min(attempt - 1, 5)));
+      }
+    );
+  };
+  start();
+  return () => {
+    stopped = true;
+    unsub?.();
+    if (timer) clearTimeout(timer);
+  };
 }
 
 /** Firestore `undefined` kabul etmez — opsiyonel alan temizlerken (name/from/to…) düşür. */

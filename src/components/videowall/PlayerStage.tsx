@@ -90,6 +90,31 @@ function Layer({ item, transition, loop, onEnded, onError }: { item: ZoneItem; t
     };
   }, []);
 
+  // DONMA BEKÇİSİ: ağ koparsa video buffer bitiminde donar — ended de error da
+  // gelmez, alan sonsuza dek donuk karede kalırdı. currentTime ~12sn ilerlemezse
+  // zorla sıradakine geç (yalnız otomatik akışta ilerletilebilen videolar).
+  useEffect(() => {
+    if (item.kind !== "video" || !onEnded) return;
+    let last = -1;
+    let stuckMs = 0;
+    let fired = false;
+    const iv = window.setInterval(() => {
+      const v = vidRef.current;
+      if (!v || fired) return;
+      if (v.currentTime === last) {
+        stuckMs += 4000;
+        if (stuckMs >= 12000) {
+          fired = true;
+          onEnded();
+        }
+      } else {
+        last = v.currentTime;
+        stuckMs = 0;
+      }
+    }, 4000);
+    return () => window.clearInterval(iv);
+  }, [item.kind, onEnded]);
+
   const style =
     transition === "slide"
       ? { transform: on ? "translateX(0)" : "translateX(100%)", transition: "transform 550ms ease" }
@@ -162,9 +187,17 @@ function ZonePlayer({
 }) {
   const transition: Transition = zone.transition ?? "fade";
   const [now, setNow] = useState(() => new Date());
+  // Takvim tiki dakika sınırına hizalı — "08:00'da başlar" gerçekten 08:00'da başlar
   useEffect(() => {
-    const t = window.setInterval(() => setNow(new Date()), 30_000);
-    return () => window.clearInterval(t);
+    let iv: ReturnType<typeof setInterval> | undefined;
+    const align = window.setTimeout(() => {
+      setNow(new Date());
+      iv = setInterval(() => setNow(new Date()), 60_000);
+    }, 60_000 - (Date.now() % 60_000) + 250);
+    return () => {
+      window.clearTimeout(align);
+      if (iv) clearInterval(iv);
+    };
   }, []);
 
   // Bütün görselleri önceden yükle + DECODE et → geçişte boş kare/flaş olmaz.
@@ -232,6 +265,16 @@ function ZonePlayer({
     onIndex((((idx % len) + len) % len) + 1, len);
   }, [idx, len, onIndex]);
 
+  // TEK ÖĞELİ URL BEKÇİSİ: hiç rotasyon olmadığından iframe bir kez açılıp
+  // günlerce kalıyordu (oturumu dolan dashboard donuk hata sayfasında takılır).
+  // 15 dk'da bir sessizce yeniden yüklenir; çoklu listeyi rotasyon zaten tazeler.
+  const [urlEpoch, setUrlEpoch] = useState(0);
+  useEffect(() => {
+    if (manual || len !== 1 || cur?.kind !== "url") return;
+    const iv = window.setInterval(() => setUrlEpoch((e) => e + 1), 15 * 60_000);
+    return () => window.clearInterval(iv);
+  }, [manual, len, cur?.kind]);
+
   useEffect(() => {
     if (manual) return; // sunum modu: otomatik ilerleme YOK — kumanda söyler
     if (!cur || len <= 1) return;
@@ -255,7 +298,7 @@ function ZonePlayer({
           const top = i === layers.length - 1;
           return (
             <Layer
-              key={l.key}
+              key={`${l.key}-${urlEpoch}`}
               item={l.item}
               transition={transition}
               /* Sunum modunda video hep loop eder (sayfada kaldıkça döner) */
@@ -346,23 +389,45 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
     };
   }, []);
 
+  // Wake Lock: tek referansta tutulur (sızıntı yok); otomatik istek reddedilirse
+  // İLK kullanıcı dokunuşunda bir kez daha denenir (ekran sessizce uyumasın).
+  const wakeRef = useRef<WakeLockSentinel | null>(null);
+  const requestWake = useCallback(async () => {
+    try {
+      await wakeRef.current?.release?.().catch(() => {});
+      wakeRef.current = (await navigator.wakeLock?.request("screen")) ?? null;
+    } catch {
+      /* kullanıcı hareketi gerekebilir; pointerdown/tam ekran yeniden dener */
+    }
+  }, []);
   useEffect(() => {
-    let lock: WakeLockSentinel | null = null;
-    const request = async () => {
-      try {
-        lock = (await navigator.wakeLock?.request("screen")) ?? null;
-      } catch {
-        /* kullanıcı hareketi gerekebilir; tam ekran butonu tetikler */
-      }
+    requestWake();
+    const onVis = () => document.visibilityState === "visible" && requestWake();
+    const onFirstPointer = () => {
+      if (!wakeRef.current) requestWake();
     };
-    request();
-    const onVis = () => document.visibilityState === "visible" && request();
     document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pointerdown", onFirstPointer, { once: true });
     return () => {
       document.removeEventListener("visibilitychange", onVis);
-      lock?.release?.().catch(() => {});
+      window.removeEventListener("pointerdown", onFirstPointer);
+      wakeRef.current?.release?.().catch(() => {});
     };
-  }, []);
+  }, [requestWake]);
+
+  // GECE TAZELEME (yalnız gerçek yayın): ~04:00-04:10 arası sessiz reload —
+  // günlerce birikmiş bellek temizlenir, kopuk ne varsa tazelenir ve yeni
+  // deploy edilen sürüm alınır (perde eski JS'te sonsuza dek kalmaz).
+  useEffect(() => {
+    if (draft) return;
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(4, 0, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    const jitter = Math.floor(Math.random() * 10 * 60_000); // ekranlar aynı anda gitmesin
+    const t = window.setTimeout(() => window.location.reload(), next.getTime() - now.getTime() + jitter);
+    return () => window.clearTimeout(t);
+  }, [draft]);
 
   const hideRef = useRef<number | undefined>(undefined);
   const poke = useCallback(() => {
@@ -382,9 +447,7 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
       if (document.fullscreenElement) await document.exitFullscreen();
       else {
         await document.documentElement.requestFullscreen();
-        try {
-          await navigator.wakeLock?.request("screen");
-        } catch {}
+        await requestWake(); // kullanıcı hareketi var → reddedilmişse şimdi alınır
       }
     } catch {}
   };

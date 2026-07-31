@@ -48,6 +48,11 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
 - **FlowSign:** editör TASLAK (`zones`), perde YAYIN (`live`); birleştir/böl içerik
   korur + onay sorar; slug rename'de SABİT; iframe sandbox + http(s) doğrulama;
   Wake Lock + offline persistence (`firebase.ts` persistentLocalCache — tüm suite).
+  **Sign AYRI PAKET olarak ayrılacak** (satış/self-host) → Sign kodu diğer
+  ürünlerle bağ KURMASIN; ortak yalnız çekirdek (firebase/cloudinary/withTimeout).
+  7/24 bekçiler Sign dosyalarında: donma bekçisi + dayanıklı abonelik + gece
+  04:0x reload + tek-URL 15dk tazeleme + play error boundary (PlayerStage,
+  videowalls.ts, play rotaları).
 - **FlowPulse:** oy = votes create + days increment tek batch; rules oy değerini
   soru tipine bağlar, days total tam +1; watchToday gece yarısı yeniden abone olur;
   kiosk çıkışı sol üst 5 dokunuş + PIN → yönetici menüsü.
