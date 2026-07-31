@@ -36,7 +36,8 @@ function ItemFace({ item }: { item?: ZoneItem }) {
 
 export default function WallThumb({ vw }: { vw: Videowall }) {
   const stage = vw.live ?? vw;
-  const ar = Math.min(2.2, Math.max(1.1, stage.width / Math.max(1, stage.height)));
+  // Alt sınır 1.6: dikey (portre) duvar bile kartı boyuna uzatmasın — kart kompakt.
+  const ar = Math.min(2.2, Math.max(1.6, stage.width / Math.max(1, stage.height)));
   const zones = stage.zones ?? [];
   return (
     <div className="relative w-full bg-black overflow-hidden" style={{ aspectRatio: `${ar}` }}>

@@ -222,7 +222,7 @@ export default function VideowallListPage() {
             <p>Henüz ekranın yok. Yukarıdan ilkini oluştur.</p>
           </div>
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {mine.map((v) => (
               <li key={v.id} className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex flex-col">
                 {/* Önizleme = yayındaki yerleşim; tıkla → editör */}
@@ -238,17 +238,17 @@ export default function VideowallListPage() {
                     <p className="font-display font-semibold text-sm truncate">{v.name}</p>
                     <p className="text-white/50 text-[11px] mt-0.5 tabular-nums">{v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan</p>
                   </div>
-                  <div className="flex items-center gap-1.5 mt-auto">
-                    <Link href={`/videowall/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-white/10 border border-white/15 px-2.5 py-1.5 text-xs font-semibold hover:bg-white/15">Düzenle</Link>
+                  <div className="flex items-center gap-1 mt-auto">
+                    <Link href={`/videowall/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-white/10 border border-white/15 px-2 py-1.5 text-xs font-semibold hover:bg-white/15">Düzenle</Link>
                     {/* "Yayınla" değil — editördeki Kaydet & Yayınla ile karışıyordu */}
-                    <a href={playHref(v)} target="_blank" title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-8 h-8 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
-                      <Icon name="play" size={13} />
+                    <a href={playHref(v)} target="_blank" title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
+                      <Icon name="play" size={12} />
                     </a>
-                    <button onClick={() => duplicate(v)} className="shrink-0 w-8 h-8 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10" title="Kopyala" aria-label="Kopyala">
-                      <Icon name="copy" size={14} />
+                    <button onClick={() => duplicate(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10" title="Kopyala" aria-label="Kopyala">
+                      <Icon name="copy" size={13} />
                     </button>
-                    <button onClick={() => remove(v)} className="shrink-0 w-8 h-8 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10" title="Sil" aria-label="Sil">
-                      <Icon name="trash" size={14} />
+                    <button onClick={() => remove(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10" title="Sil" aria-label="Sil">
+                      <Icon name="trash" size={13} />
                     </button>
                   </div>
                 </div>
@@ -263,7 +263,7 @@ export default function VideowallListPage() {
             <p className="text-white/60 text-[11px] font-bold uppercase tracking-[0.14em] mb-3">
               Diğer ekranlar <span className="normal-case tracking-normal font-normal">(yetkin yok — yalnız izleme)</span>
             </p>
-            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <ul className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {others.map((v) => (
                 <li key={v.id} className="rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden flex flex-col">
                   <div className="relative opacity-60">
