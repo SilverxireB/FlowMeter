@@ -465,6 +465,12 @@ export interface ZoneItem {
   color?: string; // metin rengi (hex); text/clock
 }
 
+/** Oynatma modu: "auto" = tabela (kendiliğinden döner, varsayılan);
+ *  "manual" = SUNUM — içerik kumanda/klavye ile ilerler (→/←/boşluk),
+ *  sağ altta sayaç, B = siyah ekran, uçlarda durur (döngü yok).
+ *  Ekran başına seçilir; normal tabela ekranlarını etkilemez. */
+export type VideowallPlayMode = "auto" | "manual";
+
 /** Duvar üzerinde bir yerleşim alanı (konum 0–1 oran; duvar pikseline çarpılır). */
 export interface Zone {
   id: string;
@@ -503,6 +509,8 @@ export interface Videowall {
   rows: number;
   zones: Zone[];
   live?: VideowallLive; // "Kaydet & Yayınla" ile yazılır; yoksa eski duvar → taslak oynar
+  // Oynatma modu (yayından bağımsız — değiştirince perde ANINDA uyar; yoksa "auto")
+  playMode?: VideowallPlayMode;
   createdAt: Timestamp | null;
   updatedAt?: Timestamp | null;
 }

@@ -144,7 +144,22 @@ function Layer({ item, transition, loop, onEnded, onError }: { item: ZoneItem; t
   );
 }
 
-function ZonePlayer({ zone }: { zone: Zone }) {
+/** Sunum modunda kumandadan gelen gezinme sinyali (n her basışta artar). */
+type NavSignal = { dir: 1 | -1; n: number };
+
+function ZonePlayer({
+  zone,
+  manual = false,
+  nav,
+  onIndex,
+}: {
+  zone: Zone;
+  /** Sunum modu: otomatik ilerleme kapalı; nav sinyaliyle gezinilir, uçlarda durur. */
+  manual?: boolean;
+  nav?: NavSignal;
+  /** Sayaç için (yalnız en büyük alana verilir): aktif index + toplam. */
+  onIndex?: (i: number, len: number) => void;
+}) {
   const transition: Transition = zone.transition ?? "fade";
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -169,7 +184,18 @@ function ZonePlayer({ zone }: { zone: Zone }) {
   const [idx, setIdx] = useState(0);
   const advance = useCallback(() => setIdx((i) => i + 1), []);
 
-  const cur = len ? items[idx % len] : undefined;
+  // Sunum modu gezinmesi: uçlarda durur (döngü yok — kullanıcının oynatıcısındaki gibi)
+  const lastNavN = useRef(0);
+  useEffect(() => {
+    if (!manual || !nav || nav.n === 0 || nav.n === lastNavN.current) return;
+    lastNavN.current = nav.n;
+    setIdx((i) => {
+      const cur = ((i % Math.max(1, len)) + len) % Math.max(1, len);
+      return Math.min(len - 1, Math.max(0, cur + nav.dir));
+    });
+  }, [nav, manual, len]);
+
+  const cur = len ? items[((idx % len) + len) % len] : undefined;
 
   // Saat penceresi bir öğeyi düşürünce/ekleyince akış BAŞA SARMAZ: gösterilen
   // öğe hâlâ listedeyse kaldığı yerden sürer, değilse sıradakine geçilir.
@@ -200,7 +226,14 @@ function ZonePlayer({ zone }: { zone: Zone }) {
     return () => window.clearTimeout(t);
   }, [cur?.id, idx]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sayaç bildirimi (sunum modunda sağ alt "3 / 12")
   useEffect(() => {
+    if (!onIndex || !len) return;
+    onIndex((((idx % len) + len) % len) + 1, len);
+  }, [idx, len, onIndex]);
+
+  useEffect(() => {
+    if (manual) return; // sunum modu: otomatik ilerleme YOK — kumanda söyler
     if (!cur || len <= 1) return;
     // Video: süre girilmişse ÜST SINIR (10 dk'lık video döngüyü kilitlemesin);
     // girilmemişse kendi bitişinde ilerler (onEnded). Diğer türler: gösterim süresi.
@@ -208,7 +241,7 @@ function ZonePlayer({ zone }: { zone: Zone }) {
     const secs = Math.max(2, cur.durationSec ?? 8);
     const t = window.setTimeout(advance, secs * 1000);
     return () => window.clearTimeout(t);
-  }, [cur, idx, len, advance]);
+  }, [cur, idx, len, advance, manual]);
 
   return (
     <div
@@ -225,9 +258,10 @@ function ZonePlayer({ zone }: { zone: Zone }) {
               key={l.key}
               item={l.item}
               transition={transition}
-              loop={top && l.item.kind === "video" && len <= 1}
-              onEnded={top && l.item.kind === "video" && len > 1 ? advance : undefined}
-              onError={top ? () => window.setTimeout(advance, 2000) : undefined}
+              /* Sunum modunda video hep loop eder (sayfada kaldıkça döner) */
+              loop={top && l.item.kind === "video" && (manual || len <= 1)}
+              onEnded={top && !manual && l.item.kind === "video" && len > 1 ? advance : undefined}
+              onError={top && !manual ? () => window.setTimeout(advance, 2000) : undefined}
             />
           );
         })
@@ -245,6 +279,64 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
   // YAYIN modunda kaydedilmiş anlık görüntü oynar (editör taslağı ekranı bozamaz);
   // draft=true → editörün "Önizle"si. Eski duvarda live yoksa taslağa düşülür.
   const stage = draft ? vw : vw.live ?? vw;
+
+  // ── SUNUM MODU: kumanda/klavye ile gezinme (tabela ekranlarını etkilemez) ──
+  const manual = (vw.playMode ?? "auto") === "manual";
+  const [nav, setNav] = useState<NavSignal>({ dir: 1, n: 0 });
+  const [black, setBlack] = useState(false);
+  const [counter, setCounter] = useState<{ i: number; len: number } | null>(null);
+  const [counterDim, setCounterDim] = useState(true);
+  const counterTimer = useRef<number | undefined>(undefined);
+  const lastKeyRef = useRef(0);
+  const onIndex = useCallback((i: number, len: number) => {
+    setCounter({ i, len });
+    setCounterDim(false);
+    window.clearTimeout(counterTimer.current);
+    counterTimer.current = window.setTimeout(() => setCounterDim(true), 1200);
+  }, []);
+  // Sayaç en büyük alana bağlanır (tipik kullanım: tek tam-ekran alan)
+  const biggestZoneId = useMemo(() => {
+    let best: Zone | null = null;
+    for (const z of stage.zones ?? []) if (!best || z.w * z.h > best.w * best.h) best = z;
+    return best?.id;
+  }, [stage.zones]);
+
+  useEffect(() => {
+    if (!manual) return;
+    const FWD: Record<string, 1> = { ArrowRight: 1, ArrowDown: 1, PageDown: 1, " ": 1, Spacebar: 1, Enter: 1 };
+    const BACK: Record<string, 1> = { ArrowLeft: 1, ArrowUp: 1, PageUp: 1, Backspace: 1 };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      const k = e.key;
+      // Bazı kumandalar "sunumu başlat" için F5 gönderir — sayfa YENİLENMESİN
+      if (k === "F5") {
+        e.preventDefault();
+        void document.documentElement.requestFullscreen?.().catch(() => {});
+        return;
+      }
+      if (k === "b" || k === "B" || k === ".") {
+        e.preventDefault();
+        setBlack((v) => !v);
+        return;
+      }
+      if (k === "f" || k === "F") {
+        e.preventDefault();
+        if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+        else void document.documentElement.requestFullscreen?.().catch(() => {});
+        return;
+      }
+      if (FWD[k] || BACK[k]) {
+        e.preventDefault();
+        const nowMs = Date.now();
+        if (nowMs - lastKeyRef.current < 150) return; // kumanda çift sinyal koruması
+        lastKeyRef.current = nowMs;
+        setBlack(false);
+        setNav((p) => ({ dir: FWD[k] ? 1 : -1, n: p.n + 1 }));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [manual]);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -309,8 +401,31 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
     // yoksa tam ekran butonuna hiç ulaşılamıyordu.
     <main className={`relative w-screen h-screen bg-black overflow-hidden ${controls ? "" : "cursor-none"}`} onPointerMove={poke} onPointerDown={poke}>
       {stage.zones?.map((z) => (
-        <ZonePlayer key={z.id} zone={z} />
+        <ZonePlayer
+          key={z.id}
+          zone={z}
+          manual={manual}
+          nav={manual ? nav : undefined}
+          onIndex={manual && z.id === biggestZoneId ? onIndex : undefined}
+        />
       ))}
+
+      {/* Sunum modu katmanları: siyah ekran (B) + sayaç */}
+      {manual && (
+        <div
+          aria-hidden
+          className="fixed inset-0 z-40 bg-black pointer-events-none transition-opacity duration-150"
+          style={{ opacity: black ? 1 : 0 }}
+        />
+      )}
+      {manual && counter && (
+        <div
+          className={`fixed bottom-5 right-6 z-40 rounded-xl bg-black/40 px-4 py-1.5 text-white text-2xl font-semibold tabular-nums transition-opacity duration-500 ${counterDim ? "opacity-0" : "opacity-90"}`}
+          aria-hidden
+        >
+          {counter.i} / {counter.len}
+        </div>
+      )}
 
       {/* Önizleme rozeti — taslağı izlediğin belli olsun */}
       {draft && (

@@ -21,6 +21,7 @@ import {
   publishVideowall,
   renameVideowall,
   resetGrid,
+  setPlayMode,
   slugify,
   splitZone,
   updateVideowall,
@@ -313,6 +314,34 @@ export default function VideowallEditPage() {
               <input key={`r${vw.rows}`} type="number" min={1} max={24} defaultValue={vw.rows} onBlur={(e) => { const rr = clampScreens(Number(e.target.value)); if (rr !== vw.rows) changeGrid(vw.cols, rr); e.target.value = String(vw.rows); }} className={`w-24 ${inputCls}`} />
             </label>
             <span className="text-white/50 text-xs pb-2 tabular-nums">{vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan</span>
+          </div>
+
+          {/* Oynatma modu: tabela (otomatik) / sunum (kumanda). Yayından bağımsız —
+              seçim perdeye ANINDA gider (Kaydet & Yayınla gerekmez). */}
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <span className="text-white/50 text-xs block mb-2">Oynatma modu</span>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              {([
+                { v: "auto", label: "🔁 Tabela — otomatik akış" },
+                { v: "manual", label: "🎮 Sunum — kumanda ile" },
+              ] as const).map((m) => {
+                const active = (vw.playMode ?? "auto") === m.v;
+                return (
+                  <button
+                    key={m.v}
+                    onClick={() => !active && setPlayMode(id, m.v).catch(() => setSaveErr("Mod kaydedilemedi — tekrar dene."))}
+                    className={`px-3.5 py-2 rounded-xl font-semibold border ${active ? "bg-white text-[#0d102f] border-white" : "border-white/20 text-white/70 hover:border-white/40"}`}
+                  >
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-white/50 text-xs mt-2 leading-relaxed">
+              {(vw.playMode ?? "auto") === "manual"
+                ? "Sunum modu: içerik kumandayla/klavyeyle ilerler (→ ← boşluk PgUp/PgDn), sağ altta sayaç, B = siyah ekran, F = tam ekran; uçlarda durur, süre/otomatik geçiş çalışmaz. Seçim yayına anında gider."
+                : "Tabela modu (varsayılan): içerik süre ve takvime göre kendiliğinden döner."}
+            </p>
           </div>
         </div>
 

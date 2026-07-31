@@ -16,7 +16,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { Videowall, Zone, ZoneItem } from "./types";
+import { Videowall, VideowallPlayMode, Zone, ZoneItem } from "./types";
 
 /**
  * Öğe şu an takvimde mi? (gün + saat penceresi; boşsa hep). Gece yarısını aşan
@@ -275,6 +275,11 @@ const stripUndefined = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 /** TASLAK yerleşim/içerik yazımı (birleştir/böl/öğe ekle). Yayına dokunmaz. */
 export async function updateZones(id: string, zones: Zone[]): Promise<void> {
   await updateDoc(doc(db(), "videowalls", id), { zones: stripUndefined(zones), updatedAt: serverTimestamp() });
+}
+
+/** Oynatma modu (tabela/sunum) — yayından bağımsız, perde anında uyar. */
+export async function setPlayMode(id: string, playMode: VideowallPlayMode): Promise<void> {
+  await updateDoc(doc(db(), "videowalls", id), { playMode, updatedAt: serverTimestamp() });
 }
 
 /** Taslağı YAYINA al ("Kaydet & Yayınla") — perde bundan sonra bu hâli oynatır. */
