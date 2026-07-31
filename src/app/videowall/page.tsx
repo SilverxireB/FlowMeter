@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import { Icon } from "@/components/videowall/icons";
+import WallThumb from "@/components/videowall/WallThumb";
 import { useAuthUser } from "@/lib/hooks";
 import { clampScreens, createVideowall, deleteVideowall, duplicateVideowall, fetchScreenSummaries, listAllVideowalls } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
@@ -220,30 +221,39 @@ export default function VideowallListPage() {
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2">
             {mine.map((v) => (
-              <li key={v.id} className="rounded-2xl bg-white/5 border border-white/10 p-4 flex flex-col gap-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-display font-semibold truncate">{v.name}</p>
-                    <p className="text-white/50 text-xs mt-0.5 tabular-nums">{v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan</p>
-                    {beatLabel(v.id) && (
-                      <p className={`text-xs mt-1 font-semibold ${beatLabel(v.id)!.cls}`}>{beatLabel(v.id)!.text}</p>
-                    )}
+              <li key={v.id} className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex flex-col">
+                {/* Önizleme = yayındaki yerleşim; tıkla → editör */}
+                <Link href={`/videowall/${v.id}/edit`} className="relative block group" aria-label={`${v.name} — düzenle`}>
+                  <WallThumb vw={v} />
+                  <span className="absolute inset-0 ring-1 ring-inset ring-white/10 group-hover:ring-[#6366f1]/60 transition" aria-hidden />
+                  {beatLabel(v.id) && (
+                    <span className={`absolute top-2 right-2 rounded-full bg-black/60 backdrop-blur px-2.5 py-1 text-[11px] font-semibold ${beatLabel(v.id)!.cls}`}>
+                      {beatLabel(v.id)!.text}
+                    </span>
+                  )}
+                </Link>
+                <div className="p-4 flex flex-col gap-3 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-display font-semibold truncate">{v.name}</p>
+                      <p className="text-white/50 text-xs mt-0.5 tabular-nums">{v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan</p>
+                    </div>
+                    <div className="flex items-center shrink-0">
+                      <button onClick={() => duplicate(v)} className="w-9 h-9 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10" title="Kopyala" aria-label="Kopyala">
+                        <Icon name="copy" size={16} />
+                      </button>
+                      <button onClick={() => remove(v)} className="w-9 h-9 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10" title="Sil" aria-label="Sil">
+                        <Icon name="trash" size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center shrink-0">
-                    <button onClick={() => duplicate(v)} className="w-9 h-9 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10" title="Kopyala" aria-label="Kopyala">
-                      <Icon name="copy" size={16} />
-                    </button>
-                    <button onClick={() => remove(v)} className="w-9 h-9 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10" title="Sil" aria-label="Sil">
-                      <Icon name="trash" size={16} />
-                    </button>
+                  <div className="flex gap-2 flex-wrap mt-auto">
+                    <Link href={`/videowall/${v.id}/edit`} className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/15">Düzenle</Link>
+                    {/* "Yayınla" değil — editördeki Kaydet & Yayınla ile karışıyordu */}
+                    <a href={playHref(v)} target="_blank" className="rounded-xl bg-accent hover:bg-accent-dark text-white px-4 py-2 text-sm font-semibold inline-flex items-center gap-1.5">
+                      <Icon name="play" size={14} /> Ekranı aç ↗
+                    </a>
                   </div>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <Link href={`/videowall/${v.id}/edit`} className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/15">Düzenle</Link>
-                  {/* "Yayınla" değil — editördeki Kaydet & Yayınla ile karışıyordu */}
-                  <a href={playHref(v)} target="_blank" className="rounded-xl bg-accent hover:bg-accent-dark text-white px-4 py-2 text-sm font-semibold inline-flex items-center gap-1.5">
-                    <Icon name="play" size={14} /> Ekranı aç ↗
-                  </a>
                 </div>
               </li>
             ))}
@@ -258,20 +268,27 @@ export default function VideowallListPage() {
             </p>
             <ul className="grid gap-4 sm:grid-cols-2">
               {others.map((v) => (
-                <li key={v.id} className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 flex flex-col gap-3">
-                  <div className="min-w-0">
-                    <p className="font-display font-semibold truncate text-white/60">{v.name}</p>
-                    <p className="text-white/50 text-xs mt-0.5 tabular-nums">
-                      {v.width}×{v.height} · {v.cols}×{v.rows}
-                      {v.ownerName ? <span> · 👤 {v.ownerName}</span> : null}
-                    </p>
+                <li key={v.id} className="rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden flex flex-col">
+                  <div className="relative opacity-60">
+                    <WallThumb vw={v} />
                     {beatLabel(v.id) && (
-                      <p className={`text-xs mt-1 font-semibold ${beatLabel(v.id)!.cls}`}>{beatLabel(v.id)!.text}</p>
+                      <span className={`absolute top-2 right-2 rounded-full bg-black/60 backdrop-blur px-2.5 py-1 text-[11px] font-semibold ${beatLabel(v.id)!.cls}`}>
+                        {beatLabel(v.id)!.text}
+                      </span>
                     )}
                   </div>
-                  <div className="flex gap-2 items-center">
-                    <a href={playHref(v)} target="_blank" className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold text-white/70 hover:bg-white/15">▶ İzle ↗</a>
-                    <span className="text-xs text-white/45">🔒 Düzenleme sahibinde</span>
+                  <div className="p-4 flex flex-col gap-3 flex-1">
+                    <div className="min-w-0">
+                      <p className="font-display font-semibold truncate text-white/60">{v.name}</p>
+                      <p className="text-white/50 text-xs mt-0.5 tabular-nums">
+                        {v.width}×{v.height} · {v.cols}×{v.rows}
+                        {v.ownerName ? <span> · 👤 {v.ownerName}</span> : null}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 items-center mt-auto">
+                      <a href={playHref(v)} target="_blank" className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold text-white/70 hover:bg-white/15">▶ İzle ↗</a>
+                      <span className="text-xs text-white/45">🔒 Düzenleme sahibinde</span>
+                    </div>
                   </div>
                 </li>
               ))}
