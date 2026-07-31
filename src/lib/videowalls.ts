@@ -283,11 +283,17 @@ export async function publishVideowall(v: Videowall): Promise<void> {
   await updateDoc(doc(db(), "videowalls", v.id), { live: { ...snap, publishedAt: serverTimestamp() }, updatedAt: serverTimestamp() });
 }
 
-/** Çözünürlük/ızgara değişince TASLAK zone'ları taze ızgaraya sıfırla. */
-export async function resetGrid(id: string, cols: number, rows: number): Promise<void> {
+/** Çözünürlük/ızgara değişince TASLAK yerleşimi taze ızgaraya sıfırlar.
+ *  İÇERİK KAYBOLMAZ: eski alanlardaki tüm öğeler ilk alana taşınır —
+ *  kullanıcı oradan dağıtır. (Eskiden hepsi silinir, yayınlanmamış medya
+ *  kütüphaneden bile düşerdi.) */
+export async function resetGrid(id: string, cols: number, rows: number, oldZones: Zone[] = []): Promise<void> {
   const cc = clampScreens(cols);
   const rr = clampScreens(rows);
-  await updateDoc(doc(db(), "videowalls", id), { cols: cc, rows: rr, zones: gridZones(cc, rr), updatedAt: serverTimestamp() });
+  const zones = gridZones(cc, rr);
+  const carried = oldZones.flatMap((z) => z.items ?? []);
+  if (carried.length && zones.length) zones[0] = { ...zones[0], items: carried };
+  await updateDoc(doc(db(), "videowalls", id), { cols: cc, rows: rr, zones: stripUndefined(zones), updatedAt: serverTimestamp() });
 }
 
 /** Duvarı kopyala (yeni id + taze zone/öğe id'leri; içerik referansları korunur). */

@@ -46,12 +46,23 @@ function TextView({ item }: { item: ZoneItem }) {
 }
 
 /** Tek öğe katmanı — güvenilir enter animasyonu (reflow + çift rAF → asla ani
- * zıplama/flaş yapmaz). İçerik alana STRETCH edilir (object-fit: fill). */
+ * zıplama/flaş yapmaz). İçerik alana STRETCH edilir (object-fit: fill).
+ * Video: giriş animasyonu İLK KARE HAZIR OLANA dek bekler (loadeddata) —
+ * kırpışmanın/siyah boşluğun ana kaynağı boş videonun fade'lenmesiydi. */
 function Layer({ item, transition, loop, onEnded, onError }: { item: ZoneItem; transition: Transition; loop: boolean; onEnded?: () => void; onError?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
+  const vidRef = useRef<HTMLVideoElement>(null);
+  const isVideo = item.kind === "video";
+  const [ready, setReady] = useState(!isVideo);
   const [on, setOn] = useState(transition === "cut");
+  // Emniyet: loadeddata hiç gelmezse (yavaş ağ/bozuk dosya) 1.2sn sonra yine gir
   useEffect(() => {
-    if (transition === "cut") return;
+    if (!isVideo || ready) return;
+    const t = window.setTimeout(() => setReady(true), 1200);
+    return () => window.clearTimeout(t);
+  }, [isVideo, ready]);
+  useEffect(() => {
+    if (transition === "cut" || !ready) return;
     // Başlangıç (gizli) durumu bir kare boyansın, SONRA animasyonla gir
     // (reflow + çift rAF → sağlam; asla ani zıplama/flaş yapmaz).
     if (ref.current) void ref.current.offsetWidth; // reflow
@@ -63,7 +74,21 @@ function Layer({ item, transition, loop, onEnded, onError }: { item: ZoneItem; t
       cancelAnimationFrame(r1);
       cancelAnimationFrame(r2);
     };
-  }, [transition]);
+  }, [transition, ready]);
+  // 7/24 bellek disiplini: video elemanı sökülürken kaynağı gerçekten bırak
+  // (docs/VIDEOWALL.md "video release ŞART" kuralı).
+  useEffect(() => {
+    return () => {
+      const v = vidRef.current;
+      if (v) {
+        try {
+          v.pause();
+          v.removeAttribute("src");
+          v.load();
+        } catch {}
+      }
+    };
+  }, []);
 
   const style =
     transition === "slide"
@@ -75,7 +100,19 @@ function Layer({ item, transition, loop, onEnded, onError }: { item: ZoneItem; t
   return (
     <div ref={ref} className="absolute inset-0" style={style}>
       {item.kind === "video" ? (
-        <video src={safeSrc(item.src)} autoPlay muted playsInline loop={loop} onEnded={onEnded} onError={onError} className="w-full h-full" style={{ objectFit: "fill" }} />
+        <video
+          ref={vidRef}
+          src={safeSrc(item.src)}
+          autoPlay
+          muted
+          playsInline
+          loop={loop}
+          onLoadedData={() => setReady(true)}
+          onEnded={onEnded}
+          onError={onError}
+          className="w-full h-full"
+          style={{ objectFit: "fill" }}
+        />
       ) : item.kind === "url" ? (
         // sandbox: üst pencereye yönlendirme/popup/indirme YOK (dashboard script+
         // cookie'yle çalışmaya devam eder). pointer-events-none: tabela salt-görüntü;
@@ -147,7 +184,11 @@ function ZonePlayer({ zone }: { zone: Zone }) {
     }
     const k = keyRef.current++;
     setLayers((prev) => [...prev, { key: k, item: cur }].slice(-2));
-    const t = window.setTimeout(() => setLayers((prev) => prev.slice(-1)), transition === "cut" ? 30 : 650);
+    // Eski katman, YENİ katman görünür olana dek kalmalı: video ilk karesini
+    // bekleyebildiğinden (loadeddata + 1.2sn emniyet) videoda pencere daha uzun —
+    // yoksa alt katman erken sökülüp siyah boşluk/kırpışma görünüyordu.
+    const holdMs = transition === "cut" ? 30 : cur.kind === "video" ? 2000 : 650;
+    const t = window.setTimeout(() => setLayers((prev) => prev.slice(-1)), holdMs);
     return () => window.clearTimeout(t);
   }, [cur?.id, idx]); // eslint-disable-line react-hooks/exhaustive-deps
 

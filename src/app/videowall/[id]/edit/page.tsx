@@ -28,6 +28,7 @@ import {
   watchVideowall,
 } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
+import { withTimeout } from "@/lib/withTimeout";
 
 const inputCls =
   "rounded-lg bg-white/10 border border-white/15 px-3 py-2 focus:outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/30";
@@ -46,6 +47,9 @@ export default function VideowallEditPage() {
   const [saveErr, setSaveErr] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [confirmBox, setConfirmBox] = useState<Confirm | null>(null);
+  // Tek adım Geri Al: her yerleşim/içerik yazımından önceki taslak anlık görüntüsü.
+  // Yanlış birleştirme/silme artık telafisiz değil ("Yayındaki hâle dön" nükleer kalır).
+  const [undoZones, setUndoZones] = useState<Videowall["zones"] | null>(null);
 
   useEffect(() => watchVideowall(id, setVw), [id]);
   useEffect(() => setOrigin(window.location.origin), []);
@@ -98,10 +102,14 @@ export default function VideowallEditPage() {
     setPublishing(true);
     setSaveErr(null);
     try {
-      await publishVideowall(vw);
+      // Çevrimdışıyken sonsuz "Yayınlanıyor…" yerine dürüst mesaj (yazım yerelde
+      // kuyruğa girer, bağlantı gelince kendiliğinden yayına gider).
+      await withTimeout(publishVideowall(vw));
       flashToast("✓ Yayınlandı — ekranlar birkaç saniye içinde güncellenir.");
     } catch {
-      setSaveErr("Yayınlama başarısız — bağlantını kontrol edip tekrar dene.");
+      setSaveErr(
+        "Yayın sunucuya ulaşmadı (bağlantı yok olabilir). Değişiklik cihazda kaydedildi — bağlantı gelince kendiliğinden yayınlanır; buton \"✓ Yayında\" olunca ekranlar güncellenmiştir."
+      );
     } finally {
       setPublishing(false);
     }
@@ -152,20 +160,28 @@ export default function VideowallEditPage() {
   }
 
   // Taslak yazımları: hata SESSİZ geçmez (kullanıcı "kaydoldu" sanıp kapatıyordu).
+  // Her yazımdan önce anlık görüntü → tek adım Geri Al.
   const saveZones = (zones: Videowall["zones"]) => {
+    setUndoZones(vw.zones ?? []);
     setSaveErr(null);
     updateZones(id, zones).catch(() => setSaveErr("Değişiklik kaydedilemedi — bağlantını kontrol edip tekrar dene."));
+  };
+  const undoLayout = () => {
+    if (!undoZones) return;
+    updateZones(id, undoZones).catch(() => setSaveErr("Geri alınamadı — tekrar dene."));
+    setUndoZones(null);
+    setSelectedId(null);
   };
 
   const changeGrid = (cols: number, rows: number) => {
     setConfirmBox({
       title: "Izgarayı değiştir",
       message:
-        "Izgara değişince taslak yerleşim VE alanlardaki tüm içerik listeleri sıfırlanır (yayın etkilenmez; yüklenen dosyalar kütüphanede durur, alanlara yeniden eklersin). Devam?",
-      confirmLabel: "Sıfırla ve değiştir",
-      danger: true,
+        "Taslak yerleşim taze ızgaraya sıfırlanır; alanlardaki TÜM içerik kaybolmaz — hepsi ilk alana taşınır, oradan dağıtırsın. (Yayın etkilenmez.) Devam?",
+      confirmLabel: "Izgarayı değiştir",
       run: () => {
-        resetGrid(id, cols, rows).catch(() => setSaveErr("Izgara değişikliği kaydedilemedi — tekrar dene."));
+        setUndoZones(null); // ızgara değişince eski anlık görüntü geçersiz (boyutlar farklı)
+        resetGrid(id, cols, rows, vw.zones ?? []).catch(() => setSaveErr("Izgara değişikliği kaydedilemedi — tekrar dene."));
         setSelectedId(null);
       },
     });
@@ -212,12 +228,18 @@ export default function VideowallEditPage() {
       )}
       {dirty && !saveErr && (
         <div className="bg-[#6366f1]/10 border-b border-[#6366f1]/20 px-4 sm:px-6 py-2 text-xs text-[#a5b4fc] flex items-center flex-wrap gap-x-3 gap-y-1">
-          <span>Kaydedilmemiş değişiklikler var — canlı ekran son yayınlanan hâli oynatıyor. <b>Kaydet & Yayınla</b> ile gönder.</span>
+          <span>● Taslakta yayınlanmamış değişiklik var — canlı ekran son yayınlanan hâli oynatıyor. <b>Kaydet & Yayınla</b> ile gönder.</span>
           {vw.live && (
             <button onClick={revertToLive} className="inline-flex items-center gap-1 font-semibold underline decoration-[#a5b4fc]/40 hover:decoration-[#a5b4fc]">
               <Icon name="undo" size={12} /> Yayındaki hâle dön
             </button>
           )}
+        </div>
+      )}
+      {/* Pozitif onay: "oldu mu olmadı mı" belirsizliği kalmasın */}
+      {!dirty && !saveErr && vw.live && (
+        <div className="bg-emerald-400/10 border-b border-emerald-400/20 px-4 sm:px-6 py-2 text-xs text-emerald-300">
+          ✓ Yayında — canlı ekran taslağınla birebir aynı{lastPublished ? ` · son yayın: ${lastPublished}` : ""}.
         </div>
       )}
 
@@ -296,7 +318,17 @@ export default function VideowallEditPage() {
 
         {/* Yerleşim editörü */}
         <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
-          <p className="text-white/60 text-[11px] font-bold uppercase tracking-[0.14em] mb-3">Yerleşim</p>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <p className="text-white/60 text-[11px] font-bold uppercase tracking-[0.14em]">Yerleşim</p>
+            {undoZones && (
+              <button
+                onClick={undoLayout}
+                className="rounded-lg bg-white/10 border border-white/15 px-2.5 py-1 text-xs font-semibold text-white/80 hover:bg-white/15 inline-flex items-center gap-1"
+              >
+                <Icon name="undo" size={12} /> Son değişikliği geri al
+              </button>
+            )}
+          </div>
           <LayoutEditor vw={vw} selectedId={selectedId} onSelect={setSelectedId} onZones={saveZones} onConfirm={setConfirmBox} />
         </div>
 

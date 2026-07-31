@@ -187,7 +187,12 @@ export default function ZonePanel({
   const addText = () => setItems([...zone.items, { id: iid(), kind: "text", title: "Başlık", text: "", bg: "#312e81", color: "#ffffff", durationSec: 10 }]);
   const addClock = () => setItems([...zone.items, { id: iid(), kind: "clock", bg: "#0d102f", color: "#ffffff", durationSec: 10 }]);
   const addFromLib = (src: ZoneItem) => {
-    setItems([...zone.items, { ...src, id: iid() }]);
+    // Yalnız dosyanın kendisi kopyalanır — eski öğenin takvimi/süresi GİZLİCE
+    // taşınmaz ("kütüphaneden ekledim, neden görünmüyor?" sürprizi biterdi).
+    setItems([
+      ...zone.items,
+      { id: iid(), kind: src.kind, src: src.src, name: src.name, durationSec: src.kind === "image" ? 8 : undefined },
+    ]);
     setLibOpen(false);
   };
 
