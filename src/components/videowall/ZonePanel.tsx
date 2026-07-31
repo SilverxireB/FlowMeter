@@ -462,7 +462,7 @@ export default function ZonePanel({
                 {openItemId === it.id && (
                   <>
                     {(it.kind === "image" || it.kind === "video" || it.kind === "url") && (
-                      <div className="pl-9">
+                      <div className="pl-9 flex flex-col gap-2">
                         {/* Yeniden adlandırma: kütüphanede/listede ayırt etmek için */}
                         <input
                           defaultValue={it.name ?? ""}
@@ -471,6 +471,21 @@ export default function ZonePanel({
                           className={`${inputCls} px-3 py-2 text-sm w-full`}
                           aria-label="Öğe adı"
                         />
+                        {/* Adres de düzenlenebilir — geçersizse eski değere döner */}
+                        {it.kind === "url" && (
+                          <input
+                            defaultValue={it.src ?? ""}
+                            placeholder="https://…"
+                            inputMode="url"
+                            onBlur={(e) => {
+                              const v = e.target.value.trim();
+                              if (/^https?:\/\//i.test(v) && v !== it.src) patchItem(it.id, { src: v });
+                              else e.target.value = it.src ?? "";
+                            }}
+                            className={`${inputCls} px-3 py-2 text-xs w-full font-mono`}
+                            aria-label="Sayfa adresi (URL)"
+                          />
+                        )}
                       </div>
                     )}
                     {it.kind === "text" && (

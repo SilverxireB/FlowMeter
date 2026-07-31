@@ -58,13 +58,16 @@ export default function VideowallListPage() {
     setBeats(await fetchScreenSummaries(list.map((v) => v.id)));
   }, [user]);
 
+  // Canlılık rozeti — HER kartta görünür ki canlı/çevrimdışı ayrımı net olsun.
   const beatLabel = (id: string) => {
     const b = beats[id];
-    if (!b || (!b.online && !b.lastSeen)) return null;
-    if (b.online) return { text: `● ${b.online} çevrimiçi`, cls: "text-emerald-300" };
-    const d = Date.now() - b.lastSeen;
-    const ago = d < 3600_000 ? `${Math.max(1, Math.round(d / 60_000))} dk` : d < 86_400_000 ? `${Math.round(d / 3600_000)} sa` : `${Math.round(d / 86_400_000)} gün`;
-    return { text: `○ son görülme ${ago} önce`, cls: "text-white/40" };
+    if (b?.online) return { text: `● CANLI${b.online > 1 ? ` · ${b.online}` : ""}`, cls: "bg-emerald-500 text-white" };
+    if (b?.lastSeen) {
+      const d = Date.now() - b.lastSeen;
+      const ago = d < 3600_000 ? `${Math.max(1, Math.round(d / 60_000))} dk` : d < 86_400_000 ? `${Math.round(d / 3600_000)} sa` : `${Math.round(d / 86_400_000)} gün`;
+      return { text: `○ ${ago} önce`, cls: "bg-black/60 text-white/70" };
+    }
+    return { text: "○ çevrimdışı", cls: "bg-black/60 text-white/50" };
   };
 
   const mine = useMemo(() => walls.filter((v) => v.ownerId === user?.uid), [walls, user]);
@@ -144,7 +147,7 @@ export default function VideowallListPage() {
         <span className="text-white/45 text-sm truncate max-w-[45vw]">{user.email}</span>
       </header>
 
-      <section className="max-w-4xl mx-auto px-4 py-10">
+      <section className="max-w-5xl mx-auto px-4 py-10">
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">Ekranların</h1>
         <p className="text-white/50 text-sm mb-6">Çözünürlük + ekran ızgarası tanımla, alanlara içerik yerleştir, tam ekran yayınla.</p>
 
@@ -219,40 +222,34 @@ export default function VideowallListPage() {
             <p>Henüz ekranın yok. Yukarıdan ilkini oluştur.</p>
           </div>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2">
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {mine.map((v) => (
               <li key={v.id} className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex flex-col">
                 {/* Önizleme = yayındaki yerleşim; tıkla → editör */}
                 <Link href={`/videowall/${v.id}/edit`} className="relative block group" aria-label={`${v.name} — düzenle`}>
                   <WallThumb vw={v} />
                   <span className="absolute inset-0 ring-1 ring-inset ring-white/10 group-hover:ring-[#6366f1]/60 transition" aria-hidden />
-                  {beatLabel(v.id) && (
-                    <span className={`absolute top-2 right-2 rounded-full bg-black/60 backdrop-blur px-2.5 py-1 text-[11px] font-semibold ${beatLabel(v.id)!.cls}`}>
-                      {beatLabel(v.id)!.text}
-                    </span>
-                  )}
+                  <span className={`absolute top-1.5 right-1.5 rounded-full backdrop-blur px-2 py-0.5 text-[10px] font-bold tracking-wide ${beatLabel(v.id).cls}`}>
+                    {beatLabel(v.id).text}
+                  </span>
                 </Link>
-                <div className="p-4 flex flex-col gap-3 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-display font-semibold truncate">{v.name}</p>
-                      <p className="text-white/50 text-xs mt-0.5 tabular-nums">{v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan</p>
-                    </div>
-                    <div className="flex items-center shrink-0">
-                      <button onClick={() => duplicate(v)} className="w-9 h-9 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10" title="Kopyala" aria-label="Kopyala">
-                        <Icon name="copy" size={16} />
-                      </button>
-                      <button onClick={() => remove(v)} className="w-9 h-9 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10" title="Sil" aria-label="Sil">
-                        <Icon name="trash" size={16} />
-                      </button>
-                    </div>
+                <div className="p-3 flex flex-col gap-2.5 flex-1">
+                  <div className="min-w-0">
+                    <p className="font-display font-semibold text-sm truncate">{v.name}</p>
+                    <p className="text-white/50 text-[11px] mt-0.5 tabular-nums">{v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan</p>
                   </div>
-                  <div className="flex gap-2 flex-wrap mt-auto">
-                    <Link href={`/videowall/${v.id}/edit`} className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/15">Düzenle</Link>
+                  <div className="flex items-center gap-1.5 mt-auto">
+                    <Link href={`/videowall/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-white/10 border border-white/15 px-2.5 py-1.5 text-xs font-semibold hover:bg-white/15">Düzenle</Link>
                     {/* "Yayınla" değil — editördeki Kaydet & Yayınla ile karışıyordu */}
-                    <a href={playHref(v)} target="_blank" className="rounded-xl bg-accent hover:bg-accent-dark text-white px-4 py-2 text-sm font-semibold inline-flex items-center gap-1.5">
-                      <Icon name="play" size={14} /> Ekranı aç ↗
+                    <a href={playHref(v)} target="_blank" title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-8 h-8 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
+                      <Icon name="play" size={13} />
                     </a>
+                    <button onClick={() => duplicate(v)} className="shrink-0 w-8 h-8 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10" title="Kopyala" aria-label="Kopyala">
+                      <Icon name="copy" size={14} />
+                    </button>
+                    <button onClick={() => remove(v)} className="shrink-0 w-8 h-8 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10" title="Sil" aria-label="Sil">
+                      <Icon name="trash" size={14} />
+                    </button>
                   </div>
                 </div>
               </li>
@@ -266,28 +263,26 @@ export default function VideowallListPage() {
             <p className="text-white/60 text-[11px] font-bold uppercase tracking-[0.14em] mb-3">
               Diğer ekranlar <span className="normal-case tracking-normal font-normal">(yetkin yok — yalnız izleme)</span>
             </p>
-            <ul className="grid gap-4 sm:grid-cols-2">
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {others.map((v) => (
                 <li key={v.id} className="rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden flex flex-col">
                   <div className="relative opacity-60">
                     <WallThumb vw={v} />
-                    {beatLabel(v.id) && (
-                      <span className={`absolute top-2 right-2 rounded-full bg-black/60 backdrop-blur px-2.5 py-1 text-[11px] font-semibold ${beatLabel(v.id)!.cls}`}>
-                        {beatLabel(v.id)!.text}
-                      </span>
-                    )}
+                    <span className={`absolute top-1.5 right-1.5 rounded-full backdrop-blur px-2 py-0.5 text-[10px] font-bold tracking-wide ${beatLabel(v.id).cls}`}>
+                      {beatLabel(v.id).text}
+                    </span>
                   </div>
-                  <div className="p-4 flex flex-col gap-3 flex-1">
+                  <div className="p-3 flex flex-col gap-2.5 flex-1">
                     <div className="min-w-0">
-                      <p className="font-display font-semibold truncate text-white/60">{v.name}</p>
-                      <p className="text-white/50 text-xs mt-0.5 tabular-nums">
+                      <p className="font-display font-semibold text-sm truncate text-white/60">{v.name}</p>
+                      <p className="text-white/50 text-[11px] mt-0.5 tabular-nums">
                         {v.width}×{v.height} · {v.cols}×{v.rows}
                         {v.ownerName ? <span> · 👤 {v.ownerName}</span> : null}
                       </p>
                     </div>
-                    <div className="flex gap-2 items-center mt-auto">
-                      <a href={playHref(v)} target="_blank" className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold text-white/70 hover:bg-white/15">▶ İzle ↗</a>
-                      <span className="text-xs text-white/45">🔒 Düzenleme sahibinde</span>
+                    <div className="flex gap-1.5 items-center mt-auto">
+                      <a href={playHref(v)} target="_blank" className="flex-1 text-center rounded-lg bg-white/10 border border-white/15 px-2.5 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/15">▶ İzle ↗</a>
+                      <span className="shrink-0 text-xs text-white/45" title="Düzenleme sahibinde">🔒</span>
                     </div>
                   </div>
                 </li>
