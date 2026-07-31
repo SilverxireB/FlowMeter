@@ -35,7 +35,31 @@ function ZonePreview({ item }: { item?: ZoneItem }) {
   }
   if (item.kind === "text") return <div className="absolute inset-0" style={{ background: item.bg ?? "#312e81" }} />;
   if (item.kind === "clock") return <div className="absolute inset-0 grid place-items-center text-lg" style={{ background: item.bg ?? "#0d102f" }}>🕐</div>;
-  if (item.kind === "url") return <div className="absolute inset-0 grid place-items-center bg-black/40 text-lg">🔗</div>;
+  if (item.kind === "url") {
+    // Gerçek sayfanın minyatürü (4× sanal pencere → 0.25 ölçek; salt-görüntü).
+    // Site iframe'i reddederse (X-Frame-Options) boş kalır → alttaki 🔗 görünür.
+    const src = /^https?:\/\//i.test(item.src ?? "") ? item.src : undefined;
+    let host = "";
+    try {
+      host = src ? new URL(src).hostname : "";
+    } catch {}
+    if (!src) return <div className="absolute inset-0 grid place-items-center bg-black/40 text-lg">🔗</div>;
+    return (
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 grid place-items-center bg-black/40 text-lg">🔗</div>
+        <iframe
+          src={src}
+          title={item.name || "sayfa"}
+          sandbox="allow-scripts allow-same-origin"
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          className="absolute top-0 left-0 border-0 pointer-events-none"
+          style={{ width: "400%", height: "400%", transform: "scale(0.25)", transformOrigin: "top left" }}
+        />
+        {host && <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] text-white/80">{host}</span>}
+      </div>
+    );
+  }
   return null;
 }
 

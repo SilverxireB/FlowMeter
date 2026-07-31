@@ -516,6 +516,11 @@ export default function ZonePanel({
                           </select>
                         </label>
                       )}
+                      {it.kind === "url" && it.src && (
+                        <a href={it.src} target="_blank" rel="noreferrer" className="text-[#a5b4fc] hover:underline font-semibold" title="Sayfanın kendisi açılıyor mu diye hızlı kontrol">
+                          Sayfayı yeni sekmede aç ↗
+                        </a>
+                      )}
                       <label className="flex items-center gap-1.5" title={it.kind === "video" ? "Boş bırakılırsa video sonuna kadar oynar" : undefined}>
                         {it.kind === "video" ? "Maks süre" : "Süre"}
                         <input
