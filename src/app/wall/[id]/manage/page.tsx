@@ -17,7 +17,7 @@ import WallFilm from "@/components/wall/WallFilm";
 import WallOnboarding from "@/components/wall/WallOnboarding";
 import ConfirmDialog from "@/components/videowall/ConfirmDialog";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
-import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallGalleryOpen, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallPinned, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, endRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, watchDraws, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";
+import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallFrame, setWallGalleryOpen, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallPinned, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, endRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, watchDraws, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
@@ -260,6 +260,25 @@ export default function WallManage() {
     await deleteMedia(id, m.id);
   }
 
+  // Etkinlik çerçevesi yükleme (şeffaf PNG → Cloudinary walls/{id}/frame)
+  const frameRef = useRef<HTMLInputElement>(null);
+  const [frameBusy, setFrameBusy] = useState(false);
+  async function onFramePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (frameRef.current) frameRef.current.value = "";
+    if (!f) return;
+    setFrameBusy(true);
+    try {
+      // keepOriginal: şeffaflık korunmalı (JPEG sıkıştırma alfayı öldürür)
+      const res = await uploadToCloudinary(f, `walls/${id}/frame`, () => {}, { keepOriginal: true });
+      await setWallFrame(id, res.url);
+    } catch (err) {
+      setUpErr(err instanceof Error ? err.message : "Çerçeve yüklenemedi.");
+    } finally {
+      setFrameBusy(false);
+    }
+  }
+
   async function ownerUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f || !wall) return;
@@ -268,7 +287,7 @@ export default function WallManage() {
     setUpErr(null);
     try {
       // Misafir yüklemesiyle aynı kural: "Orijinal kalite" ayarına saygı
-      const res = await uploadToCloudinary(f, `walls/${id}/${wall.sessionId ?? "s"}`, setUpPct, { keepOriginal: !!wall.keepOriginal });
+      const res = await uploadToCloudinary(f, `walls/${id}/${wall.sessionId ?? "s"}`, setUpPct, { keepOriginal: !!wall.keepOriginal, frameUrl: wall.frameUrl ?? undefined });
       await addWallMedia(
         id,
         {
@@ -560,6 +579,23 @@ export default function WallManage() {
                 </button>
               </div>
             )}
+            {/* Etkinlik çerçevesi: şeffaf PNG — yeni yüklenen fotoların üstüne bindirilir */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-sm font-semibold">🪄 Etkinlik çerçevesi</span>
+              {wall.frameUrl ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={cldThumb(wall.frameUrl, 120, 90)} alt="Çerçeve önizleme" className="h-10 rounded-lg border border-line bg-paper" />
+                  <button onClick={() => setWallFrame(id, null).catch(console.error)} className="btn-ghost !py-1 !px-2.5 text-xs">Kaldır</button>
+                </>
+              ) : (
+                <button onClick={() => frameRef.current?.click()} disabled={frameBusy || !isCloudinaryConfigured()} className="btn-ghost !py-1 !px-3 text-xs disabled:opacity-40">
+                  {frameBusy ? "Yükleniyor…" : "Şeffaf PNG yükle"}
+                </button>
+              )}
+              <input ref={frameRef} type="file" accept="image/png" className="hidden" onChange={onFramePick} />
+              <span className="text-muted text-xs basis-full">Logolu/temalı şeffaf PNG; bundan sonra yüklenen her fotoğrafın üstüne işlenir — indirilen kare de markalı olur.</span>
+            </div>
           </div>
         </div>
 

@@ -135,6 +135,11 @@ export async function setWallPinned(id: string, pinnedMediaId: string | null): P
   await updateDoc(doc(db(), "walls", id), { pinnedMediaId, updatedAt: serverTimestamp() });
 }
 
+/** Etkinlik çerçevesini ayarla (null = kaldır; eski dosya duvar silinirken temizlenir). */
+export async function setWallFrame(id: string, frameUrl: string | null): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { frameUrl, updatedAt: serverTimestamp() });
+}
+
 /** Duvarı bir kez oku (galeri gibi canlı olması gerekmeyen yüzeyler — kota dostu). */
 export async function getWall(id: string): Promise<Wall | null> {
   const snap = await getDoc(doc(db(), "walls", id));

@@ -60,6 +60,45 @@ async function compressImageForUpload(file: File, maxDim = 1920, quality = 0.82)
   }
 }
 
+/**
+ * Etkinlik çerçevesi: fotonun ÜSTÜNE şeffaf PNG bindirilir — misafir karesi
+ * markalı iner (ZIP/galeri indirmeleri dahil; Cloudinary dönüşümü değil,
+ * yükleme ÖNCESİ compose → kredi yemez). Çerçeve foto boyutuna STRETCH edilir;
+ * herhangi bir hata olursa çerçevesiz devam edilir (yükleme asla bozulmaz).
+ * Yalnız görselde (GIF/video dokunulmaz).
+ */
+async function applyFrame(file: File, frameUrl: string): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
+  try {
+    const [bitmap, frame] = await Promise.all([
+      createImageBitmap(file),
+      new Promise<HTMLImageElement>((res, rej) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => res(img);
+        img.onerror = () => rej(new Error("frame-load"));
+        img.src = frameUrl;
+      }),
+    ]);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close();
+      return file;
+    }
+    ctx.drawImage(bitmap, 0, 0);
+    ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.9));
+    if (!blob) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg", lastModified: file.lastModified });
+  } catch {
+    return file;
+  }
+}
+
 /** Tek yükleme denemesi (XHR + canlı ilerleme). 4xx → PermanentUploadError. */
 function attemptUpload(file: File, folder: string, onProgress: (pct: number) => void): Promise<UploadResult> {
   return new Promise((resolve, reject) => {
@@ -110,15 +149,17 @@ export async function uploadToCloudinary(
   file: File,
   folder: string,
   onProgress: (pct: number) => void,
-  opts?: { keepOriginal?: boolean }
+  opts?: { keepOriginal?: boolean; frameUrl?: string }
 ): Promise<UploadResult> {
   if (!isCloudinaryConfigured()) {
     throw new Error(
       "Cloudinary yapılandırılmadı. NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ve NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET değişkenlerini ekleyin."
     );
   }
+  // Önce çerçeve (orijinal çözünürlükte), sonra gerekiyorsa küçültme.
+  let toSend = opts?.frameUrl ? await applyFrame(file, opts.frameUrl) : file;
   // Duvar ayarı "orijinali sakla" ise küçültme atlanır (tam çözünürlük yüklenir).
-  const toSend = opts?.keepOriginal ? file : await compressImageForUpload(file);
+  toSend = opts?.keepOriginal ? toSend : await compressImageForUpload(toSend);
   let lastErr: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) {

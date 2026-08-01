@@ -175,6 +175,9 @@ export interface Wall {
   galleryOpen?: boolean;
   /** Sabitlenen anı — kokpitten 📌; kaldırılana dek perdede büyük gösterilir */
   pinnedMediaId?: string | null;
+  /** Etkinlik çerçevesi (şeffaf PNG URL'si) — yeni yüklenen FOTOLARIN üstüne
+   *  yükleme öncesi bindirilir; indirilen kare de markalı olur */
+  frameUrl?: string | null;
   /** Kişi başı en fazla foto (aktif oturum). 0 = sınırsız; yoksa varsayılan 20. */
   maxPerPerson?: number;
   /** Video süre limiti (sn). 0 = kapalı; yoksa allowVideo'dan türetilir (varsayılan 30). */

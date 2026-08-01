@@ -211,7 +211,7 @@ export default function UploadPage() {
             it.file,
             `walls/${wallId}/${wall.sessionId ?? "s"}`,
             (pct) => patch(it.id, { pct }),
-            { keepOriginal: !!wall.keepOriginal }
+            { keepOriginal: !!wall.keepOriginal, frameUrl: wall.frameUrl ?? undefined }
           );
           patch(it.id, { uploaded: res, pct: 100 });
         }
