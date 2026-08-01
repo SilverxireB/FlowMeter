@@ -320,8 +320,8 @@ export default function DashboardPage() {
         </Link>
         <div className="flex items-center gap-2 min-w-0">
           {isAdmin && (
-            <Link href="/admin" className="chip !py-1.5 text-accent font-semibold shrink-0 hover:border-accent">
-              🛡 Admin
+            <Link href="/admin" className="chip !py-1.5 text-accent font-semibold shrink-0 hover:border-accent inline-flex items-center gap-1.5">
+              <Icon name="shield" size={15} /> Admin
             </Link>
           )}
           <span className="chip text-muted min-w-0 max-w-[45vw]">
@@ -489,7 +489,7 @@ export default function DashboardPage() {
                         <p className="font-display font-semibold truncate">{w.title}</p>
                         <p className="text-muted text-sm mt-0.5">
                           Kod: <span className="font-display font-semibold tracking-[0.15em] text-accent">{w.joinCode || "—"}</span>
-                          {w.moderation && <span className="ml-2 text-xs">🛡 moderasyon</span>}
+                          {w.moderation && <span className="ml-2 text-xs inline-flex items-center gap-1"><Icon name="shield" size={12} /> moderasyon</span>}
                         </p>
                       </div>
                       <button
@@ -503,7 +503,7 @@ export default function DashboardPage() {
                         title="Duvarı sil"
                         aria-label="Duvarı sil"
                       >
-                        🗑
+                        <Icon name="trash" size={16} />
                       </button>
                     </div>
                     <div className="flex gap-2 flex-wrap">
@@ -536,13 +536,13 @@ export default function DashboardPage() {
           onClick={() => setTemplatesOpen(true)}
           className="btn-ghost mb-8 !py-2.5 text-sm"
         >
-          ✨ Şablondan başla
+          <Icon name="sparkles" size={15} /> Şablondan başla
         </button>
 
         {/* Arama + görünüm */}
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" aria-hidden>🔍</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" aria-hidden><Icon name="search" size={16} /></span>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -556,14 +556,14 @@ export default function DashboardPage() {
             aria-label="Kart görünümü"
             className={`btn-ghost !p-0 w-11 h-11 ${view === "grid" ? "!border-accent text-accent" : ""}`}
           >
-            ▦
+            <Icon name="grid" size={18} />
           </button>
           <button
             onClick={() => setView("list")}
             aria-label="Liste görünümü"
             className={`btn-ghost !p-0 w-11 h-11 ${view === "list" ? "!border-accent text-accent" : ""}`}
           >
-            ☰
+            <Icon name="list" size={18} />
           </button>
         </div>
 
@@ -582,7 +582,7 @@ export default function DashboardPage() {
                 onClick={() => setFolder(folder === f ? null : f)}
                 className={`chip cursor-pointer ${folder === f ? "!bg-ink !text-white !border-ink" : "hover:border-muted"}`}
               >
-                📁 {f}
+                <Icon name="folder" size={13} /> {f}
               </button>
             ))}
           </div>
@@ -628,7 +628,7 @@ export default function DashboardPage() {
                           <span className="font-display font-semibold tracking-[0.15em] text-accent">
                             {p.joinCode || "—"}
                           </span>
-                          {p.folder && <span className="ml-2 text-xs">📁 {p.folder}</span>}
+                          {p.folder && <span className="ml-2 text-xs inline-flex items-center gap-1"><Icon name="folder" size={12} /> {p.folder}</span>}
                         </p>
                       </div>
                       <div className="relative shrink-0">
@@ -647,8 +647,8 @@ export default function DashboardPage() {
                             className="absolute right-0 top-full mt-1 z-40 card !rounded-2xl p-2 w-48 flex flex-col animate-pop"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <button onClick={() => rename(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
-                              ✏️ Yeniden adlandır
+                            <button onClick={() => rename(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer inline-flex items-center gap-2">
+                              <Icon name="pencil" size={14} /> Yeniden adlandır
                             </button>
                             <button
                               onClick={() =>
@@ -660,14 +660,14 @@ export default function DashboardPage() {
                                   },
                                   () => newRun(p)
                                 )
-                              } className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
-                              ♻ Yeni oturum (yeni kod)
+                              } className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer inline-flex items-center gap-2">
+                              <Icon name="refresh" size={14} /> Yeni oturum (yeni kod)
                             </button>
-                            <button onClick={() => duplicate(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
+                            <button onClick={() => duplicate(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer inline-flex items-center gap-2">
                               ⧉ Kopyala
                             </button>
-                            <button onClick={() => moveToFolder(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
-                              📁 Klasöre taşı
+                            <button onClick={() => moveToFolder(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer inline-flex items-center gap-2">
+                              <Icon name="folder" size={14} /> Klasöre taşı
                             </button>
                             <button
                               onClick={() =>
@@ -675,8 +675,8 @@ export default function DashboardPage() {
                                   { title: "Sunumu sil", message: `"${p.title}" silinecek. Bu işlem geri alınamaz.`, confirmLabel: "Sil", danger: true },
                                   () => remove(p)
                                 )
-                              } className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold text-brand hover:bg-brand-soft/50 cursor-pointer">
-                              🗑 Sil
+                              } className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold text-brand hover:bg-brand-soft/50 cursor-pointer inline-flex items-center gap-2">
+                              <Icon name="trash" size={14} /> Sil
                             </button>
                           </div>
                         )}
@@ -684,7 +684,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex gap-2 items-center flex-wrap">
                       <Link href={`/present/${p.id}`} className="btn-primary !py-2 !px-4 text-sm">
-                        ▶ Sun
+                        <Icon name="play" size={14} /> Sun
                       </Link>
                       <Link href={`/edit/${p.id}`} className="btn-ghost !py-2 !px-4 text-sm">
                         Düzenle
@@ -714,7 +714,7 @@ export default function DashboardPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="font-display text-2xl font-semibold">✨ Şablon galerisi</h2>
+              <h2 className="font-display text-2xl font-semibold flex items-center gap-2"><Icon name="sparkles" size={20} /> Şablon galerisi</h2>
               <button onClick={() => setTemplatesOpen(false)} className="btn-ghost !px-3 !py-1.5 text-sm">Kapat</button>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">

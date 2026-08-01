@@ -42,7 +42,8 @@ import { isScoringSlide } from "@/lib/quizScores";
 import { startQuizMusic, stopQuizMusic } from "@/lib/quizMusic";
 import { themeStyle } from "@/lib/themes";
 import { withTimeout } from "@/lib/withTimeout";
-import { INTERACTIVE_SLIDE_TYPES, SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/lib/types";
+import { SLIDE_TYPE_ICON_NAMES } from "@/lib/slideTypeIcons";
+import { INTERACTIVE_SLIDE_TYPES, SLIDE_TYPE_LABELS } from "@/lib/types";
 
 /**
  * Sunum modu. index -1 = katılım ekranı (büyük QR + kod + gelen isimler),
@@ -280,8 +281,11 @@ export default function PresentPage() {
             <div key={slide.id} className="w-full max-w-5xl card p-8 md:p-12 animate-pop">
               <div className="flex items-start justify-between gap-4">
                 <p className="eyebrow mb-3">
-                  {slide.settings?.label?.trim() ||
-                    `${SLIDE_TYPE_ICONS[slide.type]} ${SLIDE_TYPE_LABELS[slide.type]}`}
+                  {slide.settings?.label?.trim() || (
+                    <span className="inline-flex items-center gap-1.5 align-middle">
+                      <Icon name={SLIDE_TYPE_ICON_NAMES[slide.type]} size={13} /> {SLIDE_TYPE_LABELS[slide.type]}
+                    </span>
+                  )}
                 </p>
                 {/* "X / Y yanıtladı" — Menti'deki responded sayacı */}
                 {collectsVotes && participants.length > 0 && (

@@ -43,7 +43,6 @@ import {
   AVAILABLE_SLIDE_TYPES,
   Presentation,
   Slide,
-  SLIDE_TYPE_ICONS,
   SLIDE_TYPE_LABELS,
   SlideType,
 } from "@/lib/types";
@@ -604,7 +603,7 @@ function TypeSwitcher({
         >
           {AVAILABLE_SLIDE_TYPES.map((t) => (
             <option key={t} value={t}>
-              {SLIDE_TYPE_ICONS[t]} {SLIDE_TYPE_LABELS[t]}
+              {SLIDE_TYPE_LABELS[t]}
             </option>
           ))}
         </select>

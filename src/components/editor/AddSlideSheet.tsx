@@ -1,10 +1,11 @@
 "use client";
 
 import Sheet from "@/components/editor/Sheet";
+import { Icon } from "@/components/Icon";
+import { SLIDE_TYPE_ICON_NAMES } from "@/lib/slideTypeIcons";
 import {
   CONTENT_SLIDE_TYPES,
   INTERACTIVE_SLIDE_TYPES,
-  SLIDE_TYPE_ICONS,
   SLIDE_TYPE_LABELS,
   SlideType,
 } from "@/lib/types";
@@ -28,7 +29,7 @@ export default function AddSlideSheet({
               onClick={() => onPick(t)}
               className="flex items-center gap-2.5 border border-line hover:border-accent hover:bg-accent-soft/40 rounded-2xl px-3.5 py-3 text-sm font-semibold text-left transition-colors cursor-pointer"
             >
-              <span className="text-xl shrink-0" aria-hidden>{SLIDE_TYPE_ICONS[t]}</span>
+              <Icon name={SLIDE_TYPE_ICON_NAMES[t]} size={20} className="text-accent" />
               <span className="truncate">{SLIDE_TYPE_LABELS[t]}</span>
             </button>
           ))}

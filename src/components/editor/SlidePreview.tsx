@@ -1,7 +1,9 @@
 "use client";
 
 import { PresentationTheme, themeStyle } from "@/lib/themes";
-import { Slide, SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/lib/types";
+import { Icon } from "@/components/Icon";
+import { SLIDE_TYPE_ICON_NAMES } from "@/lib/slideTypeIcons";
+import { Slide, SLIDE_TYPE_LABELS } from "@/lib/types";
 
 /**
  * Editördeki canlı slayt önizlemesi (Menti mobil editöründeki büyük kart).
@@ -37,8 +39,11 @@ export default function SlidePreview({
       <div className={`absolute inset-0 flex flex-col ${mini ? "p-2" : "p-5 md:p-7"}`}>
         {!mini && (
           <p className={`eyebrow ${dark ? "!text-white/50" : ""} !text-[9px] mb-1`}>
-            {slide.settings?.label?.trim() ||
-              `${SLIDE_TYPE_ICONS[slide.type]} ${SLIDE_TYPE_LABELS[slide.type]}`}
+            {slide.settings?.label?.trim() || (
+              <span className="inline-flex items-center gap-1 align-middle">
+                <Icon name={SLIDE_TYPE_ICON_NAMES[slide.type]} size={11} /> {SLIDE_TYPE_LABELS[slide.type]}
+              </span>
+            )}
           </p>
         )}
         <p

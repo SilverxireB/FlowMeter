@@ -26,7 +26,9 @@ import {
   useSlides,
 } from "@/lib/hooks";
 import { listSessions } from "@/lib/presentations";
-import { SessionRecord, SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/lib/types";
+import { Icon } from "@/components/Icon";
+import { SLIDE_TYPE_ICON_NAMES } from "@/lib/slideTypeIcons";
+import { SessionRecord, SLIDE_TYPE_LABELS } from "@/lib/types";
 
 /** Oturum kaydını "12 Tem 14:30–15:10" biçiminde etiketler. */
 function sessionLabel(s: SessionRecord, index: number): string {
@@ -307,7 +309,7 @@ export default function ResultsPage() {
               }`}
             >
               <p className="text-xs text-muted">
-                {i + 1} · {SLIDE_TYPE_ICONS[s.type]} {SLIDE_TYPE_LABELS[s.type]}
+                <span className="inline-flex items-center gap-1 align-middle">{i + 1} · <Icon name={SLIDE_TYPE_ICON_NAMES[s.type]} size={12} /> {SLIDE_TYPE_LABELS[s.type]}</span>
               </p>
               <p className="text-sm font-medium truncate">{s.question}</p>
             </button>
@@ -318,7 +320,7 @@ export default function ResultsPage() {
           {selected ? (
             <div className="max-w-3xl mx-auto card p-6 md:p-8">
               <p className="eyebrow mb-2">
-                {SLIDE_TYPE_ICONS[selected.type]} {SLIDE_TYPE_LABELS[selected.type]}
+                <span className="inline-flex items-center gap-1.5"><Icon name={SLIDE_TYPE_ICON_NAMES[selected.type]} size={13} /> {SLIDE_TYPE_LABELS[selected.type]}</span>
               </p>
               <h1 className="font-display text-2xl font-semibold mb-6">{selected.question}</h1>
               {selected.type === "multiple-choice" ? (
