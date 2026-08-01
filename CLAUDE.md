@@ -46,21 +46,50 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
 
 ## Kritik Mimari Notlar
 - **FlowSign:** editör TASLAK (`zones`), perde YAYIN (`live`); birleştir/böl içerik
-  korur + onay sorar; slug rename'de SABİT; iframe sandbox + http(s) doğrulama;
-  Wake Lock + offline persistence (`firebase.ts` persistentLocalCache — tüm suite).
+  korur + onay sorar; slug ad değişince YENİLENİR (slugHistory eski linkleri taşır);
+  iframe sandbox + http(s) doğrulama; Wake Lock + offline persistence
+  (`firebase.ts` persistentLocalCache — tüm suite).
   **Sign AYRI PAKET olarak ayrılacak** (satış/self-host) → Sign kodu diğer
   ürünlerle bağ KURMASIN; ortak yalnız çekirdek (firebase/cloudinary/withTimeout).
   7/24 bekçiler Sign dosyalarında: donma bekçisi + dayanıklı abonelik + gece
   04:0x reload + tek-URL 15dk tazeleme + play error boundary (PlayerStage,
-  videowalls.ts, play rotaları).
+  videowalls.ts, play rotaları). Liste kartları `WallThumb` (YAYIN minyatürü;
+  URL alanı gerçek sayfa iframe'i, lazy). İçerik takvimi: saat+gün+`fromDate/
+  toDate` — TEK kapı `itemInWindow`. URL eklemede `/api/sign/embed-check`
+  (X-Frame-Options uyarısı); zoom %25-150; STRETCH standart (kullanıcı kararı).
+- **FlowMeter:** `mode: audience-pace` → /p yerel gezinme (quiz slaytları atlanır —
+  rules geri sayım kapısı); `textModeration` → open-ended/word-cloud cevapları
+  pending (rules kapılı, /moderate "Cevaplar"); `/remote/[id]` telefon kumandası +
+  `settings.notes` konuşmacı notu; editörde ▶ Dene = prova (`setResponseDryRun` —
+  yazım YOK); Sonuçlar'da 📄 PDF (jspdf + Türkçe katlama); izleyici yüzeyi i18n:
+  `lib/i18n.ts` `t(tr,en)` + `presentation.language` (kokpit HEP Türkçe).
+- **FlowWall:** `/g/[id]` public galeri (`galleryOpen`, tek okuma); sayfa İÇİ
+  kamera (getUserMedia — capture input Android'de RAM ölümüyle kare kaybediyordu,
+  yedek yol duruyor); `pinnedMediaId` → perdede WallPinned takeover;
+  misafir KENDİ medyasını siler: /u sessiz anonim auth (voterId=uid; **Firebase
+  Anonymous provider AÇIK olmalı**), rules delete voterId==uid, destroy API
+  `mode:"guest"` (public_id sunucudan okunur); `frameUrl` etkinlik çerçevesi
+  (yükleme ÖNCESİ canvas compose — Cloudinary kredisi yemez); çekiliş:
+  adalet+denetim (draws logu); nonce ile perde tetikleme.
 - **FlowPulse:** oy = votes create + days increment tek batch; rules oy değerini
   soru tipine bağlar, days total tam +1; watchToday gece yarısı yeniden abone olur;
-  kiosk çıkışı sol üst 5 dokunuş + PIN → yönetici menüsü.
-- **FlowWall çekiliş:** adalet+denetim (draws logu); nonce ile perde tetikleme.
+  kiosk çıkışı sol üst 5 dokunuş + PIN → yönetici menüsü (SON OY HATASI burada
+  görünür — kiosk misafire hata göstermez ama teşhis kör kalmaz).
+- Küfür süzgeci `lib/profanity.ts` TÜM açık uçlu girişlerde (Meter sohbet/Q&A/
+  cevaplar, Wall dilek+takma ad, Pulse yorum) — engellemez, yıldızlar.
 - Silme akışları sayfalı (`limit(450)` batch) + Cloudinary prefix temizliği.
+- `Logo` bileşeni `shrink-0` (dar başlıkta ezilip yandaki adla binmesin).
+- rules değişince kullanıcıya İKİ ~200 satırlık parça halinde CHAT'e yazılır
+  (dosya eki mobilde kopyalanamıyor); parçaların birleşimi diff ile doğrulanır.
 
 ## Sıradaki (kullanıcı söyleyince)
-- **v5 self-host:** FlowSign (+Pulse) fabrika iç ağı paketi — medya/veri/auth
-  katman takası, online BOZULMADAN (plan: `docs/VIDEOWALL.md`).
-- Park: Sign ekran-sağlık ses/90°; Pulse e-posta eşiği (profanity TAMAM —
-  `lib/profanity.ts` tüm açık uçlu girişlerde); Meter kalanları `docs/ROADMAP.md`.
+- **Fikir havuzu:** `docs/FIKIR-RAPORLARI-2026-08.md` — 4 danışman raporu
+  (yeni ürün adayları: FlowQueue 9/10, FlowCheck, FlowSpark; ürün derinleştirme;
+  self-host 7 adımlı yol haritası; sinerjiler). Meter M1-M6 + Wall W1-W5 TAMAM.
+- **Onay bekleyen:** W6 uygulama içi etiket/hashtag (dış servissiz varyant).
+- **Adaylar:** vitrin paketi (Wall perdeye `?embed=1` sade mod → Sign'a gömme;
+  Pulse board `?compact/?alert`; Meter public sonuç `/r/[id]`; dashboard "Bugün"
+  şeridi) · FlowQueue MVP · self-host Adım 1 (Sign bağlarını kesme cerrahisi).
+- **v5 self-host:** FlowSign (+Pulse) fabrika paketi — plan `docs/VIDEOWALL.md` +
+  rapor 3'teki A1-A10/7 adım. Park: Sign ses/90°; Pulse e-posta eşiği;
+  Meter kalanları `docs/ROADMAP.md`.
