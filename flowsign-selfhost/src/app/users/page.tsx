@@ -15,10 +15,21 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Icon } from "@/components/icons";
-import { createUser, deleteUser, listUsers, updateUser } from "@/lib/client";
-import { PublicUser } from "@/lib/types";
+import { createUser, deleteUser, listUsers, listWalls, setWallGrant, updateUser, wallPerm } from "@/lib/client";
+import { PublicUser, SignGrant, Videowall } from "@/lib/types";
+
+/** Yetki sütunları — matrisin tamamı bu dört tikten ibaret (bilerek sade). */
+const PERMS = [
+  { key: "view", label: "Görüntüle", hint: "Listede görsün, editörü açsın" },
+  { key: "edit", label: "Düzenle", hint: "İçeriği değiştirsin ve yayınlasın" },
+  { key: "copy", label: "Kopyala", hint: "Kendine kopyasını çıkarsın" },
+  { key: "delete", label: "Sil", hint: "Ekranı silsin" },
+] as const;
 
 export default function UsersPage() {
+  const [tab, setTab] = useState<"accounts" | "access">("accounts");
+  const [walls, setWalls] = useState<Videowall[]>([]);
+  const [open, setOpen] = useState<string | null>(null); // açık kişi (yetki matrisi)
   const [users, setUsers] = useState<PublicUser[]>([]);
   const [me, setMe] = useState<PublicUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,15 +49,27 @@ export default function UsersPage() {
 
   const refresh = useCallback(async () => {
     try {
-      const d = await listUsers();
-      setUsers(d.users);
-      setMe(d.me);
+      const [u, w] = await Promise.all([listUsers(), listWalls()]);
+      setUsers(u.users);
+      setMe(u.me);
+      setWalls([...w.walls].sort((a, b) => a.name.localeCompare(b.name, "tr")));
     } catch {
       setErr("Kullanıcılar okunamadı — oturumun düşmüş olabilir.");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  /**
+   * Tek tik → o kişinin o ekrandaki kaydı (varsayılandan kopyalanarak) yazılır.
+   * Oluşturan kişide TÜM tikler geri gelirse kayıt kaldırılır → varsayılana döner.
+   */
+  const toggleGrant = (w: Videowall, u: PublicUser, key: keyof SignGrant) => {
+    const cur = wallPerm(w, u);
+    const next: SignGrant = { ...cur, [key]: !cur[key] };
+    const backToDefault = w.ownerId === u.id && next.view && next.edit && next.copy && next.delete;
+    run(() => setWallGrant(w.id, u.id, backToDefault ? null : next));
+  };
 
   useEffect(() => {
     refresh();
@@ -85,14 +108,37 @@ export default function UsersPage() {
       </header>
 
       <section className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">Kullanıcılar</h1>
+        {/* Sekmeler: hesap açma ile yetki dağıtma AYRI işler (ikisi tek sayfada
+            karışıyordu). Yetki yönetiminin TEK yeri burası. */}
+        <div className="flex gap-1.5 mb-6 overflow-x-auto">
+          {([
+            { k: "accounts", label: "Hesaplar" },
+            { k: "access", label: "Sign yetkileri" },
+          ] as const).map((t) => (
+            <button
+              key={t.k}
+              onClick={() => setTab(t.k)}
+              className={`chip !py-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
+                tab === t.k ? "!bg-ink !text-white !border-ink" : "text-muted hover:border-muted"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">
+          {tab === "accounts" ? "Kullanıcılar" : "Sign yetkileri"}
+        </h1>
         <p className="text-muted text-sm mb-6">
-          Her kişiye kendi hesabını aç; ekranları onlara devret ya da yetki ver. Yönetici tüm ekranları yönetir.
+          {tab === "accounts"
+            ? "Her kişiye kendi hesabını aç. Ekran yetkilerini yandaki sekmeden dağıtırsın."
+            : "Kim hangi ekranı yönetebilir? Kişiye tıkla, altındaki ekran listesinden tikle. Kendi oluşturduğu ekranlarda kişi zaten tam yetkilidir — tik kaldırırsan o da geçerli olur."}
         </p>
 
         {err && <div className="mb-5 rounded-2xl bg-brand-soft text-brand px-4 py-3 text-sm font-semibold">{err}</div>}
 
-        {!admin && (
+        {tab === "accounts" && !admin && (
           <div className="card p-5 mb-6">
             <p className="text-sm">
               Hesap açmak yöneticiye özeldir. Buradan yalnız <b>kendi parolanı</b> değiştirebilirsin.
@@ -100,7 +146,7 @@ export default function UsersPage() {
           </div>
         )}
 
-        {admin && (
+        {tab === "accounts" && admin && (
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -146,6 +192,7 @@ export default function UsersPage() {
           </form>
         )}
 
+        {tab === "accounts" && (
         <ul className="flex flex-col gap-2">
           {users.map((u) => {
             const isMe = me?.id === u.id;
@@ -234,6 +281,115 @@ export default function UsersPage() {
             );
           })}
         </ul>
+        )}
+
+        {/* ── Sign yetkileri: kişi bazlı açılır matris ─────────────────────── */}
+        {tab === "access" && (
+          !admin ? (
+            <div className="card p-5">
+              <p className="text-sm">Yetki dağıtmak yöneticiye özeldir.</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-muted text-sm font-semibold mb-3 tabular-nums">
+                {users.length} kişi · {walls.length} ekran
+              </p>
+              <ul className="flex flex-col gap-2.5">
+                {users.map((u) => {
+                  const expanded = open === u.id;
+                  const owned = walls.filter((w) => w.ownerId === u.id).length;
+                  const granted = walls.filter((w) => w.ownerId !== u.id && !!w.grants?.[u.id]).length;
+                  const canCreate = u.canCreate !== false;
+                  return (
+                    <li key={u.id} className="card overflow-hidden">
+                      <div className="p-4 flex items-center gap-3">
+                        <button
+                          onClick={() => setOpen(expanded ? null : u.id)}
+                          className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                          aria-expanded={expanded}
+                        >
+                          <span className={`shrink-0 transition-transform ${expanded ? "rotate-90" : ""}`} aria-hidden>
+                            ›
+                          </span>
+                          <span className="min-w-0">
+                            <span className="font-semibold truncate block">{u.label || u.name}</span>
+                            <span className="text-muted text-xs truncate block">
+                              {u.name}
+                              {u.role === "admin"
+                                ? " · yönetici (tüm ekranlar)"
+                                : ` · ${owned} oluşturduğu · ${granted} yetkilendirildiği`}
+                            </span>
+                          </span>
+                        </button>
+                        <label className="shrink-0 inline-flex items-center gap-2 text-xs text-muted cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={u.role === "admin" ? true : canCreate}
+                            disabled={busy || u.role === "admin"}
+                            onChange={() => run(() => updateUser(u.id, { canCreate: !canCreate }))}
+                            className="w-4 h-4 accent-accent cursor-pointer"
+                          />
+                          <span className="hidden sm:inline">Yeni ekran açabilir</span>
+                          <span className="sm:hidden">Açabilir</span>
+                        </label>
+                      </div>
+
+                      {expanded && (
+                        <div className="border-t border-line bg-paper/60 px-4 py-3">
+                          {u.role === "admin" ? (
+                            <p className="text-muted text-sm py-2">Yönetici — tüm ekranlarda tam yetkilidir, tik gerekmez.</p>
+                          ) : walls.length === 0 ? (
+                            <p className="text-muted text-sm py-2">Henüz ekran yok.</p>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm border-separate border-spacing-y-1">
+                                <thead>
+                                  <tr className="text-muted text-[11px] uppercase tracking-wider">
+                                    <th className="text-left font-bold py-1">Ekran</th>
+                                    {PERMS.map((p) => (
+                                      <th key={p.key} className="font-bold px-2 py-1 whitespace-nowrap" title={p.hint}>
+                                        {p.label}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {walls.map((w) => {
+                                    const perm = wallPerm(w, u);
+                                    return (
+                                      <tr key={w.id} className="bg-white">
+                                        <td className="rounded-l-xl px-3 py-2 min-w-0">
+                                          <span className="font-semibold">{w.name}</span>
+                                          {w.ownerId === u.id && <span className="text-muted text-xs"> · oluşturan</span>}
+                                        </td>
+                                        {PERMS.map((p, i) => (
+                                          <td key={p.key} className={`text-center px-2 py-2 ${i === PERMS.length - 1 ? "rounded-r-xl" : ""}`}>
+                                            <input
+                                              type="checkbox"
+                                              checked={!!perm[p.key]}
+                                              disabled={busy}
+                                              onChange={() => toggleGrant(w, u, p.key)}
+                                              aria-label={`${w.name} — ${p.label}`}
+                                              className="w-4 h-4 accent-accent cursor-pointer"
+                                            />
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )
+        )}
       </section>
 
       {confirmBox && (

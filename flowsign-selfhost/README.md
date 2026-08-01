@@ -103,6 +103,10 @@ koymak (uygulama kapalıyken). Veritabanı kurulumu/migrasyonu yoktur.
 
 - **Video:** MP4 (H.264 + AAC) yükleyin. Sunucu dönüştürme YAPMAZ; tarayıcının
   oynatamadığı biçim (ör. bazı .mov/.mkv) ekranda boş kalır.
+- **Tek ekranı bölmek:** "Duvar tanımı" kartındaki **Yerleşim ızgarası** fiziksel
+  ekran sayısından bağımsızdır — tek TV'yi 3 alana bölmek için "Yatayda kaç alan?"
+  kutusuna 3 yazın. Eşit olmayan bölme için ızgarayı ince tutup alanları
+  sürükleyip birleştirin (5'e böl → ilk 3'ü birleştir = %60/%20/%20).
 - **Görsel:** JPG/PNG/WebP. Alanın "hedef çözünürlüğü" editörde yazar —
   görseli o boyutta hazırlayın; içerik alana tam yayılır (stretch).
 - Dosya adları otomatik güvenli hale getirilir: boşluk ve Türkçe karakterler
@@ -120,28 +124,30 @@ bellidir, ayrılan personelin erişimi tek tıkla kesilir.
 
 | Rol | Ne yapabilir |
 |---|---|
-| **Yönetici** | Hesap açar/siler, parola sıfırlar, **tüm** ekranları yönetir |
-| **Kullanıcı** | Kendi ekranlarının sahibidir + kendisine yetki verilen ekranları düzenler |
+| **Yönetici** | Hesap açar/siler, parola sıfırlar, yetkileri dağıtır, **tüm** ekranları yönetir |
+| **Kullanıcı** | Kendi oluşturduğu ekranların sahibidir + kendisine tiklenen ekranları yönetir |
 
-Ekran başına iki yetki vardır:
+**Yetkiler TEK yerden dağıtılır:** Kullanıcılar → **Sign yetkileri** sekmesi.
+Ekran sayfalarında yetki kutusu yoktur. Sayfa kişi bazlıdır: kişiye tıkla,
+altındaki ekran listesinden tikle.
 
-| Yetki | Düzenle & yayınla | Sil | Devret | Yetki dağıt |
-|---|---|---|---|---|
-| **Sahip** | ✅ | ✅ | ✅ | ✅ |
-| **Yetkili** | ✅ | ❌ | ❌ | ❌ |
+| Tik | Ne verir |
+|---|---|
+| Görüntüle | Listede görsün, editörü açsın |
+| Düzenle | İçerik/yerleşim değiştirsin ve **yayınlasın** |
+| Kopyala | Kendine kopyasını çıkarsın |
+| Sil | Ekranı silsin |
 
-**Teslim akışı (paketin asıl kullanımı):** ekranı siz kurun, içeriği hazırlayın,
-sonra editördeki **Kimler yönetebilir → Ekranı devret** ile ilgilisine verin —
-"al bu senin olsun, bundan sonra sen yönet". Devir **yayın linkini ve QR'ı
-değiştirmez**; sahadaki ekranlar kararmaz. İsterseniz eski sahip "yetkili"
-olarak kalır (devir teslim dönemi).
+Kişi satırındaki **"Yeni ekran açabilir"** tiki, o kişinin sıfırdan ekran
+kurmasını açar/kapatır.
 
-- İlk açılışta `.env`'deki `SIGN_ADMIN_PASSWORD` ile **`yonetici`** adlı
-  yönetici hesabı kurulur. Girişte kullanıcı adı boş bırakılırsa (tek hesaplı
-  kurulum) doğrudan bu hesap denenir — eski sürümden gelenler alışkanlığını
-  bozmaz.
-- Yeni hesaplar **Kullanıcılar** sayfasından açılır (üst çubuk → Kullanıcılar).
-  Parolayı kişiye kendiniz iletirsiniz; sistem e-posta göndermez (internetsiz
+- Kişi kendi **oluşturduğu** ekranlarda varsayılan olarak tam yetkilidir. Tik
+  kaldırırsanız o karar geçerli olur (ayrılan personel kesilebilir); dört tik
+  geri verilirse varsayılana döner.
+- İlk açılışta `.env`'deki `SIGN_ADMIN_PASSWORD` ile **`yonetici`** adlı yönetici
+  hesabı kurulur. Girişte kullanıcı adı boş bırakılırsa (tek hesaplı kurulum)
+  doğrudan bu hesap denenir.
+- Parolayı kişiye kendiniz iletirsiniz; sistem e-posta göndermez (internetsiz
   iç ağda çalışır).
 - Bir hesap silinince o kişinin ekranları **yöneticiye devrolur** — yönetilemeyen
   yetim ekran kalmaz.

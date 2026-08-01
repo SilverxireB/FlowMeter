@@ -103,7 +103,7 @@ export async function createWall(name: string, width: number, height: number, co
   const wall: Videowall = {
     id,
     ownerId: ownerId ?? "",
-    editorIds: [],
+    grants: {},
     name: name.trim() || "Yeni ekran",
     slug: await uniqueSlug(name.trim() || "Yeni ekran"),
     width: Math.max(1, Math.round(width)),
@@ -127,7 +127,7 @@ export async function patchWall(id: string, patch: Partial<Videowall>): Promise<
   if (!cur) return null;
   // id/slug ve YETKİ alanları serbest patch ile ezilemez: yetki yalnız
   // /access kapısından değişir (yoksa yetkili kendini sahip yapardı).
-  const { id: _i, slug: _s, slugHistory: _h, createdAt: _c, ownerId: _o, editorIds: _e, ...rest } = patch;
+  const { id: _i, slug: _s, slugHistory: _h, createdAt: _c, ownerId: _o, grants: _g, ...rest } = patch;
   const next = stripUndefined({ ...cur, ...rest, updatedAt: Date.now() }) as Videowall;
   await writeJsonAtomic(path.join(WALLS_DIR, `${id}.json`), next);
   emitWall(id);
@@ -182,10 +182,9 @@ export async function duplicateWall(id: string, ownerId?: string): Promise<Video
   const wall: Videowall = {
     ...stripUndefined({ ...cur, zones }),
     id: nid,
-    // Kopya KOPYALAYANIN'dır; yetkili listesi taşınmaz (paylaşım sessizce
-    // miras kalmasın — kopyayı alan kişi yeniden kurar).
+    // Kopya KOPYALAYANIN'dır; yetki kayıtları taşınmaz (sessiz yetki mirası yok).
     ownerId: ownerId ?? cur.ownerId ?? "",
-    editorIds: [],
+    grants: {},
     name,
     slug: await uniqueSlug(name),
     slugHistory: [],
@@ -268,29 +267,21 @@ export async function screenSummaries(ids: string[]): Promise<Record<string, { o
   return out;
 }
 
-// ── Yetki (sahip / yetkililer) ───────────────────────────────────────────────
-// Kararları SUNUCU verir (bkz. serverAuth.ts); burada yalnız yazma var.
-// Ekranın teslimi (devir) yayın linkini/slug'ı DEĞİŞTİRMEZ — sahadaki ekranlar
-// el değiştirmeden etkilenmez.
+// ── Yetki (matris) ───────────────────────────────────────────────────────────
+// Kararları SUNUCU verir (serverAuth.ts); burada yalnız yazma var. Yetki
+// değişikliği yayın linkini/slug'ı ETKİLEMEZ — sahadaki ekranlar kararmaz.
 
-export async function setWallEditors(id: string, editorIds: string[]): Promise<Videowall | null> {
+export async function setWallGrant(
+  id: string,
+  userId: string,
+  perms: { view?: boolean; edit?: boolean; copy?: boolean; delete?: boolean } | null
+): Promise<Videowall | null> {
   const cur = await getWall(id);
   if (!cur) return null;
-  const next: Videowall = { ...cur, editorIds: Array.from(new Set(editorIds.filter(Boolean))), updatedAt: Date.now() };
-  await writeJsonAtomic(path.join(WALLS_DIR, `${id}.json`), next);
-  emitWall(id);
-  return next;
-}
-
-/** Devret: sahiplik yeni kişiye geçer; eski sahip istenirse yetkili kalır. */
-export async function transferWall(id: string, newOwnerId: string, previousOwnerId: string, keepAsEditor: boolean): Promise<Videowall | null> {
-  const cur = await getWall(id);
-  if (!cur) return null;
-  const editors = (cur.editorIds ?? []).filter((e) => e && e !== newOwnerId);
-  if (keepAsEditor && previousOwnerId && previousOwnerId !== newOwnerId && !editors.includes(previousOwnerId)) {
-    editors.push(previousOwnerId);
-  }
-  const next: Videowall = { ...cur, ownerId: newOwnerId, editorIds: editors, updatedAt: Date.now() };
+  const grants = { ...(cur.grants ?? {}) };
+  if (perms === null) delete grants[userId];
+  else grants[userId] = { view: !!perms.view, edit: !!perms.edit, copy: !!perms.copy, delete: !!perms.delete };
+  const next: Videowall = { ...cur, grants, updatedAt: Date.now() };
   await writeJsonAtomic(path.join(WALLS_DIR, `${id}.json`), next);
   emitWall(id);
   return next;
@@ -301,12 +292,14 @@ export async function purgeUserFromWalls(userId: string, fallbackOwnerId: string
   const walls = await listWalls();
   await Promise.all(
     walls
-      .filter((w) => w.ownerId === userId || (w.editorIds ?? []).includes(userId))
+      .filter((w) => w.ownerId === userId || !!w.grants?.[userId])
       .map(async (w) => {
+        const grants = { ...(w.grants ?? {}) };
+        delete grants[userId];
         const next: Videowall = {
           ...w,
           ownerId: w.ownerId === userId ? fallbackOwnerId : w.ownerId,
-          editorIds: (w.editorIds ?? []).filter((e) => e !== userId),
+          grants,
           updatedAt: Date.now(),
         };
         await writeJsonAtomic(path.join(WALLS_DIR, `${w.id}.json`), next);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { canEdit, currentUser, forbidden, isOwner, unauthorized } from "@/lib/serverAuth";
+import { canDelete, canEdit, currentUser, forbidden, unauthorized } from "@/lib/serverAuth";
 import { deleteWall, getWall, patchWall } from "@/lib/store";
 import { Videowall } from "@/lib/types";
 
@@ -27,13 +27,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ ok: true });
 }
 
-/** Silme YALNIZ sahipte (yetkili silemez — teslim edilen ekran kazara gitmesin). */
+/** Silme: matriste "Sil" tiki olan kişi (yoksa ekranı oluşturan / yönetici). */
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const me = await currentUser(req);
   if (!me) return unauthorized();
   const cur = await getWall(params.id);
   if (!cur) return NextResponse.json({ ok: true });
-  if (!isOwner(cur, me)) return forbidden();
+  if (!canDelete(cur, me)) return forbidden();
   await deleteWall(params.id);
   return NextResponse.json({ ok: true });
 }

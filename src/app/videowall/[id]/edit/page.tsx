@@ -13,21 +13,24 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import LayoutEditor from "@/components/videowall/LayoutEditor";
 import ScreensCard from "@/components/videowall/ScreensCard";
 import ZonePanel from "@/components/videowall/ZonePanel";
-import AccessCard from "@/components/videowall/AccessCard";
 import QrCode from "@/components/present/QrCode";
 import { SkelCockpit } from "@/components/Skeleton";
 import { Icon } from "@/components/Icon";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useAuthUser } from "@/lib/hooks";
+import { getUserRecord, isAdminUser } from "@/lib/users";
 import {
   canEditSign,
-  claimSignOwnership,
   clampScreens,
   ensureSlug,
-  isSignOwner,
+  hasCustomLayout,
+  layoutColsOf,
+  layoutRowsOf,
   publishVideowall,
   renameVideowall,
   resetGrid,
+  setLayoutGrid,
+  setScreenGrid,
   setPlayMode,
   slugify,
   splitZone,
@@ -61,6 +64,16 @@ export default function VideowallEditPage() {
   const { user, loading } = useAuthUser();
   const playTarget = usePlayTarget();
   const [vw, setVw] = useState<Videowall | null | undefined>(undefined);
+  // Yönetici her ekranda tam yetkilidir (rules'ta da isAdmin()). Kimlik katmanı
+  // ortak çekirdek sayılır — Sign'ın kendi kullanıcı defteri yok (self-host'ta var).
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    getUserRecord(user.uid)
+      .then((r) => setIsAdmin(isAdminUser(user, r)))
+      .catch(() => {});
+  }, [user]);
+
   const [origin, setOrigin] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -76,12 +89,7 @@ export default function VideowallEditPage() {
   useEffect(() => setOrigin(window.location.origin), []);
   // Eski (slug'sız) ekrana isimden slug doldur → kolay link çalışsın (yalnız sahibi yazabilir).
   useEffect(() => {
-    if (vw && !vw.slug && user && isSignOwner(vw, user)) ensureSlug(vw).catch(() => {});
-  }, [vw, user]);
-  // DEVİR SONRASI SAHİPLENME: ekran sana e-postanla devredildiyse uid alanını
-  // sessizce doldur (kullanıcıya soru sorulmaz — ekran zaten ona verilmiştir).
-  useEffect(() => {
-    if (vw && user && isSignOwner(vw, user) && vw.ownerId !== user.uid) claimSignOwnership(vw, user).catch(() => {});
+    if (vw && !vw.slug && user && vw.ownerId === user.uid) ensureSlug(vw).catch(() => {});
   }, [vw, user]);
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -171,15 +179,15 @@ export default function VideowallEditPage() {
   if (vw === null) return <main className="min-h-screen grid place-items-center bg-wash text-muted">Ekran bulunamadı.</main>;
 
   // Yetki: SAHİP ya da YETKİLİ düzenler; başkası açarsa bilgi + izleme.
-  if (user && !canEditSign(vw, user)) {
+  if (user && !canEditSign(vw, user.uid, isAdmin)) {
     return (
       <main className="min-h-screen grid place-items-center bg-wash px-4">
         <div className="text-center max-w-sm">
           <p className="text-5xl mb-4" aria-hidden>🔒</p>
           <h1 className="font-display text-xl font-semibold mb-2">Bu ekranda düzenleme yetkin yok</h1>
           <p className="text-muted text-sm mb-6">
-            &ldquo;{vw.name}&rdquo;{vw.ownerEmail ? ` ${vw.ownerEmail} kullanıcısına ait` : vw.ownerName ? ` ${vw.ownerName} kullanıcısına ait` : " başka bir kullanıcıya ait"}.
-            Yayını izleyebilirsin; düzenlemek için sahibinden yetki iste.
+            &ldquo;{vw.name}&rdquo;{vw.ownerName ? ` ${vw.ownerName} kullanıcısına ait` : " başka bir kullanıcıya ait"}.
+            Yayını izleyebilirsin; düzenlemek için yöneticiden yetki iste.
           </p>
           <div className="flex gap-2 justify-center">
             <a href={`/flowsign/${slug}`} target={playTarget} className="btn-primary !py-2.5 text-sm">▶ İzle{playTarget ? " ↗" : ""}</a>
@@ -202,6 +210,34 @@ export default function VideowallEditPage() {
     updateZones(id, undoZones).catch(() => setSaveErr("Geri alınamadı — tekrar dene."));
     setUndoZones(null);
     setSelectedId(null);
+  };
+
+  /**
+   * FİZİKSEL ekran sayısı değişti. Yerleşim ELLE ayarlanmışsa yerleşime
+   * dokunmayız (çerçeve çizgileri kayar, içerik yerinde kalır — soru da yok).
+   * Yerleşim fiziksele bağlıysa eski davranış: taze ızgara + onay.
+   */
+  const changeScreens = (cols: number, rows: number) => {
+    if (hasCustomLayout(vw)) {
+      setScreenGrid(id, cols, rows).catch(() => setSaveErr("Ekran sayısı kaydedilemedi — tekrar dene."));
+      return;
+    }
+    changeGrid(cols, rows);
+  };
+
+  /** YERLEŞİM ızgarası değişti → taslak yerleşim taze kurulur (içerik ilk alana taşınır). */
+  const changeLayout = (cols: number, rows: number) => {
+    setConfirmBox({
+      title: "Yerleşimi değiştir",
+      message:
+        "Taslak yerleşim taze ızgaraya kurulur; alanlardaki TÜM içerik kaybolmaz — hepsi ilk alana taşınır, oradan dağıtırsın. (Yayın etkilenmez.) Devam?",
+      confirmLabel: "Yerleşimi değiştir",
+      run: () => {
+        setUndoZones(null); // ızgara değişince eski anlık görüntü geçersiz
+        setLayoutGrid(id, cols, rows, vw.zones ?? []).catch(() => setSaveErr("Yerleşim kaydedilemedi — tekrar dene."));
+        setSelectedId(null);
+      },
+    });
   };
 
   const changeGrid = (cols: number, rows: number) => {
@@ -322,9 +358,6 @@ export default function VideowallEditPage() {
           )}
         </div>
 
-        {/* Kim yönetebilir: sahip + yetkililer + devret (FlowSign'ın teslim akışı) */}
-        {user && <AccessCard vw={vw} user={user} />}
-
         {/* Ekran sağlığı: bu yayını açık tutan cihazlar (heartbeat) */}
         <ScreensCard id={id} />
 
@@ -343,13 +376,59 @@ export default function VideowallEditPage() {
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-muted text-xs">Yan yana kaç ekran?</span>
-              <input key={`c${vw.cols}`} type="number" min={1} max={24} defaultValue={vw.cols} onBlur={(e) => { const c = clampScreens(Number(e.target.value)); if (c !== vw.cols) changeGrid(c, vw.rows); e.target.value = String(vw.cols); }} className={`w-24 ${inputCls}`} />
+              <input key={`c${vw.cols}`} type="number" min={1} max={24} defaultValue={vw.cols} onBlur={(e) => { const c = clampScreens(Number(e.target.value)); if (c !== vw.cols) changeScreens(c, vw.rows); e.target.value = String(vw.cols); }} className={`w-24 ${inputCls}`} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-muted text-xs">Üst üste kaç ekran?</span>
-              <input key={`r${vw.rows}`} type="number" min={1} max={24} defaultValue={vw.rows} onBlur={(e) => { const rr = clampScreens(Number(e.target.value)); if (rr !== vw.rows) changeGrid(vw.cols, rr); e.target.value = String(vw.rows); }} className={`w-24 ${inputCls}`} />
+              <input key={`r${vw.rows}`} type="number" min={1} max={24} defaultValue={vw.rows} onBlur={(e) => { const rr = clampScreens(Number(e.target.value)); if (rr !== vw.rows) changeScreens(vw.cols, rr); e.target.value = String(vw.rows); }} className={`w-24 ${inputCls}`} />
             </label>
             <span className="text-muted text-xs pb-2 tabular-nums">{vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan</span>
+          </div>
+
+          {/* YERLEŞİM ızgarası — fiziksel ekran sayısından bağımsız.
+              Eskiden ikisi tek sayıydı: tek TV'de "Böl" bölecek hücre bulamıyordu,
+              3 alan isteyen "3 ekran" yazmak zorunda kalıp editöre olmayan çerçeve
+              çizgileri çizdiriyordu (montajda da yanlış "Ekranları tanı" numarası). */}
+          <div className="mt-4 pt-4 border-t border-line">
+            <span className="text-muted text-xs block mb-2">Yerleşim ızgarası — içeriği kaç parçaya böleceksin?</span>
+            <div className="flex flex-wrap items-end gap-3 text-sm">
+              <label className="flex flex-col gap-1">
+                <span className="text-muted text-xs">Yatayda kaç alan?</span>
+                <input
+                  key={`lc${layoutColsOf(vw)}`}
+                  type="number"
+                  min={1}
+                  max={24}
+                  defaultValue={layoutColsOf(vw)}
+                  onBlur={(e) => {
+                    const c = clampScreens(Number(e.target.value));
+                    if (c !== layoutColsOf(vw)) changeLayout(c, layoutRowsOf(vw));
+                    e.target.value = String(layoutColsOf(vw));
+                  }}
+                  className={`w-24 ${inputCls}`}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-muted text-xs">Dikeyde kaç alan?</span>
+                <input
+                  key={`lr${layoutRowsOf(vw)}`}
+                  type="number"
+                  min={1}
+                  max={24}
+                  defaultValue={layoutRowsOf(vw)}
+                  onBlur={(e) => {
+                    const r = clampScreens(Number(e.target.value));
+                    if (r !== layoutRowsOf(vw)) changeLayout(layoutColsOf(vw), r);
+                    e.target.value = String(layoutRowsOf(vw));
+                  }}
+                  className={`w-24 ${inputCls}`}
+                />
+              </label>
+              <p className="text-muted text-xs pb-2 leading-relaxed flex-1 min-w-[16rem]">
+                Fiziksel ekran sayısıyla aynı olmak ZORUNDA değil: <b>tek TV&apos;yi 3 alana bölebilirsin</b> (yatayda 3 yaz).
+                Eşit olmayan bölme için ızgarayı ince tut ve alanları sürükleyip birleştir (ör. 5&apos;e böl → ilk 3&apos;ü birleştir = %60/%20/%20).
+              </p>
+            </div>
           </div>
 
           {/* Oynatma modu: tabela (otomatik) / sunum (kumanda). Yayından bağımsız —
@@ -407,7 +486,7 @@ export default function VideowallEditPage() {
             onZones={saveZones}
             onSplit={() => {
               const doSplit = () => {
-                saveZones(splitZone(vw.zones ?? [], vw.cols, vw.rows, selected.id));
+                saveZones(splitZone(vw.zones ?? [], layoutColsOf(vw), layoutRowsOf(vw), selected.id));
                 setSelectedId(null);
               };
               if (selected.items.length > 0) {

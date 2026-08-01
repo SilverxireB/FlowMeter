@@ -9,7 +9,7 @@
  */
 import { useRef, useState } from "react";
 import { cldFit } from "@/lib/cloudinary";
-import { CellBox, contentZonesIn, mergeCells, zoneCells } from "@/lib/videowalls";
+import { CellBox, contentZonesIn, layoutColsOf, layoutRowsOf, mergeCells, zoneCells } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 /** Video ilk-kare posteri (kırpmasız). Cloudinary değilse "" → 🎬 yer tutucuya düşer
@@ -83,7 +83,12 @@ export default function LayoutEditor({
   /** Markalı onay penceresi (edit sayfası sağlar) — native confirm yerine. */
   onConfirm: (c: { title: string; message: string; confirmLabel?: string; danger?: boolean; run: () => void }) => void;
 }) {
-  const { cols, rows } = vw;
+  // Sürükleme/birleştirme YERLEŞİM ızgarasında olur; fiziksel ızgara yalnız
+  // çerçeve (bezel) çizgilerini çizer — tek TV'yi 3 alana bölmek bu yüzden mümkün.
+  const cols = layoutColsOf(vw);
+  const rows = layoutRowsOf(vw);
+  const screenCols = vw.cols;
+  const screenRows = vw.rows;
   const gridRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ anchor: Cell; hover: Cell } | null>(null);
   const dragRef = useRef(drag);
@@ -170,12 +175,12 @@ export default function LayoutEditor({
           );
         })}
 
-        {/* Fiziksel ekran çizgileri */}
-        {Array.from({ length: cols - 1 }).map((_, i) => (
-          <div key={`c${i}`} className="absolute top-0 bottom-0 border-l border-dashed border-white/25 pointer-events-none z-20" style={{ left: `${((i + 1) / cols) * 100}%` }} />
+        {/* Fiziksel ekran (çerçeve/bezel) çizgileri — yerleşimden BAĞIMSIZ */}
+        {Array.from({ length: screenCols - 1 }).map((_, i) => (
+          <div key={`c${i}`} className="absolute top-0 bottom-0 border-l border-dashed border-white/25 pointer-events-none z-20" style={{ left: `${((i + 1) / screenCols) * 100}%` }} />
         ))}
-        {Array.from({ length: rows - 1 }).map((_, i) => (
-          <div key={`r${i}`} className="absolute left-0 right-0 border-t border-dashed border-white/25 pointer-events-none z-20" style={{ top: `${((i + 1) / rows) * 100}%` }} />
+        {Array.from({ length: screenRows - 1 }).map((_, i) => (
+          <div key={`r${i}`} className="absolute left-0 right-0 border-t border-dashed border-white/25 pointer-events-none z-20" style={{ top: `${((i + 1) / screenRows) * 100}%` }} />
         ))}
 
         {/* Sürükleme seçim kutusu */}
@@ -212,7 +217,10 @@ export default function LayoutEditor({
       </div>
       <p className="text-muted text-xs mt-3 leading-relaxed">
         Hücrelere <b>sürükle</b> → alanları birleştir · alana <b>tıkla</b> → seç (içerik ekle / böl).
-        <span className="text-muted/80"> Kesik çizgiler = fiziksel ekran sınırları; renkli çerçeveler = içerik alanların.</span>
+        <span className="text-muted/80">
+          {" "}Kesik çizgiler = <b>fiziksel ekran (çerçeve) sınırı</b> — yazıyı ortasından bölme; renkli çerçeveler = içerik alanların.
+          {screenCols * screenRows === 1 ? " Tek ekranlısın: kesik çizgi yok, yerleşimi istediğin gibi böl." : ""}
+        </span>
       </p>
     </div>
   );

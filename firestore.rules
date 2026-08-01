@@ -327,44 +327,44 @@ service cloud.firestore {
     }
 
     // ── FlowSign (VideoWall): dijital tabela / video-wall CMS ────────────────
-    // Config herkes okur (oynatma linki auth'suz açılır); YAZMA yetki modeline
-    // bağlı. Kimlik E-POSTA ile taşınır (uid ile değil): ekranı "İK'dan Ayşe'ye"
-    // devrederken Ayşe'nin uid'si bilinmiyor, kullanıcı dizini de yalnız
-    // yöneticiye açık. Kimlik belirteci e-postayı taşıdığı için burada doğrudan
-    // doğrulanabiliyor — davet edilen kişi hiç giriş yapmamış olsa bile çalışır.
-    //   SAHİP  : ownerId == uid  VEYA  ownerEmail == token.email
-    //            (devirde ownerId boşaltılır; yeni sahip ilk açtığında doldurur)
-    //   YETKİLİ: token.email, editorEmails içinde → düzenler + yayınlar
-    //            ama ownerId/ownerEmail/editorEmails'a DOKUNAMAZ (aşağıda kilitli)
+    // Config herkes OKUR (perde linki auth'suz açılır — tabela cihazı giriş
+    // yapamaz); YAZMA yetki matrisine bağlı. Matris TEK yerden yönetilir:
+    // /admin → "Sign yetkileri" (ekran sayfalarında yetki yüzeyi yoktur).
+    //   grants: uid → {view, edit, copy, delete}
+    //   Açık kayıt YOKSA: ekranı OLUŞTURAN (ownerId) tam yetkilidir.
+    //   Açık kayıt VARSA: varsayılanı ezer (oluşturanın yetkisi de kesilebilir).
+    //   Yönetici (isAdmin) her ekranda tam yetkilidir.
+    // NOT: view/copy GÖRÜNÜRLÜK seviyesidir — doküman okuması public olmak
+    // zorunda olduğundan rules ile gizlenemez; edit/delete gerçek kapıdır.
     match /videowalls/{id} {
-      function signOwner(d) {
+      function signAllows(d, key) {
         return request.auth != null && (
-          d.get('ownerId', '') == request.auth.uid
-          || (request.auth.token.get('email', null) != null
-              && d.get('ownerEmail', '') == request.auth.token.email)
+          isAdmin()
+          || (request.auth.uid in d.get('grants', {})
+              ? d.get('grants', {}).get(request.auth.uid, {}).get(key, false) == true
+              : d.get('ownerId', '') == request.auth.uid)
         );
       }
-      function signEditor(d) {
-        return request.auth != null
-          && request.auth.token.get('email', null) != null
-          && request.auth.token.email in d.get('editorEmails', []);
-      }
-      // Yetkili yazımı: yetki alanlarının ÜÇÜ DE aynı kalmalı (yetki yükseltme yok).
-      function accessUnchanged() {
-        return request.resource.data.get('ownerId', '') == resource.data.get('ownerId', '')
-          && request.resource.data.get('ownerEmail', '') == resource.data.get('ownerEmail', '')
-          && request.resource.data.get('editorEmails', []) == resource.data.get('editorEmails', []);
+      // Yeni ekran açma hakkı kişide kapatılabilir (kayıt yoksa AÇIK sayılır).
+      function canCreateSign() {
+        return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          || get(/databases/$(database)/documents/users/$(request.auth.uid))
+               .data.get('canCreateSign', true) != false;
       }
       allow read: if true;
       allow create: if request.auth != null
-        && request.resource.data.ownerId == request.auth.uid;
-      allow update: if signOwner(resource.data)
-        || (signEditor(resource.data) && accessUnchanged());
-      allow delete: if signOwner(resource.data);
+        && request.resource.data.ownerId == request.auth.uid
+        && (isAdmin() || canCreateSign());
+      // Yetkili yazımı yetki alanlarına DOKUNAMAZ (yoksa kendini yükseltirdi).
+      allow update: if isAdmin()
+        || (signAllows(resource.data, 'edit')
+            && request.resource.data.get('grants', {}) == resource.data.get('grants', {})
+            && request.resource.data.get('ownerId', '') == resource.data.get('ownerId', ''));
+      allow delete: if signAllows(resource.data, 'delete');
 
       // Ekran sağlığı (heartbeat): perde AUTH'SUZ "canlıyım" yazar — alan seti
       // sabit ve zararsız (yalnız görünürlük bilgisi; içerik/yayına dokunamaz).
-      // Bayat kayıt temizliği: sahip VE yetkili (ekranı yöneten kişi yapar).
+      // Bayat kayıt temizliği: ekranı düzenleme yetkisi olan kişi.
       match /screens/{screenId} {
         function wall() {
           return get(/databases/$(database)/documents/videowalls/$(id)).data;
@@ -374,7 +374,7 @@ service cloud.firestore {
             .hasOnly(['ua', 'vwPx', 'vhPx', 'startedAt', 'lastSeenAt'])
           && (!('ua' in request.resource.data)
               || (request.resource.data.ua is string && request.resource.data.ua.size() <= 160));
-        allow delete: if signOwner(wall()) || signEditor(wall());
+        allow delete: if signAllows(wall(), 'edit');
       }
     }
 

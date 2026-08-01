@@ -161,49 +161,65 @@ beyaz sürümden renkli `logo-o-sign.png` + "SIGN" yazısına döndü).
 - Kalan (bilinçli park): ekran sağlık heartbeat'i, ses aç/kapa, 90° döndürme,
   alan-seviyesi takvim varsayılanı, ~~FlowSign özel O-glif PNG~~ → YAPILDI: logo-flowsign(.png/-white.png), 2×2 video-wall ızgaralı monitör glifi.
 
-## Yetki modeli (2026-08) — "ekranı hazırla, ilgilisine teslim et"
+## Yerleşim ızgarası ≠ fiziksel ekran ızgarası (2026-08)
 
-FlowSign'ın satılabilirliğinin şartı: bir ekranı kurup **başkasına verebilmek**
-("İK'ya bir ekran hazırla → al bu senin olsun, bundan sonra sen yönet").
-İki rol var, izleyici rolü YOK (yayın linki zaten public):
+Tek `cols×rows` iki farklı şeyi temsil ediyordu ve bu yüzden **tek ekranlı duvar
+bölünemiyordu** ("Böl" bölecek hücre bulamıyor). Ayrıldılar:
 
-| Yetki | Düzenle & yayınla | Sil | Devret | Yetki dağıt |
-|---|---|---|---|---|
-| **Sahip** | ✅ | ✅ | ✅ | ✅ |
-| **Yetkili** | ✅ | ❌ | ❌ | ❌ |
+| Izgara | Ne demek | Nerede görünür |
+|---|---|---|
+| `cols/rows` | **Fiziksel** ekran sayısı — çerçeve (bezel) nerede | Editörde kesik çizgiler · perdede "Ekranları tanı" numaraları |
+| `layoutCols/layoutRows` | **Yerleşim** — içerik kaç parçaya bölünür (yoksa = fiziksel) | Alan çerçeveleri; birleştir/böl matematiğinin tamamı |
 
-**Devir yayın linkini/slug'ı DEĞİŞTİRMEZ** — sahadaki 7/24 ekranlar el
-değiştirmeden etkilenmez. Eski sahip isteğe bağlı olarak "yetkili" kalır.
+Kullanıcının önerdiği "1 ekran yerine 3 ekran gir" kestirmesi bilinçli olarak
+REDDEDİLDİ: kesik çizgi tasarımda uyulması gereken tek donanım gerçeğidir
+(yazıyı ortasından bölme); olmayan çerçeve çizmek montajda "Ekranları tanı"yı da
+yalanlar. Ayrıca keşfedilebilir değil.
 
-### Online (Firestore) — kimlik E-POSTA ile taşınır
-`videowalls/{id}`: `ownerEmail` (sahip) + `editorEmails[]` (yetkililer).
-Neden uid değil: devrederken karşı tarafın uid'si bilinmiyor ve kullanıcı
-dizinini okumak yalnız yöneticiye açık (`users` rules). Kimlik belirteci
-e-postayı taşıdığından rules `request.auth.token.email` ile doğrudan doğrular —
-davet edilen kişi **hiç giriş yapmamış olsa bile** yetki verilebilir.
-Devirde `ownerId` boşaltılır; yeni sahip ekranı ilk açtığında
-`claimSignOwnership` uid'yi sessizce doldurur. Rules'ta yetkili yazımı
-`ownerId/ownerEmail/editorEmails` ÜÇÜNÜ DE değişmemiş olmaya zorlar (yetki
-yükseltme yolu kapalı). `/api/wall/destroy` (Cloudinary temizliği) sunucu
-tarafında AYNI kapıyı tekrarlar.
-Arayüz: liste üç grup (sahibi olduklarım · bana yetki verilenler · diğerleri),
-editörde **AccessCard** ("Kimler yönetebilir": sahip, yetkililer, e-posta ile
-ekle, devret).
+Davranış: yerleşim ELLE ayarlanmışsa fiziksel ekran sayısını değiştirmek
+yerleşime DOKUNMAZ (`setScreenGrid`); yerleşim fiziksele bağlıysa eski davranış
+sürer (taze ızgara + onay). Yerleşim değişikliği `setLayoutGrid` ile onaydan
+geçer, içerik ilk alana taşınır (kaybolmaz). Eşit olmayan bölme: ızgarayı ince
+tut + sürükleyip birleştir (5'e böl → ilk 3'ü birleştir = %60/%20/%20).
 
-### Self-host — gerçek KULLANICI DEFTERİ
-Tek ortak parola kalktı: `data/users.json` (scrypt + tuz), roller
-**yönetici / kullanıcı**. Oturum çerezi `userId.HMAC(gizli, id+parolaÖzeti)` —
-parola değişince o kullanıcının oturumları düşer; gizli anahtar
-`data/session-secret`. Yetki kararları SUNUCUDA (`serverAuth.ts`:
-`isOwner/isEditor/canEdit`) — her yazma ucu (`PATCH/DELETE/publish/rename/
-duplicate/upload/beat-sil`) kontrol eder; `patchWall` `ownerId/editorIds`
-alanlarını serbest patch'ten ayıklar (yetkili kendini sahip yapamaz).
-`/api/walls/[id]/access` → ekle/çıkar/devret (yalnız sahip). Kullanıcı silinince
-ekranları yöneticiye devrolur (`purgeUserFromWalls`). Yeni sayfa: `/users`.
-İlk açılışta `.env` parolasıyla `yonetici` hesabı kurulur (eski kurulumlar
-sorunsuz geçer).
+## Yetki modeli (2026-08) — TEK yerden: "Sign yetkileri"
 
-Uçtan uca doğrulandı (yerel sunucu + curl): yetkisiz PATCH/DELETE 403 · devir
-sonrası aynı kişi 200 · yetkili sil/devret/yetki-dağıt 403 · rol yükseltme ve
-`PATCH` ile sahiplenme reddedildi · oturumsuz uçlar 401 ama perde 200 ·
-parola değişince eski çerez 401.
+İlk sürüm ekran ekran yetki kutusu koyuyordu; kullanıcı reddetti ("öyle her
+sayfada yetki değil"). Yetki yüzeyi ekran sayfalarından tamamen KALKTI, tek
+yönetim yeri açıldı: online `/admin` → **Sign yetkileri** sekmesi, self-host'ta
+Kullanıcılar → **Sign yetkileri** sekmesi.
+
+Sayfa KİŞİ bazlıdır: her kişi bir satır ("yeni ekran açabilir" tiki satırda),
+satır açılınca TÜM ekranlar dört tikle listelenir:
+
+| Tik | Ne verir |
+|---|---|
+| Görüntüle | Kokpit listesinde görsün, editörü açsın |
+| Düzenle | İçerik + yerleşim değiştirsin ve YAYINLASIN |
+| Kopyala | Kendine kopyasını çıkarsın (ekran açma hakkı da gerekir) |
+| Sil | Ekranı silsin |
+
+Varsayılan: ekranı **oluşturan** tam yetkilidir ("yarattığına zaten yetkili").
+Yönetici tik kaldırınca o kişi için AÇIK kayıt yazılır ve varsayılanı ezer —
+ayrılan personelin erişimi kesilebilir. Oluşturanın dört tiki geri gelirse kayıt
+silinir (varsayılana döner). Yönetici her ekranda tam yetkilidir. Devir/transfer
+kavramı KALKTI: teslim = yeni kişiye tikleri vermek.
+
+**Online (Firestore):** `videowalls/{id}.grants: uid → {view,edit,copy,delete}`,
+`users/{uid}.canCreateSign` (yoksa açık). Rules: `signAllows()` açık kayıt yoksa
+`ownerId`e düşer; yetkili yazımı `grants`/`ownerId` alanlarını değiştiremez;
+create `canCreateSign`e bakar. `view`/`copy` GÖRÜNÜRLÜK seviyesidir — perde
+linki public olmak zorunda olduğundan doküman okuması gizlenemez; `edit`/`delete`
+gerçek kapıdır. `/api/wall/destroy` aynı matrisi sunucuda tekrarlar.
+
+**Self-host:** aynı matris, gerçek kullanıcı defteriyle (`data/users.json`,
+scrypt; roller yönetici/kullanıcı; `canCreate`). Kararlar SUNUCUDA
+(`serverAuth.ts: permOf/canEdit/canDelete/canCopy/canView`); her yazma ucu
+kontrol eder, `patchWall` `ownerId/grants` alanlarını serbest patch'ten ayıklar.
+Yetki yazma ucu `/api/walls/[id]/access` YALNIZ yöneticiye açıktır.
+
+Uçtan uca doğrulandı (yerel sunucu + curl): oluşturan tam yetkili · yetkisiz
+kişi 403 · "yalnız düzenle" tikiyle kopyala/sil/yetki-dağıt 403 · PATCH ile
+grants/ownerId ezme etkisiz · oluşturanın yetkisi kesilebiliyor ve kayıt
+kaldırılınca varsayılana dönüyor · "yeni ekran açabilir" tiki 403/200 ·
+tek fiziksel ekran 3 alana bölünüyor (fiziksel 1×1, yerleşim 3×1).

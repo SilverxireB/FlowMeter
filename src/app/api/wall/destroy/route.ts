@@ -59,9 +59,6 @@ export async function POST(req: Request) {
   }
   const account = (await lookup.json())?.users?.[0];
   const uid: string | undefined = account?.localId;
-  // E-posta da lazım: FlowSign'da ekran DEVREDİLEBİLİYOR ve devirde ownerId
-  // boşalır (yeni sahibin uid'si bilinmiyor, kimlik e-posta ile taşınıyor).
-  const email: string = String(account?.email ?? "").trim().toLowerCase();
   if (!uid) return NextResponse.json({ ok: false, error: "auth-failed" }, { status: 401 });
 
   // 2) yetki: misafir modunda MEDYANIN voterId'si == uid (kendi yüklediği);
@@ -88,11 +85,15 @@ export async function POST(req: Request) {
     if (!wallRes.ok) return NextResponse.json({ ok: false, error: "wall-not-found" }, { status: 404 });
     const fields = (await wallRes.json())?.fields ?? {};
     const ownerId = fields?.ownerId?.stringValue;
-    // FlowSign: sahiplik e-posta ile de taşınabilir (devredilmiş, henüz
-    // sahiplenilmemiş ekran). Firestore rules ile AYNI kapı — sunucu tarafı da
-    // gevşek kalmasın diye burada birebir tekrarlanır.
-    const ownerEmail = String(fields?.ownerEmail?.stringValue ?? "").trim().toLowerCase();
-    const isOwner = ownerId === uid || (signMode && !!email && ownerEmail === email);
+    // FlowSign: silme yetkisi MATRİSTEN gelir (yönetici "Sign yetkileri"nden
+    // dağıtır). Firestore rules ile AYNI kapı — sunucu tarafı gevşek kalmasın
+    // diye burada birebir tekrarlanır: açık kayıt varsa o geçerli, yoksa
+    // ekranı oluşturan kişi tam yetkilidir.
+    const grants = fields?.grants?.mapValue?.fields ?? {};
+    const mine = grants?.[uid]?.mapValue?.fields;
+    const isOwner = signMode
+      ? (mine ? mine?.delete?.booleanValue === true : ownerId === uid)
+      : ownerId === uid;
     if (!isOwner) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 

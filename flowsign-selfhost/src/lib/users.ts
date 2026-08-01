@@ -30,13 +30,25 @@ export interface User {
   name: string; // giriş adı (küçük harfe indirgenir; ör. "ayse")
   label?: string; // görünen ad (ör. "Ayşe — İK")
   role: Role;
+  /** Yeni ekran açabilir mi? (yoksa AÇABİLİR — yönetici "Sign yetkileri"nden kapatır) */
+  canCreate?: boolean;
   salt: string;
   hash: string;
   createdAt: number;
 }
 
 /** İstemciye giden güvenli görünüm — tuz/özet ASLA dışarı çıkmaz (tip: types.ts). */
-export const publicUser = (u: User): PublicUser => ({ id: u.id, name: u.name, label: u.label, role: u.role, createdAt: u.createdAt });
+export const publicUser = (u: User): PublicUser => ({
+  id: u.id,
+  name: u.name,
+  label: u.label,
+  role: u.role,
+  canCreate: u.canCreate,
+  createdAt: u.createdAt,
+});
+
+/** Ekran açma hakkı — kayıt yoksa AÇIK sayılır (kapatma açık karardır). */
+export const canCreateWalls = (u: { role: Role; canCreate?: boolean }) => u.role === "admin" || u.canCreate !== false;
 
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 
@@ -136,6 +148,11 @@ export async function setRole(id: string, role: Role): Promise<void> {
     throw new Error("Tek yönetici kaldı — önce başka bir yönetici ata.");
   }
   await saveUsers(users.map((u) => (u.id === id ? { ...u, role } : u)));
+}
+
+export async function setCanCreate(id: string, canCreate: boolean): Promise<void> {
+  const users = await listUsers();
+  await saveUsers(users.map((u) => (u.id === id ? { ...u, canCreate } : u)));
 }
 
 export async function setLabel(id: string, label: string): Promise<void> {

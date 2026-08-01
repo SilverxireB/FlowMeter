@@ -86,6 +86,9 @@ export interface UserRecord {
   displayName?: string;
   photoURL?: string;
   role?: "admin" | "user";
+  /** FlowSign: yeni ekran açabilir mi? Yoksa AÇABİLİR sayılır — yönetici
+   *  "Sign yetkileri" sayfasından tiki kaldırarak kapatır (kapatma açık kayıttır). */
+  canCreateSign?: boolean;
   createdAt?: Timestamp | null;
   lastSeenAt?: Timestamp | null;
 }
@@ -508,31 +511,52 @@ export interface VideowallLive {
   publishedAt?: Timestamp | null;
 }
 
+/** Bir kişinin BİR ekran üzerindeki yetkileri (FlowSign yetki matrisi). */
+export interface SignGrant {
+  view?: boolean; // kokpit listesinde görsün / editörü açsın (görünürlük)
+  edit?: boolean; // içerik + yerleşim değiştirsin ve YAYINLASIN
+  copy?: boolean; // kendine kopyasını çıkarsın
+  delete?: boolean; // ekranı silsin
+}
+
 /** Video-wall tanımı (videowalls/{id}). zones = TASLAK (editör); live = YAYIN. */
 export interface Videowall {
   id: string;
   ownerId: string;
   ownerName?: string; // listede "kimin duvarı" (yetkisiz sönük kartlarda bilgi)
   /**
-   * YETKİ (yalnız FlowSign): kimlik E-POSTA ile taşınır, uid ile değil —
-   * "İK'dan Ayşe'ye devret" derken Ayşe'nin uid'sini bilmiyoruz, e-postasını
-   * biliyoruz (kullanıcı dizinini okumak da yalnız yöneticiye açık). Firebase
-   * kimlik belirtecinde e-posta bulunduğu için rules bu alanları doğrudan
-   * doğrulayabiliyor.
-   *  - ownerEmail: SAHİP e-postası; devir = bu alanı değiştirmek. Yeni sahip
-   *    ilk açtığında ownerId kendi uid'siyle "sahiplenilir" (sessiz).
-   *  - editorEmails: YETKİLİ e-postaları — düzenler ve yayınlar; silemez,
-   *    devredemez, yetkili listesine dokunamaz (rules bunu da kilitler).
+   * YETKİ (yalnız FlowSign) — TEK YERDEN yönetilir: /admin → "Sign yetkileri".
+   * Ekran ekranlarında yetki kutusu YOKTUR (kullanıcı kararı: "öyle her sayfada
+   * yetki değil"). Matris kişi bazlıdır: yöneticinin açtığı sayfada her kişinin
+   * altında tüm ekranlar listelenir, tikler burada saklanır.
+   *  - ownerId  : ekranı OLUŞTURAN. Kaydı yoksa varsayılan tam yetkilidir
+   *               ("yarattığına zaten yetkili"); yönetici tik kaldırırsa
+   *               kendisi için de açık kayıt yazılır ve o kayıt geçerli olur.
+   *  - grants   : uid → {view, edit, copy, delete}. Yönetici her ekranda tam
+   *               yetkilidir (rules isAdmin()).
+   * NOT: `view`/`copy` GÖRÜNÜRLÜK seviyesidir — perde linki herkese açık olmak
+   * zorunda olduğundan (tabela cihazı giriş yapamaz) doküman okuması rules ile
+   * kısıtlanamaz; `edit`/`delete` gerçek kapıdır.
    */
-  ownerEmail?: string;
-  editorEmails?: string[];
+  grants?: Record<string, SignGrant>;
   name: string;
   slug?: string; // insan-dostu yayın linki: /flowsign/{slug} — ad değişince YENİLENİR
   slugHistory?: string[]; // eski sluglar (yeniden adlandırma) — eski linkler kararmasın
   width: number; // toplam çözünürlük px
   height: number;
-  cols: number; // fiziksel ekran ızgarası
+  cols: number; // FİZİKSEL ekran ızgarası (kaç TV yan yana / üst üste)
   rows: number;
+  /**
+   * YERLEŞİM ızgarası — fiziksel ekran ızgarasından BAĞIMSIZ (yoksa = cols/rows).
+   * İkisi eskiden tek sayıydı ve bu yüzden TEK ekranlı duvar bölünemiyordu
+   * ("Böl" bölecek hücre bulamıyordu). Ayrıldılar çünkü farklı şeyler:
+   * fiziksel ızgara ÇERÇEVE (bezel) nerede onu söyler — editördeki kesik
+   * çizgiler odur, içerik tasarlanırken uyulması gereken tek donanım gerçeği;
+   * yerleşim ızgarası ise içeriği kaç parçaya böldüğündür. Tek TV'yi 3'e bölmek
+   * artık layoutCols=3 demek (fiziksel 1 kalır — yalan çerçeve çizilmez).
+   */
+  layoutCols?: number;
+  layoutRows?: number;
   zones: Zone[];
   live?: VideowallLive; // "Kaydet & Yayınla" ile yazılır; yoksa eski duvar → taslak oynar
   // Oynatma modu (yayından bağımsız — değiştirince perde ANINDA uyar; yoksa "auto")

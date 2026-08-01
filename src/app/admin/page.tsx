@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import AdminTabs from "@/components/AdminTabs";
 import Logo from "@/components/Logo";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useAuthUser } from "@/lib/hooks";
@@ -116,12 +117,8 @@ export default function AdminPage() {
       </header>
 
       <section className="max-w-3xl mx-auto px-4 py-8">
-        <div className="flex items-start justify-between gap-3 mb-1">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Kullanıcılar</h1>
-          <Link href="/admin/stats" className="chip !py-1.5 text-accent font-semibold hover:border-accent shrink-0">
-            📊 İstatistikler
-          </Link>
-        </div>
+        <AdminTabs />
+        <h1 className="font-display text-3xl font-semibold tracking-tight">Kullanıcılar</h1>
         <p className="text-muted text-sm mb-6 tabular-nums">{users.length} kayıt · son görülene göre</p>
 
         {err && <div className="mb-4 rounded-2xl bg-brand-soft text-brand px-4 py-3 text-sm font-semibold">{err}</div>}

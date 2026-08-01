@@ -18,15 +18,17 @@ import { useToast } from "@/components/Toast";
 import WallThumb from "@/components/videowall/WallThumb";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useAuthUser } from "@/lib/hooks";
+import { getUserRecord, isAdminUser } from "@/lib/users";
 import {
-  claimSignOwnership,
+  canCopySign,
+  canDeleteSign,
+  canEditSign,
+  canViewSign,
   clampScreens,
   createVideowall,
   deleteVideowall,
   duplicateVideowall,
   fetchScreenSummaries,
-  isSignEditor,
-  isSignOwner,
   listAllVideowalls,
 } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
@@ -53,6 +55,16 @@ export default function VideowallListPage() {
   const { show, toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [walls, setWalls] = useState<Videowall[]>([]);
+  // Yönetici her ekranda tam yetkilidir (rules'ta da isAdmin()). Kimlik katmanı
+  // ortak çekirdek sayılır — Sign'ın kendi kullanıcı defteri yok (self-host'ta var).
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    getUserRecord(user.uid)
+      .then((r) => setIsAdmin(isAdminUser(user, r)))
+      .catch(() => {});
+  }, [user]);
+
   const [name, setName] = useState("");
   const [preset, setPreset] = useState(0);
   // number | "" — yazarken alan BOŞ kalabilsin ("1'i silemiyorum, 12 yazıp
@@ -91,16 +103,17 @@ export default function VideowallListPage() {
     return { text: "○ çevrimdışı", cls: "bg-black/55 text-white/60" };
   };
 
-  // ÜÇ GRUP: sahibi olduklarım · bana YETKİ verilenler · geri kalanı (yalnız izleme)
-  const mine = useMemo(() => walls.filter((v) => isSignOwner(v, user)), [walls, user]);
-  const shared = useMemo(() => walls.filter((v) => !isSignOwner(v, user) && isSignEditor(v, user)), [walls, user]);
-  const others = useMemo(() => walls.filter((v) => !isSignOwner(v, user) && !isSignEditor(v, user)), [walls, user]);
-  // Devredilen ekranı ilk görüşte sessizce sahiplen (uid alanını doldur) —
-  // devirde yeni sahibin uid'si bilinmiyordu, kimlik e-posta ile taşınmıştı.
-  useEffect(() => {
-    if (!user) return;
-    mine.filter((v) => v.ownerId !== user.uid).forEach((v) => claimSignOwnership(v, user).catch(() => {}));
-  }, [mine, user]);
+  // ÜÇ GRUP: oluşturduklarım · bana yetki verilenler · geri kalanı (yalnız izleme).
+  // Yetkiler yöneticinin "Sign yetkileri" sayfasından gelir; burada karar verilmez.
+  const mine = useMemo(() => walls.filter((v) => v.ownerId === user?.uid), [walls, user]);
+  const shared = useMemo(
+    () => walls.filter((v) => v.ownerId !== user?.uid && canViewSign(v, user?.uid, isAdmin)),
+    [walls, user, isAdmin]
+  );
+  const others = useMemo(
+    () => walls.filter((v) => v.ownerId !== user?.uid && !canViewSign(v, user?.uid, isAdmin)),
+    [walls, user, isAdmin]
+  );
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -148,7 +161,7 @@ export default function VideowallListPage() {
     setBusy(true);
     setErr(null);
     try {
-      const id = await createVideowall(user.uid, name.trim() || "Yeni ekran", Math.max(1, numOr(w, 1920)), Math.max(1, numOr(h, 1080)), clampScreens(numOr(cols, 1)), clampScreens(numOr(rows, 1)), user.displayName || user.email || "", user.email || "");
+      const id = await createVideowall(user.uid, name.trim() || "Yeni ekran", Math.max(1, numOr(w, 1920)), Math.max(1, numOr(h, 1080)), clampScreens(numOr(cols, 1)), clampScreens(numOr(rows, 1)), user.displayName || user.email || "");
       router.push(`/videowall/${id}/edit`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Ekran oluşturulamadı, tekrar dene.");
@@ -182,7 +195,7 @@ export default function VideowallListPage() {
     setBusy(true);
     setErr(null);
     try {
-      await duplicateVideowall(user.uid, v, user.email || "");
+      await duplicateVideowall(user.uid, v);
       refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Kopyalanamadı, tekrar dene.");
@@ -193,10 +206,14 @@ export default function VideowallListPage() {
   }
 
   /**
-   * Kart gövdesi TEK yerde: sahip kartında kopyala/sil var, YETKİLİ kartında yok
-   * (yetkili düzenler ve yayınlar; silmek/devretmek sahibindedir).
+   * Kart gövdesi TEK yerde. Düğmeler kişinin YETKİSİNE göre çizilir; yetkiler
+   * yöneticinin "Sign yetkileri" sayfasından gelir (burada karar verilmez).
    */
-  const wallCard = (v: Videowall, owned: boolean) => (
+  const wallCard = (v: Videowall, owned: boolean) => {
+    const canCopy = canCopySign(v, user?.uid, isAdmin);
+    const canDelete = canDeleteSign(v, user?.uid, isAdmin);
+    const canEdit = canEditSign(v, user?.uid, isAdmin);
+    return (
     <li key={v.id} className={`card overflow-hidden flex flex-col transition-opacity ${deletingId === v.id ? "opacity-40 pointer-events-none" : ""}`}>
       {/* Önizleme = yayındaki yerleşim; tıkla → editör */}
       <Link href={`/videowall/${v.id}/edit`} className="relative block group" aria-label={`${v.name} — düzenle`}>
@@ -210,7 +227,7 @@ export default function VideowallListPage() {
         <div className="min-w-0">
           <p className="font-display font-semibold text-sm truncate">{v.name}</p>
           {!owned && (
-            <p className="text-muted text-[11px] mt-0.5 truncate">Sahibi: {v.ownerEmail || v.ownerName || "—"}</p>
+            <p className="text-muted text-[11px] mt-0.5 truncate">Oluşturan: {v.ownerName || "—"}</p>
           )}
           <p className="text-muted text-[11px] mt-0.5 tabular-nums">
             {v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan
@@ -218,17 +235,21 @@ export default function VideowallListPage() {
         </div>
         <div className="flex items-center gap-1 mt-auto">
           <Link href={`/videowall/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-paper border border-line px-2 py-1.5 text-xs font-semibold hover:border-muted">
-            Düzenle
+            {canEdit ? "Düzenle" : "Aç"}
           </Link>
           {/* "Yayınla" değil — editördeki Kaydet & Yayınla ile karışıyordu */}
           <a href={playHref(v)} target={playTarget} title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
             <Icon name="play" size={12} />
           </a>
-          {owned && (
+          {canCopy && (
             <>
               <button onClick={() => duplicate(v)} disabled={busy} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-paper disabled:opacity-30" title="Kopyala" aria-label="Kopyala">
                 <Icon name="copy" size={13} />
               </button>
+            </>
+          )}
+          {canDelete && (
+            <>
               <button
                 onClick={() =>
                   confirm(
@@ -247,7 +268,8 @@ export default function VideowallListPage() {
         </div>
       </div>
     </li>
-  );
+    );
+  };
 
   if (loading || !user) {
     return (

@@ -16,7 +16,7 @@ import { Icon } from "@/components/icons";
 import WallThumb from "@/components/WallThumb";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useSession } from "@/lib/useSession";
-import { createWall, deleteWall, duplicateWall, isWallEditor, isWallOwner, listWalls } from "@/lib/client";
+import { canCopyWall, canDeleteWall, canEditWall, canViewWall, createWall, deleteWall, duplicateWall, listWalls } from "@/lib/client";
 import { clampScreens } from "@/lib/zones";
 import { PublicUser, Videowall } from "@/lib/types";
 
@@ -167,13 +167,18 @@ export default function ScreensPage() {
     router.replace("/login");
   }
 
-  // Yetki grupları (istemcide yalnız GÖRÜNÜM; asıl kapı sunucuda — serverAuth.ts)
-  const mine = walls.filter((v) => isWallOwner(v, me));
-  const shared = walls.filter((v) => !isWallOwner(v, me) && isWallEditor(v, me));
-  const others = walls.filter((v) => !isWallOwner(v, me) && !isWallEditor(v, me));
+  // Yetki grupları (istemcide yalnız GÖRÜNÜM; asıl kapı sunucuda — serverAuth.ts).
+  // Yetkiler yöneticinin "Sign yetkileri" sekmesinden gelir.
+  const mine = walls.filter((v) => v.ownerId === me?.id || (me?.role === "admin" && !v.ownerId));
+  const shared = walls.filter((v) => v.ownerId !== me?.id && canViewWall(v, me));
+  const others = walls.filter((v) => v.ownerId !== me?.id && !canViewWall(v, me));
 
-  /** Kart gövdesi TEK yerde: kopyala/sil YALNIZ sahip kartında. */
-  const wallCard = (v: Videowall, owned: boolean) => (
+  /** Kart gövdesi TEK yerde; düğmeler kişinin YETKİSİNE göre çizilir. */
+  const wallCard = (v: Videowall, owned: boolean) => {
+    const mayCopy = canCopyWall(v, me);
+    const mayDelete = canDeleteWall(v, me);
+    const mayEdit = canEditWall(v, me);
+    return (
     <li key={v.id} className="card overflow-hidden flex flex-col">
       {/* Önizleme = yayındaki yerleşim; tıkla → editör */}
       <Link href={`/screens/${v.id}/edit`} className="relative block group" aria-label={`${v.name} — düzenle`}>
@@ -193,16 +198,20 @@ export default function ScreensPage() {
         </div>
         <div className="flex items-center gap-1 mt-auto">
           <Link href={`/screens/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-paper border border-line px-2 py-1.5 text-xs font-semibold hover:border-muted">
-            Düzenle
+            {mayEdit ? "Düzenle" : "Aç"}
           </Link>
           <a href={playHref(v)} target={playTarget} title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
             <Icon name="play" size={12} />
           </a>
-          {owned && (
+          {mayCopy && (
             <>
               <button onClick={() => duplicate(v)} disabled={busy} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-paper disabled:opacity-30" title="Kopyala" aria-label="Kopyala">
                 <Icon name="copy" size={13} />
               </button>
+            </>
+          )}
+          {mayDelete && (
+            <>
               <button onClick={() => setConfirmDel(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-brand hover:bg-brand-soft/50" title="Sil" aria-label="Sil">
                 <Icon name="trash" size={13} />
               </button>
@@ -211,7 +220,8 @@ export default function ScreensPage() {
         </div>
       </div>
     </li>
-  );
+    );
+  };
 
   if (loading || !authed) {
     return <main className="min-h-screen grid place-items-center bg-wash text-muted animate-pulse">Yükleniyor…</main>;
@@ -225,9 +235,11 @@ export default function ScreensPage() {
           <span aria-hidden className="font-display font-semibold text-[26px] leading-none tracking-[0.03em] text-[#001e64]">SIGN</span>
         </span>
         <div className="flex items-center gap-2 min-w-0">
-          <Link href="/users" className="chip !py-1.5 text-xs text-muted hover:border-muted shrink-0 inline-flex items-center gap-1.5" title="Kullanıcılar">
-            <Icon name="users" size={14} /> <span className="hidden sm:inline">Kullanıcılar</span>
-          </Link>
+          {me?.role === "admin" && (
+            <Link href="/users" className="chip !py-1.5 text-xs text-muted hover:border-muted shrink-0 inline-flex items-center gap-1.5" title="Kullanıcılar ve yetkiler">
+              <Icon name="users" size={14} /> <span className="hidden sm:inline">Kullanıcılar</span>
+            </Link>
+          )}
           <span className="chip text-muted text-xs min-w-0 max-w-[35vw] hidden sm:inline-flex">
             <span className="truncate min-w-0">{me?.label || me?.name}</span>
           </span>

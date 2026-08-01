@@ -79,6 +79,16 @@ function unitZone(c: number, r: number, cols: number, rows: number): Zone {
 export const MAX_SCREENS_PER_AXIS = 24;
 export const clampScreens = (n: number) => Math.min(MAX_SCREENS_PER_AXIS, Math.max(1, Math.round(n) || 1));
 
+/**
+ * YERLEŞİM ızgarası — fiziksel ekran ızgarasından bağımsız (yoksa ona eşit).
+ * Hücre matematiğinin tamamı BU sayıları kullanır; fiziksel cols/rows yalnız
+ * editördeki çerçeve (bezel) çizgilerini ve perdedeki "Ekranları tanı"yı çizer.
+ */
+export const layoutColsOf = (v: { cols: number; layoutCols?: number }) => clampScreens(v.layoutCols ?? v.cols);
+export const layoutRowsOf = (v: { rows: number; layoutRows?: number }) => clampScreens(v.layoutRows ?? v.rows);
+export const hasCustomLayout = (v: { layoutCols?: number; layoutRows?: number }) =>
+  v.layoutCols != null || v.layoutRows != null;
+
 /** cols×rows tam ızgara (başlangıç yerleşimi; kullanıcı böler/birleştirir). */
 export function gridZones(cols: number, rows: number): Zone[] {
   const zones: Zone[] = [];

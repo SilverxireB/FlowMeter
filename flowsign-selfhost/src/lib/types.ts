@@ -60,25 +60,41 @@ export interface VideowallLive {
   publishedAt?: number | null; // ms
 }
 
+/** Bir kişinin BİR ekran üzerindeki yetkileri. */
+export interface SignGrant {
+  view?: boolean; // listede görsün / editörü açsın
+  edit?: boolean; // içerik + yerleşim değiştirsin ve YAYINLASIN
+  copy?: boolean; // kendine kopyasını çıkarsın
+  delete?: boolean; // ekranı silsin
+}
+
 /** Video-wall tanımı. zones = TASLAK (editör); live = YAYIN. */
 export interface Videowall {
   id: string;
   name: string;
   /**
-   * YETKİ: ownerId = SAHİP (siler, devreder, yetki dağıtır),
-   * editorIds = YETKİLİLER (düzenler + yayınlar). Yönetici her ekranda
-   * sahip sayılır; ownerId boş olan (eski sürümden kalma) ekranlar da
-   * yöneticinindir. Kararlar sunucuda verilir (bkz. serverAuth.ts) —
+   * YETKİ — TEK yerden yönetilir: Kullanıcılar → "Sign yetkileri" sekmesi.
+   * Ekran sayfalarında yetki kutusu YOKTUR (kullanıcı kararı).
+   *  - ownerId : ekranı OLUŞTURAN. Açık kaydı yoksa tam yetkilidir.
+   *  - grants  : userId → {view, edit, copy, delete}; açık kayıt varsayılanı ezer.
+   * Yönetici her ekranda tam yetkilidir. Kararlar SUNUCUDA (serverAuth.ts);
    * istemci yalnız düğmeleri gizler.
    */
   ownerId?: string;
-  editorIds?: string[];
+  grants?: Record<string, SignGrant>;
   slug?: string; // yayın linki: /play/{slug} — ad değişince yenilenir
   slugHistory?: string[]; // eski sluglar — eski linkler kararmasın
   width: number;
   height: number;
-  cols: number;
+  cols: number; // FİZİKSEL ekran ızgarası (kaç TV yan yana / üst üste)
   rows: number;
+  /**
+   * YERLEŞİM ızgarası — fiziksel ekran ızgarasından BAĞIMSIZ (yoksa = cols/rows).
+   * Tek TV'yi 3 alana bölmek layoutCols=3 demek; fiziksel 1 kalır, editörde
+   * olmayan çerçeve (bezel) çizgisi çizilmez.
+   */
+  layoutCols?: number;
+  layoutRows?: number;
   zones: Zone[];
   live?: VideowallLive;
   playMode?: VideowallPlayMode;
@@ -92,5 +108,7 @@ export interface PublicUser {
   name: string;
   label?: string;
   role: "admin" | "user";
+  /** Yeni ekran açabilir mi? (yoksa AÇABİLİR sayılır — yönetici kapatabilir) */
+  canCreate?: boolean;
   createdAt: number;
 }

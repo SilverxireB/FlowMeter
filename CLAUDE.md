@@ -58,12 +58,18 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   (`firebase.ts` persistentLocalCache — tüm suite).
   **Sign AYRI PAKET olarak ayrılacak** (satış/self-host) → Sign kodu diğer
   ürünlerle bağ KURMASIN; ortak yalnız çekirdek (firebase/cloudinary/withTimeout).
-  **YETKİ (yalnız Sign):** sahip/yetkili + DEVRET ("al bu senin olsun") — devir
-  yayın linkini değiştirmez. Online kimlik E-POSTA ile taşınır (`ownerEmail`/
-  `editorEmails`; uid dizini yalnız yöneticiye açık, rules token.email'e bakar;
-  devirde ownerId boşalır, yeni sahip ilk açılışta sessizce sahiplenir).
-  Self-host'ta gerçek kullanıcı defteri (`data/users.json`, scrypt; roller
-  yönetici/kullanıcı; `/users` sayfası; kararlar SUNUCUDA serverAuth.ts).
+  **YETKİ (yalnız Sign) — TEK yerden:** ekran sayfalarında yetki yüzeyi YOK
+  (kullanıcı kararı: "öyle her sayfada yetki değil"). Online `/admin` →
+  **Sign yetkileri**, self-host Kullanıcılar → **Sign yetkileri**: KİŞİ bazlı
+  açılır matris (kişi satırında "yeni ekran açabilir" tiki; altında tüm ekranlar
+  × görüntüle/düzenle/kopyala/sil). Varsayılan: OLUŞTURAN tam yetkili; açık kayıt
+  varsayılanı ezer (ayrılan personel kesilebilir). Online `videowalls.grants`
+  (uid→tikler) + `users.canCreateSign`; self-host `data/users.json` (scrypt,
+  rol+canCreate) + wall `grants`, kararlar SUNUCUDA (serverAuth.ts).
+  **Izgara AYRIMI:** `cols/rows` = FİZİKSEL ekran (kesik çizgi = çerçeve/bezel),
+  `layoutCols/layoutRows` = YERLEŞİM (yoksa fiziksele eşit) → tek TV 3 alana
+  bölünebilir; "3 ekran yaz" kestirmesi bilinçli reddedildi (olmayan çerçeve
+  çizip montajdaki "Ekranları tanı"yı yalanlıyordu).
   **Self-host paketi VAR: `flowsign-selfhost/`** (bağımsız Next app; Firestore→
   `data/` JSON dosya deposu, Cloudinary→yerel disk + güvenli dosya adı
   [boşluk/TR→alt çizgi], realtime→SSE, kişi başına hesap (users.json),

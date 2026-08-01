@@ -9,7 +9,7 @@
  * çağrılmaz) ve bağlantı gelince ilk olayda tazelenir. cb(null) yalnız sunucu
  * "böyle bir ekran yok" dediğinde çağrılır.
  */
-import { PublicUser, ScreenBeat, Videowall, VideowallPlayMode, Zone } from "./types";
+import { PublicUser, ScreenBeat, SignGrant, Videowall, VideowallPlayMode, Zone } from "./types";
 import { clampScreens, gridZones, stripUndefined } from "./zones";
 
 type WallEvent = { found: boolean; wall: Videowall | null; screens: ScreenBeat[] };
@@ -117,6 +117,21 @@ export async function resetGrid(id: string, cols: number, rows: number, oldZones
   await updateWall(id, { cols: cc, rows: rr, zones });
 }
 
+/** FİZİKSEL ekran sayısı değişti; yerleşim elle ayarlıysa ona dokunulmaz. */
+export async function setScreenGrid(id: string, cols: number, rows: number): Promise<void> {
+  await updateWall(id, { cols: clampScreens(cols), rows: clampScreens(rows) });
+}
+
+/** YERLEŞİM ızgarasını değiştir → taze ızgara; içerik ilk alana taşınır (kaybolmaz). */
+export async function setLayoutGrid(id: string, cols: number, rows: number, oldZones: Zone[] = []): Promise<void> {
+  const cc = clampScreens(cols);
+  const rr = clampScreens(rows);
+  const zones = gridZones(cc, rr);
+  const carried = oldZones.flatMap((z) => z.items ?? []);
+  if (carried.length && zones.length) zones[0] = { ...zones[0], items: carried };
+  await updateWall(id, { layoutCols: cc, layoutRows: rr, zones });
+}
+
 export async function duplicateWall(id: string): Promise<void> {
   await j(await fetch(`/api/walls/${encodeURIComponent(id)}/duplicate`, { method: "POST" }));
 }
@@ -196,7 +211,10 @@ export async function createUser(name: string, password: string, role: "admin" |
   );
 }
 
-export async function updateUser(id: string, patch: { password?: string; role?: "admin" | "user"; label?: string }): Promise<void> {
+export async function updateUser(
+  id: string,
+  patch: { password?: string; role?: "admin" | "user"; label?: string; canCreate?: boolean }
+): Promise<void> {
   await j(
     await fetch(`/api/users/${encodeURIComponent(id)}`, {
       method: "PATCH",
@@ -210,44 +228,40 @@ export async function deleteUser(id: string): Promise<void> {
   await j(await fetch(`/api/users/${encodeURIComponent(id)}`, { method: "DELETE" }));
 }
 
-// ── Ekran yetkisi (sahip / yetkili / devret) ─────────────────────────────────
+// ── Ekran yetkisi (yönetici matrisi) ────────────────────────────────────────
 
-async function access(wallId: string, body: Record<string, unknown>): Promise<void> {
+export async function setWallGrant(
+  wallId: string,
+  userId: string,
+  perms: SignGrant | null
+): Promise<void> {
   await j(
     await fetch(`/api/walls/${encodeURIComponent(wallId)}/access`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ userId, perms }),
     })
   );
 }
 
-export async function addWallEditor(wallId: string, userId: string): Promise<void> {
-  await access(wallId, { action: "add", userId });
-}
-
-export async function removeWallEditor(wallId: string, userId: string): Promise<void> {
-  await access(wallId, { action: "remove", userId });
-}
-
-/** "Al bu senin olsun, bundan sonra sen yönet" — yayın linki DEĞİŞMEZ. */
-export async function transferWall(wallId: string, userId: string, keepAsEditor: boolean): Promise<void> {
-  await access(wallId, { action: "transfer", userId, keepAsEditor });
-}
-
 // ── Yetki kararları (istemcide yalnız DÜĞME GİZLEME; asıl kapı sunucuda) ─────
 
-export function isWallOwner(w: Videowall | null | undefined, me: PublicUser | null): boolean {
-  if (!w || !me) return false;
-  if (me.role === "admin") return true;
-  return !!w.ownerId && w.ownerId === me.id;
+const NONE: Required<SignGrant> = { view: false, edit: false, copy: false, delete: false };
+const FULL: Required<SignGrant> = { view: true, edit: true, copy: true, delete: true };
+
+/** Etkin yetki: açık kayıt > oluşturan varsayılanı. Yönetici her yerde tam. */
+export function wallPerm(w: Videowall | null | undefined, me: PublicUser | null): Required<SignGrant> {
+  if (!w || !me) return NONE;
+  if (me.role === "admin") return FULL;
+  const explicit = w.grants?.[me.id];
+  if (explicit) return { ...NONE, ...explicit };
+  return w.ownerId && w.ownerId === me.id ? FULL : NONE;
 }
 
-export function isWallEditor(w: Videowall | null | undefined, me: PublicUser | null): boolean {
-  if (!w || !me) return false;
-  return (w.editorIds ?? []).includes(me.id);
-}
-
-export function canEditWall(w: Videowall | null | undefined, me: PublicUser | null): boolean {
-  return isWallOwner(w, me) || isWallEditor(w, me);
-}
+export const canEditWall = (w: Videowall | null | undefined, me: PublicUser | null) => wallPerm(w, me).edit;
+export const canDeleteWall = (w: Videowall | null | undefined, me: PublicUser | null) => wallPerm(w, me).delete;
+export const canCopyWall = (w: Videowall | null | undefined, me: PublicUser | null) => wallPerm(w, me).copy;
+export const canViewWall = (w: Videowall | null | undefined, me: PublicUser | null) => {
+  const p = wallPerm(w, me);
+  return p.view || p.edit || p.copy || p.delete;
+};

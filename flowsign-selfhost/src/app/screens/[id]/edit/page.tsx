@@ -9,7 +9,6 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import AccessCard from "@/components/AccessCard";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import LayoutEditor from "@/components/LayoutEditor";
 import QrCode from "@/components/QrCode";
@@ -20,18 +19,19 @@ import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useSession } from "@/lib/useSession";
 import {
   canEditWall,
-  listUsers,
   publishWall,
   renameWall,
   resetGrid,
+  setLayoutGrid,
+  setScreenGrid,
   setPlayMode,
   updateWall,
   updateZones,
   watchWall,
   withTimeout,
 } from "@/lib/client";
-import { clampScreens, slugify, splitZone } from "@/lib/zones";
-import { PublicUser, Videowall } from "@/lib/types";
+import { clampScreens, hasCustomLayout, layoutColsOf, layoutRowsOf, slugify, splitZone } from "@/lib/zones";
+import { Videowall } from "@/lib/types";
 
 const inputCls =
   "input-base !py-2 !px-3 !rounded-lg";
@@ -55,12 +55,6 @@ export default function ScreenEditPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { loading, authed, me } = useSession();
-  // Yetki paneli kişi seçicisi defterden beslenir (yazım hatası olmasın).
-  const [users, setUsers] = useState<PublicUser[]>([]);
-  const [accessTick, setAccessTick] = useState(0);
-  useEffect(() => {
-    if (authed) listUsers().then((d) => setUsers(d.users)).catch(() => {});
-  }, [authed, accessTick]);
   const playTarget = usePlayTarget();
   const [vw, setVw] = useState<Videowall | null | undefined>(undefined);
   const [origin, setOrigin] = useState("");
@@ -190,6 +184,30 @@ export default function ScreenEditPage() {
     setSelectedId(null);
   };
 
+  /** FİZİKSEL ekran sayısı: yerleşim elle ayarlıysa yerleşime DOKUNMA. */
+  const changeScreens = (cols: number, rows: number) => {
+    if (hasCustomLayout(vw)) {
+      setScreenGrid(id, cols, rows).catch(() => setSaveErr("Ekran sayısı kaydedilemedi — tekrar dene."));
+      return;
+    }
+    changeGrid(cols, rows);
+  };
+
+  /** YERLEŞİM ızgarası → taze ızgara; içerik ilk alana taşınır (kaybolmaz). */
+  const changeLayout = (cols: number, rows: number) => {
+    setConfirmBox({
+      title: "Yerleşimi değiştir",
+      message:
+        "Taslak yerleşim taze ızgaraya kurulur; alanlardaki TÜM içerik kaybolmaz — hepsi ilk alana taşınır, oradan dağıtırsın. (Yayın etkilenmez.) Devam?",
+      confirmLabel: "Yerleşimi değiştir",
+      run: () => {
+        setUndoZones(null);
+        setLayoutGrid(id, cols, rows, vw.zones ?? []).catch(() => setSaveErr("Yerleşim kaydedilemedi — tekrar dene."));
+        setSelectedId(null);
+      },
+    });
+  };
+
   const changeGrid = (cols: number, rows: number) => {
     setConfirmBox({
       title: "Izgarayı değiştir",
@@ -309,9 +327,6 @@ export default function ScreenEditPage() {
         </div>
 
         {/* Ekran sağlığı: bu yayını açık tutan cihazlar (heartbeat) */}
-        {/* Kim yönetebilir: sahip + yetkililer + devret (teslim akışı) */}
-        <AccessCard vw={vw} me={me} users={users} onChanged={() => setAccessTick((t) => t + 1)} />
-
         <ScreensCard id={id} />
 
         {/* Config */}
@@ -329,13 +344,56 @@ export default function ScreenEditPage() {
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-muted text-xs">Yan yana kaç ekran?</span>
-              <input key={`c${vw.cols}`} type="number" min={1} max={24} defaultValue={vw.cols} onBlur={(e) => { const c = clampScreens(Number(e.target.value)); if (c !== vw.cols) changeGrid(c, vw.rows); e.target.value = String(vw.cols); }} className={`w-24 ${inputCls}`} />
+              <input key={`c${vw.cols}`} type="number" min={1} max={24} defaultValue={vw.cols} onBlur={(e) => { const c = clampScreens(Number(e.target.value)); if (c !== vw.cols) changeScreens(c, vw.rows); e.target.value = String(vw.cols); }} className={`w-24 ${inputCls}`} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-muted text-xs">Üst üste kaç ekran?</span>
-              <input key={`r${vw.rows}`} type="number" min={1} max={24} defaultValue={vw.rows} onBlur={(e) => { const rr = clampScreens(Number(e.target.value)); if (rr !== vw.rows) changeGrid(vw.cols, rr); e.target.value = String(vw.rows); }} className={`w-24 ${inputCls}`} />
+              <input key={`r${vw.rows}`} type="number" min={1} max={24} defaultValue={vw.rows} onBlur={(e) => { const rr = clampScreens(Number(e.target.value)); if (rr !== vw.rows) changeScreens(vw.cols, rr); e.target.value = String(vw.rows); }} className={`w-24 ${inputCls}`} />
             </label>
             <span className="text-muted text-xs pb-2 tabular-nums">{vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan</span>
+          </div>
+
+          {/* YERLEŞİM ızgarası — fiziksel ekran sayısından bağımsız (tek TV 3 alana bölünebilir) */}
+          <div className="mt-4 pt-4 border-t border-line">
+            <span className="text-muted text-xs block mb-2">Yerleşim ızgarası — içeriği kaç parçaya böleceksin?</span>
+            <div className="flex flex-wrap items-end gap-3 text-sm">
+              <label className="flex flex-col gap-1">
+                <span className="text-muted text-xs">Yatayda kaç alan?</span>
+                <input
+                  key={`lc${layoutColsOf(vw)}`}
+                  type="number"
+                  min={1}
+                  max={24}
+                  defaultValue={layoutColsOf(vw)}
+                  onBlur={(e) => {
+                    const c = clampScreens(Number(e.target.value));
+                    if (c !== layoutColsOf(vw)) changeLayout(c, layoutRowsOf(vw));
+                    e.target.value = String(layoutColsOf(vw));
+                  }}
+                  className={`w-24 ${inputCls}`}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-muted text-xs">Dikeyde kaç alan?</span>
+                <input
+                  key={`lr${layoutRowsOf(vw)}`}
+                  type="number"
+                  min={1}
+                  max={24}
+                  defaultValue={layoutRowsOf(vw)}
+                  onBlur={(e) => {
+                    const r = clampScreens(Number(e.target.value));
+                    if (r !== layoutRowsOf(vw)) changeLayout(layoutColsOf(vw), r);
+                    e.target.value = String(layoutRowsOf(vw));
+                  }}
+                  className={`w-24 ${inputCls}`}
+                />
+              </label>
+              <p className="text-muted text-xs pb-2 leading-relaxed flex-1 min-w-[16rem]">
+                Fiziksel ekran sayısıyla aynı olmak ZORUNDA değil: <b>tek TV&apos;yi 3 alana bölebilirsin</b> (yatayda 3 yaz).
+                Eşit olmayan bölme için ızgarayı ince tut ve alanları sürükleyip birleştir (ör. 5&apos;e böl → ilk 3&apos;ü birleştir = %60/%20/%20).
+              </p>
+            </div>
           </div>
 
           {/* Oynatma modu: tabela (otomatik) / sunum (kumanda). Yayından bağımsız —
@@ -393,7 +451,7 @@ export default function ScreenEditPage() {
             onZones={saveZones}
             onSplit={() => {
               const doSplit = () => {
-                saveZones(splitZone(vw.zones ?? [], vw.cols, vw.rows, selected.id));
+                saveZones(splitZone(vw.zones ?? [], layoutColsOf(vw), layoutRowsOf(vw), selected.id));
                 setSelectedId(null);
               };
               if (selected.items.length > 0) {

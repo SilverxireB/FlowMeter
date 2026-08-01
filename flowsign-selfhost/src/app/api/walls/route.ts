@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser, unauthorized } from "@/lib/serverAuth";
+import { currentUser, forbidden, unauthorized } from "@/lib/serverAuth";
 import { createWall, listWalls, screenSummaries } from "@/lib/store";
-import { listUsers, publicUser } from "@/lib/users";
+import { canCreateWalls, listUsers, publicUser } from "@/lib/users";
 import { clampScreens } from "@/lib/zones";
 
 export const runtime = "nodejs";
@@ -24,6 +24,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const me = await currentUser(req);
   if (!me) return unauthorized();
+  // Yeni ekran açma hakkı yöneticide kapatılabilir ("Sign yetkileri" sekmesi).
+  if (!canCreateWalls(me)) return forbidden();
   const b = (await req.json().catch(() => ({}))) as { name?: string; width?: number; height?: number; cols?: number; rows?: number };
   // Oluşturan kişi SAHİBİDİR (yönetici başkası için kurup sonra devreder).
   const wall = await createWall(

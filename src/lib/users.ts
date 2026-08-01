@@ -57,6 +57,11 @@ export async function setUserRole(uid: string, role: "admin" | "user"): Promise<
   await updateDoc(doc(db(), "users", uid), { role });
 }
 
+/** FlowSign: kişi yeni ekran açabilir mi? (yönetici → "Sign yetkileri" sayfası) */
+export async function setCanCreateSign(uid: string, canCreate: boolean): Promise<void> {
+  await updateDoc(doc(db(), "users", uid), { canCreateSign: canCreate });
+}
+
 /** Kullanıcı KAYDINI siler (Auth hesabını değil — tekrar girişte kayıt yeniden oluşur). */
 export async function deleteUserRecord(uid: string): Promise<void> {
   await deleteDoc(doc(db(), "users", uid));

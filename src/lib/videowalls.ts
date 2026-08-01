@@ -4,6 +4,7 @@
  */
 import {
   addDoc,
+  deleteField,
   collection,
   deleteDoc,
   doc,
@@ -17,7 +18,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { ScreenBeat, Videowall, VideowallPlayMode, Zone, ZoneItem } from "./types";
+import { ScreenBeat, SignGrant, Videowall, VideowallPlayMode, Zone, ZoneItem } from "./types";
 
 /**
  * Öğe şu an takvimde mi? (gün + saat penceresi; boşsa hep). Gece yarısını aşan
@@ -106,6 +107,18 @@ function unitZone(c: number, r: number, cols: number, rows: number): Zone {
 export const MAX_SCREENS_PER_AXIS = 24;
 export const clampScreens = (n: number) => Math.min(MAX_SCREENS_PER_AXIS, Math.max(1, Math.round(n) || 1));
 
+/**
+ * YERLEŞİM ızgarası — fiziksel ekran ızgarasından bağımsız (yoksa ona eşit).
+ * Aşağıdaki tüm hücre matematiği (birleştir/böl/ızgara) BU sayıları kullanır;
+ * fiziksel cols/rows yalnız editördeki çerçeve (bezel) çizgilerini ve perdedeki
+ * "Ekranları tanı" numaralarını çizer.
+ */
+export const layoutColsOf = (v: Pick<Videowall, "cols" | "layoutCols">) => clampScreens(v.layoutCols ?? v.cols);
+export const layoutRowsOf = (v: Pick<Videowall, "rows" | "layoutRows">) => clampScreens(v.layoutRows ?? v.rows);
+/** Kullanıcı yerleşimi elle ayarladı mı? (ayarladıysa fiziksel değişikliği yerleşimi bozmaz) */
+export const hasCustomLayout = (v: Pick<Videowall, "layoutCols" | "layoutRows">) =>
+  v.layoutCols != null || v.layoutRows != null;
+
 /** cols×rows tam ızgara (başlangıç yerleşimi; kullanıcı böler/birleştirir). */
 export function gridZones(cols: number, rows: number): Zone[] {
   const zones: Zone[] = [];
@@ -189,8 +202,7 @@ export async function createVideowall(
   height: number,
   cols: number,
   rows: number,
-  ownerName?: string,
-  ownerEmail?: string
+  ownerName?: string
 ): Promise<string> {
   const nm = name.trim() || "Yeni duvar";
   const w = Math.max(1, Math.round(width));
@@ -201,8 +213,6 @@ export async function createVideowall(
   const ref = await addDoc(collection(db(), "videowalls"), {
     ownerId,
     ownerName: ownerName ?? "",
-    ownerEmail: normEmail(ownerEmail),
-    editorEmails: [],
     name: nm,
     slug: await uniqueSlug(nm),
     width: w,
@@ -481,8 +491,34 @@ export async function resetGrid(id: string, cols: number, rows: number, oldZones
   await updateDoc(doc(db(), "videowalls", id), { cols: cc, rows: rr, zones: stripUndefined(zones), updatedAt: serverTimestamp() });
 }
 
+/** FİZİKSEL ekran sayısı değişti ama yerleşim elle ayarlanmış: yerleşime DOKUNMA
+ *  (çerçeve çizgileri kayar, içerik yerinde kalır — sorulacak bir şey de yok). */
+export async function setScreenGrid(id: string, cols: number, rows: number): Promise<void> {
+  await updateDoc(doc(db(), "videowalls", id), {
+    cols: clampScreens(cols),
+    rows: clampScreens(rows),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/** YERLEŞİM ızgarasını değiştir → taslak yerleşim taze ızgaraya kurulur.
+ *  İÇERİK KAYBOLMAZ: eski alanlardaki tüm öğeler ilk alana taşınır. */
+export async function setLayoutGrid(id: string, cols: number, rows: number, oldZones: Zone[] = []): Promise<void> {
+  const cc = clampScreens(cols);
+  const rr = clampScreens(rows);
+  const zones = gridZones(cc, rr);
+  const carried = oldZones.flatMap((z) => z.items ?? []);
+  if (carried.length && zones.length) zones[0] = { ...zones[0], items: carried };
+  await updateDoc(doc(db(), "videowalls", id), {
+    layoutCols: cc,
+    layoutRows: rr,
+    zones: stripUndefined(zones),
+    updatedAt: serverTimestamp(),
+  });
+}
+
 /** Duvarı kopyala (yeni id + taze zone/öğe id'leri; içerik referansları korunur). */
-export async function duplicateVideowall(ownerId: string, v: Videowall, ownerEmail?: string): Promise<string> {
+export async function duplicateVideowall(ownerId: string, v: Videowall): Promise<string> {
   const zones = (v.zones ?? []).map((z) => ({
     ...z,
     id: zid(),
@@ -492,11 +528,8 @@ export async function duplicateVideowall(ownerId: string, v: Videowall, ownerEma
   const cleanZones = stripUndefined(zones);
   const ref = await addDoc(collection(db(), "videowalls"), {
     ownerId,
+    // Kopya KOPYALAYANIN'dır; yetki kayıtları taşınmaz (sessiz yetki mirası yok).
     ownerName: v.ownerName ?? "",
-    // Kopya YENİ sahibinindir; yetkili listesi taşınmaz (bilinçli: kopyayı alan
-    // kişi paylaşımı yeniden kurar — sessizce yetki miras kalmasın).
-    ownerEmail: normEmail(ownerEmail),
-    editorEmails: [],
     name,
     slug: await uniqueSlug(name),
     width: v.width,
@@ -533,91 +566,56 @@ export async function deleteVideowall(v: Videowall, idToken?: string): Promise<v
 }
 
 // ── YETKİ (yalnız FlowSign) ─────────────────────────────────────────────────
-// Neden e-posta? Ekranı "İK'dan Ayşe'ye" devrederken Ayşe'nin uid'sini bilmiyoruz;
-// kullanıcı dizinini okumak da yalnız yöneticiye açık (users rules). Firebase
-// kimlik belirteci e-postayı taşıdığından rules `request.auth.token.email` ile
-// doğrudan doğrulayabiliyor — dizin araması gerekmiyor, kişi hiç giriş yapmamış
-// olsa bile davet edilebiliyor.
+// TEK YERDEN yönetilir: /admin → "Sign yetkileri". Ekran sayfalarında yetki
+// kutusu YOK (kullanıcı kararı). Matris kişi bazlı: yöneticinin sayfasında her
+// kişinin altında tüm ekranlar açılır, tikler `grants` içine yazılır.
+//
+// Varsayılan: ekranı OLUŞTURAN (ownerId) tam yetkilidir — "yarattığına zaten
+// yetkili". Yönetici o kişinin tikini kaldırdığı anda kendisi için de AÇIK
+// kayıt yazılır; açık kayıt varsayılanı ezer (ayrılan personelin erişimi
+// kesilebilsin).
 
-/** Karşılaştırmalar HEP küçük harf + kırpılmış (kullanıcı "Ayse@X.com" yazar). */
-export const normEmail = (e?: string | null): string => (e ?? "").trim().toLowerCase();
+/** Yöneticiler her ekranda tam yetkilidir (rules'ta isAdmin() karşılığı). */
+const FULL: Required<SignGrant> = { view: true, edit: true, copy: true, delete: true };
+const NONE: Required<SignGrant> = { view: false, edit: false, copy: false, delete: false };
 
-/** Basit biçim kontrolü — yanlış yazılmış e-posta sessizce yetki vermesin. */
-export const isEmailLike = (e: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
-
-type Identity = { uid: string; email?: string | null } | null | undefined;
-
-/** SAHİP: uid eşleşir VEYA (devir sonrası, henüz sahiplenilmeden) e-posta eşleşir. */
-export function isSignOwner(v: Videowall | null | undefined, user: Identity): boolean {
-  if (!v || !user) return false;
-  if (v.ownerId && v.ownerId === user.uid) return true;
-  const mail = normEmail(user.email);
-  return !!mail && normEmail(v.ownerEmail) === mail;
+/** Bu kişinin bu ekrandaki ETKİN yetkisi (açık kayıt > oluşturan varsayılanı). */
+export function signPerm(
+  v: Pick<Videowall, "ownerId" | "grants"> | null | undefined,
+  uid: string | null | undefined,
+  isAdmin = false
+): Required<SignGrant> {
+  if (isAdmin) return FULL;
+  if (!v || !uid) return NONE;
+  const explicit = v.grants?.[uid];
+  if (explicit) return { ...NONE, ...explicit };
+  return v.ownerId === uid ? FULL : NONE;
 }
 
-/** YETKİLİ: düzenler + yayınlar; silemez, devredemez, yetki dağıtamaz. */
-export function isSignEditor(v: Videowall | null | undefined, user: Identity): boolean {
-  if (!v || !user) return false;
-  const mail = normEmail(user.email);
-  return !!mail && (v.editorEmails ?? []).some((e) => normEmail(e) === mail);
-}
+export const canEditSign = (v: Videowall | null | undefined, uid?: string | null, isAdmin = false) =>
+  signPerm(v, uid, isAdmin).edit;
+export const canDeleteSign = (v: Videowall | null | undefined, uid?: string | null, isAdmin = false) =>
+  signPerm(v, uid, isAdmin).delete;
+export const canCopySign = (v: Videowall | null | undefined, uid?: string | null, isAdmin = false) =>
+  signPerm(v, uid, isAdmin).copy;
+/** Listede/editörde görünür mü? (perde linki zaten public — bu GÖRÜNÜRLÜKTÜR) */
+export const canViewSign = (v: Videowall | null | undefined, uid?: string | null, isAdmin = false) => {
+  const p = signPerm(v, uid, isAdmin);
+  return p.view || p.edit || p.copy || p.delete;
+};
 
-export function canEditSign(v: Videowall | null | undefined, user: Identity): boolean {
-  return isSignOwner(v, user) || isSignEditor(v, user);
-}
-
-/** Yetkili ekle (yalnız sahip). Zaten varsa/sahibin kendisiyse sessiz geçer. */
-export async function addSignEditor(v: Videowall, email: string): Promise<void> {
-  const mail = normEmail(email);
-  if (!mail || !isEmailLike(mail)) throw new Error("Geçerli bir e-posta yaz.");
-  if (mail === normEmail(v.ownerEmail)) throw new Error("Bu kişi zaten sahibi.");
-  const list = (v.editorEmails ?? []).map(normEmail).filter(Boolean);
-  if (list.includes(mail)) return;
-  await updateDoc(doc(db(), "videowalls", v.id), { editorEmails: [...list, mail], updatedAt: serverTimestamp() });
-}
-
-/** Yetkiyi geri al (yalnız sahip). */
-export async function removeSignEditor(v: Videowall, email: string): Promise<void> {
-  const mail = normEmail(email);
-  const list = (v.editorEmails ?? []).map(normEmail).filter((e) => e && e !== mail);
-  await updateDoc(doc(db(), "videowalls", v.id), { editorEmails: list, updatedAt: serverTimestamp() });
-}
-
-/**
- * DEVRET — "al bu senin olsun, bundan sonra sen yönet".
- * ownerId BOŞALTILIR: yeni sahibin uid'sini bilmiyoruz; o kişi ekranı ilk
- * açtığında `claimSignOwnership` sessizce doldurur. Eski sahip istenirse
- * yetkili olarak kalır (devir teslim dönemi) — yeni sahip dilediğinde çıkarır.
- */
-export async function transferSignOwnership(
-  v: Videowall,
-  newOwnerEmail: string,
-  opts: { keepAsEditor: boolean; previousOwnerEmail?: string | null }
-): Promise<void> {
-  const mail = normEmail(newOwnerEmail);
-  if (!mail || !isEmailLike(mail)) throw new Error("Geçerli bir e-posta yaz.");
-  const prev = normEmail(opts.previousOwnerEmail ?? v.ownerEmail);
-  const editors = (v.editorEmails ?? []).map(normEmail).filter((e) => e && e !== mail);
-  if (opts.keepAsEditor && prev && prev !== mail && !editors.includes(prev)) editors.push(prev);
-  await updateDoc(doc(db(), "videowalls", v.id), {
-    ownerEmail: mail,
-    ownerId: "", // sahiplenilmeyi bekler (rules e-posta üzerinden yetki verir)
-    ownerName: "",
-    editorEmails: editors,
+/** Yönetici sayfasındaki tikler → tek kişinin tek ekrandaki kaydı. */
+export async function setSignGrant(wallId: string, uid: string, perms: SignGrant): Promise<void> {
+  await updateDoc(doc(db(), "videowalls", wallId), {
+    [`grants.${uid}`]: { view: !!perms.view, edit: !!perms.edit, copy: !!perms.copy, delete: !!perms.delete },
     updatedAt: serverTimestamp(),
   });
 }
 
-/**
- * Sahiplenme: devredilen ekranı yeni sahip ilk açtığında uid'yi doldurur.
- * Sessizdir (kullanıcıya soru sorulmaz — ekran zaten ona verilmiştir) ve
- * yalnız e-posta eşleşiyorsa çalışır; başkasının ekranına dokunamaz.
- */
-export async function claimSignOwnership(v: Videowall, user: { uid: string; email?: string | null; displayName?: string | null }): Promise<void> {
-  const mail = normEmail(user.email);
-  if (!mail || normEmail(v.ownerEmail) !== mail || v.ownerId === user.uid) return;
-  await updateDoc(doc(db(), "videowalls", v.id), {
-    ownerId: user.uid,
-    ownerName: user.displayName || user.email || "",
-  }).catch(() => {});
+/** Kaydı tamamen kaldır → kişi varsayılana döner (oluşturansa tam yetki). */
+export async function clearSignGrant(wallId: string, uid: string): Promise<void> {
+  await updateDoc(doc(db(), "videowalls", wallId), {
+    [`grants.${uid}`]: deleteField(),
+    updatedAt: serverTimestamp(),
+  });
 }

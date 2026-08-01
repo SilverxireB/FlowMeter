@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs, type Timestamp } from "firebase/firestore";
+import AdminTabs from "@/components/AdminTabs";
 import Logo from "@/components/Logo";
 import { db } from "@/lib/firebase";
 import { useAuthUser } from "@/lib/hooks";
@@ -172,6 +173,7 @@ export default function AdminStatsPage() {
       </header>
 
       <section className="max-w-4xl mx-auto px-4 py-8">
+        <AdminTabs />
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">Kullanıcı aktivitesi</h1>
         <p className="text-muted text-sm mb-6">Kim neyi ne kadar kullanıyor — içerikler ve son etkinlikler.</p>
 

@@ -60,24 +60,27 @@ export async function currentUser(req: NextRequest): Promise<User | null> {
 export const unauthorized = () => Response.json({ error: "Oturum gerekli" }, { status: 401 });
 export const forbidden = () => Response.json({ error: "Bu işlem için yetkin yok" }, { status: 403 });
 
-// ── Ekran yetkisi ────────────────────────────────────────────────────────────
-// SAHİP    : düzenler, yayınlar, siler, devreder, yetki dağıtır.
-// YETKİLİ  : düzenler ve yayınlar — silemez, devredemez, yetki dağıtamaz.
-// YÖNETİCİ : her ekranda sahip yetkisindedir (kurulumu yapan BT dışarıda kalmasın).
-// Sahipsiz (eski sürümden kalan) ekranlar yöneticinindir.
+// ── Ekran yetkisi (matris) ───────────────────────────────────────────────────
+// TEK yerden yönetilir: Kullanıcılar → "Sign yetkileri". Açık kayıt (grants)
+// varsa o geçerlidir; yoksa ekranı OLUŞTURAN tam yetkilidir ("yarattığına zaten
+// yetkili"). Yönetici (kurulumu yapan BT) her ekranda tam yetkilidir; sahipsiz
+// (eski sürümden kalan) ekranlar da yöneticinindir.
 
-export function isOwner(w: Videowall, u: User | null): boolean {
-  if (!u) return false;
-  if (u.role === "admin") return true;
-  if (!w.ownerId) return false; // sahipsiz ekran → yalnız yönetici
-  return w.ownerId === u.id;
+const FULL = { view: true, edit: true, copy: true, delete: true } as const;
+const NONE = { view: false, edit: false, copy: false, delete: false } as const;
+
+export function permOf(w: Videowall, u: User | null): { view: boolean; edit: boolean; copy: boolean; delete: boolean } {
+  if (!u) return { ...NONE };
+  if (u.role === "admin") return { ...FULL };
+  const explicit = w.grants?.[u.id];
+  if (explicit) return { ...NONE, ...explicit };
+  return w.ownerId && w.ownerId === u.id ? { ...FULL } : { ...NONE };
 }
 
-export function isEditor(w: Videowall, u: User | null): boolean {
-  if (!u) return false;
-  return (w.editorIds ?? []).includes(u.id);
-}
-
-export function canEdit(w: Videowall, u: User | null): boolean {
-  return isOwner(w, u) || isEditor(w, u);
-}
+export const canEdit = (w: Videowall, u: User | null) => permOf(w, u).edit;
+export const canDelete = (w: Videowall, u: User | null) => permOf(w, u).delete;
+export const canCopy = (w: Videowall, u: User | null) => permOf(w, u).copy;
+export const canView = (w: Videowall, u: User | null) => {
+  const p = permOf(w, u);
+  return p.view || p.edit || p.copy || p.delete;
+};
