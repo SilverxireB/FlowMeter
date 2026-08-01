@@ -428,9 +428,14 @@ export default function ZonePanel({
                     <button onClick={() => reorder(i, i + 1)} disabled={i === zone.items.length - 1} className="w-7 h-5 grid place-items-center text-muted hover:text-ink disabled:opacity-20" aria-label="Aşağı taşı"><Icon name="down" size={13} /></button>
                   </span>
                   <ItemThumb item={it} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : it.name || it.src}</p>
-                    <span className="inline-flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  {/* min-w-0 + overflow-hidden: rozet şeridi eskiden `inline-flex`ti,
+                      daralamadığı için dar telefonda kutudan TAŞIP sağdaki düğmelerin
+                      ALTINA giriyordu (rozet yarım görünüyordu). */}
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <p className="text-sm font-semibold truncate" title={it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : it.name || it.src}>
+                      {it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : it.name || it.src}
+                    </p>
+                    <span className="flex items-center gap-1.5 mt-0.5 flex-wrap min-w-0">
                       <span className="text-[10px] uppercase tracking-wider text-accent-dark bg-accent-soft rounded px-1.5 py-0.5">{KIND_LABEL[it.kind]}</span>
                       {/* Kompakt özet: ayrıntılar ⚙ ile açılır */}
                       <span className="text-[10px] text-muted bg-white border border-line rounded px-1.5 py-0.5 tabular-nums">
@@ -456,20 +461,6 @@ export default function ZonePanel({
                   >
                     <Icon name="settings" size={15} />
                   </button>
-                  {(it.kind === "image" || it.kind === "video") && (
-                    <button
-                      onClick={() => {
-                        setReplacingId(it.id);
-                        replaceRef.current?.click();
-                      }}
-                      disabled={queue !== null}
-                      className="shrink-0 w-9 h-9 grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-white disabled:opacity-30"
-                      title="Dosyayı değiştir (sıra ve takvim korunur)"
-                      aria-label="Dosyayı değiştir"
-                    >
-                      <Icon name="swap" size={15} />
-                    </button>
-                  )}
                   <button onClick={() => removeItem(it.id)} className="shrink-0 w-9 h-9 grid place-items-center rounded-lg text-muted hover:text-brand hover:bg-brand-soft/50" aria-label="Sil">
                     <Icon name="trash" size={15} />
                   </button>
@@ -488,6 +479,22 @@ export default function ZonePanel({
                           className={`${inputCls} px-3 py-2 text-sm w-full`}
                           aria-label="Öğe adı"
                         />
+                        {/* "Dosyayı değiştir" SATIRDAN buraya indi: satırda üç ikon
+                            düğmesi dar telefonda ada yer bırakmıyordu (ad "27 Tem…"
+                            oluyordu). Nadir bir işlem, yeri ayrıntılar. */}
+                        {(it.kind === "image" || it.kind === "video") && (
+                          <button
+                            onClick={() => {
+                              setReplacingId(it.id);
+                              replaceRef.current?.click();
+                            }}
+                            disabled={queue !== null}
+                            className="self-start rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-muted hover:text-ink hover:border-muted disabled:opacity-30 inline-flex items-center gap-1.5"
+                            title="Sıra ve takvim korunur"
+                          >
+                            <Icon name="swap" size={14} /> Dosyayı değiştir
+                          </button>
+                        )}
                         {/* Adres de düzenlenebilir — geçersizse eski değere döner */}
                         {it.kind === "url" && (
                           <input
@@ -594,7 +601,11 @@ export default function ZonePanel({
           })}
         </ul>
       )}
-      <p className="text-muted text-[11px] mt-3">Süre ve takvim öğedeki ⚙ ile ayarlanır.</p>
+      {/* Metindeki simge GERÇEK düğme ikonu olsun — "⚙" yazısı sliders ikonuyla
+          uyuşmuyordu (iki uygulamada ikon farklı; bileşen ikisini de doğru gösterir). */}
+      <p className="text-muted text-[11px] mt-3 inline-flex items-center gap-1">
+        Süre ve takvim öğedeki <Icon name="settings" size={12} /> ile ayarlanır.
+      </p>
 
       {/* Medya kütüphanesi */}
       {libOpen && (

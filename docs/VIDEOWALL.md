@@ -186,8 +186,17 @@ Doğrulandı: 2×2 fiziksel duvarda sol-üst alan "yan yana 3" ile bölündü �
 fiziksel 2×2 kaldı, yerleşim 6×2 oldu, alan sayısı 4→6, diğer alanların
 dikdörtgenleri değişmedi.
 
-**Editör kart sırası** (kullanıcı isteği): Duvar tanımı → Yerleşim → İçerik
-paneli → **Yayın linki + Ekranlar EN ALTTA** (önce tasarla, sonra yayınla/izle).
+**Editör kart sırası** (kullanıcı isteği): Duvar tanımı → Yerleşim (+ oynatma
+modu) → İçerik paneli → **Yayın linki + Ekranlar EN ALTTA** (önce tasarla, sonra
+yayınla/izle).
+
+**Öğe satırı (2026-08 düzeltme):** rozet şeridi `inline-flex`ti — daralamadığı
+için dar telefonda kutudan taşıp sağdaki düğmelerin ALTINA giriyordu; `flex` +
+`min-w-0` + kapsayıcıda `overflow-hidden` oldu. Ayrıca satırdaki ÜÇ ikon düğmesi
+ada yer bırakmıyordu (ad "27 Tem…"); "Dosyayı değiştir" ⚙ ayrıntılarına indi →
+ad alanı 84px'ten 128px'e çıktı, rozetler tek satıra sığdı. Panel altındaki
+"⚙ ile ayarlanır" yazısı artık GERÇEK ikonu render eder (online sliders,
+self-host dişli — düz "⚙" karakteri düğmeyle uyuşmuyordu).
 
 ## Yetki modeli (2026-08) — TEK yerden: "Sign yetkileri"
 
