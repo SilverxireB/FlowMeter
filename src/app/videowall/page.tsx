@@ -14,6 +14,7 @@ import Logo from "@/components/Logo";
 import { SkelBoxDark, SkelCards } from "@/components/Skeleton";
 import { Icon } from "@/components/Icon";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { useToast } from "@/components/Toast";
 import WallThumb from "@/components/videowall/WallThumb";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useAuthUser } from "@/lib/hooks";
@@ -40,6 +41,8 @@ export default function VideowallListPage() {
   const { user, loading } = useAuthUser();
   const playTarget = usePlayTarget();
   const { confirm, dialog } = useConfirm({ tone: "dark" });
+  const { show, toast } = useToast();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [walls, setWalls] = useState<Videowall[]>([]);
   const [name, setName] = useState("");
   const [preset, setPreset] = useState(0);
@@ -139,13 +142,20 @@ export default function VideowallListPage() {
   }
 
   async function remove(v: Videowall) {
+    // Ekran silme YAVAŞ: önce Cloudinary klasörü temizleniyor, sonra doküman.
+    // Geri bildirim olmadan kullanıcı "sildi mi?" diye bekliyordu.
     setErr(null);
+    setDeletingId(v.id);
+    show(`"${v.name}" siliniyor…`, "busy");
     try {
       const idToken = user ? await user.getIdToken().catch(() => undefined) : undefined;
       await deleteVideowall(v, idToken);
-      refresh();
+      await refresh();
+      show("Ekran silindi");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Silme başarısız, tekrar dene.");
+      show(e instanceof Error ? e.message : "Silme başarısız, tekrar dene.", "error");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -265,7 +275,7 @@ export default function VideowallListPage() {
           <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {/* Telefonda TEK sıra (dar kartta aksiyonlar eziliyordu); sm+ çoklu */}
             {mine.map((v) => (
-              <li key={v.id} className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex flex-col">
+              <li key={v.id} className={`rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex flex-col transition-opacity ${deletingId === v.id ? "opacity-40 pointer-events-none" : ""}`}>
                 {/* Önizleme = yayındaki yerleşim; tıkla → editör */}
                 <Link href={`/videowall/${v.id}/edit`} className="relative block group" aria-label={`${v.name} — düzenle`}>
                   <WallThumb vw={v} />
@@ -340,6 +350,7 @@ export default function VideowallListPage() {
       </section>
 
       {dialog}
+      {toast}
     </main>
   );
 }

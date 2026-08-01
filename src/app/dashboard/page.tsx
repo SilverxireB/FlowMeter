@@ -21,6 +21,7 @@ import {
   setPresentationFolder,
 } from "@/lib/presentations";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { useToast } from "@/components/Toast";
 import { Icon } from "@/components/Icon";
 import { SkelBox, SkelCards } from "@/components/Skeleton";
 import { SLIDE_TYPE_ICON_NAMES } from "@/lib/slideTypeIcons";
@@ -78,6 +79,8 @@ export default function DashboardPage() {
   const { user, loading } = useAuthUser();
   const playTarget = usePlayTarget();
   const { confirm, dialog } = useConfirm();
+  const { show, toast } = useToast();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [items, setItems] = useState<Presentation[]>([]);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
@@ -194,14 +197,19 @@ export default function DashboardPage() {
   }
 
   async function removeWall(w: Wall) {
-    setFlash({ msg: `"${w.title}" siliniyor…` });
+    // Duvar silme en yavaş işlem: medya dokümanları sayfalı siliniyor + Cloudinary
+    // klasörü temizleniyor. Alt şerit işlem boyunca görünür kalır.
+    setDeletingId(w.id);
+    show(`"${w.title}" siliniyor…`, "busy");
     try {
       const idToken = user ? await user.getIdToken().catch(() => undefined) : undefined;
       await deleteWall(w, idToken);
-      setFlash(null);
-      refreshWalls();
+      await refreshWalls();
+      show("Duvar silindi");
     } catch (err) {
-      setFlash({ msg: err instanceof Error ? err.message : "Silme başarısız, tekrar dene.", err: true });
+      show(err instanceof Error ? err.message : "Silme başarısız, tekrar dene.", "error");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -258,13 +266,16 @@ export default function DashboardPage() {
   }
 
   async function remove(p: Presentation) {
-    setFlash({ msg: `"${p.title}" siliniyor…` });
+    setDeletingId(p.id);
+    show(`"${p.title}" siliniyor…`, "busy");
     try {
       await deletePresentation(p);
-      setFlash(null);
-      refresh();
+      await refresh();
+      show("Sunum silindi");
     } catch (err) {
-      setFlash({ msg: err instanceof Error ? err.message : "Silme başarısız, tekrar dene.", err: true });
+      show(err instanceof Error ? err.message : "Silme başarısız, tekrar dene.", "error");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -521,7 +532,7 @@ export default function DashboardPage() {
             ) : (
               <ul className="grid gap-4 sm:grid-cols-2">
                 {walls.map((w) => (
-                  <li key={w.id} className="card p-4 flex flex-col gap-3">
+                  <li key={w.id} className={`card p-4 flex flex-col gap-3 transition-opacity ${deletingId === w.id ? "opacity-40 pointer-events-none" : ""}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-display font-semibold truncate">{w.title}</p>
@@ -643,9 +654,11 @@ export default function DashboardPage() {
               return (
                 <li
                   key={p.id}
-                  className={`card hover:-translate-y-0.5 transition-transform relative ${
+                  className={`card hover:-translate-y-0.5 transition-all relative ${
                     view === "list" ? "flex items-stretch" : ""
-                  } ${menuFor === p.id ? "z-30" : "z-0"}`}
+                  } ${menuFor === p.id ? "z-30" : "z-0"} ${
+                    deletingId === p.id ? "opacity-40 pointer-events-none" : ""
+                  }`}
                 >
                   {/* Gerçek 1. slayt önizlemesi (köşe yuvarlaması kartla uyumlu) */}
                   <Link
@@ -815,6 +828,7 @@ export default function DashboardPage() {
       )}
 
       {dialog}
+      {toast}
     </main>
   );
 }

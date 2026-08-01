@@ -11,6 +11,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import { SkelBox, SkelCards } from "@/components/Skeleton";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { useToast } from "@/components/Toast";
 import { Icon } from "@/components/Icon";
 import { useAuthUser } from "@/lib/hooks";
 import { usePlayTarget } from "@/lib/usePlayTarget";
@@ -47,6 +48,8 @@ export default function PulseListPage() {
   const { user, loading } = useAuthUser();
   const playTarget = usePlayTarget();
   const { confirm, dialog } = useConfirm();
+  const { show, toast } = useToast();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pulses, setPulses] = useState<Pulse[]>([]);
   const [title, setTitle] = useState("");
   const [qType, setQType] = useState<PulseQuestionType>("smiley");
@@ -99,12 +102,18 @@ export default function PulseListPage() {
   }
 
   async function remove(p: Pulse) {
+    // Silme sunucuda saniyeler sürüyor — başlarken "siliniyor…", bitince "silindi".
     setErr(null);
+    setDeletingId(p.id);
+    show(`"${p.title}" siliniyor…`, "busy");
     try {
       await deletePulse(p.id);
-      refresh();
+      await refresh();
+      show("Nokta silindi");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Silme başarısız.");
+      show(e instanceof Error ? e.message : "Silme başarısız.", "error");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -166,7 +175,7 @@ export default function PulseListPage() {
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2">
             {pulses.map((p) => (
-              <li key={p.id} className="card p-4 flex flex-col gap-3">
+              <li key={p.id} className={`card p-4 flex flex-col gap-3 transition-opacity ${deletingId === p.id ? "opacity-40 pointer-events-none" : ""}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-display font-semibold truncate">{p.title}</p>
@@ -199,6 +208,7 @@ export default function PulseListPage() {
       </section>
 
       {dialog}
+      {toast}
     </main>
   );
 }
