@@ -85,6 +85,10 @@ export default function DashboardPage() {
   const [folder, setFolder] = useState<string | null>(null); // null = tümü
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  // Şablondan sunum kurmak birkaç saniye sürüyor (sunum + slaytlar yazılıyor).
+  // Geri bildirim olmadığı için kullanıcı "tıklayamadım mı?" deyip ikinci kez
+  // basıyor ve İKİ sunum oluşuyordu → kilit + görünür "Hazırlanıyor…" durumu.
+  const [creatingTpl, setCreatingTpl] = useState<string | null>(null);
   const [flash, setFlash] = useState<{ msg: string; err?: boolean } | null>(null);
   // Ürün seçimi: null = HUB (iki markalı kart), decks = FlowMeter, walls = FlowWall
   const [product, setProduct] = useState<"decks" | "walls" | null>(null);
@@ -253,13 +257,16 @@ export default function DashboardPage() {
   }
 
   async function duplicate(p: Presentation) {
-    if (!user) return;
-    setFlash(null);
+    if (!user || busy) return; // çift tıklama iki kopya üretmesin
+    setBusy(true);
+    setFlash({ msg: `"${p.title}" kopyalanıyor…` });
     try {
       const id = await withTimeout(duplicatePresentation(user.uid, p));
       router.push(`/edit/${id}`);
     } catch (err) {
       setFlash({ msg: err instanceof Error ? err.message : "Kopyalanamadı, tekrar dene.", err: true });
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -277,16 +284,19 @@ export default function DashboardPage() {
   }
 
   async function startFromTemplate(templateId: string) {
-    if (!user) return;
+    if (!user || creatingTpl) return; // çift tıklama iki sunum üretmesin
     const tpl = TEMPLATES.find((t) => t.id === templateId);
     if (!tpl) return;
     setFlash(null);
+    setCreatingTpl(templateId);
     try {
       const id = await withTimeout(createFromTemplate(user.uid, tpl));
+      // Kilidi AÇMIYORUZ: yönlendirme başlayana dek kart "Hazırlanıyor…" kalsın.
       router.push(`/edit/${id}`);
     } catch (err) {
       setFlash({ msg: err instanceof Error ? err.message : "Şablondan oluşturulamadı, tekrar dene.", err: true });
       setTemplatesOpen(false);
+      setCreatingTpl(null);
     }
   }
 
@@ -736,8 +746,22 @@ export default function DashboardPage() {
                       <button
                         key={t.id}
                         onClick={() => startFromTemplate(t.id)}
-                        className="text-left card !rounded-2xl p-4 hover:-translate-y-0.5 hover:border-accent/40 transition-all cursor-pointer flex flex-col gap-2"
+                        disabled={!!creatingTpl}
+                        aria-busy={creatingTpl === t.id}
+                        className={`relative text-left card !rounded-2xl p-4 transition-all flex flex-col gap-2 ${
+                          creatingTpl
+                            ? "cursor-default"
+                            : "cursor-pointer hover:-translate-y-0.5 hover:border-accent/40"
+                        } ${creatingTpl && creatingTpl !== t.id ? "opacity-40" : ""}`}
                       >
+                        {creatingTpl === t.id && (
+                          <span className="absolute inset-0 z-10 rounded-2xl bg-white/75 backdrop-blur-[1px] grid place-items-center">
+                            <span className="inline-flex items-center gap-2 text-sm font-semibold text-accent">
+                              <span className="w-4 h-4 rounded-full border-2 border-accent/30 border-t-accent animate-spin" aria-hidden />
+                              Sunumun hazırlanıyor…
+                            </span>
+                          </span>
+                        )}
                         <div className="flex items-center gap-2.5">
                           <span className="shrink-0 text-3xl leading-none" aria-hidden>{t.emoji}</span>
                           <p className="font-display font-semibold min-w-0 truncate">{t.name}</p>
