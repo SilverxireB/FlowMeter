@@ -41,7 +41,11 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   (`logo-flow*.png`) üretim tabanı olarak `public/`ta durur; `LogoRotating` silindi.
   Üretim: sharp ile O içi silinip yeni glif kompoze edilir + O bölgesi kırpılır
   (`--no-save sharp`).
-- İşlevsel ikonlar SVG (`components/videowall/icons.tsx`); emoji yalnız içerik/dekor.
+- İşlevsel ikonlar SVG (`components/Icon.tsx` — TEK çekirdek set, optik kalınlık:
+  küçük boy daha kalın çizgi); emoji yalnız içerik/dekor. Emoji BİLİNÇLİ olan
+  yerler: şablon kartı simgesi (kimlik), Wall perde modu/efekt seçicileri
+  (emoji efektin kendisini gösterir), Pulse yüz ölçeği, tepkiler/kutlamalar.
+  İkon kontrol sayfası: `/dev/icons`.
   Onaylar `ConfirmDialog` (native confirm değil). Girdilere odak reçetesi.
 
 ## Kritik Mimari Notlar

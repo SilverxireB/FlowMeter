@@ -739,9 +739,7 @@ export default function DashboardPage() {
                         className="text-left card !rounded-2xl p-4 hover:-translate-y-0.5 hover:border-accent/40 transition-all cursor-pointer flex flex-col gap-2"
                       >
                         <div className="flex items-center gap-2.5">
-                          <span className="shrink-0 w-9 h-9 rounded-xl bg-accent-soft text-accent grid place-items-center">
-                            <Icon name={t.icon} size={18} />
-                          </span>
+                          <span className="shrink-0 text-3xl leading-none" aria-hidden>{t.emoji}</span>
                           <p className="font-display font-semibold min-w-0 truncate">{t.name}</p>
                         </div>
                         <p className="text-muted text-sm leading-snug">{t.description}</p>

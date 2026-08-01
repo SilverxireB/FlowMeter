@@ -1,4 +1,3 @@
-import type { IconName } from "@/components/Icon";
 import { Slide } from "./types";
 
 /** Bir şablon slaytı: id/order hariç slayt tanımı. */
@@ -7,8 +6,10 @@ export type TemplateSlide = Pick<Slide, "type" | "question" | "options" | "setti
 export interface PresentationTemplate {
   id: string;
   name: string;
-  /** Galeri kartındaki simge (çekirdek ikon seti). */
-  icon: IconName;
+  /** Galeri kartındaki simge. BURADA EMOJİ BİLİNÇLİ: şablon simgesi işlevsel
+   *  bir glif değil KİMLİK — renkli emoji kartları sıcak ve birbirinden kolay
+   *  ayırt edilir kılıyor. (İşlevsel yerlerde kural hâlâ SVG.) */
+  emoji: string;
   /** Galeri gruplaması — kullanıcı şablonlar arasında hızlı bulsun. */
   category: "Toplantı" | "Eğitim" | "Etkinlik" | "Ekip";
   description: string;
@@ -33,7 +34,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   {
     id: "buzkirici",
     name: "Buz Kırıcı",
-    icon: "sparkles",
+    emoji: "🧊",
     category: "Toplantı",
     description: "Salonu ısıtan 5 dakikalık açılış — herkes bir şey söylemiş olur.",
     useCase: "Toplantı, ders veya atölyenin ilk 5 dakikası",
@@ -76,7 +77,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   {
     id: "toplanti-acilis",
     name: "Toplantı Açılışı & Gündem",
-    icon: "list",
+    emoji: "📋",
     category: "Toplantı",
     description: "Gündemi göster, beklentileri topla, engelleri masaya yatır.",
     useCase: "Haftalık ekip toplantısı, proje başlangıcı",
@@ -131,7 +132,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   {
     id: "karar-matrisi",
     name: "Karar Toplantısı",
-    icon: "target",
+    emoji: "⚖️",
     category: "Toplantı",
     description: "Seçenekleri etki/zorluk matrisine yerleştir, oylayıp karara bağla.",
     useCase: "Öncelik belirleme, yol haritası kararı",
@@ -188,7 +189,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   {
     id: "quiz-yarismasi",
     name: "Quiz Yarışması",
-    icon: "zap",
+    emoji: "⚡",
     category: "Eğitim",
     description: "Süreli 5 soru + podyum. Sorular hazır, kendi konuna göre değiştir.",
     useCase: "Eğitim tekrarı, şirket etkinliği, ders sonu yarışma",
@@ -257,7 +258,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   {
     id: "egitim-degerlendirme",
     name: "Eğitim Değerlendirme",
-    icon: "star",
+    emoji: "🎓",
     category: "Eğitim",
     description: "Eğitim sonu ölçüm: öğrenim, anlatım, uygulanabilirlik, tavsiye oranı.",
     useCase: "Kurum içi eğitim, seminer, atölye kapanışı",
@@ -298,7 +299,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   {
     id: "ders-tekrari",
     name: "Ders Tekrarı & Yoklama",
-    icon: "book",
+    emoji: "📚",
     category: "Eğitim",
     description: "Kim geldi, ne anlaşıldı, nerede takılındı — tek sunumda.",
     useCase: "Okul/üniversite dersi, kurum içi teknik eğitim",
@@ -347,7 +348,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   {
     id: "etkinlik-geribildirim",
     name: "Etkinlik Geri Bildirimi",
-    icon: "chat",
+    emoji: "💬",
     category: "Etkinlik",
     description: "Salon dağılmadan topla — tavsiye oranı, bölüm puanları, öneriler.",
     useCase: "Konferans, lansman, bayi toplantısı kapanışı",
@@ -388,7 +389,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   {
     id: "sirket-toplantisi",
     name: "Şirket Toplantısı",
-    icon: "megaphone",
+    emoji: "📣",
     category: "Etkinlik",
     description: "Yönetim bilgilendirmesi + nabız ölçümü + anonim soru havuzu.",
     useCase: "Çeyreklik/yıllık tüm çalışan toplantısı",
@@ -436,7 +437,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   {
     id: "urun-testi",
     name: "Ürün / Kampanya Testi",
-    icon: "target",
+    emoji: "🚀",
     category: "Etkinlik",
     description: "Yeni fikri salona test ettir: ilk izlenim, fiyat algısı, isim oylaması.",
     useCase: "Lansman öncesi bayi/müşteri toplantısı, pazarlama atölyesi",
@@ -493,7 +494,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   {
     id: "kutlama",
     name: "Kutlama & Eğlence",
-    icon: "gift",
+    emoji: "🎉",
     category: "Etkinlik",
     description: "Yılbaşı, yıl dönümü, mezuniyet — eğlenceli sorular + dilek bulutu.",
     useCase: "Şirket yemeği, yılbaşı partisi, kutlama gecesi",
@@ -548,7 +549,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   {
     id: "ekip-nabzi",
     name: "Ekip Nabzı",
-    icon: "chart",
+    emoji: "💓",
     category: "Ekip",
     description: "5 dakikada ekip sağlığı: iş yükü, moral, engeller, takdir.",
     useCase: "Haftalık ekip toplantısının ilk 5 dakikası",
@@ -589,7 +590,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   {
     id: "beyin-firtinasi",
     name: "Beyin Fırtınası",
-    icon: "cloud",
+    emoji: "💡",
     category: "Ekip",
     description: "Fikir topla, grupla, oyla, sahiplendir — atölyenin tamamı.",
     useCase: "Fikir atölyesi, problem çözme oturumu",
