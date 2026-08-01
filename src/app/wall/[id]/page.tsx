@@ -20,6 +20,7 @@ import WallReactionOverlay from "@/components/wall/WallReactionOverlay";
 import WallContest from "@/components/wall/WallContest";
 import WallWishes from "@/components/wall/WallWishes";
 import WallAnnouncement from "@/components/wall/WallAnnouncement";
+import WallPinned from "@/components/wall/WallPinned";
 import WallMilestone from "@/components/wall/WallMilestone";
 import WallTopLoved from "@/components/wall/WallTopLoved";
 import WallFilmStage from "@/components/wall/WallFilmStage";
@@ -247,6 +248,9 @@ export default function WallScreen() {
 
       {/* Canlı anons (moderasyondan; süresi dolunca kaybolur) */}
       <WallAnnouncement announcement={wall?.announcement} preset={wall?.theme?.preset} />
+
+      {/* Sabitlenen anı (kokpit 📌 — kaldırılana dek modların üstünde) */}
+      {wall?.pinnedMediaId && <WallPinned media={media.find((m) => m.id === wall.pinnedMediaId)} />}
 
       {/* Anı Filmi — perdede canlı oynatma (kokpit tetikler) */}
       {filmOpts && wall && (

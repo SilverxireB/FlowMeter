@@ -125,6 +125,29 @@ export async function setWallKeepOriginal(id: string, keepOriginal: boolean): Pr
   await updateDoc(doc(db(), "walls", id), { keepOriginal, updatedAt: serverTimestamp() });
 }
 
+/** Etkinlik sonrası galeri linkini (/g/{id}) aç/kapat. */
+export async function setWallGalleryOpen(id: string, galleryOpen: boolean): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { galleryOpen, updatedAt: serverTimestamp() });
+}
+
+/** Bir anıyı perdede sabitle (null = sabitlemeyi kaldır). */
+export async function setWallPinned(id: string, pinnedMediaId: string | null): Promise<void> {
+  await updateDoc(doc(db(), "walls", id), { pinnedMediaId, updatedAt: serverTimestamp() });
+}
+
+/** Duvarı bir kez oku (galeri gibi canlı olması gerekmeyen yüzeyler — kota dostu). */
+export async function getWall(id: string): Promise<Wall | null> {
+  const snap = await getDoc(doc(db(), "walls", id));
+  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Wall) : null;
+}
+
+/** Onaylı medyayı bir kez listele (galeri — onSnapshot değil, tek okuma).
+ *  Filtre istemcide: where+orderBy birleşimi bileşik index isterdi. */
+export async function fetchApprovedMedia(id: string): Promise<WallMedia[]> {
+  const snap = await getDocs(query(collection(db(), "walls", id, "media"), orderBy("createdAt", "desc")));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as WallMedia).filter((m) => m.status === "approved");
+}
+
 /** Anı Filmi'ni perdede canlı oynat (kokpit tetikler; perde startedAt tazeyse gösterir). */
 export async function startWallFilm(id: string, length: string, musicId: string): Promise<void> {
   await updateDoc(doc(db(), "walls", id), {

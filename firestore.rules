@@ -210,8 +210,11 @@ service cloud.firestore {
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
             && request.resource.data.likes == resource.data.get('likes', 0) + 1)
           || (request.auth != null && wall().ownerId == request.auth.uid);
+        // Silme: duvar sahibi HER medyayı; misafir (anonim auth) yalnız
+        // voterId'si kendi uid'i olan medyayı ("kötü çıktı, kaldırayım").
         allow delete: if request.auth != null
-          && wall().ownerId == request.auth.uid;
+          && (wall().ownerId == request.auth.uid
+              || resource.data.get('voterId', '') == request.auth.uid);
       }
 
       // Tepkiler (misafir emoji/kalp yağmuru → perde): herkes ekler, sadece

@@ -10,7 +10,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import WallReactionBar from "@/components/wall/WallReactionBar";
 import { useWall } from "@/lib/hooks";
-import { addWallMedia, castContestVote, getMyContestVote, getMyRaffleSicil, hasLikedMedia, isCurrentSession, likeMedia, raffleRegistrationOpen, registerRaffle, resolveCode, sendWallWish, wallMaxPerPerson, wallVideoLimitSec, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
+import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { addWallMedia, castContestVote, deleteMedia, getMyContestVote, getMyRaffleSicil, hasLikedMedia, isCurrentSession, likeMedia, raffleRegistrationOpen, registerRaffle, resolveCode, sendWallWish, wallMaxPerPerson, wallVideoLimitSec, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
 import { cloudinaryStatus, cldFit, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { getStoredNickname, storeIdentity, getStoredAvatarSeed } from "@/lib/participants";
 import { getVoterId } from "@/lib/responses";
@@ -84,10 +86,26 @@ export default function UploadPage() {
   const [nickname, setNickname] = useState("");
   useEffect(() => setNickname(getStoredNickname() ?? ""), []);
 
+  // Anonim kimlik: misafir KENDİ yüklediğini silebilsin diye sessizce anonim
+  // oturum açılır (Firebase Anonymous — dış servis değil). Sağlayıcı kapalıysa
+  // sessizce cihaz kimliğine düşülür; yükleme hiç etkilenmez.
+  const [myId, setMyId] = useState("");
+  useEffect(() => {
+    setMyId(getVoterId());
+    let unsub: (() => void) | undefined;
+    try {
+      const a = auth();
+      unsub = onAuthStateChanged(a, (u) => setMyId(u?.uid ?? getVoterId()));
+      if (!a.currentUser) signInAnonymously(a).catch(() => {});
+    } catch {}
+    return () => unsub?.();
+  }, []);
+
   const [items, setItems] = useState<Item[]>([]);
   const [sending, setSending] = useState(false);
   const [finished, setFinished] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const itemsRef = useRef<Item[]>([]);
   itemsRef.current = items;
 
@@ -95,9 +113,9 @@ export default function UploadPage() {
   // 500 kişide okuma patlamasın). Onaylanıp perdeye düşünce kutlama.
   const [myMedia, setMyMedia] = useState<WallMedia[]>([]);
   useEffect(() => {
-    if (!wallId) return;
-    return watchWallMediaByVoter(wallId, getVoterId(), setMyMedia);
-  }, [wallId]);
+    if (!wallId || !myId) return;
+    return watchWallMediaByVoter(wallId, myId, setMyMedia);
+  }, [wallId, myId]);
   const [celebrate, setCelebrate] = useState<string | null>(null);
   const seenMine = useRef<Set<string> | null>(null);
   useEffect(() => {
@@ -202,7 +220,8 @@ export default function UploadPage() {
           addWallMedia(
             wallId,
             {
-              voterId: getVoterId(),
+              // Anonim uid varsa o — misafir kendi yüklediğini silebilsin (rules eşleşmesi)
+              voterId: auth().currentUser?.uid ?? getVoterId(),
               nickname: name || undefined,
               type: res.type,
               cloudinaryId: res.cloudinaryId,
@@ -296,7 +315,7 @@ export default function UploadPage() {
       ) : tab === "contest" && contestOn ? (
         <ContestTab wallId={wallId ?? null} contestId={wall!.contest!.id} title={wall!.contest!.title} sessionId={wall!.sessionId} />
       ) : tab === "browse" ? (
-        <BrowseGallery wallId={wallId ?? null} sessionId={wall?.sessionId} />
+        <BrowseGallery wallId={wallId ?? null} sessionId={wall?.sessionId} myId={myId} />
       ) : tab === "wish" && wishesOn ? (
         <WishTab wallId={wallId ?? null} defaultName={nickname} moderation={!!wall?.moderation} />
       ) : (
@@ -316,6 +335,11 @@ export default function UploadPage() {
             <div className="text-6xl mb-4" aria-hidden>🎉</div>
             <h1 className="text-2xl font-bold mb-2">Bu duvar kapandı</h1>
             <p className="text-white/65">Etkinlik tamamlandı — katkın için teşekkürler! Anıları &ldquo;🖼 Gez&rdquo; sekmesinden görebilirsin.</p>
+            {wall?.galleryOpen && (
+              <a href={`/g/${wallId}`} className="mt-6 py-3 px-6 rounded-2xl bg-white text-[#070c22] font-semibold">
+                📸 Galeriye git — fotoğrafları indir
+              </a>
+            )}
           </div>
         ) : finished ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
@@ -342,14 +366,23 @@ export default function UploadPage() {
             </div>
 
             {items.length === 0 ? (
-              <button
-                onClick={() => inputRef.current?.click()}
-                className="rounded-3xl bg-white/5 border border-white/12 flex flex-col items-center justify-center gap-3 text-white/70 py-24"
-              >
-                <span className="text-5xl" aria-hidden>📸</span>
-                <span className="font-semibold text-lg text-white">{videoOn ? "Fotoğraf / video seç" : "Fotoğraf seç"}</span>
-                <span className="text-sm text-white/50">Birden çok seçebilirsin</span>
-              </button>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => inputRef.current?.click()}
+                  className="rounded-3xl bg-white/5 border border-white/12 flex flex-col items-center justify-center gap-3 text-white/70 py-20"
+                >
+                  <span className="text-5xl" aria-hidden>📸</span>
+                  <span className="font-semibold text-lg text-white">{videoOn ? "Fotoğraf / video seç" : "Fotoğraf seç"}</span>
+                  <span className="text-sm text-white/50">Birden çok seçebilirsin</span>
+                </button>
+                {/* Anlık kamera: galeri/dosya diyaloğunda kaybolmadan tek dokunuş çekim */}
+                <button
+                  onClick={() => cameraRef.current?.click()}
+                  className="rounded-2xl bg-white text-[#070c22] font-semibold py-4 flex items-center justify-center gap-2"
+                >
+                  📷 Anında çek ve gönder
+                </button>
+              </div>
             ) : (
               <div className="grid grid-cols-3 gap-2.5">
                 {items.map((it) => (
@@ -386,18 +419,29 @@ export default function UploadPage() {
                   </div>
                 ))}
                 {!sending && (
-                  <button
-                    onClick={() => inputRef.current?.click()}
-                    className="aspect-square rounded-xl border border-dashed border-white/25 grid place-items-center text-3xl text-white/50"
-                    aria-label="Daha ekle"
-                  >
-                    ＋
-                  </button>
+                  <>
+                    <button
+                      onClick={() => inputRef.current?.click()}
+                      className="aspect-square rounded-xl border border-dashed border-white/25 grid place-items-center text-3xl text-white/50"
+                      aria-label="Daha ekle"
+                    >
+                      ＋
+                    </button>
+                    <button
+                      onClick={() => cameraRef.current?.click()}
+                      className="aspect-square rounded-xl border border-dashed border-white/25 grid place-items-center text-2xl text-white/60"
+                      aria-label="Kamerayla çek"
+                    >
+                      📷
+                    </button>
+                  </>
                 )}
               </div>
             )}
 
             <input ref={inputRef} type="file" accept={videoOn ? "image/*,video/*" : "image/*"} multiple onChange={onPick} className="hidden" />
+            {/* capture=environment → doğrudan arka kamera açılır (destekleyen cihazlarda) */}
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={onPick} className="hidden" />
 
             {pickMsg && (
               <p className="mt-3 rounded-xl bg-[#eda100]/15 border border-[#eda100]/40 px-3 py-2 text-xs text-[#ffdd99]">{pickMsg}</p>
@@ -628,7 +672,7 @@ function RaffleTab({ wallId, prize, defaultName }: { wallId: string | null; priz
 }
 
 /** Duvarı gez — onaylı medya akışı (en yeni 150); ❤ beğen, "Benimkiler" filtresi. */
-function BrowseGallery({ wallId, sessionId }: { wallId: string | null; sessionId?: string }) {
+function BrowseGallery({ wallId, sessionId, myId }: { wallId: string | null; sessionId?: string; myId?: string }) {
   const [allMedia, setAllMedia] = useState<WallMedia[]>([]);
   useEffect(() => {
     if (!wallId) return;
@@ -639,8 +683,7 @@ function BrowseGallery({ wallId, sessionId }: { wallId: string | null; sessionId
     [allMedia, sessionId]
   );
   const [mineOnly, setMineOnly] = useState(false);
-  const [voterId, setVoterId] = useState("");
-  useEffect(() => setVoterId(getVoterId()), []);
+  const voterId = myId || (typeof window !== "undefined" ? getVoterId() : "");
 
   const shown = useMemo(() => {
     const list = mineOnly ? approved.filter((m) => m.voterId === voterId) : approved;
@@ -684,7 +727,33 @@ function BrowseGallery({ wallId, sessionId }: { wallId: string | null; sessionId
 function BrowseTile({ m, wallId, mine }: { m: WallMedia; wallId: string | null; mine: boolean }) {
   const [liked, setLiked] = useState(false);
   const [bump, setBump] = useState(false);
+  const [removing, setRemoving] = useState(false);
   useEffect(() => setLiked(hasLikedMedia(m.id)), [m.id]);
+
+  // Kendi yüklediğini silme: yalnız anonim uid ile eşleşen medyada (rules kapısı).
+  // Doküman anında silinir; Cloudinary dosyası API ile temizlenir (başarısızsa
+  // duvar silinirken prefix temizliği yakalar — misafir bekletilmez).
+  const canDelete = mine && auth().currentUser?.uid === m.voterId;
+  async function removeMine() {
+    if (!wallId || removing) return;
+    if (!confirm("Bu anı duvardan kalıcı olarak silinsin mi?")) return;
+    setRemoving(true);
+    try {
+      const idToken = await auth().currentUser?.getIdToken();
+      if (idToken) {
+        fetch("/api/wall/destroy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ wallId, mediaId: m.id, idToken, mode: "guest" }),
+        }).catch(() => {});
+      }
+      await deleteMedia(wallId, m.id);
+    } catch {
+      alert("Silinemedi — bağlantını kontrol edip tekrar dene.");
+    } finally {
+      setRemoving(false);
+    }
+  }
 
   const ratio = m.w && m.h ? m.w / m.h : 1;
   const poster = m.type === "video" ? cldVideoPoster(m.url, 500, Math.round(500 / (ratio || 1))) : cldFit(m.url, 500);
@@ -712,6 +781,17 @@ function BrowseTile({ m, wallId, mine }: { m: WallMedia; wallId: string | null; 
         )}
         {m.type === "video" && <span className="absolute bottom-1.5 right-1.5 grid place-items-center w-7 h-7 rounded-full bg-black/55 text-white text-xs">▶</span>}
         {mine && <span className="absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/90 text-[#070c22]">senin</span>}
+        {canDelete && (
+          <button
+            onClick={removeMine}
+            disabled={removing}
+            className="absolute top-1.5 right-1.5 w-7 h-7 grid place-items-center rounded-full bg-black/60 text-white text-xs disabled:opacity-50"
+            aria-label="Bu anıyı sil"
+            title="Kendi yüklediğini silebilirsin"
+          >
+            {removing ? "…" : "🗑"}
+          </button>
+        )}
       </div>
       <div className="flex items-center justify-between gap-2 px-2.5 py-2">
         <span className="text-white/70 text-xs truncate">{m.nickname || "—"}</span>

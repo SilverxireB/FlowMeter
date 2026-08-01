@@ -32,18 +32,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "firebase-env" }, { status: 500 });
   }
 
-  let body: { wallId?: string; cloudinaryId?: string; resourceType?: string; idToken?: string; mode?: string };
+  let body: { wallId?: string; cloudinaryId?: string; resourceType?: string; idToken?: string; mode?: string; mediaId?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "bad-json" }, { status: 400 });
   }
-  const { wallId, cloudinaryId, idToken } = body;
+  const { wallId, idToken } = body;
+  let cloudinaryId = body.cloudinaryId;
   const wallMode = body.mode === "wall"; // FlowWall: tüm duvarı topluca temizle (prefix)
   const signMode = body.mode === "sign"; // FlowSign: videowall medyasını topluca temizle
+  const guestMode = body.mode === "guest"; // misafir KENDİ medyasını siler (voterId == uid)
   const bulk = wallMode || signMode;
-  const resourceType = body.resourceType === "video" ? "video" : "image";
-  if (!wallId || !idToken || (!bulk && !cloudinaryId)) {
+  let resourceType = body.resourceType === "video" ? "video" : "image";
+  if (!wallId || !idToken || (!bulk && !guestMode && !cloudinaryId) || (guestMode && !body.mediaId)) {
     return NextResponse.json({ ok: false, error: "missing-params" }, { status: 400 });
   }
 
@@ -58,14 +60,31 @@ export async function POST(req: Request) {
   const uid: string | undefined = (await lookup.json())?.users?.[0]?.localId;
   if (!uid) return NextResponse.json({ ok: false, error: "auth-failed" }, { status: 401 });
 
-  // 2) sahiplik: (walls|videowalls)/{wallId}.ownerId == uid
-  const ownerCollection = signMode ? "videowalls" : "walls";
-  const wallRes = await fetch(
-    `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/${ownerCollection}/${wallId}`
-  );
-  if (!wallRes.ok) return NextResponse.json({ ok: false, error: "wall-not-found" }, { status: 404 });
-  const ownerId = (await wallRes.json())?.fields?.ownerId?.stringValue;
-  if (ownerId !== uid) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  // 2) yetki: misafir modunda MEDYANIN voterId'si == uid (kendi yüklediği);
+  //    diğer modlarda (walls|videowalls)/{wallId}.ownerId == uid.
+  //    Misafirde public_id İSTEMCİDEN ALINMAZ — sunucu dokümandan okur
+  //    (yoksa misafir imzasıyla başkasının dosyası silinebilirdi).
+  if (guestMode) {
+    const mediaRes = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/walls/${wallId}/media/${body.mediaId}`
+    );
+    if (!mediaRes.ok) return NextResponse.json({ ok: false, error: "media-not-found" }, { status: 404 });
+    const f = (await mediaRes.json())?.fields ?? {};
+    if (f.voterId?.stringValue !== uid) {
+      return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    }
+    cloudinaryId = f.cloudinaryId?.stringValue;
+    resourceType = f.type?.stringValue === "video" ? "video" : "image";
+    if (!cloudinaryId) return NextResponse.json({ ok: true, skipped: true });
+  } else {
+    const ownerCollection = signMode ? "videowalls" : "walls";
+    const wallRes = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/${ownerCollection}/${wallId}`
+    );
+    if (!wallRes.ok) return NextResponse.json({ ok: false, error: "wall-not-found" }, { status: 404 });
+    const ownerId = (await wallRes.json())?.fields?.ownerId?.stringValue;
+    if (ownerId !== uid) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  }
 
   // ── Toplu temizlik: duvarın klasörü altındaki TÜM dosyaları sil ───────────────
   // (duvar silinince yetim Cloudinary dosyası kalmasın → depolama sızıntısı biter)

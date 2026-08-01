@@ -17,7 +17,7 @@ import WallFilm from "@/components/wall/WallFilm";
 import WallOnboarding from "@/components/wall/WallOnboarding";
 import ConfirmDialog from "@/components/videowall/ConfirmDialog";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
-import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, endRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, watchDraws, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";
+import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallGalleryOpen, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallPinned, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, endRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, watchDraws, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
@@ -540,6 +540,26 @@ export default function WallManage() {
               />
               <span className="text-sm font-semibold">🖼 Orijinal kalite <span className="text-muted font-normal">{wall.keepOriginal ? "— açık (tam çözünürlük saklanır, daha çok depolama)" : "— kapalı (görseller ~1920px'e küçültülür, depolama dostu)"}</span></span>
             </label>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={!!wall.galleryOpen}
+                onChange={(e) => setWallGalleryOpen(id, e.target.checked).catch(console.error)}
+                className="w-5 h-5 accent-[#4f46e5]"
+              />
+              <span className="text-sm font-semibold">📸 Galeri linki <span className="text-muted font-normal">{wall.galleryOpen ? "— açık (misafirler onaylı anıları görür ve indirir)" : "— kapalı (etkinlik bitince aç, linki gruba at)"}</span></span>
+            </label>
+            {wall.galleryOpen && (
+              <div className="flex items-center gap-2 pl-7">
+                <input readOnly value={screenUrl.replace(`/wall/${id}`, `/g/${id}`)} onFocus={(e) => e.target.select()} className="input-base !py-1.5 text-xs flex-1 min-w-0" aria-label="Galeri linki" />
+                <button
+                  onClick={() => navigator.clipboard?.writeText(screenUrl.replace(`/wall/${id}`, `/g/${id}`)).catch(() => {})}
+                  className="btn-ghost !py-1.5 !px-3 text-xs shrink-0"
+                >
+                  Kopyala
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1059,6 +1079,13 @@ export default function WallManage() {
               {approved.map((m) => (
                 <MediaCard key={m.id} m={m}>
                   <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setWallPinned(id, wall.pinnedMediaId === m.id ? null : m.id).catch(console.error)}
+                      className={`btn-ghost !py-1.5 !px-2.5 text-xs ${wall.pinnedMediaId === m.id ? "!border-accent !text-accent !bg-accent-soft/40" : ""}`}
+                      title={wall.pinnedMediaId === m.id ? "Sabitlemeyi kaldır — perde normale döner" : "Perdede sabitle — kaldırana dek büyük durur"}
+                    >
+                      📌
+                    </button>
                     <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="flex-1 btn-ghost !py-1.5 text-xs">Kaldır</button>
                     <button onClick={() => setConfirmReq({ title: "Kalıcı silme", message: "Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?", confirmLabel: "Kalıcı sil", danger: true, action: () => hardDelete(m) })} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil (Cloudinary dahil)">🗑</button>
                   </div>
