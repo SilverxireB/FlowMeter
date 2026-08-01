@@ -48,7 +48,9 @@ function CardThumb({ presentation, view }: { presentation: Presentation; view: "
   }, [presentation.id]);
 
   if (slide) {
-    return <SlidePreview slide={slide} theme={presentation.theme} bare />;
+    // Liste görünümü: küçük kutuda tam boy tipografi iç içe giriyordu → mini;
+    // ayrıca kabı TAM doldursun ki 16:9 farkından altta beyaz boşluk kalmasın.
+    return <SlidePreview slide={slide} theme={presentation.theme} bare mini={view === "list"} fill={view === "list"} />;
   }
   // Yükleniyor / slayt yok → temalı başlık
   return (
@@ -613,13 +615,13 @@ export default function DashboardPage() {
                   <Link
                     href={`/edit/${p.id}`}
                     className={`block relative shrink-0 overflow-hidden ${
-                      view === "grid" ? "aspect-video rounded-t-2xl" : "w-36 self-stretch rounded-l-2xl"
+                      view === "grid" ? "aspect-video rounded-t-2xl" : "w-24 sm:w-36 self-stretch rounded-l-2xl"
                     }`}
                   >
                     <CardThumb presentation={p} view={view} />
                   </Link>
 
-                  <div className="p-4 flex flex-col gap-3 min-w-0 flex-1">
+                  <div className={`flex flex-col gap-2.5 min-w-0 flex-1 ${view === "list" ? "p-3 sm:p-4" : "p-4"}`}>
                     <div className="min-w-0 flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-display font-semibold truncate">{p.title}</p>
@@ -638,9 +640,9 @@ export default function DashboardPage() {
                             setMenuFor(menuFor === p.id ? null : p.id);
                           }}
                           aria-label="Sunum menüsü"
-                          className="btn-ghost !p-0 w-9 h-9 text-lg"
+                          className="btn-ghost !p-0 w-9 h-9"
                         >
-                          ···
+                          <Icon name="dots" size={18} />
                         </button>
                         {menuFor === p.id && (
                           <div
@@ -664,7 +666,7 @@ export default function DashboardPage() {
                               <Icon name="refresh" size={14} /> Yeni oturum (yeni kod)
                             </button>
                             <button onClick={() => duplicate(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer inline-flex items-center gap-2">
-                              ⧉ Kopyala
+                              <Icon name="copy" size={14} /> Kopyala
                             </button>
                             <button onClick={() => moveToFolder(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer inline-flex items-center gap-2">
                               <Icon name="folder" size={14} /> Klasöre taşı
@@ -682,15 +684,17 @@ export default function DashboardPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2 items-center flex-wrap">
-                      <Link href={`/present/${p.id}`} className="btn-primary !py-2 !px-4 text-sm">
+                    <div className="flex gap-2 items-center flex-wrap mt-auto">
+                      <Link href={`/present/${p.id}`} className="btn-primary !py-2 !px-3.5 text-sm">
                         <Icon name="play" size={14} /> Sun
                       </Link>
-                      <Link href={`/edit/${p.id}`} className="btn-ghost !py-2 !px-4 text-sm">
-                        Düzenle
+                      <Link href={`/edit/${p.id}`} className="btn-ghost !py-2 !px-3.5 text-sm" title="Düzenle" aria-label="Düzenle">
+                        <Icon name="pencil" size={15} />
+                        <span className={view === "list" ? "hidden sm:inline" : ""}>Düzenle</span>
                       </Link>
-                      <Link href={`/results/${p.id}`} className="btn-ghost !py-2 !px-4 text-sm">
-                        Sonuçlar
+                      <Link href={`/results/${p.id}`} className="btn-ghost !py-2 !px-3.5 text-sm" title="Sonuçlar" aria-label="Sonuçlar">
+                        <Icon name="chart" size={15} />
+                        <span className={view === "list" ? "hidden sm:inline" : ""}>Sonuçlar</span>
                       </Link>
                     </div>
                   </div>

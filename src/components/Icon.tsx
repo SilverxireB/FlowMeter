@@ -239,8 +239,9 @@ const PATHS: Record<IconName, React.ReactNode> = {
   list: <path d="M4 6.5h16M4 12h16M4 17.5h16" />,
   split: (
     <>
-      <rect x="3.5" y="3.5" width="17" height="17" rx="2.5" />
-      <path d="M12 3.5v17M3.5 12h17" strokeDasharray="2.5 2.5" />
+      <rect x="3" y="4" width="7.5" height="16" rx="2" />
+      <rect x="13.5" y="4" width="7.5" height="6.5" rx="2" />
+      <rect x="13.5" y="13.5" width="7.5" height="6.5" rx="2" />
     </>
   ),
   pin: (
@@ -307,8 +308,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
   ),
   megaphone: (
     <>
-      <path d="M3.5 10.5v3a1.5 1.5 0 0 0 1.5 1.5h2.5l9 4.5V5l-9 4.5H5a1.5 1.5 0 0 0-1.5 1.5Z" />
-      <path d="M7.5 15v5h3.5" />
+      <path d="M3.5 9.5H7L12 5v14l-5-4.5H3.5v-5Z" />
+      <path d="M15.5 9.5a4 4 0 0 1 0 5M18.5 7a7.5 7.5 0 0 1 0 10" />
     </>
   ),
   shield: (

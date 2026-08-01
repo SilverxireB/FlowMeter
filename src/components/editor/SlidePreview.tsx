@@ -15,12 +15,15 @@ export default function SlidePreview({
   theme,
   mini = false,
   bare = false,
+  fill = false,
 }: {
   slide: Slide;
   theme?: PresentationTheme;
   mini?: boolean;
   /** Kart içine gömmek için: kendi kenarlığını/köşesini/filigranını kaldırır. */
   bare?: boolean;
+  /** Kabını TAM doldur (16:9 dayatma yok) — liste kartında altta boşluk kalmasın. */
+  fill?: boolean;
 }) {
   const { style, dark } = themeStyle(theme);
   const text = dark ? "text-white" : "text-ink";
@@ -28,7 +31,7 @@ export default function SlidePreview({
 
   return (
     <div
-      className={`relative w-full aspect-video overflow-hidden ${
+      className={`overflow-hidden ${fill ? "absolute inset-0 w-full h-full" : "relative w-full aspect-video"} ${
         mini ? "rounded-lg" : bare ? "" : "rounded-2xl border border-line shadow-sm"
       }`}
       style={style}
