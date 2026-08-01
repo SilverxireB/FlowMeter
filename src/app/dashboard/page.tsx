@@ -22,15 +22,16 @@ import {
 } from "@/lib/presentations";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { Icon } from "@/components/Icon";
+import { SLIDE_TYPE_ICON_NAMES } from "@/lib/slideTypeIcons";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { getUserRecord, isAdminUser, upsertUserRecord } from "@/lib/users";
 import { createWall, deleteWall, listWalls } from "@/lib/walls";
 import { listVideowalls } from "@/lib/videowalls";
 import { listPulses } from "@/lib/pulses";
-import { TEMPLATES } from "@/lib/templates";
+import { TEMPLATES, TEMPLATE_CATEGORIES } from "@/lib/templates";
 import { themeStyle } from "@/lib/themes";
 import { withTimeout } from "@/lib/withTimeout";
-import { Presentation, Pulse, Slide, Videowall, Wall } from "@/lib/types";
+import { Presentation, Pulse, Slide, SLIDE_TYPE_LABELS, Videowall, Wall } from "@/lib/types";
 
 /** Kart önizlemesi — sunumun gerçek 1. slaytını render eder (yoksa başlık). */
 function CardThumb({ presentation, view }: { presentation: Presentation; view: "grid" | "list" }) {
@@ -688,12 +689,15 @@ export default function DashboardPage() {
                       <Link href={`/present/${p.id}`} className="btn-primary !py-2 !px-3.5 text-sm">
                         <Icon name="play" size={14} /> Sun
                       </Link>
+                      {/* Kart görünümünde etiket zaten var → ikincil düğmelerde ikon YOK
+                          (üçü tek satıra sığsın; ikonla genişleyip alta düşüyordu).
+                          Liste görünümünde tam tersi: yer dar, yalnız ikon. */}
                       <Link href={`/edit/${p.id}`} className="btn-ghost !py-2 !px-3.5 text-sm" title="Düzenle" aria-label="Düzenle">
-                        <Icon name="pencil" size={15} />
+                        {view === "list" ? <Icon name="pencil" size={15} /> : null}
                         <span className={view === "list" ? "hidden sm:inline" : ""}>Düzenle</span>
                       </Link>
                       <Link href={`/results/${p.id}`} className="btn-ghost !py-2 !px-3.5 text-sm" title="Sonuçlar" aria-label="Sonuçlar">
-                        <Icon name="chart" size={15} />
+                        {view === "list" ? <Icon name="chart" size={15} /> : null}
                         <span className={view === "list" ? "hidden sm:inline" : ""}>Sonuçlar</span>
                       </Link>
                     </div>
@@ -721,20 +725,44 @@ export default function DashboardPage() {
               <h2 className="font-display text-2xl font-semibold flex items-center gap-2"><Icon name="sparkles" size={20} /> Şablon galerisi</h2>
               <button onClick={() => setTemplatesOpen(false)} className="btn-ghost !px-3 !py-1.5 text-sm">Kapat</button>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {TEMPLATES.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => startFromTemplate(t.id)}
-                  className="text-left card !rounded-2xl p-5 hover:-translate-y-0.5 transition-transform cursor-pointer"
-                >
-                  <div className="text-4xl mb-3" aria-hidden>{t.emoji}</div>
-                  <p className="font-display font-semibold mb-1">{t.name}</p>
-                  <p className="text-muted text-sm mb-3">{t.description}</p>
-                  <p className="eyebrow">{t.slides.length} slayt</p>
-                </button>
-              ))}
-            </div>
+            {TEMPLATE_CATEGORIES.map((cat) => {
+              const list = TEMPLATES.filter((t) => t.category === cat);
+              if (!list.length) return null;
+              return (
+                <div key={cat} className="mb-6 last:mb-0">
+                  <p className="eyebrow mb-2.5">{cat}</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {list.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => startFromTemplate(t.id)}
+                        className="text-left card !rounded-2xl p-4 hover:-translate-y-0.5 hover:border-accent/40 transition-all cursor-pointer flex flex-col gap-2"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="shrink-0 w-9 h-9 rounded-xl bg-accent-soft text-accent grid place-items-center">
+                            <Icon name={t.icon} size={18} />
+                          </span>
+                          <p className="font-display font-semibold min-w-0 truncate">{t.name}</p>
+                        </div>
+                        <p className="text-muted text-sm leading-snug">{t.description}</p>
+                        {/* Şablonun İÇİNDE ne var: tip rozetleri (aynı tip bir kez) */}
+                        <div className="flex flex-wrap items-center gap-1 mt-auto pt-1">
+                          {Array.from(new Set(t.slides.map((sl) => sl.type))).slice(0, 6).map((ty) => (
+                            <span key={ty} className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted bg-paper border border-line rounded-full px-1.5 py-0.5">
+                              <Icon name={SLIDE_TYPE_ICON_NAMES[ty]} size={11} />
+                              {SLIDE_TYPE_LABELS[ty]}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-muted/80 border-t border-line pt-2 mt-1">
+                          {t.slides.length} slayt · {t.useCase}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
