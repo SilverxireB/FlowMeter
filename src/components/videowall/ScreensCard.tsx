@@ -6,7 +6,7 @@
  * 🗑 ile temizlenir (yalnız kayıt silinir; cihaz açıksa yeniden belirir).
  */
 import { useEffect, useState } from "react";
-import { Icon } from "@/components/videowall/icons";
+import { Icon } from "@/components/Icon";
 import { deleteScreenBeat, watchScreens } from "@/lib/videowalls";
 import { ScreenBeat } from "@/lib/types";
 

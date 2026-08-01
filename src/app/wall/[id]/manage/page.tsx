@@ -15,7 +15,7 @@ import { generateMemoryBook } from "@/lib/wallMemoryBook";
 import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import WallFilm from "@/components/wall/WallFilm";
 import WallOnboarding from "@/components/wall/WallOnboarding";
-import ConfirmDialog from "@/components/videowall/ConfirmDialog";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallFrame, setWallGalleryOpen, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallPinned, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, endRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, watchDraws, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";

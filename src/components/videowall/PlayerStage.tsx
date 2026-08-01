@@ -9,7 +9,7 @@
  * /videowall/[id]/play ve /flowsign/[slug] bunu kullanır.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Icon } from "@/components/videowall/icons";
+import { Icon } from "@/components/Icon";
 import { itemInWindow as inWindow, sendScreenBeat } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 

@@ -9,7 +9,7 @@
  * İçerik alana STRETCH edilir (sığdır/doldur YOK). Yazım → updateZones (taslak).
  */
 import { useMemo, useRef, useState } from "react";
-import { Icon } from "@/components/videowall/icons";
+import { Icon } from "@/components/Icon";
 import { cldFit, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { itemInWindow } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";

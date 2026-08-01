@@ -170,4 +170,53 @@ body {
   /* FlowWall ambient efekt katmanı: efektler içinde bulundukları kutuya göre
      ölçeklensin (cqw/cqh) — hem tam ekran perde hem kokpit mini önizleme. */
   .ww-fx { container-type: size; }
+
+  /* ── KOYU YÜZEYLER (Sign kokpiti, Wall perde/kokpit, Pulse kiosk/pano) ──
+     Aydınlık kokpitteki kart, buton ve girdi sınıflarının koyu karşılıkları.
+     Eskiden her butonun sınıfı elle yazılıyordu (bg-white/10 border-white/15 …)
+     — bu yüzden yuvarlaklık, dolgu ve odak halkası ekrandan ekrana kayıyordu.
+     Tek yerden tanımlı; odak halkası HEPSİNDE var (klavye erişimi). */
+  .card-dark {
+    @apply rounded-2xl bg-white/5 border border-white/10;
+  }
+
+  .btn-dark {
+    @apply inline-flex items-center justify-center gap-1.5 cursor-pointer select-none
+      rounded-xl bg-white/10 border border-white/15 text-white font-semibold
+      px-3.5 py-2 text-sm transition-colors
+      hover:bg-white/15 active:scale-[0.98]
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a5b4fc]/60
+      disabled:opacity-40 disabled:active:scale-100 disabled:cursor-default;
+  }
+
+  .btn-dark-primary {
+    @apply inline-flex items-center justify-center gap-1.5 cursor-pointer select-none
+      rounded-xl bg-accent text-white font-semibold
+      px-3.5 py-2 text-sm transition-colors
+      hover:bg-accent-dark active:scale-[0.98]
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a5b4fc]/60
+      disabled:opacity-40 disabled:active:scale-100 disabled:cursor-default;
+  }
+
+  /* Simge butonu (sil/kopyala/ayar): kare, dokunma hedefi yeterli (36px). */
+  .btn-dark-icon {
+    @apply inline-grid place-items-center w-9 h-9 shrink-0 rounded-lg
+      text-white/45 hover:text-white hover:bg-white/10 transition-colors
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a5b4fc]/60
+      disabled:opacity-30 disabled:hover:bg-transparent;
+  }
+
+  .input-dark {
+    @apply rounded-lg bg-white/10 border border-white/15 px-3 py-2
+      focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30
+      placeholder:text-white/30;
+  }
+
+  /* Aydınlık kokpitteki simge butonu karşılığı (Meter/Wall/Pulse) */
+  .btn-icon {
+    @apply inline-grid place-items-center w-9 h-9 shrink-0 rounded-lg
+      text-muted hover:text-ink hover:bg-line/60 transition-colors
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40
+      disabled:opacity-30 disabled:hover:bg-transparent;
+  }
 }

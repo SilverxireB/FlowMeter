@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Icon from "@/components/Icon";
+import { useConfirm } from "@/components/ConfirmDialog";
 import Logo from "@/components/Logo";
 import QrCode from "@/components/present/QrCode";
 import ChatPanel from "@/components/present/ChatPanel";
@@ -49,6 +50,7 @@ import { INTERACTIVE_SLIDE_TYPES, SLIDE_TYPE_ICONS, SLIDE_TYPE_LABELS } from "@/
  * Klavye ←/→ ile gezinir; "atlandı" işaretli slaytların üzerinden geçer.
  */
 export default function PresentPage() {
+  const { confirm, dialog } = useConfirm();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading: authLoading } = useAuthUser();
@@ -429,11 +431,12 @@ export default function PresentPage() {
           </button>
           {slide && collectsVotes && (
             <button
-              onClick={async () => {
-                if (confirm("Bu slaytın tüm cevapları silinsin mi?")) {
-                  await resetResponses(id, slide.id);
-                }
-              }}
+              onClick={() =>
+                confirm(
+                  { title: "Cevapları sıfırla", message: "Bu slaytın tüm cevapları silinecek. Bu işlem geri alınamaz.", confirmLabel: "Sıfırla", danger: true },
+                  () => void resetResponses(id, slide.id)
+                )
+              }
               className="btn-ghost !py-1.5 !px-3.5 text-sm"
               title="Bu slaytın cevaplarını sıfırla"
             >
@@ -475,12 +478,15 @@ export default function PresentPage() {
             Tam ekran
           </button>
           <button
-            onClick={async () => {
-              if (confirm("Sunum bitirilsin mi? Cevaplar kaydedilir; izleyiciler bekleme ekranına döner.")) {
-                await endPresentation(id);
-                router.push(`/dashboard`);
-              }
-            }}
+            onClick={() =>
+              confirm(
+                { title: "Sunumu bitir", message: "Cevaplar kaydedilir; izleyiciler bekleme ekranına döner.", confirmLabel: "Bitir" },
+                async () => {
+                  await endPresentation(id);
+                  router.push(`/dashboard`);
+                }
+              )
+            }
             className="btn-ghost !py-1.5 !px-3.5 text-sm text-muted"
           >
             Bitir
@@ -558,6 +564,8 @@ export default function PresentPage() {
           onClose={() => setChatOpen(false)}
         />
       )}
+
+      {dialog}
     </main>
   );
 }

@@ -9,12 +9,12 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import ConfirmDialog from "@/components/videowall/ConfirmDialog";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import LayoutEditor from "@/components/videowall/LayoutEditor";
 import ScreensCard from "@/components/videowall/ScreensCard";
 import ZonePanel from "@/components/videowall/ZonePanel";
 import QrCode from "@/components/present/QrCode";
-import { Icon } from "@/components/videowall/icons";
+import { Icon } from "@/components/Icon";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useAuthUser } from "@/lib/hooks";
 import {
@@ -409,6 +409,7 @@ export default function VideowallEditPage() {
 
       {confirmBox && (
         <ConfirmDialog
+          tone="dark"
           title={confirmBox.title}
           message={confirmBox.message}
           confirmLabel={confirmBox.confirmLabel}

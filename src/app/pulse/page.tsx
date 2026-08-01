@@ -9,6 +9,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Logo from "@/components/Logo";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { Icon } from "@/components/Icon";
 import { useAuthUser } from "@/lib/hooks";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { createPulse, deletePulse, listPulses, percentOf, watchToday } from "@/lib/pulses";
@@ -43,6 +45,7 @@ export default function PulseListPage() {
   const router = useRouter();
   const { user, loading } = useAuthUser();
   const playTarget = usePlayTarget();
+  const { confirm, dialog } = useConfirm();
   const [pulses, setPulses] = useState<Pulse[]>([]);
   const [title, setTitle] = useState("");
   const [qType, setQType] = useState<PulseQuestionType>("smiley");
@@ -89,7 +92,6 @@ export default function PulseListPage() {
   }
 
   async function remove(p: Pulse) {
-    if (!confirm(`"${p.title}" noktası ve TÜM oy geçmişi silinsin mi? Geri alınamaz.`)) return;
     setErr(null);
     try {
       await deletePulse(p.id);
@@ -155,7 +157,19 @@ export default function PulseListPage() {
                     <p className="font-display font-semibold truncate">{p.title}</p>
                     <p className="text-muted text-xs mt-0.5 truncate">{p.question.text}</p>
                   </div>
-                  <button onClick={() => remove(p)} className="btn-ghost !p-0 w-9 h-9 text-brand shrink-0" title="Sil" aria-label="Sil">🗑</button>
+                  <button
+                    onClick={() =>
+                      confirm(
+                        { title: "Noktayı sil", message: `"${p.title}" noktası ve TÜM oy geçmişi silinecek. Bu işlem geri alınamaz.`, confirmLabel: "Sil", danger: true },
+                        () => remove(p)
+                      )
+                    }
+                    className="btn-icon text-brand hover:text-brand-dark shrink-0"
+                    title="Sil"
+                    aria-label="Sil"
+                  >
+                    <Icon name="trash" size={16} />
+                  </button>
                 </div>
                 <TodayScore pulse={p} />
                 <div className="flex gap-2 flex-wrap">
@@ -168,6 +182,8 @@ export default function PulseListPage() {
           </ul>
         )}
       </section>
+
+      {dialog}
     </main>
   );
 }

@@ -11,7 +11,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
-import { Icon } from "@/components/videowall/icons";
+import { Icon } from "@/components/Icon";
+import { useConfirm } from "@/components/ConfirmDialog";
 import WallThumb from "@/components/videowall/WallThumb";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useAuthUser } from "@/lib/hooks";
@@ -37,6 +38,7 @@ export default function VideowallListPage() {
   const router = useRouter();
   const { user, loading } = useAuthUser();
   const playTarget = usePlayTarget();
+  const { confirm, dialog } = useConfirm({ tone: "dark" });
   const [walls, setWalls] = useState<Videowall[]>([]);
   const [name, setName] = useState("");
   const [preset, setPreset] = useState(0);
@@ -130,7 +132,6 @@ export default function VideowallListPage() {
   }
 
   async function remove(v: Videowall) {
-    if (!confirm(`"${v.name}" ekranı ve yüklenmiş medyası silinsin mi? Bu işlem geri alınamaz.`)) return;
     setErr(null);
     try {
       const idToken = user ? await user.getIdToken().catch(() => undefined) : undefined;
@@ -267,7 +268,13 @@ export default function VideowallListPage() {
                     <button onClick={() => duplicate(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10" title="Kopyala" aria-label="Kopyala">
                       <Icon name="copy" size={13} />
                     </button>
-                    <button onClick={() => remove(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10" title="Sil" aria-label="Sil">
+                    <button
+                      onClick={() =>
+                        confirm(
+                          { title: "Ekranı sil", message: `"${v.name}" ekranı ve yüklenmiş medyası silinecek. Bu işlem geri alınamaz.`, confirmLabel: "Sil", danger: true },
+                          () => remove(v)
+                        )
+                      } className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10" title="Sil" aria-label="Sil">
                       <Icon name="trash" size={13} />
                     </button>
                   </div>
@@ -311,6 +318,8 @@ export default function VideowallListPage() {
           </div>
         )}
       </section>
+
+      {dialog}
     </main>
   );
 }

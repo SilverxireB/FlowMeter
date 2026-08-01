@@ -20,6 +20,7 @@ import {
   renamePresentation,
   setPresentationFolder,
 } from "@/lib/presentations";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { getUserRecord, isAdminUser, upsertUserRecord } from "@/lib/users";
 import { createWall, deleteWall, listWalls } from "@/lib/walls";
@@ -71,6 +72,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, loading } = useAuthUser();
   const playTarget = usePlayTarget();
+  const { confirm, dialog } = useConfirm();
   const [items, setItems] = useState<Presentation[]>([]);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
@@ -174,7 +176,6 @@ export default function DashboardPage() {
   }
 
   async function removeWall(w: Wall) {
-    if (!confirm(`"${w.title}" duvarı ve tüm medyası silinsin mi? Bu işlem geri alınamaz.`)) return;
     setFlash({ msg: `"${w.title}" siliniyor…` });
     try {
       const idToken = user ? await user.getIdToken().catch(() => undefined) : undefined;
@@ -237,7 +238,6 @@ export default function DashboardPage() {
   }
 
   async function remove(p: Presentation) {
-    if (!confirm(`"${p.title}" silinsin mi? Bu işlem geri alınamaz.`)) return;
     setFlash({ msg: `"${p.title}" siliniyor…` });
     try {
       await deletePresentation(p);
@@ -260,12 +260,6 @@ export default function DashboardPage() {
   }
 
   async function newRun(p: Presentation) {
-    if (
-      !confirm(
-        `"${p.title}" için yeni oturum başlat?\nYENİ bir katılım kodu oluşur, ekran sıfırdan başlar. Eski oturumun cevapları silinmez, saklı kalır.`
-      )
-    )
-      return;
     setMenuFor(null);
     setFlash(null);
     try {
@@ -498,7 +492,12 @@ export default function DashboardPage() {
                         </p>
                       </div>
                       <button
-                        onClick={() => removeWall(w)}
+                        onClick={() =>
+                          confirm(
+                            { title: "Duvarı sil", message: `"${w.title}" duvarı ve tüm medyası silinecek. Bu işlem geri alınamaz.`, confirmLabel: "Sil", danger: true },
+                            () => removeWall(w)
+                          )
+                        }
                         className="btn-ghost !p-0 w-9 h-9 text-brand shrink-0"
                         title="Duvarı sil"
                         aria-label="Duvarı sil"
@@ -650,7 +649,17 @@ export default function DashboardPage() {
                             <button onClick={() => rename(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
                               ✏️ Yeniden adlandır
                             </button>
-                            <button onClick={() => newRun(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
+                            <button
+                              onClick={() =>
+                                confirm(
+                                  {
+                                    title: "Yeni oturum başlat",
+                                    message: `"${p.title}" için YENİ bir katılım kodu oluşur ve ekran sıfırdan başlar.\nEski oturumun cevapları silinmez, saklı kalır.`,
+                                    confirmLabel: "Yeni oturum",
+                                  },
+                                  () => newRun(p)
+                                )
+                              } className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
                               ♻ Yeni oturum (yeni kod)
                             </button>
                             <button onClick={() => duplicate(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
@@ -659,7 +668,13 @@ export default function DashboardPage() {
                             <button onClick={() => moveToFolder(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold hover:bg-paper cursor-pointer">
                               📁 Klasöre taşı
                             </button>
-                            <button onClick={() => remove(p)} className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold text-brand hover:bg-brand-soft/50 cursor-pointer">
+                            <button
+                              onClick={() =>
+                                confirm(
+                                  { title: "Sunumu sil", message: `"${p.title}" silinecek. Bu işlem geri alınamaz.`, confirmLabel: "Sil", danger: true },
+                                  () => remove(p)
+                                )
+                              } className="text-left rounded-xl px-3.5 py-2 text-sm font-semibold text-brand hover:bg-brand-soft/50 cursor-pointer">
                               🗑 Sil
                             </button>
                           </div>
@@ -718,6 +733,8 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {dialog}
     </main>
   );
 }

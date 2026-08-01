@@ -8,6 +8,7 @@ import AddSlideSheet from "@/components/editor/AddSlideSheet";
 import Sheet from "@/components/editor/Sheet";
 import SlidePreview from "@/components/editor/SlidePreview";
 import ThemePanel from "@/components/editor/ThemePanel";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useAuthUser, usePresentation, useSlides } from "@/lib/hooks";
 import { fileToCompressedDataUrl } from "@/lib/images";
 import { setResponseDryRun } from "@/lib/responses";
@@ -460,6 +461,7 @@ function MoreSheet({
   onDelete: () => Promise<void>;
   onClose: () => void;
 }) {
+  const { confirm, dialog } = useConfirm();
   const Item = ({
     onClick,
     danger,
@@ -498,24 +500,31 @@ function MoreSheet({
         </Item>
         <div className="border-t border-line my-2" />
         <Item
-          onClick={async () => {
-            if (confirm("Bu slaytın tüm cevapları silinsin mi?")) {
-              await resetResponses(presentation.id, slide.id);
-              onClose();
-            }
-          }}
+          onClick={() =>
+            confirm(
+              { title: "Cevapları temizle", message: "Bu slaytın tüm cevapları silinecek. Bu işlem geri alınamaz.", confirmLabel: "Temizle", danger: true },
+              async () => {
+                await resetResponses(presentation.id, slide.id);
+                onClose();
+              }
+            )
+          }
         >
           ↺ Cevapları temizle
         </Item>
         <Item
           danger
-          onClick={async () => {
-            if (confirm("Slayt silinsin mi? Bu işlem geri alınamaz.")) await onDelete();
-          }}
+          onClick={() =>
+            confirm(
+              { title: "Slaytı sil", message: "Slayt ve içeriği silinecek. Bu işlem geri alınamaz.", confirmLabel: "Sil", danger: true },
+              () => void onDelete()
+            )
+          }
         >
           🗑 Slaytı sil
         </Item>
       </div>
+      {dialog}
     </Sheet>
   );
 }

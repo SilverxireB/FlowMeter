@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import Logo from "@/components/Logo";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useAuthUser } from "@/lib/hooks";
 import {
   ADMIN_EMAIL,
@@ -21,6 +22,7 @@ import {
 import { UserRecord } from "@/lib/types";
 
 export default function AdminPage() {
+  const { confirm, dialog } = useConfirm();
   const router = useRouter();
   const { user, loading } = useAuthUser();
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -56,7 +58,6 @@ export default function AdminPage() {
 
   async function toggleRole(u: UserRecord) {
     const makeAdmin = u.role !== "admin";
-    if (!confirm(makeAdmin ? `${u.email} yönetici yapılsın mı?` : `${u.email} yöneticilikten alınsın mı?`)) return;
     setBusy(u.id);
     setErr(null);
     try {
@@ -70,7 +71,6 @@ export default function AdminPage() {
   }
 
   async function remove(u: UserRecord) {
-    if (!confirm(`${u.email} kaydı silinsin mi?\nNot: Google hesabı silinmez; tekrar giriş yaparsa kayıt yeniden oluşur. İçerikleri (sunum/duvar) bu işlemde silinmez.`)) return;
     setBusy(u.id);
     setErr(null);
     try {
@@ -151,7 +151,16 @@ export default function AdminPage() {
                 <div className="flex gap-1.5 shrink-0 flex-col sm:flex-row">
                   {!isBootstrap && (
                     <button
-                      onClick={() => toggleRole(u)}
+                      onClick={() =>
+                        confirm(
+                          {
+                            title: u.role === "admin" ? "Yöneticilikten al" : "Yönetici yap",
+                            message: u.role === "admin" ? `${u.email} yöneticilikten alınacak.` : `${u.email} yönetici yetkisi alacak.`,
+                            confirmLabel: u.role === "admin" ? "Yetkiyi al" : "Yönetici yap",
+                          },
+                          () => void toggleRole(u)
+                        )
+                      }
                       disabled={busy === u.id}
                       className={`!py-1.5 !px-3 text-xs rounded-full font-semibold border cursor-pointer ${
                         admin ? "border-line text-muted hover:text-ink" : "border-accent text-accent hover:bg-accent-soft/50"
@@ -162,7 +171,17 @@ export default function AdminPage() {
                   )}
                   {!isBootstrap && !isSelf && (
                     <button
-                      onClick={() => remove(u)}
+                      onClick={() =>
+                        confirm(
+                          {
+                            title: "Kaydı sil",
+                            message: `${u.email} kaydı silinecek.\nGoogle hesabı silinmez; tekrar giriş yaparsa kayıt yeniden oluşur. İçerikleri (sunum/duvar) bu işlemde silinmez.`,
+                            confirmLabel: "Sil",
+                            danger: true,
+                          },
+                          () => void remove(u)
+                        )
+                      }
                       disabled={busy === u.id}
                       className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-line text-brand hover:bg-brand-soft/40 cursor-pointer"
                     >
@@ -187,6 +206,8 @@ export default function AdminPage() {
           sonraki sürümde.
         </p>
       </section>
+
+      {dialog}
     </main>
   );
 }

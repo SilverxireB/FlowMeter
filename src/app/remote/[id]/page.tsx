@@ -10,11 +10,13 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Logo from "@/components/Logo";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useAuthUser, usePresentation, useQuestions, useSlides } from "@/lib/hooks";
 import { endPresentation, resolveJoinCode, setCurrentSlide, setVotingClosed, startQuiz } from "@/lib/presentations";
 import { SLIDE_TYPE_LABELS } from "@/lib/types";
 
 export default function RemotePage() {
+  const { confirm, dialog } = useConfirm({ tone: "dark" });
   const { id: rawCode } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading: authLoading } = useAuthUser();
@@ -159,14 +161,19 @@ export default function RemotePage() {
         </div>
 
         <button
-          onClick={() => {
-            if (confirm("Sunum bitirilsin mi? İzleyiciler teşekkür ekranı görür.")) endPresentation(id);
-          }}
+          onClick={() =>
+            confirm(
+              { title: "Sunumu bitir", message: "İzleyiciler teşekkür ekranı görür.", confirmLabel: "Bitir", tone: "dark" },
+              () => void endPresentation(id)
+            )
+          }
           className="mt-auto rounded-xl border border-white/10 py-2.5 text-sm font-semibold text-white/40 hover:text-rose-300 hover:border-rose-400/30"
         >
           Sunumu bitir
         </button>
       </section>
+
+      {dialog}
     </main>
   );
 }

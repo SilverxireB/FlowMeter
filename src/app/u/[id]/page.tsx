@@ -8,6 +8,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
+import { useConfirm } from "@/components/ConfirmDialog";
 import WallReactionBar from "@/components/wall/WallReactionBar";
 import { useWall } from "@/lib/hooks";
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
@@ -748,6 +749,7 @@ function BrowseGallery({ wallId, sessionId, myId }: { wallId: string | null; ses
 }
 
 function BrowseTile({ m, wallId, mine }: { m: WallMedia; wallId: string | null; mine: boolean }) {
+  const { confirm, dialog } = useConfirm({ tone: "dark" });
   const [liked, setLiked] = useState(false);
   const [bump, setBump] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -759,7 +761,6 @@ function BrowseTile({ m, wallId, mine }: { m: WallMedia; wallId: string | null; 
   const canDelete = mine && auth().currentUser?.uid === m.voterId;
   async function removeMine() {
     if (!wallId || removing) return;
-    if (!confirm("Bu anı duvardan kalıcı olarak silinsin mi?")) return;
     setRemoving(true);
     try {
       const idToken = await auth().currentUser?.getIdToken();
@@ -806,7 +807,12 @@ function BrowseTile({ m, wallId, mine }: { m: WallMedia; wallId: string | null; 
         {mine && <span className="absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/90 text-[#070c22]">senin</span>}
         {canDelete && (
           <button
-            onClick={removeMine}
+            onClick={() =>
+              confirm(
+                { title: "Anıyı sil", message: "Bu anı duvardan kalıcı olarak silinecek. Bu işlem geri alınamaz.", confirmLabel: "Sil", danger: true },
+                () => void removeMine()
+              )
+            }
             disabled={removing}
             className="absolute top-1.5 right-1.5 w-7 h-7 grid place-items-center rounded-full bg-black/60 text-white text-xs disabled:opacity-50"
             aria-label="Bu anıyı sil"
@@ -832,6 +838,7 @@ function BrowseTile({ m, wallId, mine }: { m: WallMedia; wallId: string | null; 
         .ww-like-bump { display: inline-block; animation: likebump 0.4s ease; }
         @keyframes likebump { 30% { transform: scale(1.5); } 60% { transform: scale(0.9); } }
       `}</style>
+      {dialog}
     </div>
   );
 }
