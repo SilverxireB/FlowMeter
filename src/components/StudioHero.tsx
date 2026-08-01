@@ -9,6 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
+import { Icon } from "@/components/Icon";
 
 // SSR uyarısız layout-effect (sayfa client bileşeni ama prerender ediliyor)
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -431,8 +432,14 @@ function SignScene() {
       <Vignette i={2}>
         <VigHead label="Tek tıkla yayınla" />
         <div className="flex-1 flex flex-col items-center justify-center gap-2">
-          <span className="fs-pop rounded-full bg-[#6366f1] px-4 py-1.5 text-xs font-bold" style={{ animationDelay: "7.4s" }}>
-            💾 Kaydet &amp; Yayınla
+          {/* whitespace-nowrap + ortalı: dar telefonda hap ikiye bölünüyor ve
+              yazı sola dayanıyordu. Simge de gerçek düğmedeki ikon (💾 disket
+              emojisi ürünle uyuşmuyordu). */}
+          <span
+            className="fs-pop inline-flex items-center justify-center gap-1.5 rounded-full bg-[#6366f1] px-3.5 py-1.5 text-[11px] sm:text-xs font-bold whitespace-nowrap text-center"
+            style={{ animationDelay: "7.4s" }}
+          >
+            <Icon name="save" size={12} /> Kaydet &amp; Yayınla
           </span>
           <span className="fs-pop flex items-center gap-1.5 text-[10px] font-semibold text-emerald-300" style={{ animationDelay: "8.0s" }}>
             <span className="fs-live-dot !bg-emerald-400" /> Perde yayında
@@ -464,11 +471,27 @@ function PulseScene() {
       {/* 1 — Tek dokunuş */}
       <Vignette i={0}>
         <VigHead label="Tek dokunuşla nabız" />
-        <div className="flex-1 flex items-center justify-center gap-2.5 sm:gap-3 text-2xl sm:text-3xl">
-          {["😠", "😕", "🙂"].map((s, i) => (
-            <span key={s} className="fs-pop opacity-70" style={{ animationDelay: `${0.3 + i * 0.15}s` }}>{s}</span>
-          ))}
-          <span className="fs-pop fs-heart rounded-full ring-2 ring-emerald-300/80 p-1" style={{ animationDelay: "0.75s" }}>😍</span>
+        {/* SİMETRİ: yüzler eskiden TEK TEK beliriyordu; dördüncüsü yerini baştan
+            kapladığı için görünen üçlü sola kaymış duruyordu (kullanıcı ekran
+            görüntüsü). Artık GÖRÜNÜRLÜK sıranın tamamında (kapsayıcıda fs-pop):
+            dördü birlikte gelir, sıra hiçbir karede eksik/kaymış görünmez.
+            Dalga hissi kaybolmasın diye tek tek ÖLÇEK animasyonu kaldı (fs-wave,
+            opaklığa dokunmaz). Seçili yüzün halkası boyut değiştirmez (sabit kutu). */}
+        <div className="fs-pop flex-1 flex items-center justify-center gap-2.5 sm:gap-3 text-2xl sm:text-3xl" style={{ animationDelay: "0.3s" }}>
+          {["😠", "😕", "🙂", "😍"].map((face, i) => {
+            const picked = i === 3;
+            return (
+              <span
+                key={face}
+                className={`grid place-items-center w-9 h-9 sm:w-10 sm:h-10 rounded-full ${
+                  picked ? "fs-heart ring-2 ring-emerald-300/80" : "fs-wave opacity-70"
+                }`}
+                style={{ animationDelay: `${0.35 + i * 0.1}s` }}
+              >
+                {face}
+              </span>
+            );
+          })}
         </div>
       </Vignette>
 
@@ -511,8 +534,10 @@ function PulseScene() {
         <VigHead label="Kapıda kiosk, cepte QR" />
         <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
           <div className="flex items-center gap-2">
-            <span className="fs-pop rounded-lg bg-white/10 px-3 py-1.5 text-[11px] font-semibold" style={{ animationDelay: "10.7s" }}>🖥 Kiosk</span>
-            <span className="fs-pop rounded-lg bg-white/10 px-3 py-1.5 text-[11px] font-semibold" style={{ animationDelay: "10.95s" }}>📱 QR ile oy</span>
+            {/* whitespace-nowrap: dar telefonda "QR ile oy" ikinci satıra sarıyordu.
+                Punto/iç boşluk da küçüldü ki iki çip yan yana sığsın. */}
+            <span className="fs-pop rounded-lg bg-white/10 px-2.5 py-1.5 text-[10px] sm:text-[11px] font-semibold whitespace-nowrap" style={{ animationDelay: "10.7s" }}>🖥 Kiosk</span>
+            <span className="fs-pop rounded-lg bg-white/10 px-2.5 py-1.5 text-[10px] sm:text-[11px] font-semibold whitespace-nowrap" style={{ animationDelay: "10.95s" }}>📱 QR ile oy</span>
           </div>
           <span className="fs-pop text-[9px] text-white/55 font-semibold" style={{ animationDelay: "11.3s" }}>günde 1 oy · tamamen anonim</span>
         </div>
@@ -766,6 +791,14 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
           27%, 100% { transform: scaleY(0); }
         }
 
+        /* Yalnız ÖLÇEK dalgası: görünürlük kapsayıcıda (fs-pop) — böylece sıra
+           hiçbir karede eksik görünmez, simetri bozulmaz. */
+        .fs-wave { animation: fs-wave 14s ease-out infinite; }
+        @keyframes fs-wave {
+          0% { transform: scale(0.5); }
+          4% { transform: scale(1.08); }
+          6%, 100% { transform: scale(1); }
+        }
         .fs-heart { animation: fs-heart 1.3s ease-in-out infinite; }
         @keyframes fs-heart { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
 
@@ -827,7 +860,7 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
 
         @media (prefers-reduced-motion: reduce) {
           .fs-scene, .fs-word, .fs-bar, .fs-flyin, .fs-brandname, .fs-in-right,
-          .fs-vig, .fs-pop, .fs-podium, .fs-heart, .fs-kenburns, .fs-xfade,
+          .fs-vig, .fs-pop, .fs-wave, .fs-podium, .fs-heart, .fs-kenburns, .fs-xfade,
           .fs-line, .fs-poll-bar, .fs-live-dot, .fs-float, .fs-ticker, .fs-blob,
           .fs-accentline, .fs-ripple, .fs-mat, .fs-glint,
           .fs-studioname { animation: none; }
