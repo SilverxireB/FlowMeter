@@ -11,6 +11,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Icon } from "@/components/icons";
 import WallThumb from "@/components/WallThumb";
+import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useSession } from "@/lib/useSession";
 import { createWall, deleteWall, duplicateWall, listWalls } from "@/lib/client";
 import { clampScreens } from "@/lib/zones";
@@ -34,6 +35,7 @@ const playHref = (v: Videowall) => `/play/${v.slug ?? v.id}`;
 export default function ScreensPage() {
   const router = useRouter();
   const { loading, authed } = useSession();
+  const playTarget = usePlayTarget();
   const [walls, setWalls] = useState<Videowall[]>([]);
   const [name, setName] = useState("");
   const [preset, setPreset] = useState(0);
@@ -244,7 +246,7 @@ export default function ScreensPage() {
                   </div>
                   <div className="flex items-center gap-1 mt-auto">
                     <Link href={`/screens/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-white/10 border border-white/15 px-2 py-1.5 text-xs font-semibold hover:bg-white/15">Düzenle</Link>
-                    <a href={playHref(v)} target="_blank" title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
+                    <a href={playHref(v)} target={playTarget} title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
                       <Icon name="play" size={12} />
                     </a>
                     <button onClick={() => duplicate(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10" title="Kopyala" aria-label="Kopyala">

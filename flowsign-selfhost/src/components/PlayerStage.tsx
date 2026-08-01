@@ -349,6 +349,19 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
   const [controls, setControls] = useState(false);
   const [fs, setFs] = useState(false);
   const [identify, setIdentify] = useState(false);
+  // "← Kapat" yalnız DOKUNMATİK cihazlarda (telefon/tablet kontrolü): geri
+  // tuşuyla listeye dönülebilsin. Fare/kiosk TV'lerde görünmez (yanlış tıkla
+  // yayından çıkılmasın); geçmişsiz açılmış perdede sessizce hiçbir şey yapmaz.
+  const [touchDevice, setTouchDevice] = useState(false);
+  useEffect(() => {
+    try {
+      setTouchDevice(window.matchMedia("(pointer: coarse)").matches);
+    } catch {}
+  }, []);
+  const closeSelf = () => {
+    if (window.history.length > 1) window.history.back();
+    else window.close();
+  };
 
   // YAYIN modunda kaydedilmiş anlık görüntü oynar; draft=true → editörün "Önizle"si.
   const stage = draft ? vw : vw.live ?? vw;
@@ -546,6 +559,11 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
       )}
 
       <div className={`fixed bottom-4 right-4 z-50 flex gap-2 transition-opacity ${controls ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+        {touchDevice && (
+          <button onClick={closeSelf} className="rounded-xl bg-black/60 backdrop-blur border border-white/20 text-white px-4 py-2.5 text-sm font-semibold">
+            ← Kapat
+          </button>
+        )}
         {screens > 1 && (
           <button onClick={showIdentify} className="rounded-xl bg-black/60 backdrop-blur border border-white/20 text-white px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-1.5">
             <Icon name="grid" size={15} /> Ekranları tanı

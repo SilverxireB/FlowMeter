@@ -13,6 +13,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import Logo from "@/components/Logo";
 import { Icon } from "@/components/videowall/icons";
 import WallThumb from "@/components/videowall/WallThumb";
+import { usePlayTarget } from "@/components/videowall/usePlayTarget";
 import { useAuthUser } from "@/lib/hooks";
 import { clampScreens, createVideowall, deleteVideowall, duplicateVideowall, fetchScreenSummaries, listAllVideowalls } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
@@ -35,6 +36,7 @@ const playHref = (v: Videowall) => (v.slug ? `/flowsign/${v.slug}` : `/videowall
 export default function VideowallListPage() {
   const router = useRouter();
   const { user, loading } = useAuthUser();
+  const playTarget = usePlayTarget();
   const [walls, setWalls] = useState<Videowall[]>([]);
   const [name, setName] = useState("");
   const [preset, setPreset] = useState(0);
@@ -259,7 +261,7 @@ export default function VideowallListPage() {
                   <div className="flex items-center gap-1 mt-auto">
                     <Link href={`/videowall/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-white/10 border border-white/15 px-2 py-1.5 text-xs font-semibold hover:bg-white/15">Düzenle</Link>
                     {/* "Yayınla" değil — editördeki Kaydet & Yayınla ile karışıyordu */}
-                    <a href={playHref(v)} target="_blank" title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
+                    <a href={playHref(v)} target={playTarget} title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
                       <Icon name="play" size={12} />
                     </a>
                     <button onClick={() => duplicate(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10" title="Kopyala" aria-label="Kopyala">
@@ -299,7 +301,7 @@ export default function VideowallListPage() {
                       </p>
                     </div>
                     <div className="flex gap-1.5 items-center mt-auto">
-                      <a href={playHref(v)} target="_blank" className="flex-1 text-center rounded-lg bg-white/10 border border-white/15 px-2.5 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/15">▶ İzle ↗</a>
+                      <a href={playHref(v)} target={playTarget} className="flex-1 text-center rounded-lg bg-white/10 border border-white/15 px-2.5 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/15">▶ İzle ↗</a>
                       <span className="shrink-0 text-xs text-white/45" title="Düzenleme sahibinde">🔒</span>
                     </div>
                   </div>

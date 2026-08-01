@@ -96,8 +96,8 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
 - **Onay bekleyen:** W6 uygulama içi etiket/hashtag (dış servissiz varyant).
 - **Adaylar:** vitrin paketi (Wall perdeye `?embed=1` sade mod → Sign'a gömme;
   Pulse board `?compact/?alert`; Meter public sonuç `/r/[id]`; dashboard "Bugün"
-  şeridi) · FlowQueue MVP · mobil PWA'da ▶ perde linki geri-tuşu davranışı
-  (telefonda aynı pencerede aç / perdeye "← Kapat" — kullanıcı istedi, bekliyor).
+  şeridi) · FlowQueue MVP. ✅ Sign ▶ perde linki: telefon/PWA'da aynı pencerede
+  açılır (`usePlayTarget`), perdede dokunmatik cihazlara özel "← Kapat".
 - **v5 self-host:** ✅ v1 paketi HAZIR — `flowsign-selfhost/` (2026-08; rapor
   3'teki Adım 1-4'ün ürün karşılığı). Kalan: lisans/ekran limiti, Docker,
   markalama (A5-A8). Park: Sign ses/90°; Pulse e-posta eşiği;
