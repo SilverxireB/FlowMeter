@@ -97,6 +97,14 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   `replaceState` → geri tuşu hub'ı atlayıp karşılamaya düşüyordu), `popstate`
   senkronlar. Tam ekran yüzeylerde `ScreenClose` (dokunmatik + geçmiş varsa +
   gömülü değilse); Pulse kiosk hariç (çıkış bilerek PIN'li).
+- **UI ortak bileşenleri:** `Icon` (tek ikon seti) · `ConfirmDialog`+`useConfirm`
+  (native confirm YOK) · `CodeInput` (6 haneli kod, aydınlık/koyu) · `Skeleton`
+  (kokpit yükleme iskeletleri; perde/kiosk'ta tek satır yazı doğru) ·
+  `CreateYourOwn` (katılımcıya "sen de kur" — sahibe gösterilmez) ·
+  `ScreenClose` · `usePlayTarget`. Koyu yüzey sınıfları: `card-dark`,
+  `btn-dark`, `btn-dark-primary`, `btn-dark-icon`, `input-dark`.
+- **Kayıt açan her aksiyonda ÇİFT TIKLAMA KİLİDİ `useRef` ile** (state kilidi
+  yarışı kaybediyor: iki hızlı dokunuş aynı çizimi okuyup ikisi de geçiyordu).
 - rules değişince kullanıcıya İKİ ~200 satırlık parça halinde CHAT'e yazılır
   (dosya eki mobilde kopyalanamıyor); parçaların birleşimi diff ile doğrulanır.
 
