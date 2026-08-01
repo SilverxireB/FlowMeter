@@ -6,6 +6,7 @@
  * profesyonel bir giriş; deneyimli sahip "Gizle" ile kaldırır.
  */
 import { useEffect, useState } from "react";
+import { Icon } from "@/components/Icon";
 import { downloadQrCard } from "@/components/WallQrCard";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { setWallModeration } from "@/lib/walls";
@@ -65,7 +66,7 @@ export default function WallOnboarding({
             {started ? "Duvarın canlı! 🎉" : "Duvarın hazır — 3 adımda başla"}
           </h2>
         </div>
-        <button onClick={dismiss} className="text-muted hover:text-ink text-sm shrink-0">Gizle ✕</button>
+        <button onClick={dismiss} className="text-muted hover:text-ink text-sm shrink-0 inline-flex items-center gap-1">Gizle <Icon name="close" size={13} /></button>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -81,7 +82,7 @@ export default function WallOnboarding({
           <span className="font-display font-bold tracking-[0.15em] text-ink">{wall.joinCode || "——————"}</span> — misafirler{" "}
           <span className="font-mono text-xs">/{"u/" + wall.joinCode}</span> adresinden katılır.
           <div className="flex flex-wrap gap-2 mt-2">
-            <button onClick={() => downloadQrCard(wall, joinUrl)} disabled={!wall.joinCode} className="btn-ghost !py-1.5 !px-3 text-xs">🖨 QR kartı indir</button>
+            <button onClick={() => downloadQrCard(wall, joinUrl)} disabled={!wall.joinCode} className="btn-ghost !py-1.5 !px-3 text-xs"><Icon name="print" size={13} /> QR kartı indir</button>
             <button onClick={copyLink} disabled={!joinUrl} className="btn-ghost !py-1.5 !px-3 text-xs">Bağlantıyı kopyala</button>
           </div>
         </Step>

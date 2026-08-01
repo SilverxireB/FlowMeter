@@ -238,12 +238,16 @@ function MeterScene() {
             <span className="font-display font-bold text-xl sm:text-3xl tracking-[0.2em] sm:tracking-[0.3em]">
               482 193
             </span>
-            <div className="flex items-center gap-1 sm:gap-1.5">
+            {/* SİMETRİ (Pulse yüzleriyle aynı reçete): görünürlük SIRANIN
+                tamamında (kapsayıcıda fs-pop) — avatarlar tek tek belirince
+                görünen üçlü, sonrakilerin baştan kapladığı yerin solunda
+                kalıyordu. Tek tek kalan yalnız ÖLÇEK dalgası (fs-wave). */}
+            <div className="fs-pop flex items-center gap-1 sm:gap-1.5" style={{ animationDelay: "0.3s" }}>
               {["🦊", "🐼", "🦁", "🐨", "🐸"].map((a, i) => (
                 <span
                   key={i}
-                  className={`fs-pop w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-white/15 grid place-items-center text-xs sm:text-sm${i === 4 ? " hidden sm:grid" : ""}`}
-                  style={{ animationDelay: `${0.3 + i * 0.18}s` }}
+                  className={`fs-wave w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-white/15 grid place-items-center text-xs sm:text-sm${i === 4 ? " hidden sm:grid" : ""}`}
+                  style={{ animationDelay: `${0.35 + i * 0.14}s` }}
                 >
                   {a}
                 </span>

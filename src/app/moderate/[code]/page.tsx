@@ -17,6 +17,7 @@ import { resolveJoinCode, setQnaModeration, setTextModeration } from "@/lib/pres
 import { deleteQuestion, setQuestionApproved } from "@/lib/questions";
 import { approveResponse, deleteResponse } from "@/lib/responses";
 import { ResponseDoc, Slide } from "@/lib/types";
+import { Icon } from "@/components/Icon";
 
 /** Bir açık metin slaydının ONAY BEKLEYEN cevap kuyruğu (canlı). */
 function PendingAnswers({ pid, slide }: { pid: string; slide: Slide }) {
@@ -38,10 +39,10 @@ function PendingAnswers({ pid, slide }: { pid: string; slide: Slide }) {
           <p className="flex-1 break-words">{String(Array.isArray(r.value) ? r.value.join(", ") : r.value)}</p>
           <span className="flex gap-2 shrink-0">
             <button onClick={() => approveResponse(pid, slide.id, r.id)} className="btn-accent !py-1.5 !px-4 text-sm" title="Onayla — perde ve sonuçlarda görünür">
-              ✓ Onayla
+              <Icon name="check" size={14} /> Onayla
             </button>
             <button onClick={() => deleteResponse(pid, slide.id, r.id)} className="btn-ghost !py-1.5 !px-3 text-sm !border-brand !text-brand" title="Reddet — cevabı siler">
-              ✕
+              <Icon name="close" size={14} />
             </button>
           </span>
         </div>
@@ -158,7 +159,7 @@ export default function ModeratePage() {
                       className="btn-ghost !py-1.5 !px-3 text-sm !border-brand !text-brand"
                       title="Reddet — soruyu siler"
                     >
-                      ✕
+                      <Icon name="close" size={14} />
                     </button>
                   </span>
                 </div>

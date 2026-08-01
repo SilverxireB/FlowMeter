@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import AdminTabs from "@/components/AdminTabs";
 import Logo from "@/components/Logo";
+import { Icon } from "@/components/Icon";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useAuthUser } from "@/lib/hooks";
 import {
@@ -141,7 +142,7 @@ export default function AdminPage() {
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold truncate">
                     {u.displayName || "—"}
-                    {admin && <span className="ml-2 chip !py-0 text-xs text-accent">🛡 yönetici</span>}
+                    {admin && <span className="ml-2 chip !py-0 text-xs text-accent"><Icon name="shield" size={12} /> yönetici</span>}
                     {isSelf && <span className="ml-1.5 text-muted text-xs">(sen)</span>}
                   </p>
                   <p className="text-muted text-sm truncate">{u.email}</p>
@@ -163,11 +164,11 @@ export default function AdminPage() {
                         )
                       }
                       disabled={busy === u.id}
-                      className={`!py-1.5 !px-3 text-xs rounded-full font-semibold border cursor-pointer ${
+                      className={`!py-1.5 !px-3 text-xs rounded-full font-semibold border cursor-pointer inline-flex items-center justify-center gap-1 ${
                         admin ? "border-line text-muted hover:text-ink" : "border-accent text-accent hover:bg-accent-soft/50"
                       }`}
                     >
-                      {admin ? "Yöneticiliği kaldır" : "🛡 Yönetici yap"}
+                      {admin ? "Yöneticiliği kaldır" : <><Icon name="shield" size={13} /> Yönetici yap</>}
                     </button>
                   )}
                   {!isBootstrap && !isSelf && (
@@ -184,9 +185,9 @@ export default function AdminPage() {
                         )
                       }
                       disabled={busy === u.id}
-                      className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-line text-brand hover:bg-brand-soft/40 cursor-pointer"
+                      className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-line text-brand hover:bg-brand-soft/40 cursor-pointer inline-flex items-center justify-center gap-1"
                     >
-                      🗑 Sil
+                      <Icon name="trash" size={13} /> Sil
                     </button>
                   )}
                 </div>

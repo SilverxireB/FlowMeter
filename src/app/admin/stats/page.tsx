@@ -16,6 +16,7 @@ import { db } from "@/lib/firebase";
 import { useAuthUser } from "@/lib/hooks";
 import { ADMIN_EMAIL, getUserRecord, isAdminUser, listUsers } from "@/lib/users";
 import { UserRecord } from "@/lib/types";
+import { Icon } from "@/components/Icon";
 
 interface ContentDoc {
   id: string;
@@ -243,7 +244,7 @@ export default function AdminStatsPage() {
                           <p className="font-semibold truncate max-w-[220px]">
                             {r.user.displayName || r.user.email || r.user.id}
                             {(r.user.email === ADMIN_EMAIL || r.user.role === "admin") && (
-                              <span className="ml-1.5 text-accent text-xs">🛡</span>
+                              <span className="ml-1.5 text-accent"><Icon name="shield" size={12} /></span>
                             )}
                           </p>
                           <p className="text-muted text-xs truncate max-w-[220px]">{r.user.email}</p>

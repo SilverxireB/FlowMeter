@@ -276,7 +276,7 @@ export default function ScreenEditPage() {
           <div className="rounded-2xl bg-accent-soft border border-accent/25 p-5">
             <div className="flex items-start justify-between gap-3 mb-3">
               <p className="font-display font-semibold text-accent-dark">👋 FlowSign — 5 adımda ekranın hazır</p>
-              <button onClick={dismissGuide} className="text-muted hover:text-ink text-sm shrink-0">Anladım ✕</button>
+              <button onClick={dismissGuide} className="text-muted hover:text-ink text-sm shrink-0 inline-flex items-center gap-1">Anladım <Icon name="close" size={13} /></button>
             </div>
             <ol className="text-sm text-ink/75 space-y-1 list-decimal list-inside">
               <li><b>Yerleşim:</b> alana tıkla → seç; sürükle → birleştir; panelden böl.</li>
@@ -407,7 +407,7 @@ export default function ScreenEditPage() {
             <p className="eyebrow mb-2">Yayın linki</p>
             <div className="flex flex-wrap items-center gap-2">
               <code className="text-sm bg-paper border border-line rounded-lg px-3 py-2 text-accent-dark break-all min-w-0">{playUrl}</code>
-              <button onClick={copyLink} className="rounded-xl bg-white border border-line px-3 py-2 text-sm font-semibold hover:border-muted">{copied ? "✓ Kopyalandı" : "Kopyala"}</button>
+              <button onClick={copyLink} className="rounded-xl bg-white border border-line px-3 py-2 text-sm font-semibold hover:border-muted">{copied ? <span className="inline-flex items-center gap-1.5"><Icon name="check" size={14} /> Kopyalandı</span> : "Kopyala"}</button>
               <a href={playUrl} target={playTarget} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-3 py-2 text-sm font-semibold">Aç{playTarget ? " ↗" : ""}</a>
             </div>
             <p className="text-muted text-xs mt-2">

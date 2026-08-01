@@ -475,7 +475,7 @@ function MoreSheet({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-full text-left rounded-xl px-4 py-3 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default ${
+      className={`w-full flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default ${
         danger ? "text-brand hover:bg-brand-soft/50" : "hover:bg-paper"
       }`}
     >
@@ -486,16 +486,16 @@ function MoreSheet({
   return (
     <Sheet title={`Slayt ${index + 1} / ${count}`} onClose={onClose}>
       <div className="flex flex-col gap-0.5 -mx-2">
-        <Item onClick={() => onMove(-1)} disabled={index <= 0}>↑ Yukarı taşı</Item>
-        <Item onClick={() => onMove(1)} disabled={index >= count - 1}>↓ Aşağı taşı</Item>
-        <Item onClick={onDuplicate}>⧉ Slaytı çoğalt</Item>
+        <Item onClick={() => onMove(-1)} disabled={index <= 0}><Icon name="up" size={15} /> Yukarı taşı</Item>
+        <Item onClick={() => onMove(1)} disabled={index >= count - 1}><Icon name="down" size={15} /> Aşağı taşı</Item>
+        <Item onClick={onDuplicate}><Icon name="copy" size={15} /> Slaytı çoğalt</Item>
         <Item
           onClick={async () => {
             await setSlideSkipped(presentation.id, slide, !slide.settings?.skipped);
             onClose();
           }}
         >
-          {slide.settings?.skipped ? "👁 Atlamayı geri al" : "🚫 Slaytı atla"}
+          {slide.settings?.skipped ? <><Icon name="eye" size={15} /> Atlamayı geri al</> : <><Icon name="close" size={15} /> Slaytı atla</>}
         </Item>
         <div className="border-t border-line my-2" />
         <Item
@@ -509,7 +509,7 @@ function MoreSheet({
             )
           }
         >
-          ↺ Cevapları temizle
+          <Icon name="undo" size={15} /> Cevapları temizle
         </Item>
         <Item
           danger
@@ -520,7 +520,7 @@ function MoreSheet({
             )
           }
         >
-          🗑 Slaytı sil
+          <Icon name="trash" size={15} /> Slaytı sil
         </Item>
       </div>
       {dialog}
@@ -822,7 +822,7 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
                   className="text-muted hover:text-brand disabled:opacity-30 px-2 cursor-pointer"
                   aria-label={`Seçenek ${i + 1} sil`}
                 >
-                  ✕
+                  <Icon name="close" size={14} />
                 </button>
               </div>
             ))}

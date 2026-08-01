@@ -79,7 +79,7 @@ export default function QnaResult({ presentationId }: { presentationId: string }
               className="text-muted hover:text-brand text-sm px-2 py-1 cursor-pointer"
               title="Sil"
             >
-              ✕
+              <Icon name="trash" size={14} />
             </button>
           </span>
         </div>

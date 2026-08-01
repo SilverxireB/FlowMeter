@@ -34,9 +34,22 @@ export default function LandingPage() {
   // Sahip cihazında (Google oturumu açık) panele kestirme; katılımcı hiç
   // giriş yapmadığından bu çipi asla görmez. PWA'da adres çubuğu yok → tek yol bu.
   const { user } = useAuthUser();
+  // Panel AĞIR bir sayfa (tüm ürünler + oturum kontrolü): telefonda dokunuşla
+  // açılışı arasında saniyeler geçiyor ve ekranda HİÇBİR belirti olmuyordu —
+  // kullanıcı "tıklanmıyor" sanıp üst üste basıyordu. Dokunur dokunmaz çip
+  // "Açılıyor…"a döner ve tekrar dokunuşları yutar.
+  const [going, setGoing] = useState<null | "panel" | "last">(null);
 
   useEffect(() => {
     setLast(getLastPresentation());
+  }, []);
+
+  // Geri tuşuyla (bfcache) bu sayfaya dönülürse bileşen yeniden kurulmaz —
+  // çip "Açılıyor…"da donmasın diye geri dönüşte sıfırlanır.
+  useEffect(() => {
+    const reset = () => setGoing(null);
+    window.addEventListener("pageshow", reset);
+    return () => window.removeEventListener("pageshow", reset);
   }, []);
 
   async function join(e: FormEvent) {
@@ -73,8 +86,25 @@ export default function LandingPage() {
       <header className="relative z-10 px-6 py-5 flex items-center justify-between gap-3">
         <Logo variant="studio" />
         {user && (
-          <Link href="/dashboard" className="chip !py-1.5 text-accent font-semibold hover:border-accent shrink-0">
-            Panelim →
+          <Link
+            href="/dashboard"
+            onClick={() => setGoing("panel")}
+            aria-busy={going === "panel"}
+            className={`chip !py-1.5 text-accent font-semibold hover:border-accent shrink-0 ${
+              going === "panel" ? "pointer-events-none border-accent/40" : ""
+            }`}
+          >
+            {going === "panel" ? (
+              <>
+                <span
+                  className="w-3.5 h-3.5 rounded-full border-2 border-accent/30 border-t-accent animate-spin"
+                  aria-hidden
+                />
+                Açılıyor…
+              </>
+            ) : (
+              "Panelim →"
+            )}
           </Link>
         )}
       </header>
@@ -97,11 +127,19 @@ export default function LandingPage() {
         {last && (
           <Link
             href={`/p/${last.id}`}
-            className="mt-7 group inline-flex items-center gap-2 bg-white border border-line rounded-full pl-2 pr-4 py-1.5 text-sm hover:border-accent transition-colors"
+            onClick={() => setGoing("last")}
+            aria-busy={going === "last"}
+            className={`mt-7 group inline-flex items-center gap-2 bg-white border border-line rounded-full pl-2 pr-4 py-1.5 text-sm hover:border-accent transition-colors ${
+              going === "last" ? "pointer-events-none border-accent/40" : ""
+            }`}
           >
             <span className="bg-accent-soft text-accent-dark rounded-full px-2 py-0.5 text-xs font-bold">Devam et</span>
             <span className="text-ink/80 group-hover:text-ink truncate max-w-[14rem]">{last.title}</span>
-            <span className="text-muted">→</span>
+            {going === "last" ? (
+              <span className="w-3.5 h-3.5 rounded-full border-2 border-accent/30 border-t-accent animate-spin" aria-hidden />
+            ) : (
+              <span className="text-muted">→</span>
+            )}
           </Link>
         )}
       </section>

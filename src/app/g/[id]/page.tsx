@@ -12,6 +12,7 @@ import { useParams } from "next/navigation";
 import { cldFit, cldThumb, cldVideoPoster } from "@/lib/cloudinary";
 import { fetchApprovedMedia, getWall } from "@/lib/walls";
 import { Wall, WallMedia } from "@/lib/types";
+import { Icon } from "@/components/Icon";
 
 /** İndirme linki: tarayıcı görüntülemek yerine dosya olarak indirsin. */
 const dlUrl = (url: string) => url.replace("/upload/", "/upload/fl_attachment/");
@@ -111,13 +112,13 @@ export default function GalleryPage() {
               <a
                 href={dlUrl(open.url)}
                 download
-                className="rounded-xl bg-white/10 border border-white/20 px-4 py-2 text-sm font-semibold hover:bg-white/20"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 border border-white/20 px-4 py-2 text-sm font-semibold hover:bg-white/20"
                 onClick={(e) => e.stopPropagation()}
               >
-                ⬇ İndir
+                <Icon name="download" size={14} /> İndir
               </a>
               <button onClick={() => setOpen(null)} className="w-10 h-10 grid place-items-center rounded-xl bg-white/10 border border-white/20 text-lg" aria-label="Kapat">
-                ✕
+                <Icon name="close" size={18} />
               </button>
             </div>
           </div>

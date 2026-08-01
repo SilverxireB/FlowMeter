@@ -345,9 +345,9 @@ export default function PulseManagePage() {
                       <p className="text-muted text-[11px] mt-1">{c.createdAt?.toDate().toLocaleString("tr-TR")} · {c.status === "pending" ? "⏳ bekliyor" : c.status === "approved" ? "✓ onaylı" : "✗ reddedildi"}</p>
                     </div>
                     <span className="flex gap-1 shrink-0">
-                      {c.status !== "approved" && <button onClick={() => setCommentStatus(id, c.id, "approved")} className="btn-ghost !p-0 w-8 h-8 text-emerald-600" title="Onayla">✓</button>}
-                      {c.status !== "rejected" && <button onClick={() => setCommentStatus(id, c.id, "rejected")} className="btn-ghost !p-0 w-8 h-8 text-muted" title="Reddet">✗</button>}
-                      <button onClick={() => deleteComment(id, c.id)} className="btn-ghost !p-0 w-8 h-8 text-brand" title="Sil">🗑</button>
+                      {c.status !== "approved" && <button onClick={() => setCommentStatus(id, c.id, "approved")} className="btn-ghost !p-0 w-8 h-8 text-emerald-600" title="Onayla"><Icon name="check" size={15} /></button>}
+                      {c.status !== "rejected" && <button onClick={() => setCommentStatus(id, c.id, "rejected")} className="btn-ghost !p-0 w-8 h-8 text-muted" title="Reddet"><Icon name="close" size={15} /></button>}
+                      <button onClick={() => deleteComment(id, c.id)} className="btn-ghost !p-0 w-8 h-8 text-brand" title="Sil"><Icon name="trash" size={15} /></button>
                     </span>
                   </li>
                 ))}

@@ -8,6 +8,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
+import { Icon } from "@/components/Icon";
 import { useConfirm } from "@/components/ConfirmDialog";
 import WallReactionBar from "@/components/wall/WallReactionBar";
 import { useWall } from "@/lib/hooks";
@@ -427,7 +428,7 @@ export default function UploadPage() {
                         className="absolute top-1 right-1 w-6 h-6 grid place-items-center rounded-full bg-black/60 text-white text-xs"
                         aria-label="Kaldır"
                       >
-                        ✕
+                        <Icon name="close" size={13} />
                       </button>
                     )}
                   </div>
@@ -818,7 +819,7 @@ function BrowseTile({ m, wallId, mine }: { m: WallMedia; wallId: string | null; 
             aria-label="Bu anıyı sil"
             title="Kendi yüklediğini silebilirsin"
           >
-            {removing ? "…" : "🗑"}
+            {removing ? <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" aria-hidden /> : <Icon name="trash" size={15} />}
           </button>
         )}
       </div>

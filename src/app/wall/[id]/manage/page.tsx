@@ -532,7 +532,7 @@ export default function WallManage() {
             <p className="eyebrow mb-3">Yaşam döngüsü</p>
             <div className="flex flex-wrap items-center gap-3">
               {wall.closed ? (
-                <button onClick={() => reopenWall(id).catch(console.error)} className="btn-ghost !py-2 text-sm">▶ Duvarı yeniden aç</button>
+                <button onClick={() => reopenWall(id).catch(console.error)} className="btn-ghost !py-2 text-sm"><Icon name="play" size={13} /> Duvarı yeniden aç</button>
               ) : (
                 <button
                   onClick={() => setConfirmReq({ title: "Duvarı kapat", message: 'Yükleme durur, perdede "🎉 Teşekkürler" görünür. Yeniden açabilir ya da yeni oturum başlatabilirsin.', confirmLabel: "Kapat", action: () => closeWall(id).catch(() => setZipMsg("Duvar kapatılamadı — tekrar dene.")) })}
@@ -1028,7 +1028,7 @@ export default function WallManage() {
                   {drawing ? "🎬 Çekiliyor…" : "🎉 Çek!"}
                 </button>
                 <button onClick={() => setConfirmReq({ title: "Çekilişi bitir", message: "Perdeden kalkar; kayıtlar SİLİNMEZ.", confirmLabel: "Bitir", action: () => endRaffle(id).catch(() => setZipMsg("Çekiliş bitirilemedi — tekrar dene.")) })} className="btn-ghost !py-2 !px-4 text-sm">Bitir</button>
-                <button onClick={() => setConfirmReq({ title: "Çekilişi sil", message: "Çekiliş ve TÜM kayıtlar silinir. Geri alınamaz.", confirmLabel: "Sil", danger: true, action: () => clearRaffle(id).catch(() => setZipMsg("Çekiliş silinemedi — tekrar dene.")) })} className="!py-2 !px-3 text-sm rounded-full border border-line text-brand font-semibold">🗑 Sil</button>
+                <button onClick={() => setConfirmReq({ title: "Çekilişi sil", message: "Çekiliş ve TÜM kayıtlar silinir. Geri alınamaz.", confirmLabel: "Sil", danger: true, action: () => clearRaffle(id).catch(() => setZipMsg("Çekiliş silinemedi — tekrar dene.")) })} className="!py-2 !px-3 text-sm rounded-full border border-line text-brand font-semibold inline-flex items-center gap-1.5"><Icon name="trash" size={13} /> Sil</button>
                 {wall.raffle.draw?.winners?.length ? (
                   <span className="text-xs text-muted truncate w-full">Son çekim: {wall.raffle.draw.winners.map((w) => w.label).join(", ")}</span>
                 ) : null}
@@ -1082,8 +1082,8 @@ export default function WallManage() {
                         <p className="text-sm">{w.text}</p>
                         {w.nickname && <p className="text-muted text-xs">— {w.nickname}</p>}
                       </div>
-                      <button onClick={() => setWishStatus(id, w.id, "approved").catch(console.error)} className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-accent text-accent hover:bg-accent-soft/50 shrink-0">✓ Onayla</button>
-                      <button onClick={() => setWishStatus(id, w.id, "rejected").catch(console.error)} className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-line text-brand shrink-0">✕</button>
+                      <button onClick={() => setWishStatus(id, w.id, "approved").catch(console.error)} className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-accent text-accent hover:bg-accent-soft/50 shrink-0 inline-flex items-center gap-1"><Icon name="check" size={13} /> Onayla</button>
+                      <button onClick={() => setWishStatus(id, w.id, "rejected").catch(console.error)} className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-line text-brand shrink-0" aria-label="Reddet"><Icon name="close" size={13} /></button>
                     </div>
                   ))}
                 </div>
@@ -1097,7 +1097,7 @@ export default function WallManage() {
                   {approvedWishes.map((w) => (
                     <div key={w.id} className="flex items-center gap-2 text-sm">
                       <span className="flex-1 min-w-0 truncate inline-flex items-center gap-1.5"><Icon name="mail" size={13} className="opacity-60" /> {w.text}{w.nickname ? ` — ${w.nickname}` : ""}</span>
-                      <button onClick={() => deleteWish(id, w.id).catch(console.error)} className="text-muted hover:text-brand text-xs shrink-0" aria-label="Sil">🗑</button>
+                      <button onClick={() => deleteWish(id, w.id).catch(console.error)} className="text-muted hover:text-brand text-xs shrink-0" aria-label="Sil"><Icon name="trash" size={14} /></button>
                     </div>
                   ))}
                 </div>
@@ -1138,7 +1138,7 @@ export default function WallManage() {
                   <MediaCard key={m.id} m={m}>
                     <div className="flex gap-1.5">
                       <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 btn-accent !py-1.5 text-xs"><Icon name="check" size={13} /> Onayla</button>
-                      <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand">✕</button>
+                      <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" aria-label="Reddet"><Icon name="close" size={13} /></button>
                     </div>
                   </MediaCard>
                 ))}
@@ -1190,7 +1190,7 @@ export default function WallManage() {
               {rejected.map((m) => (
                 <MediaCard key={m.id} m={m}>
                   <div className="flex items-center gap-1 min-w-0">
-                    <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 min-w-0 btn-accent !py-1.5 !px-1 text-xs truncate">↩ Geri al</button>
+                    <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 min-w-0 btn-accent !py-1.5 !px-1 text-xs truncate"><Icon name="undo" size={13} /> Geri al</button>
                     <button
                       onClick={() => setConfirmReq({ title: "Kalıcı silme", message: "Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?", confirmLabel: "Kalıcı sil", danger: true, action: () => hardDelete(m) })}
                       className="shrink-0 w-8 h-8 grid place-items-center rounded-full border border-brand/40 text-brand text-sm"

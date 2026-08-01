@@ -19,6 +19,7 @@ export type IconName =
   | "expand"
   | "grid"
   | "close"
+  | "check"
   | "split"
   | "up"
   | "down"
@@ -96,6 +97,7 @@ const PATHS: Record<IconName, JSX.Element> = {
     </>
   ),
   close: <path d="M18 6 6 18M6 6l12 12" />,
+  check: <path d="m4.5 12.5 5 5 10-11" />,
   split: (
     <>
       <rect x="3" y="4" width="7.5" height="16" rx="2" />
