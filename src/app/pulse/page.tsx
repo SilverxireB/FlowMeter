@@ -52,6 +52,10 @@ export default function PulseListPage() {
   const [qText, setQText] = useState("Bugünkü deneyiminden memnun kaldın mı?");
   const [qOptions, setQOptions] = useState("");
   const [busy, setBusy] = useState(false);
+  /** ÇİFT TIKLAMA KİLİDİ — ref, state DEĞİL: state bir sonraki çizimde geçerli
+   *  olduğundan hızlı iki dokunuş ikisi de "boşta" görüp iki kayıt açıyordu. */
+  const creatingRef = useRef(false);
+
   const [err, setErr] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -71,12 +75,13 @@ export default function PulseListPage() {
 
   async function create(e: FormEvent) {
     e.preventDefault();
-    if (!user || busy) return;
+    if (!user || creatingRef.current) return;
     const options = qOptions.split(",").map((s) => s.trim()).filter(Boolean);
     if (qType === "choice" && (options.length < 2 || options.length > 11)) {
       setErr(options.length > 11 ? "En fazla 11 seçenek olabilir." : "Çoktan seçmeli için virgülle en az 2 seçenek yaz.");
       return;
     }
+    creatingRef.current = true;
     setBusy(true);
     setErr(null);
     try {
@@ -86,6 +91,7 @@ export default function PulseListPage() {
       router.push(`/pulse/${id}/manage`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Nokta oluşturulamadı, tekrar dene.");
+      creatingRef.current = false; // hata → tekrar denenebilsin
     } finally {
       setBusy(false);
     }

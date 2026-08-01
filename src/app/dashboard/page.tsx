@@ -89,6 +89,13 @@ export default function DashboardPage() {
   // Geri bildirim olmadığı için kullanıcı "tıklayamadım mı?" deyip ikinci kez
   // basıyor ve İKİ sunum oluşuyordu → kilit + görünür "Hazırlanıyor…" durumu.
   const [creatingTpl, setCreatingTpl] = useState<string | null>(null);
+  /**
+   * ÇİFT TIKLAMA KİLİDİ — ref, state DEĞİL. State güncellemesi bir sonraki
+   * çizimde geçerli olduğundan, hızlı iki dokunuş aynı çizimin kapanışını
+   * okuyup ikisi de "boşta" görüyor ve İKİ kayıt oluşturuyordu. Ref anında
+   * değişir; ikinci dokunuş kapıdan dönüyor.
+   */
+  const creatingRef = useRef(false);
   const [flash, setFlash] = useState<{ msg: string; err?: boolean } | null>(null);
   // Ürün seçimi: null = HUB (iki markalı kart), decks = FlowMeter, walls = FlowWall
   const [product, setProduct] = useState<"decks" | "walls" | null>(null);
@@ -170,7 +177,8 @@ export default function DashboardPage() {
 
   async function createWallHandler(e: FormEvent) {
     e.preventDefault();
-    if (!user || !wallTitle.trim() || busy) return;
+    if (!user || !wallTitle.trim() || creatingRef.current) return;
+    creatingRef.current = true;
     setBusy(true);
     setFlash(null);
     try {
@@ -178,6 +186,7 @@ export default function DashboardPage() {
       router.push(`/wall/${wid}/manage`);
     } catch (err) {
       setFlash({ msg: err instanceof Error ? err.message : "Duvar oluşturulamadı, tekrar dene.", err: true });
+      creatingRef.current = false; // hata → tekrar denenebilsin (başarıda sayfa değişiyor)
     } finally {
       setBusy(false);
     }
@@ -232,7 +241,8 @@ export default function DashboardPage() {
 
   async function create(e: FormEvent) {
     e.preventDefault();
-    if (!user || !title.trim() || busy) return;
+    if (!user || !title.trim() || creatingRef.current) return;
+    creatingRef.current = true;
     setBusy(true);
     setFlash(null);
     try {
@@ -240,6 +250,7 @@ export default function DashboardPage() {
       router.push(`/edit/${id}`);
     } catch (err) {
       setFlash({ msg: err instanceof Error ? err.message : "Sunum oluşturulamadı, tekrar dene.", err: true });
+      creatingRef.current = false; // hata → tekrar denenebilsin (başarıda sayfa değişiyor)
     } finally {
       setBusy(false);
     }
@@ -257,7 +268,9 @@ export default function DashboardPage() {
   }
 
   async function duplicate(p: Presentation) {
-    if (!user || busy) return; // çift tıklama iki kopya üretmesin
+    if (!user || creatingRef.current) return; // çift tıklama iki kopya üretmesin
+    creatingRef.current = true;
+    setMenuFor(null); // menü açık kalırsa kullanıcı tekrar basmayı deniyor
     setBusy(true);
     setFlash({ msg: `"${p.title}" kopyalanıyor…` });
     try {
@@ -265,6 +278,7 @@ export default function DashboardPage() {
       router.push(`/edit/${id}`);
     } catch (err) {
       setFlash({ msg: err instanceof Error ? err.message : "Kopyalanamadı, tekrar dene.", err: true });
+      creatingRef.current = false;
     } finally {
       setBusy(false);
     }
@@ -284,9 +298,10 @@ export default function DashboardPage() {
   }
 
   async function startFromTemplate(templateId: string) {
-    if (!user || creatingTpl) return; // çift tıklama iki sunum üretmesin
+    if (!user || creatingRef.current) return; // çift tıklama iki sunum üretmesin
     const tpl = TEMPLATES.find((t) => t.id === templateId);
     if (!tpl) return;
+    creatingRef.current = true;
     setFlash(null);
     setCreatingTpl(templateId);
     try {
@@ -297,6 +312,7 @@ export default function DashboardPage() {
       setFlash({ msg: err instanceof Error ? err.message : "Şablondan oluşturulamadı, tekrar dene.", err: true });
       setTemplatesOpen(false);
       setCreatingTpl(null);
+      creatingRef.current = false;
     }
   }
 

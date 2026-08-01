@@ -46,6 +46,9 @@ export default function ScreensPage() {
   const [rows, setRows] = useState<number | "">(1);
   const numOr = (v: number | "", fallback: number) => (v === "" ? fallback : v);
   const [busy, setBusy] = useState(false);
+  /** ÇİFT TIKLAMA KİLİDİ — ref, state DEĞİL: state bir sonraki çizimde geçerli
+   *  olduğundan hızlı iki dokunuş ikisi de "boşta" görüp iki kayıt açıyordu. */
+  const creatingRef = useRef(false);
   const [err, setErr] = useState<string | null>(null);
   const [confirmDel, setConfirmDel] = useState<Videowall | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -105,7 +108,8 @@ export default function ScreensPage() {
 
   async function create(e: FormEvent) {
     e.preventDefault();
-    if (busy) return;
+    if (creatingRef.current) return;
+    creatingRef.current = true;
     setBusy(true);
     setErr(null);
     try {
@@ -113,6 +117,7 @@ export default function ScreensPage() {
       router.push(`/screens/${wall.id}/edit`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Ekran oluşturulamadı, tekrar dene.");
+      creatingRef.current = false; // hata → tekrar denenebilsin
     } finally {
       setBusy(false);
     }
@@ -129,12 +134,18 @@ export default function ScreensPage() {
   }
 
   async function duplicate(v: Videowall) {
+    if (creatingRef.current) return; // çift tıklama iki kopya üretmesin
+    creatingRef.current = true;
+    setBusy(true);
     setErr(null);
     try {
       await duplicateWall(v.id);
       refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Kopyalanamadı, tekrar dene.");
+    } finally {
+      creatingRef.current = false;
+      setBusy(false);
     }
   }
 
@@ -249,7 +260,7 @@ export default function ScreensPage() {
                     <a href={playHref(v)} target={playTarget} title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
                       <Icon name="play" size={12} />
                     </a>
-                    <button onClick={() => duplicate(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10" title="Kopyala" aria-label="Kopyala">
+                    <button onClick={() => duplicate(v)} disabled={busy} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 disabled:opacity-30" title="Kopyala" aria-label="Kopyala">
                       <Icon name="copy" size={13} />
                     </button>
                     <button onClick={() => setConfirmDel(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10" title="Sil" aria-label="Sil">
