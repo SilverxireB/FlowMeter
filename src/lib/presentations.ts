@@ -16,7 +16,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { PresentationTemplate } from "./templates";
-import { Presentation, SessionRecord, Slide, SlideType } from "./types";
+import { Presentation, PresentationMode, SessionRecord, Slide, SlideType } from "./types";
 
 function randomJoinCode(): string {
   // 100000–999999 arası 6 haneli kod
@@ -146,6 +146,11 @@ export async function setPresentationFolder(id: string, folder: string): Promise
 /** Canlı sohbeti aç/kapat. */
 export async function setChatEnabled(id: string, enabled: boolean): Promise<void> {
   await updateDoc(doc(db(), "presentations", id), { chatEnabled: enabled });
+}
+
+/** Sunum temposu: sunucu yönetir (canlı) / katılımcı kendi ilerler (anket). */
+export async function setPresentationMode(id: string, mode: PresentationMode): Promise<void> {
+  await updateDoc(doc(db(), "presentations", id), { mode });
 }
 
 /** Q&A moderasyonunu aç/kapat (açıkken sorular /moderate onayı bekler). */

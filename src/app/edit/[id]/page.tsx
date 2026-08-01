@@ -18,6 +18,7 @@ import {
   reorderSlides,
   resetResponses,
   setChatEnabled,
+  setPresentationMode,
   setCurrentSlide,
   setSlideSkipped,
   swapSlideOrder,
@@ -268,6 +269,28 @@ export default function EditPage() {
         <Sheet title="Etkileşim" onClose={() => setSheet(null)}>
           <div className="flex flex-col gap-6">
             <div>
+              <p className="eyebrow mb-3">⏱ Sunum temposu</p>
+              <div className="flex flex-col gap-2">
+                {(
+                  [
+                    { v: "presenter-pace", label: "🎤 Sunucu yönetir", desc: "Canlı sunum: herkes perdedeki slaytı görür, sen ilerletirsin." },
+                    { v: "audience-pace", label: "📝 Katılımcı kendi ilerler", desc: "Anket modu: linki gönder, herkes kendi hızında doldurur. Yarışma slaytları bu modda atlanır." },
+                  ] as const
+                ).map((o) => (
+                  <button
+                    key={o.v}
+                    onClick={() => setPresentationMode(id, o.v)}
+                    className={`text-left rounded-2xl border px-4 py-3 cursor-pointer transition-colors ${
+                      (presentation.mode ?? "presenter-pace") === o.v ? "border-accent bg-accent-soft" : "border-line hover:border-ink/30"
+                    }`}
+                  >
+                    <span className="text-sm font-bold block">{o.label}</span>
+                    <span className="text-muted text-xs">{o.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="border-t border-line pt-5">
               <p className="eyebrow mb-3">💬 Canlı sohbet</p>
               <label className="flex items-center justify-between gap-3 cursor-pointer select-none">
                 <span className="text-sm font-semibold">Canlı sohbeti aç</span>

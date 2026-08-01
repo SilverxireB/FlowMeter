@@ -44,6 +44,11 @@ export default function AudiencePage() {
   const [votedSlideIds, setVotedSlideIds] = useState<Set<string>>(new Set());
   const [chatOpen, setChatOpen] = useState(false);
 
+  // Anket modu (audience-pace): izleyici slaytları KENDİ ilerletir, canlı senkron yok.
+  const selfPace = presentation?.mode === "audience-pace";
+  const [localIdx, setLocalIdx] = useState(0);
+  const [finished, setFinished] = useState(false);
+
   // Kimlik (takma ad + avatar): localStorage'dan yüklenir; yoksa önce sorulur.
   const [nickname, setNickname] = useState<string | null>(null);
   const [avatarSeed, setAvatarSeed] = useState<string | null>(null);
@@ -93,8 +98,11 @@ export default function AudiencePage() {
   }, [nickname, avatarSeed, presentation, id]);
 
   const rawIndex = presentation?.currentSlideIndex ?? -1;
-  const index = Math.min(rawIndex, Math.max(0, slides.length - 1));
-  const slide: Slide | undefined = rawIndex < 0 ? undefined : slides[index];
+  // Anket modunda gezinilebilir liste: atlananlar + canlı yarışma slaytları hariç
+  // (yarışma oyu sunucunun başlattığı geri sayıma bağlı — rules kapısı kilitler).
+  const navSlides = slides.filter((s) => !s.settings?.skipped && !["quiz", "quiz-type", "leaderboard"].includes(s.type));
+  const index = selfPace ? Math.min(localIdx, Math.max(0, navSlides.length - 1)) : Math.min(rawIndex, Math.max(0, slides.length - 1));
+  const slide: Slide | undefined = selfPace ? navSlides[index] : rawIndex < 0 ? undefined : slides[index];
 
   // Tek gönderimli tipler için sayfa yenilense bile oy kaydını hatırla
   useEffect(() => {
@@ -210,8 +218,44 @@ export default function AudiencePage() {
     );
   }
 
+  // 2b) Anket modu: bitirme ekranı (yerelde tamamlandı)
+  if (selfPace && finished) {
+    return (
+      <Centered>
+        <div className="mb-5">
+          <Avatar seed={avatarSeed ?? "Luna"} size={104} className="ring-4 ring-white shadow-lg" />
+        </div>
+        <h1 className="font-display text-3xl font-semibold tracking-tight mb-2">Hepsi bu kadar 🎉</h1>
+        <p className="text-muted">Cevapların kaydedildi — teşekkürler, {nickname}!</p>
+        <button
+          onClick={() => {
+            setFinished(false);
+            setLocalIdx(0);
+          }}
+          className="btn-ghost mt-8 !py-2.5 !px-5 text-sm"
+        >
+          ↩ Baştan gözden geçir
+        </button>
+      </Centered>
+    );
+  }
+
+  // 2c) Anket modu: içerik henüz yoksa bekleme
+  if (selfPace && !slide) {
+    return (
+      <Centered>
+        <div className="mb-5 animate-bounce">
+          <Avatar seed={avatarSeed ?? "Luna"} size={104} className="ring-4 ring-white shadow-lg" />
+        </div>
+        <h1 className="font-display text-3xl font-semibold tracking-tight mb-2">Hoş geldin, {nickname}!</h1>
+        <p className="text-muted">{presentation.title}</p>
+        <p className="text-muted mt-8 animate-pulse">İçerik hazırlanıyor…</p>
+      </Centered>
+    );
+  }
+
   // 2) Bekleme / karşılama (sunum kapalı veya hâlâ QR ekranında)
-  if (!presentation.isLive || rawIndex < 0 || !slide) {
+  if (!selfPace && (!presentation.isLive || rawIndex < 0 || !slide)) {
     return (
       <Centered>
         <div className="mb-5 animate-bounce">
@@ -225,6 +269,8 @@ export default function AudiencePage() {
       </Centered>
     );
   }
+
+  if (!slide) return null; // yukarıdaki kapılar garanti eder; TS daraltması için
 
   const hasVoted = votedSlideIds.has(slide.id);
   const markVoted = () => setVotedSlideIds((prev) => new Set(prev).add(slide.id));
@@ -253,9 +299,9 @@ export default function AudiencePage() {
 
       <section key={slide.id} className="flex-1 w-full max-w-md mx-auto px-4 py-8 animate-pop">
         {/* İlerleme çubuğu (atlanan slaytlar sayılmaz) */}
-        <div className="flex items-center gap-1.5 mb-6" aria-label={`Slayt ${index + 1} / ${slides.length}`}>
-          {slides.filter((s) => !s.settings?.skipped).map((s) => {
-            const i = slides.findIndex((x) => x.id === s.id);
+        <div className="flex items-center gap-1.5 mb-6" aria-label={`Slayt ${index + 1} / ${(selfPace ? navSlides : slides).length}`}>
+          {(selfPace ? navSlides : slides.filter((s) => !s.settings?.skipped)).map((s) => {
+            const i = (selfPace ? navSlides : slides).findIndex((x) => x.id === s.id);
             return (
               <span
                 key={s.id}
@@ -355,12 +401,36 @@ export default function AudiencePage() {
         ) : (
           <p className="text-muted">Bu slayt için katılım gerekmiyor.</p>
         )}
+
+        {/* Anket modu gezinmesi: katılımcı kendi ilerler */}
+        {selfPace && (
+          <div className="mt-8 flex items-center gap-3">
+            <button
+              onClick={() => setLocalIdx((i) => Math.max(0, i - 1))}
+              disabled={index === 0}
+              className="btn-ghost flex-1 !py-3 disabled:opacity-40"
+            >
+              ← Önceki
+            </button>
+            {index < navSlides.length - 1 ? (
+              <button onClick={() => setLocalIdx((i) => Math.min(navSlides.length - 1, i + 1))} className="btn-accent flex-1 !py-3">
+                Sıradaki →
+              </button>
+            ) : (
+              <button onClick={() => setFinished(true)} className="btn-accent flex-1 !py-3">
+                Bitir ✓
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
-      {/* Tepki çubuğu: her an bir emoji fırlat (+ canlı sohbet) */}
+      {/* Tepki çubuğu: her an bir emoji fırlat (+ canlı sohbet).
+          Anket modunda tepkiler gizli — izlenen bir perde yok, boşa yazım olur. */}
+      {(!selfPace || presentation.chatEnabled) && (
       <footer className="sticky bottom-0 px-4 py-2.5 bg-white/85 backdrop-blur border-t border-line">
         <div className="max-w-md mx-auto flex items-center justify-center gap-3">
-          {REACTION_EMOJIS.map((e) => (
+          {!selfPace && REACTION_EMOJIS.map((e) => (
             <button
               key={e}
               onClick={() => sendReaction(id, e)}
@@ -381,6 +451,7 @@ export default function AudiencePage() {
           )}
         </div>
       </footer>
+      )}
 
       {chatOpen && (
         <ChatPanel presentationId={id} nickname={nickname} onClose={() => setChatOpen(false)} />
