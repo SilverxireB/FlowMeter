@@ -29,6 +29,34 @@ import { Pulse, PulseDay } from "@/lib/types";
 
 const DAY_NAMES = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
 
+/** Kopyalanabilir adres satırı (kokpit "Bağlantılar" kartı). */
+function LinkRow({
+  label,
+  hint,
+  url,
+  copied,
+  onCopy,
+}: {
+  label: string;
+  hint: string;
+  url: string;
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="font-semibold text-sm mb-1">{label}</p>
+      <p className="text-muted text-xs leading-relaxed mb-2">{hint}</p>
+      <div className="flex items-center gap-2 flex-wrap">
+        <code className="text-xs bg-paper rounded-lg px-2 py-1 break-all min-w-0">{url}</code>
+        <button onClick={onCopy} className="btn-ghost !py-1.5 !px-3 text-xs shrink-0">
+          {copied ? "✓ Kopyalandı" : "Kopyala"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function PulseManagePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -39,6 +67,16 @@ export default function PulseManagePage() {
   const [days, setDays] = useState<PulseDay[]>([]);
   const [comments, setComments] = useState<PulseComment[]>([]);
   const [origin, setOrigin] = useState("");
+  const [copied, setCopied] = useState<"vote" | "kiosk" | "board" | null>(null);
+  const copyLink = useCallback(async (url: string, which: "vote" | "kiosk" | "board") => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(which);
+      window.setTimeout(() => setCopied(null), 1800);
+    } catch {
+      /* pano izni yoksa adres zaten ekranda seçilebilir */
+    }
+  }, []);
 
   useEffect(() => watchPulse(id, setPulse), [id]);
   useEffect(() => watchToday(id, setToday), [id]);
@@ -137,6 +175,10 @@ export default function PulseManagePage() {
   const belowThreshold = !!pulse.threshold && pctToday !== null && pctToday < pulse.threshold;
   const pending = comments.filter((c) => c.status === "pending");
   const voteUrl = origin ? `${origin}/pulse/${id}/vote` : "";
+  // Kiosk tabletine ve panoya da adres LAZIM: kiosk/pano girişsiz açılır ama
+  // adresi taşımanın yolu yoktu (kokpit Google girişi ister → tablette açılamaz).
+  const kioskUrl = origin ? `${origin}/pulse/${id}/kiosk` : "";
+  const boardUrl = origin ? `${origin}/pulse/${id}/board` : "";
 
   return (
     <main className="min-h-screen bg-wash">
@@ -349,16 +391,54 @@ export default function PulseManagePage() {
             <button onClick={pdfReport} className="btn-ghost self-start !py-2 text-sm">🧾 PDF rapor indir</button>
           </div>
 
-          <div className="card p-5 flex items-start gap-4">
-            <div className="min-w-0 flex-1">
-              <p className="eyebrow mb-2">Oy QR&apos;ı</p>
-              <p className="text-muted text-xs leading-relaxed mb-2">
-                Postere bas, insanlar telefonla okutup oy versin. Kiosk linkini tablette aç; çıkmak için <b>sol üst köşeye 3 sn içinde 5 kez</b> dokun + PIN gir.
-                Panoyu FlowSign&apos;da bir alana <b>URL öğesi</b> olarak göm → sonuçlar ekranda dönsün.
-              </p>
-              <code className="text-xs bg-paper rounded-lg px-2 py-1 break-all">{voteUrl}</code>
+          {/* Üç kanalın adresi: telefon (oy), tablet (kiosk), ekran (pano).
+              Kiosk/pano girişsiz açılır — adresi cihaza taşımanın tek yolu bu kart. */}
+          <div className="card p-5 flex flex-col gap-4">
+            <p className="eyebrow">Bağlantılar</p>
+
+            <div className="flex items-start gap-4 flex-wrap">
+              <div className="min-w-0 flex-1">
+                <LinkRow
+                  label="📱 Oy linki"
+                  hint="Postere bas — insanlar telefonla okutup oy versin."
+                  url={voteUrl}
+                  copied={copied === "vote"}
+                  onCopy={() => copyLink(voteUrl, "vote")}
+                />
+              </div>
+              {voteUrl && (
+                <div className="shrink-0 bg-white border border-line rounded-xl p-2">
+                  <QrCode text={voteUrl} size={104} />
+                </div>
+              )}
             </div>
-            {voteUrl && <div className="shrink-0 bg-white border border-line rounded-xl p-2"><QrCode text={voteUrl} size={104} /></div>}
+
+            <div className="flex items-start gap-4 flex-wrap border-t border-line pt-4">
+              <div className="min-w-0 flex-1">
+                <LinkRow
+                  label="🖥 Kiosk linki"
+                  hint="Tabletin kamerasıyla yandaki kodu okut → kiosk açılır (giriş gerekmez). Çıkmak için sol üst köşeye 3 sn içinde 5 kez dokun + PIN gir."
+                  url={kioskUrl}
+                  copied={copied === "kiosk"}
+                  onCopy={() => copyLink(kioskUrl, "kiosk")}
+                />
+              </div>
+              {kioskUrl && (
+                <div className="shrink-0 bg-white border border-line rounded-xl p-2">
+                  <QrCode text={kioskUrl} size={104} />
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-line pt-4">
+              <LinkRow
+                label="📊 Pano linki"
+                hint="Ekranda tek başına açabilir ya da FlowSign'da bir alana URL öğesi olarak yapıştırabilirsin → sonuçlar tabelada döner."
+                url={boardUrl}
+                copied={copied === "board"}
+                onCopy={() => copyLink(boardUrl, "board")}
+              />
+            </div>
           </div>
         </div>
       </section>
