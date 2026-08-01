@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { t } from "@/lib/i18n";
 import { submitResponse } from "@/lib/responses";
 import { Slide } from "@/lib/types";
 
@@ -33,7 +34,7 @@ export default function QuizTypeVote({
     return (
       <div className="card text-center py-12 px-6">
         <p className="text-5xl mb-4 animate-pulse" aria-hidden>✍️</p>
-        <p className="text-xl font-bold">Quiz başlamak üzere…</p>
+        <p className="text-xl font-bold">{t("Quiz başlamak üzere…", "Quiz is about to start…")}</p>
       </div>
     );
   }
@@ -45,8 +46,8 @@ export default function QuizTypeVote({
     return (
       <div className="card text-center py-12 px-6">
         <p className="text-5xl mb-4" aria-hidden>⏰</p>
-        <p className="text-xl font-bold">Süre doldu!</p>
-        <p className="text-muted mt-1">Sonuçlar ekranda açıklanıyor.</p>
+        <p className="text-xl font-bold">{t("Süre doldu!", "Time's up!")}</p>
+        <p className="text-muted mt-1">{t("Sonuçlar ekranda açıklanıyor.", "Results are being revealed on the big screen.")}</p>
       </div>
     );
   }
@@ -88,13 +89,13 @@ export default function QuizTypeVote({
         onChange={(e) => setText(e.target.value)}
         maxLength={60}
         autoFocus
-        placeholder="Cevabını yaz…"
+        placeholder={t("Cevabını yaz…", "Type your answer…")}
         className="input-base text-lg font-semibold"
       />
       <button type="submit" disabled={!text.trim() || sending} className="btn-accent py-4">
-        Gönder →
+        {t("Gönder →", "Send →")}
       </button>
-      <p className="text-muted text-xs text-center">Hızlı cevap = daha çok puan · yazım küçük/büyük harfe duyarsız</p>
+      <p className="text-muted text-xs text-center">{t("Hızlı cevap = daha çok puan · yazım küçük/büyük harfe duyarsız", "Faster answers = more points · spelling is case-insensitive")}</p>
     </form>
   );
 }

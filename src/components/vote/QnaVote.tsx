@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { usePresentation, useQuestions } from "@/lib/hooks";
+import { t } from "@/lib/i18n";
 import { hasUpvoted, submitQuestion, upvoteQuestion } from "@/lib/questions";
 
 /** Q&A izleyici: soru gönder + diğer soruları upvote et. */
@@ -37,22 +38,22 @@ export default function QnaVote({ presentationId }: { presentationId: string }) 
           onChange={(e) => setText(e.target.value)}
           maxLength={250}
           rows={3}
-          placeholder="Sorunu yaz…"
+          placeholder={t("Sorunu yaz…", "Type your question…")}
           className="input-base resize-none"
         />
         <button type="submit" disabled={!text.trim() || sending} className="btn-accent py-3">
-          {sending ? "Gönderiliyor…" : "Soruyu gönder"}
+          {sending ? t("Gönderiliyor…", "Sending…") : t("Soruyu gönder", "Send question")}
         </button>
         {moderation && (
           <p className="text-muted text-xs text-center">
-            🛡 Sorular moderatör onayından sonra listede görünür.
+            {t("🛡 Sorular moderatör onayından sonra listede görünür.", "🛡 Questions appear in the list after moderator approval.")}
           </p>
         )}
       </form>
 
       {questions.length > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="eyebrow">Sorular — beğendiğini oyla</p>
+          <p className="eyebrow">{t("Sorular — beğendiğini oyla", "Questions — upvote your favorites")}</p>
           {[...questions.filter((q) => !q.answered), ...questions.filter((q) => q.answered)].map(
             (q) => {
               const upvoted = hasUpvoted(q.id);
@@ -69,7 +70,7 @@ export default function QnaVote({ presentationId }: { presentationId: string }) 
                       setVoted((v) => v + 1);
                     }}
                     disabled={upvoted || q.answered}
-                    aria-label="Soruyu oyla"
+                    aria-label={t("Soruyu oyla", "Upvote question")}
                     className={`flex flex-col items-center shrink-0 rounded-xl px-2.5 py-1 cursor-pointer transition-colors ${
                       upvoted || q.answered
                         ? "bg-accent-soft text-accent-dark"
@@ -82,7 +83,7 @@ export default function QnaVote({ presentationId }: { presentationId: string }) 
                   <div className="flex-1 min-w-0 pt-1">
                     <p className="break-words">{q.text}</p>
                     {q.answered && (
-                      <span className="chip !py-0.5 text-xs text-accent mt-1.5">✓ Cevaplandı</span>
+                      <span className="chip !py-0.5 text-xs text-accent mt-1.5">{t("✓ Cevaplandı", "✓ Answered")}</span>
                     )}
                   </div>
                 </div>

@@ -41,6 +41,8 @@ export interface Presentation {
   /** Açık metin moderasyonu: açıkken open-ended/word-cloud cevapları perdeye
    *  düşmeden /moderate "Cevaplar" kuyruğunda onay bekler */
   textModeration?: boolean;
+  /** Katılımcı yüzeyi dili (telefon): "en" seçilirse izleyici ekranları İngilizce; kokpit hep Türkçe */
+  language?: "tr" | "en";
   /** Dashboard klasörü (boş = klasörsüz) */
   folder?: string;
   /**
@@ -168,6 +170,11 @@ export interface Wall {
   filmPlay?: { startedAt: Timestamp | null; length?: string; musicId?: string } | null;
   /** Duvar kapalı — yükleme durur, perde "teşekkürler" gösterir. Yeni oturum açar. */
   closed?: boolean;
+  /** Etkinlik sonrası galeri linki (/g/{id}) açık — misafirler onaylı medyayı
+   *  görüp indirebilir ("fotoğraflar nerede?" sorusunun cevabı). */
+  galleryOpen?: boolean;
+  /** Sabitlenen anı — kokpitten 📌; kaldırılana dek perdede büyük gösterilir */
+  pinnedMediaId?: string | null;
   /** Kişi başı en fazla foto (aktif oturum). 0 = sınırsız; yoksa varsayılan 20. */
   maxPerPerson?: number;
   /** Video süre limiti (sn). 0 = kapalı; yoksa allowVideo'dan türetilir (varsayılan 30). */

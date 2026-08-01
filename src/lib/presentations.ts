@@ -163,6 +163,11 @@ export async function setTextModeration(id: string, enabled: boolean): Promise<v
   await updateDoc(doc(db(), "presentations", id), { textModeration: enabled });
 }
 
+/** Katılımcı yüzeyi dilini ayarla (yalnız izleyici ekranlarını etkiler). */
+export async function setAudienceLanguage(id: string, language: "tr" | "en"): Promise<void> {
+  await updateDoc(doc(db(), "presentations", id), { language });
+}
+
 /** Son düzenleme zamanını günceller (dashboard "son düzenlenen" sıralaması). */
 async function touchPresentation(id: string): Promise<void> {
   await updateDoc(doc(db(), "presentations", id), { updatedAt: serverTimestamp() }).catch(() => {});

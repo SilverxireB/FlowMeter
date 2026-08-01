@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { t } from "@/lib/i18n";
 import { submitResponse } from "@/lib/responses";
 import { Slide } from "@/lib/types";
 
@@ -35,14 +36,14 @@ export default function RankingVote({
       await submitResponse(presentationId, slide.id, order);
       onVoted();
     } catch {
-      setError("Gönderilemedi, tekrar dene.");
+      setError(t("Gönderilemedi, tekrar dene.", "Couldn't send, try again."));
       setSending(false);
     }
   }
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-muted text-sm">En önemliyi en üste taşı:</p>
+      <p className="text-muted text-sm">{t("En önemliyi en üste taşı:", "Move the most important to the top:")}</p>
       {order.map((optionIndex, pos) => (
         <div
           key={optionIndex}
@@ -55,7 +56,7 @@ export default function RankingVote({
               onClick={() => move(pos, -1)}
               disabled={pos === 0}
               className="w-9 h-9 rounded-lg border border-line hover:bg-paper disabled:opacity-30"
-              aria-label={`${slide.options[optionIndex]} yukarı taşı`}
+              aria-label={`${slide.options[optionIndex]} ${t("yukarı taşı", "move up")}`}
             >
               ↑
             </button>
@@ -63,7 +64,7 @@ export default function RankingVote({
               onClick={() => move(pos, 1)}
               disabled={pos === order.length - 1}
               className="w-9 h-9 rounded-lg border border-line hover:bg-paper disabled:opacity-30"
-              aria-label={`${slide.options[optionIndex]} aşağı taşı`}
+              aria-label={`${slide.options[optionIndex]} ${t("aşağı taşı", "move down")}`}
             >
               ↓
             </button>
@@ -75,7 +76,7 @@ export default function RankingVote({
         disabled={sending || order.length === 0}
         className="btn-accent mt-2 w-full py-4"
       >
-        {sending ? "Gönderiliyor…" : "Sıralamayı gönder"}
+        {sending ? t("Gönderiliyor…", "Sending…") : t("Sıralamayı gönder", "Send ranking")}
       </button>
       {error && <p className="text-brand text-sm text-center">{error}</p>}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { t } from "@/lib/i18n";
 import { submitResponse } from "@/lib/responses";
 import { Slide } from "@/lib/types";
 
@@ -48,7 +49,7 @@ export default function Grid2x2Vote({
           <div
             onClick={place}
             role="button"
-            aria-label="Izgarada bir nokta seç"
+            aria-label={t("Izgarada bir nokta seç", "Pick a point on the grid")}
             className="relative flex-1 aspect-square rounded-2xl border-2 border-line bg-paper cursor-crosshair select-none touch-manipulation overflow-hidden"
           >
             {/* Eksen çizgileri */}
@@ -69,7 +70,7 @@ export default function Grid2x2Vote({
         <p className="text-center text-xs font-semibold text-muted mt-1 truncate">{yBottom}</p>
       </div>
       <button onClick={send} disabled={!pt || sending} className="btn-accent py-4">
-        {sending ? "Gönderiliyor…" : "İşareti gönder →"}
+        {sending ? t("Gönderiliyor…", "Sending…") : t("İşareti gönder →", "Send pin →")}
       </button>
     </div>
   );

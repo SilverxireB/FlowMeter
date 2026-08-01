@@ -17,6 +17,7 @@ import RankingVote from "@/components/vote/RankingVote";
 import ScalesVote from "@/components/vote/ScalesVote";
 import WordCloudVote from "@/components/vote/WordCloudVote";
 import { usePresentation, useSlides } from "@/lib/hooks";
+import { setAudienceLang, t } from "@/lib/i18n";
 import Avatar from "@/components/Avatar";
 import Logo from "@/components/Logo";
 import {
@@ -141,11 +142,15 @@ export default function AudiencePage() {
     setDraftSeed(fresh[0]);
   }
 
+  // İzleyici dili: render sırasında modül değişkenini günceller,
+  // alt bileşenler aynı render'da doğru dili okur.
+  setAudienceLang(presentation?.language);
+
   if (loading || !identityLoaded) {
-    return <Centered><p className="text-muted animate-pulse">Yükleniyor…</p></Centered>;
+    return <Centered><p className="text-muted animate-pulse">{t("Yükleniyor…", "Loading…")}</p></Centered>;
   }
   if (!presentation) {
-    return <Centered><p className="text-xl font-medium">Sunum bulunamadı.</p></Centered>;
+    return <Centered><p className="text-xl font-medium">{t("Sunum bulunamadı.", "Presentation not found.")}</p></Centered>;
   }
 
   // 1) Kimlik kapısı: avatar + takma ad (yalnızca ilk giriş — sonrası kalıcı).
@@ -155,7 +160,7 @@ export default function AudiencePage() {
       <Centered>
         <p className="eyebrow mb-2">{presentation.title}</p>
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-8">
-          Sana nasıl seslenelim?
+          {t("Sana nasıl seslenelim?", "What should we call you?")}
         </h1>
         <form onSubmit={saveIdentity} className="w-full max-w-sm flex flex-col gap-5">
           <div className="card p-5">
@@ -168,7 +173,7 @@ export default function AudiencePage() {
                   key={seed}
                   type="button"
                   onClick={() => setDraftSeed(seed)}
-                  aria-label="Avatar seç"
+                  aria-label={t("Avatar seç", "Pick an avatar")}
                   className={`rounded-full p-0.5 transition-all cursor-pointer ${
                     draftSeed === seed
                       ? "ring-[3px] ring-accent scale-110"
@@ -184,7 +189,7 @@ export default function AudiencePage() {
               onClick={shuffleAvatars}
               className="mt-4 text-accent hover:text-accent-dark text-sm font-bold cursor-pointer"
             >
-              🎲 Karıştır — yeni avatarlar getir
+              {t("🎲 Karıştır — yeni avatarlar getir", "🎲 Shuffle — new avatars")}
             </button>
           </div>
           <input
@@ -192,11 +197,11 @@ export default function AudiencePage() {
             onChange={(e) => setDraft(e.target.value)}
             maxLength={30}
             autoFocus
-            placeholder="Takma adın"
+            placeholder={t("Takma adın", "Your nickname")}
             className="input-base text-center text-xl font-semibold"
           />
           <button type="submit" disabled={!draft.trim()} className="btn-accent py-4">
-            Katıl →
+            {t("Katıl →", "Join →")}
           </button>
         </form>
       </Centered>
@@ -211,9 +216,9 @@ export default function AudiencePage() {
           <Avatar seed={avatarSeed ?? "Luna"} size={104} className="ring-4 ring-white shadow-lg" />
         </div>
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-2">
-          Sunum sona erdi 🎉
+          {t("Sunum sona erdi 🎉", "That's a wrap 🎉")}
         </h1>
-        <p className="text-muted">Katıldığın için teşekkürler, {nickname}!</p>
+        <p className="text-muted">{t("Katıldığın için teşekkürler", "Thanks for joining")}, {nickname}!</p>
       </Centered>
     );
   }
@@ -225,8 +230,8 @@ export default function AudiencePage() {
         <div className="mb-5">
           <Avatar seed={avatarSeed ?? "Luna"} size={104} className="ring-4 ring-white shadow-lg" />
         </div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight mb-2">Hepsi bu kadar 🎉</h1>
-        <p className="text-muted">Cevapların kaydedildi — teşekkürler, {nickname}!</p>
+        <h1 className="font-display text-3xl font-semibold tracking-tight mb-2">{t("Hepsi bu kadar 🎉", "All done 🎉")}</h1>
+        <p className="text-muted">{t("Cevapların kaydedildi — teşekkürler", "Your answers are saved — thanks")}, {nickname}!</p>
         <button
           onClick={() => {
             setFinished(false);
@@ -234,7 +239,7 @@ export default function AudiencePage() {
           }}
           className="btn-ghost mt-8 !py-2.5 !px-5 text-sm"
         >
-          ↩ Baştan gözden geçir
+          {t("↩ Baştan gözden geçir", "↩ Review from the start")}
         </button>
       </Centered>
     );
@@ -247,9 +252,9 @@ export default function AudiencePage() {
         <div className="mb-5 animate-bounce">
           <Avatar seed={avatarSeed ?? "Luna"} size={104} className="ring-4 ring-white shadow-lg" />
         </div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight mb-2">Hoş geldin, {nickname}!</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight mb-2">{t("Hoş geldin", "Welcome")}, {nickname}!</h1>
         <p className="text-muted">{presentation.title}</p>
-        <p className="text-muted mt-8 animate-pulse">İçerik hazırlanıyor…</p>
+        <p className="text-muted mt-8 animate-pulse">{t("İçerik hazırlanıyor…", "Content is being prepared…")}</p>
       </Centered>
     );
   }
@@ -262,10 +267,10 @@ export default function AudiencePage() {
           <Avatar seed={avatarSeed ?? "Luna"} size={104} className="ring-4 ring-white shadow-lg" />
         </div>
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-2">
-          Hoş geldin, {nickname}!
+          {t("Hoş geldin", "Welcome")}, {nickname}!
         </h1>
         <p className="text-muted">{presentation.title}</p>
-        <p className="text-muted mt-8 animate-pulse">Sunumun başlaması bekleniyor…</p>
+        <p className="text-muted mt-8 animate-pulse">{t("Sunumun başlaması bekleniyor…", "Waiting for the presentation to start…")}</p>
       </Centered>
     );
   }
@@ -287,7 +292,7 @@ export default function AudiencePage() {
         <span className="flex items-center gap-3">
           {logo && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt="Sunum logosu" className="h-6 w-auto" />
+            <img src={logo} alt={t("Sunum logosu", "Presentation logo")} className="h-6 w-auto" />
           )}
           <Logo size="sm" onDark={dark} />
         </span>
@@ -299,7 +304,7 @@ export default function AudiencePage() {
 
       <section key={slide.id} className="flex-1 w-full max-w-md mx-auto px-4 py-8 animate-pop">
         {/* İlerleme çubuğu (atlanan slaytlar sayılmaz) */}
-        <div className="flex items-center gap-1.5 mb-6" aria-label={`Slayt ${index + 1} / ${(selfPace ? navSlides : slides).length}`}>
+        <div className="flex items-center gap-1.5 mb-6" aria-label={`${t("Slayt", "Slide")} ${index + 1} / ${(selfPace ? navSlides : slides).length}`}>
           {(selfPace ? navSlides : slides.filter((s) => !s.settings?.skipped)).map((s) => {
             const i = (selfPace ? navSlides : slides).findIndex((x) => x.id === s.id);
             return (
@@ -334,11 +339,11 @@ export default function AudiencePage() {
         <div className="mt-4" />
 
         {presentation.votingClosed ? (
-          <StatusCard emoji="🔒" title="Oylama kapalı" text="Sunucu oylamayı tekrar açana kadar bekle." />
+          <StatusCard emoji="🔒" title={t("Oylama kapalı", "Voting closed")} text={t("Sunucu oylamayı tekrar açana kadar bekle.", "Wait for the presenter to reopen voting.")} />
         ) : hasVoted && (slide.type === "quiz" || slide.type === "quiz-type") ? (
           <QuizPersonalResult slide={slide} />
         ) : hasVoted ? (
-          <StatusCard emoji="🎉" title="Cevabın alındı!" text="Sonuçları sunum ekranında izle." />
+          <StatusCard emoji="🎉" title={t("Cevabın alındı!", "Answer received!")} text={t("Sonuçları sunum ekranında izle.", "Watch the results on the big screen.")} />
         ) : slide.type === "multiple-choice" ? (
           <MultipleChoiceVote presentationId={id} slide={slide} onVoted={markVoted} />
         ) : slide.type === "word-cloud" ? (
@@ -365,7 +370,7 @@ export default function AudiencePage() {
           <QnaVote presentationId={id} />
         ) : slide.type === "content" ? (
           <div className="text-ink/80 whitespace-pre-wrap">
-            {slide.settings?.description || "Sunumu ekrandan takip et."}
+            {slide.settings?.description || t("Sunumu ekrandan takip et.", "Follow along on the big screen.")}
           </div>
         ) : slide.type === "image" ? (
           <div className="flex flex-col gap-3">
@@ -397,9 +402,9 @@ export default function AudiencePage() {
             ))}
           </ol>
         ) : slide.type === "leaderboard" ? (
-          <StatusCard emoji="🏆" title="Skor Tablosu" text="Podyumu sunum ekranında izle!" />
+          <StatusCard emoji="🏆" title={t("Skor Tablosu", "Leaderboard")} text={t("Podyumu sunum ekranında izle!", "Watch the podium on the big screen!")} />
         ) : (
-          <p className="text-muted">Bu slayt için katılım gerekmiyor.</p>
+          <p className="text-muted">{t("Bu slayt için katılım gerekmiyor.", "Nothing to answer on this slide.")}</p>
         )}
 
         {/* Anket modu gezinmesi: katılımcı kendi ilerler */}
@@ -410,15 +415,15 @@ export default function AudiencePage() {
               disabled={index === 0}
               className="btn-ghost flex-1 !py-3 disabled:opacity-40"
             >
-              ← Önceki
+              {t("← Önceki", "← Back")}
             </button>
             {index < navSlides.length - 1 ? (
               <button onClick={() => setLocalIdx((i) => Math.min(navSlides.length - 1, i + 1))} className="btn-accent flex-1 !py-3">
-                Sıradaki →
+                {t("Sıradaki →", "Next →")}
               </button>
             ) : (
               <button onClick={() => setFinished(true)} className="btn-accent flex-1 !py-3">
-                Bitir ✓
+                {t("Bitir ✓", "Finish ✓")}
               </button>
             )}
           </div>
@@ -434,7 +439,7 @@ export default function AudiencePage() {
             <button
               key={e}
               onClick={() => sendReaction(id, e)}
-              aria-label={`Tepki gönder: ${e}`}
+              aria-label={`${t("Tepki gönder", "Send reaction")}: ${e}`}
               className="text-xl w-11 h-11 rounded-full grayscale hover:grayscale-0 active:grayscale-0 cursor-pointer transition-all duration-150 hover:scale-110 active:scale-90 hover:bg-paper"
             >
               {e}
@@ -443,7 +448,7 @@ export default function AudiencePage() {
           {presentation.chatEnabled && (
             <button
               onClick={() => setChatOpen(true)}
-              aria-label="Canlı sohbeti aç"
+              aria-label={t("Canlı sohbeti aç", "Open live chat")}
               className="text-xl w-11 h-11 rounded-full cursor-pointer transition-all duration-150 hover:scale-110 active:scale-90 hover:bg-paper"
             >
               💬

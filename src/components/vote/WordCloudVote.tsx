@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { t } from "@/lib/i18n";
 import { getVoteCount, submitResponse } from "@/lib/responses";
 import { Slide } from "@/lib/types";
 
@@ -37,7 +38,7 @@ export default function WordCloudVote({
       setWord("");
       if (next >= maxEntries) onDone();
     } catch {
-      setError("Gönderilemedi, tekrar dene.");
+      setError(t("Gönderilemedi, tekrar dene.", "Couldn't send, try again."));
     } finally {
       setSending(false);
     }
@@ -49,7 +50,7 @@ export default function WordCloudVote({
         value={word}
         onChange={(e) => setWord(e.target.value)}
         maxLength={30}
-        placeholder="Bir kelime yaz…"
+        placeholder={t("Bir kelime yaz…", "Type a word…")}
         className="input-base text-lg py-4"
       />
       <button
@@ -57,10 +58,12 @@ export default function WordCloudVote({
         disabled={!word.trim() || sending || remaining <= 0}
         className="btn-accent w-full py-4"
       >
-        {sending ? "Gönderiliyor…" : "Gönder"}
+        {sending ? t("Gönderiliyor…", "Sending…") : t("Gönder", "Send")}
       </button>
       <p className="text-muted text-sm text-center">
-        {remaining > 0 ? `${remaining} hakkın kaldı` : "Tüm hakların kullanıldı"}
+        {remaining > 0
+          ? `${remaining} ${t("hakkın kaldı", remaining === 1 ? "entry left" : "entries left")}`
+          : t("Tüm hakların kullanıldı", "You've used all your entries")}
       </p>
       {error && <p className="text-brand text-sm text-center">{error}</p>}
     </form>

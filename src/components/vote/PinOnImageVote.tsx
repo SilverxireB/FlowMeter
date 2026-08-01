@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { t } from "@/lib/i18n";
 import { submitResponse } from "@/lib/responses";
 import { Slide } from "@/lib/types";
 
@@ -25,7 +26,7 @@ export default function PinOnImageVote({
     return (
       <div className="card text-center py-12 px-6">
         <p className="text-5xl mb-4" aria-hidden>📍</p>
-        <p className="text-muted">Bu slayta henüz görsel eklenmemiş.</p>
+        <p className="text-muted">{t("Bu slayta henüz görsel eklenmemiş.", "No image has been added to this slide yet.")}</p>
       </div>
     );
   }
@@ -54,7 +55,7 @@ export default function PinOnImageVote({
         onClick={place}
         className="relative rounded-2xl overflow-hidden border-2 border-line cursor-crosshair select-none touch-manipulation"
         role="button"
-        aria-label="İşaretlemek için görsele dokun"
+        aria-label={t("İşaretlemek için görsele dokun", "Tap the image to place your pin")}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={image} alt={slide.question} className="w-full h-auto block" draggable={false} />
@@ -69,10 +70,12 @@ export default function PinOnImageVote({
         )}
       </div>
       <p className="text-muted text-sm text-center">
-        {pin ? "Pini taşımak için başka bir yere dokun." : "İşaretlemek istediğin yere dokun."}
+        {pin
+          ? t("Pini taşımak için başka bir yere dokun.", "Tap somewhere else to move the pin.")
+          : t("İşaretlemek istediğin yere dokun.", "Tap where you want to place your pin.")}
       </p>
       <button onClick={send} disabled={!pin || sending} className="btn-accent py-4">
-        {sending ? "Gönderiliyor…" : "İşareti gönder →"}
+        {sending ? t("Gönderiliyor…", "Sending…") : t("İşareti gönder →", "Send pin →")}
       </button>
     </div>
   );

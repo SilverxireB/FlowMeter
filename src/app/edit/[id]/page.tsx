@@ -30,6 +30,7 @@ import {
   duplicateSlide,
   reorderSlides,
   resetResponses,
+  setAudienceLanguage,
   setChatEnabled,
   setPresentationMode,
   setCurrentSlide,
@@ -314,6 +315,30 @@ export default function EditPage() {
                   </button>
                 ))}
               </div>
+            </div>
+            <div className="border-t border-line pt-5">
+              <p className="eyebrow mb-3">🌐 Katılımcı dili</p>
+              <div className="flex flex-col gap-2">
+                {(
+                  [
+                    { v: "tr", label: "🇹🇷 Türkçe" },
+                    { v: "en", label: "🇬🇧 English" },
+                  ] as const
+                ).map((o) => (
+                  <button
+                    key={o.v}
+                    onClick={() => setAudienceLanguage(id, o.v)}
+                    className={`text-left rounded-2xl border px-4 py-3 cursor-pointer transition-colors ${
+                      (presentation.language ?? "tr") === o.v ? "border-accent bg-accent-soft" : "border-line hover:border-ink/30"
+                    }`}
+                  >
+                    <span className="text-sm font-bold block">{o.label}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-muted text-xs mt-2">
+                Yalnız izleyicinin telefonundaki metinleri değiştirir; kokpit Türkçe kalır.
+              </p>
             </div>
             <div className="border-t border-line pt-5">
               <p className="eyebrow mb-3">💬 Canlı sohbet</p>

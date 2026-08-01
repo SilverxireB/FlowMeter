@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { t } from "@/lib/i18n";
 import { submitResponse } from "@/lib/responses";
 import { Slide } from "@/lib/types";
 
@@ -46,7 +47,7 @@ export default function HundredPointsVote({
           remaining === 0 ? "bg-green-600/10 text-green-700" : "bg-paper text-ink"
         }`}
       >
-        Kalan: <span className="tabular-nums">{remaining}</span> / 100
+        {t("Kalan", "Left")}: <span className="tabular-nums">{remaining}</span> / 100
       </div>
       {slide.options.map((opt, i) => (
         <div key={i}>
@@ -72,7 +73,7 @@ export default function HundredPointsVote({
         </div>
       ))}
       <button onClick={send} disabled={total !== 100 || sending} className="btn-accent py-4">
-        {total === 100 ? "Gönder →" : `${remaining} puan daha dağıt`}
+        {total === 100 ? t("Gönder →", "Send →") : t(`${remaining} puan daha dağıt`, `Distribute ${remaining} more points`)}
       </button>
     </div>
   );

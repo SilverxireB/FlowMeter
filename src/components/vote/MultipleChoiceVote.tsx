@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { t } from "@/lib/i18n";
 import { submitResponse } from "@/lib/responses";
 import { Slide } from "@/lib/types";
 
@@ -42,7 +43,7 @@ export default function MultipleChoiceVote({
       );
       onVoted();
     } catch {
-      setError("Oy gönderilemedi, tekrar dene.");
+      setError(t("Oy gönderilemedi, tekrar dene.", "Couldn't send your vote, try again."));
       setSending(false);
     }
   }
@@ -50,7 +51,7 @@ export default function MultipleChoiceVote({
   return (
     <div className="flex flex-col gap-3">
       {allowMultiple && (
-        <p className="text-muted text-sm font-semibold">Birden fazla seçebilirsin</p>
+        <p className="text-muted text-sm font-semibold">{t("Birden fazla seçebilirsin", "You can pick more than one")}</p>
       )}
       {slide.options.map((option, i) => (
         <button
@@ -75,7 +76,7 @@ export default function MultipleChoiceVote({
         disabled={selected.length === 0 || sending}
         className="btn-accent mt-2 w-full py-4"
       >
-        {sending ? "Gönderiliyor…" : "Gönder"}
+        {sending ? t("Gönderiliyor…", "Sending…") : t("Gönder", "Send")}
       </button>
       {error && <p className="text-brand text-sm text-center">{error}</p>}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { t } from "@/lib/i18n";
 import { submitResponse } from "@/lib/responses";
 import { Slide } from "@/lib/types";
 
@@ -55,7 +56,7 @@ export default function GuessNumberVote({
         className="accent-[#2563eb]"
       />
       <button type="submit" disabled={value === "" || sending} className="btn-accent py-4">
-        Tahminini gönder →
+        {t("Tahminini gönder →", "Send your guess →")}
       </button>
     </form>
   );

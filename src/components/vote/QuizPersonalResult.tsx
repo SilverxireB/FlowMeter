@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { t } from "@/lib/i18n";
 import { isTypedAnswerCorrect } from "@/lib/quizScores";
 import { Slide } from "@/lib/types";
 
@@ -33,8 +34,8 @@ export default function QuizPersonalResult({ slide }: { slide: Slide }) {
     return (
       <div className="card text-center py-12 px-6">
         <p className="text-5xl mb-4" aria-hidden>🤞</p>
-        <p className="text-xl font-bold">Cevabın alındı!</p>
-        <p className="text-muted mt-1">Süre dolunca sonucunu göreceksin.</p>
+        <p className="text-xl font-bold">{t("Cevabın alındı!", "Answer received!")}</p>
+        <p className="text-muted mt-1">{t("Süre dolunca sonucunu göreceksin.", "You'll see your result when time is up.")}</p>
       </div>
     );
   }
@@ -56,19 +57,19 @@ export default function QuizPersonalResult({ slide }: { slide: Slide }) {
   return (
     <div className="card text-center py-12 px-6 animate-pop">
       <p className="text-6xl mb-4" aria-hidden>{correct ? "🎉" : "😅"}</p>
-      <p className="text-2xl font-bold mb-1">{correct ? "Doğru!" : "Yanlış"}</p>
+      <p className="text-2xl font-bold mb-1">{correct ? t("Doğru!", "Correct!") : t("Yanlış", "Wrong")}</p>
       {correct ? (
         <>
-          <p className="font-display text-4xl font-semibold text-brand mt-2">+{points} puan</p>
-          <p className="text-muted text-xs mt-2">Seri bonusun 🔥 skor tablosuna eklenir</p>
+          <p className="font-display text-4xl font-semibold text-brand mt-2">+{points} {t("puan", "points")}</p>
+          <p className="text-muted text-xs mt-2">{t("Seri bonusun 🔥 skor tablosuna eklenir", "Your streak bonus 🔥 is added on the leaderboard")}</p>
         </>
       ) : (
         <p className="text-muted mt-1">
-          Doğru cevap: <span className="font-bold text-ink">{correctLabel}</span>
+          {t("Doğru cevap", "Correct answer")}: <span className="font-bold text-ink">{correctLabel}</span>
         </p>
       )}
       <p className="text-muted text-sm mt-4 tabular-nums">
-        Cevap süren: {(elapsed / 1000).toFixed(1)} sn
+        {t("Cevap süren", "Your answer time")}: {(elapsed / 1000).toFixed(1)} {t("sn", "s")}
       </p>
     </div>
   );

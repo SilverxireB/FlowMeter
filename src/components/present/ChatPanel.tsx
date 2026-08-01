@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { deleteChatMessage, sendChatMessage } from "@/lib/chat";
 import { useChatMessages } from "@/lib/hooks";
+import { t } from "@/lib/i18n";
 import { getVoterId } from "@/lib/responses";
 
 /**
@@ -53,13 +54,13 @@ export default function ChatPanel({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">
-          <h2 className="font-display text-lg font-semibold">💬 Canlı sohbet</h2>
-          <button onClick={onClose} className="btn-ghost !px-3 !py-1.5 text-sm">Kapat</button>
+          <h2 className="font-display text-lg font-semibold">{t("💬 Canlı sohbet", "💬 Live chat")}</h2>
+          <button onClick={onClose} className="btn-ghost !px-3 !py-1.5 text-sm">{t("Kapat", "Close")}</button>
         </div>
 
         <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2 min-h-[14rem]">
           {messages.length === 0 && (
-            <p className="text-muted text-sm text-center py-8">Henüz mesaj yok — ilk yazan sen ol!</p>
+            <p className="text-muted text-sm text-center py-8">{t("Henüz mesaj yok — ilk yazan sen ol!", "No messages yet — be the first to write!")}</p>
           )}
           {messages.map((m) => {
             const mine = m.voterId === myId;
@@ -78,7 +79,7 @@ export default function ChatPanel({
                     onClick={() => deleteChatMessage(presentationId, m.id)}
                     className="text-muted hover:text-brand text-[11px] font-semibold mt-0.5 cursor-pointer"
                   >
-                    Sil
+                    {t("Sil", "Delete")}
                   </button>
                 )}
               </div>
@@ -91,7 +92,7 @@ export default function ChatPanel({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             maxLength={200}
-            placeholder="Mesaj yaz…"
+            placeholder={t("Mesaj yaz…", "Type a message…")}
             className="input-base flex-1 !py-2.5"
           />
           <button type="submit" disabled={!draft.trim() || sending} className="btn-accent !px-5 !py-2.5">

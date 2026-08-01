@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { t } from "@/lib/i18n";
 import { submitResponse } from "@/lib/responses";
 import { Slide } from "@/lib/types";
 
@@ -31,7 +32,7 @@ export default function QuizVote({
     return (
       <div className="card text-center py-12 px-6">
         <p className="text-5xl mb-4 animate-pulse" aria-hidden>⚡</p>
-        <p className="text-xl font-bold">Quiz başlamak üzere…</p>
+        <p className="text-xl font-bold">{t("Quiz başlamak üzere…", "Quiz is about to start…")}</p>
       </div>
     );
   }
@@ -43,8 +44,8 @@ export default function QuizVote({
     return (
       <div className="card text-center py-12 px-6">
         <p className="text-5xl mb-4" aria-hidden>⏰</p>
-        <p className="text-xl font-bold">Süre doldu!</p>
-        <p className="text-muted mt-1">Sonuçlar ekranda açıklanıyor.</p>
+        <p className="text-xl font-bold">{t("Süre doldu!", "Time's up!")}</p>
+        <p className="text-muted mt-1">{t("Sonuçlar ekranda açıklanıyor.", "Results are being revealed on the big screen.")}</p>
       </div>
     );
   }
@@ -97,7 +98,7 @@ export default function QuizVote({
           {option}
         </button>
       ))}
-      <p className="text-muted text-xs text-center">Hızlı cevap = daha çok puan · üst üste doğrular 🔥 seri bonusu</p>
+      <p className="text-muted text-xs text-center">{t("Hızlı cevap = daha çok puan · üst üste doğrular 🔥 seri bonusu", "Faster answers = more points · correct streaks earn a 🔥 bonus")}</p>
     </div>
   );
 }

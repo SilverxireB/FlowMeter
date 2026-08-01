@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { t } from "@/lib/i18n";
 import { submitResponse } from "@/lib/responses";
 import { Slide } from "@/lib/types";
 
@@ -29,7 +30,7 @@ export default function ScalesVote({
       await submitResponse(presentationId, slide.id, ratings);
       onVoted();
     } catch {
-      setError("Gönderilemedi, tekrar dene.");
+      setError(t("Gönderilemedi, tekrar dene.", "Couldn't send, try again."));
       setSending(false);
     }
   }
@@ -49,7 +50,7 @@ export default function ScalesVote({
               setRatings(ratings.map((r, j) => (j === i ? Number(e.target.value) : r)))
             }
             className="w-full accent-[#2563eb]"
-            aria-label={`${statement} puanı`}
+            aria-label={`${statement} ${t("puanı", "score")}`}
           />
           <div className="flex justify-between text-sm text-muted mt-1">
             <span>{MIN}</span>
@@ -65,7 +66,7 @@ export default function ScalesVote({
         disabled={sending || slide.options.length === 0}
         className="btn-accent w-full py-4"
       >
-        {sending ? "Gönderiliyor…" : "Gönder"}
+        {sending ? t("Gönderiliyor…", "Sending…") : t("Gönder", "Send")}
       </button>
       {error && <p className="text-brand text-sm text-center">{error}</p>}
     </div>
