@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import CodeInput from "@/components/CodeInput";
 import Logo from "@/components/Logo";
 import { useAuthUser } from "@/lib/hooks";
 import { getLastPresentation, LastPresentation } from "@/lib/participants";
@@ -12,6 +13,11 @@ import { resolveCode } from "@/lib/walls";
  * Landing = Flow Studio (çatı marka) katılım kapısı. Kod deck ise sunuma
  * (/join→/p), wall ise duvara (/u) gider. Oluşturma /dashboard'da; altta
  * 4 ürünün minik O+ad şeridi (vitrin — kart değil, tıklanmaz).
+ *
+ * Kod alanı 6 AYRI HANE olarak çizilir: tek geniş kutuda harf aralığıyla
+ * yazılan rakamlar kayıyor ve "kaç hane kaldı" görünmüyordu. Girdi hâlâ TEK
+ * gerçek input (klavye, yapıştırma ve SMS otomatik doldurma bozulmasın);
+ * haneler onun görsel yansıması.
  */
 const PRODUCTS = [
   { o: "/logo-o-meter.png", name: "METER" },
@@ -19,6 +25,7 @@ const PRODUCTS = [
   { o: "/logo-o-sign.png", name: "SIGN" },
   { o: "/logo-o-pulse.png", name: "PULSE" },
 ] as const;
+
 export default function LandingPage() {
   const router = useRouter();
   const [code, setCode] = useState("");
@@ -46,10 +53,23 @@ export default function LandingPage() {
     }
   }
 
+  const ready = code.length === 6;
+
   return (
-    <main className="min-h-screen flex flex-col bg-wash">
-      {/* Salt katılımcı yüzeyi: giriş linki YOK; yalnız oturumu AÇIK sahibe çip.
-          z-10: -mt-14'lü içerik bloğu başlığın üstüne binip dokunuşu yutmasın */}
+    <main className="relative min-h-screen flex flex-col bg-wash overflow-hidden">
+      {/* Marka atmosferi: üstten inen çok soluk lacivert/indigo ışıma. Düz gri
+          zemin "şablon" hissi veriyordu; bu, sayfayı markaya bağlar ama okumayı
+          zorlaştırmaz (opaklık çok düşük). */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[46vh]"
+        style={{
+          background:
+            "radial-gradient(80rem 26rem at 50% -8%, rgba(79,70,229,0.10), transparent 62%), radial-gradient(50rem 20rem at 15% 0%, rgba(0,30,100,0.06), transparent 60%)",
+        }}
+      />
+
+      {/* Salt katılımcı yüzeyi: giriş linki YOK; yalnız oturumu AÇIK sahibe çip. */}
       <header className="relative z-10 px-6 py-5 flex items-center justify-between gap-3">
         <Logo variant="studio" />
         {user && (
@@ -59,26 +79,17 @@ export default function LandingPage() {
         )}
       </header>
 
-      <section className="flex-1 flex flex-col items-center justify-center px-4 -mt-14">
-        <p className="eyebrow mb-4">Canlı etkinlik</p>
-        <h1 className="font-display text-4xl sm:text-5xl font-semibold tracking-tight text-center mb-3">
+      <section className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 pb-6 -mt-10">
+        <p className="eyebrow mb-3">Canlı etkinlik</p>
+        <h1 className="font-display text-[2.6rem] leading-[1.05] sm:text-6xl font-bold tracking-[-0.03em] text-center mb-3">
           Etkinliğe katıl
         </h1>
-        <p className="text-muted text-center mb-10">
-          Ekranda gördüğün 6 haneli kodu gir
-        </p>
+        <p className="text-muted text-center mb-9 text-[15px]">Ekranda gördüğün 6 haneli kodu gir</p>
 
-        <form onSubmit={join} className="w-full max-w-sm flex flex-col gap-3">
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            inputMode="numeric"
-            autoFocus
-            placeholder="123 456"
-            aria-label="Katılım kodu"
-            className="input-base text-center text-4xl tracking-[0.3em] font-bold py-5 placeholder:text-ink/15 placeholder:font-semibold"
-          />
-          <button type="submit" disabled={code.length !== 6 || busy} className="btn-accent py-4 text-lg">
+        <form onSubmit={join} className="w-full max-w-sm flex flex-col gap-4">
+          <CodeInput value={code} onChange={setCode} />
+
+          <button type="submit" disabled={!ready || busy} className="btn-accent py-4 text-lg">
             {busy ? "Bağlanılıyor…" : "Katıl →"}
           </button>
         </form>
@@ -86,28 +97,26 @@ export default function LandingPage() {
         {last && (
           <Link
             href={`/p/${last.id}`}
-            className="mt-8 group inline-flex items-center gap-2 bg-white border border-line rounded-full pl-2 pr-4 py-1.5 text-sm hover:border-accent transition-colors"
+            className="mt-7 group inline-flex items-center gap-2 bg-white border border-line rounded-full pl-2 pr-4 py-1.5 text-sm hover:border-accent transition-colors"
           >
-            <span className="bg-accent-soft text-accent-dark rounded-full px-2 py-0.5 text-xs font-bold">
-              Devam et
-            </span>
-            <span className="text-ink/80 group-hover:text-ink truncate max-w-[14rem]">
-              {last.title}
-            </span>
+            <span className="bg-accent-soft text-accent-dark rounded-full px-2 py-0.5 text-xs font-bold">Devam et</span>
+            <span className="text-ink/80 group-hover:text-ink truncate max-w-[14rem]">{last.title}</span>
             <span className="text-muted">→</span>
           </Link>
         )}
       </section>
 
       {/* Çatı vitrini: minik O + ad — salt görsel, tıklanmaz */}
-      <footer className="px-6 pb-8 pt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-        {PRODUCTS.map((p) => (
-          <span key={p.name} className="inline-flex items-center gap-1.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.o} alt="" className="h-4 w-auto" />
-            <span className="text-xs font-semibold tracking-wide text-ink/45">{p.name}</span>
-          </span>
-        ))}
+      <footer className="relative z-10 px-6 pb-8 pt-2">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5">
+          {PRODUCTS.map((p) => (
+            <span key={p.name} className="inline-flex items-center gap-1.5 opacity-70">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.o} alt="" className="h-4 w-auto" />
+              <span className="text-[11px] font-bold tracking-[0.12em] text-ink/45">{p.name}</span>
+            </span>
+          ))}
+        </div>
       </footer>
     </main>
   );

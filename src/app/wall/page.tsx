@@ -6,6 +6,7 @@
  * Akıllı kod kutusu: kod deck ise /join'e, wall ise /u'ya yönlendirir.
  */
 import Link from "next/link";
+import CodeInput from "@/components/CodeInput";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import Logo from "@/components/Logo";
@@ -91,15 +92,7 @@ export default function WallHome() {
         </p>
 
         <form onSubmit={join} className="w-full max-w-sm flex flex-col gap-3">
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            inputMode="numeric"
-            autoFocus
-            placeholder="123 456"
-            aria-label="Katılım kodu"
-            className="w-full text-center text-4xl tracking-[0.3em] font-bold py-5 rounded-2xl bg-white/10 border border-white/15 text-white placeholder:text-white/25 focus:outline-none focus:border-white/40"
-          />
+          <CodeInput value={code} onChange={setCode} tone="dark" />
           <button
             type="submit"
             disabled={code.length !== 6 || busy}
