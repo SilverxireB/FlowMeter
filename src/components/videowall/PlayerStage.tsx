@@ -49,12 +49,29 @@ function TextView({ item }: { item: ZoneItem }) {
  * zıplama/flaş yapmaz). İçerik alana STRETCH edilir (object-fit: fill).
  * Video: giriş animasyonu İLK KARE HAZIR OLANA dek bekler (loadeddata) —
  * kırpışmanın/siyah boşluğun ana kaynağı boş videonun fade'lenmesiydi. */
-function Layer({ item, transition, loop, onEnded, onError }: { item: ZoneItem; transition: Transition; loop: boolean; onEnded?: () => void; onError?: () => void }) {
+function Layer({ item, transition, loop, designPx, onEnded, onError }: { item: ZoneItem; transition: Transition; loop: boolean; designPx?: { w: number; h: number }; onEnded?: () => void; onError?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const vidRef = useRef<HTMLVideoElement>(null);
   const isVideo = item.kind === "video";
   const [ready, setReady] = useState(!isVideo);
   const [on, setOn] = useState(transition === "cut");
+  // URL öğesi ÖLÇEK DÜZELTMESİ: iframe, görsel/video gibi alana "stretch"
+  // edilemez — sayfa gerçek CSS pikselinde çizilir. Küçük pencerede (telefon
+  // önizlemesi, Sign'a gömme) sayfanın yalnız sol üst köşesi görünüyordu.
+  // Çözüm: sayfayı hep alanın TASARIM çözünürlüğünde render et, görünen alana
+  // scale(sx, sy) ile sığdır. Gerçek TV'de sx=sy≈1 → davranış değişmez.
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  useEffect(() => {
+    if (item.kind !== "url" || !designPx) return;
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((es) => {
+      const r = es[0]?.contentRect;
+      if (r && r.width > 0) setBox({ w: r.width, h: r.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [item.kind, designPx]);
   // Emniyet: loadeddata hiç gelmezse (yavaş ağ/bozuk dosya) 1.2sn sonra yine gir
   useEffect(() => {
     if (!isVideo || ready) return;
@@ -150,12 +167,26 @@ function Layer({ item, transition, loop, onEnded, onError }: { item: ZoneItem; t
           sandbox="allow-scripts allow-same-origin allow-forms"
           referrerPolicy="no-referrer"
           className="absolute top-0 left-0 border-0 pointer-events-none"
-          style={{
-            width: `${10000 / Math.min(150, Math.max(25, item.zoom ?? 100))}%`,
-            height: `${10000 / Math.min(150, Math.max(25, item.zoom ?? 100))}%`,
-            transform: `scale(${Math.min(150, Math.max(25, item.zoom ?? 100)) / 100})`,
-            transformOrigin: "top left",
-          }}
+          style={(() => {
+            const zf = Math.min(150, Math.max(25, item.zoom ?? 100)) / 100;
+            // Tasarım-piksel modu: sayfa, alanın gerçek (tasarım) çözünürlüğünde
+            // render edilir ve görünen kutuya ölçeklenir — küçük pencerede de
+            // TV'deki görüntünün birebir küçültülmüşü görünür.
+            if (designPx && box)
+              return {
+                width: `${designPx.w / zf}px`,
+                height: `${designPx.h / zf}px`,
+                transform: `scale(${(box.w / designPx.w) * zf}, ${(box.h / designPx.h) * zf})`,
+                transformOrigin: "top left",
+              };
+            // Ölçü henüz alınamadıysa eski yüzde tabanlı davranış (TV'de eşdeğer)
+            return {
+              width: `${10000 / (zf * 100)}%`,
+              height: `${10000 / (zf * 100)}%`,
+              transform: `scale(${zf})`,
+              transformOrigin: "top left",
+            };
+          })()}
         />
       ) : item.kind === "text" ? (
         <TextView item={item} />
@@ -174,11 +205,16 @@ type NavSignal = { dir: 1 | -1; n: number };
 
 function ZonePlayer({
   zone,
+  stageW,
+  stageH,
   manual = false,
   nav,
   onIndex,
 }: {
   zone: Zone;
+  /** Duvarın tasarım çözünürlüğü (px) — URL öğesinin ölçek düzeltmesi için. */
+  stageW: number;
+  stageH: number;
   /** Sunum modu: otomatik ilerleme kapalı; nav sinyaliyle gezinilir, uçlarda durur. */
   manual?: boolean;
   nav?: NavSignal;
@@ -186,6 +222,8 @@ function ZonePlayer({
   onIndex?: (i: number, len: number) => void;
 }) {
   const transition: Transition = zone.transition ?? "fade";
+  // Bu alanın tasarım-piksel ölçüsü (URL iframe'i bu boyutta render edilir)
+  const designPx = useMemo(() => ({ w: Math.max(1, Math.round(stageW * zone.w)), h: Math.max(1, Math.round(stageH * zone.h)) }), [stageW, stageH, zone.w, zone.h]);
   const [now, setNow] = useState(() => new Date());
   // Takvim tiki dakika sınırına hizalı — "08:00'da başlar" gerçekten 08:00'da başlar
   useEffect(() => {
@@ -301,6 +339,7 @@ function ZonePlayer({
               key={`${l.key}-${urlEpoch}`}
               item={l.item}
               transition={transition}
+              designPx={designPx}
               /* Sunum modunda video hep loop eder (sayfada kaldıkça döner) */
               loop={top && l.item.kind === "video" && (manual || len <= 1)}
               onEnded={top && !manual && l.item.kind === "video" && len > 1 ? advance : undefined}
@@ -476,6 +515,8 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
         <ZonePlayer
           key={z.id}
           zone={z}
+          stageW={stage.width}
+          stageH={stage.height}
           manual={manual}
           nav={manual ? nav : undefined}
           onIndex={manual && z.id === biggestZoneId ? onIndex : undefined}
