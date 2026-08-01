@@ -86,7 +86,9 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   tsconfig'inden dışlandı).
   KURAL: Sign ürün davranışı değişince İKİ yerde güncellenir — `src/` (online)
   + `flowsign-selfhost/` (kopya bileşenler: PlayerStage/ZonePanel/LayoutEditor/
-  zones.ts birebir mantık taşır).
+  zones.ts birebir mantık taşır). İKON SETİ de kopyadır: `icons.tsx` glifleri
+  `components/Icon.tsx`ten alınır (2026-08'de 22 ikon ayrışmıştı — self-host
+  eski ince seti taşıyordu; optik kalınlık `strokeFor` ile birlikte taşındı).
   7/24 bekçiler Sign dosyalarında: donma bekçisi + dayanıklı abonelik + gece
   04:0x reload + tek-URL 15dk tazeleme + play error boundary (PlayerStage,
   videowalls.ts, play rotaları). Liste kartları `WallThumb` (YAYIN minyatürü;

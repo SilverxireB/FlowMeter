@@ -1,29 +1,14 @@
 "use client";
 
 /**
- * FlowSign ikon seti — işlevsel butonlardaki Unicode/emoji glifler (💾 👁 🗑 ⧉ ⠿
- * ⛶ ⊞ ✕) kurumsal üründe tutarsız render oluyordu → inline SVG (stroke:
- * currentColor, buton rengini alır). Dekoratif emojiler (boş durumlar) kalabilir.
+ * FlowSign ikon seti (self-host) — ONLINE ÜRÜNLE BİREBİR AYNI çizimler.
+ * Buradaki set eskiden ayrı çizilmişti ve daha ince/karışıktı; aynı ürünün iki
+ * dağıtımı farklı görünmesin diye `src/components/Icon.tsx` glifleri buraya
+ * taşındı. Optik kalınlık kuralı da geldi: küçük boyda daha KALIN çizgi
+ * (aşağıdaki strokeFor) — 13-16px'te ince çizgi bulanıklaşıyordu.
+ * Dolu (silüet) çizilenler FILLED içinde; dekoratif emojiler içerikte kalabilir.
  */
-export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
-  const p = PATHS[name];
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className="shrink-0"
-    >
-      {p}
-    </svg>
-  );
-}
+import { JSX } from "react";
 
 export type IconName =
   | "eye"
@@ -50,102 +35,110 @@ export type IconName =
   | "users"
   | "plus";
 
+
+
+/**
+ * Optik kalınlık: küçük ikon daha KALIN çizgi ister — 13-16px'te 1.8-2px çizgi
+ * bulanıklaşıp "ince ve anlaşılmaz" görünüyordu (kullanıcı geri bildirimi).
+ */
+function strokeFor(size: number): number {
+  if (size <= 13) return 2.6;
+  if (size <= 16) return 2.4;
+  if (size <= 20) return 2.2;
+  if (size <= 28) return 2;
+  return 1.8;
+}
+
+/** Dolu (silüet) çizilenler — küçük boyda kontur kaybolmasın. */
+const FILLED: Partial<Record<IconName, true>> = { play: true, grip: true };
+
 const PATHS: Record<IconName, JSX.Element> = {
-  // Yetki yüzeyi: sahip (kalkan) · yetkili (kalem) · devret (döngü) · kullanıcılar
-  shield: (
-    <>
-      <path d="M12 3l7 3v5.5c0 4.3-2.9 7.7-7 9.5-4.1-1.8-7-5.2-7-9.5V6l7-3Z" />
-      <path d="m9 12 2 2 4-4" />
-    </>
-  ),
-  pencil: <path d="M4 20h4l10-10a2.5 2.5 0 0 0-4-4L4 16v4Z" />,
-  refresh: (
-    <>
-      <path d="M20 12a8 8 0 0 1-13.7 5.6L4 15.5" />
-      <path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5" />
-      <path d="M4 20v-4.5h4.5M20 4v4.5h-4.5" />
-    </>
-  ),
-  users: (
-    <>
-      <circle cx="9" cy="8" r="3.2" />
-      <path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" />
-      <path d="M16 5.2A3.2 3.2 0 0 1 16 11M18 20c0-2.6-1-4.4-2.6-5.4" />
-    </>
-  ),
-  plus: <path d="M12 5v14M5 12h14" />,
   eye: (
     <>
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="3.2" />
     </>
   ),
   save: (
     <>
-      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
-      <path d="M17 21v-8H7v8M7 3v5h8" />
+      <path d="M5 4h11l4 4v12H5V4Z" />
+      <path d="M9 4v5h6M8 20v-6h8v6" />
     </>
   ),
   trash: (
     <>
-      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-      <path d="M10 11v6M14 11v6" />
+      <path d="M4 7h16" />
+      <path d="M9.5 7V4.5h5V7" />
+      <path d="M6.5 7 7.5 20h9l1-13" />
     </>
   ),
   copy: (
     <>
-      <rect x="9" y="9" width="12" height="12" rx="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+      <rect x="9" y="9" width="11" height="11" rx="2.5" />
+      <path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5V5.5A1.5 1.5 0 0 1 4.5 4h8A1.5 1.5 0 0 1 14 5.5V6" />
     </>
   ),
   grip: (
-    <g fill="currentColor" stroke="none">
-      <circle cx="9" cy="6" r="1.6" />
-      <circle cx="15" cy="6" r="1.6" />
-      <circle cx="9" cy="12" r="1.6" />
-      <circle cx="15" cy="12" r="1.6" />
-      <circle cx="9" cy="18" r="1.6" />
-      <circle cx="15" cy="18" r="1.6" />
-    </g>
+    <>
+      <circle cx="9" cy="6" r="1.7" />
+      <circle cx="15" cy="6" r="1.7" />
+      <circle cx="9" cy="12" r="1.7" />
+      <circle cx="15" cy="12" r="1.7" />
+      <circle cx="9" cy="18" r="1.7" />
+      <circle cx="15" cy="18" r="1.7" />
+    </>
   ),
-  expand: <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />,
+  expand: <path d="M9 3.5H5.5A2 2 0 0 0 3.5 5.5V9m17 0V5.5a2 2 0 0 0-2-2H15m0 17h3.5a2 2 0 0 0 2-2V15m-17 0v3.5a2 2 0 0 0 2 2H9" />,
   grid: (
     <>
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M3 12h18M12 3v18" />
+      <rect x="3.5" y="3.5" width="17" height="17" rx="2.5" />
+      <path d="M3.5 12h17M12 3.5v17" />
     </>
   ),
   close: <path d="M18 6 6 18M6 6l12 12" />,
   split: (
     <>
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M12 3v18M3 12h18" strokeDasharray="3 3" />
+      <rect x="3" y="4" width="7.5" height="16" rx="2" />
+      <rect x="13.5" y="4" width="7.5" height="6.5" rx="2" />
+      <rect x="13.5" y="13.5" width="7.5" height="6.5" rx="2" />
     </>
   ),
-  up: <path d="m18 15-6-6-6 6" />,
-  down: <path d="m6 9 6 6 6-6" />,
-  swap: <path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />,
+  up: <path d="m18.5 15.5-6.5-6.5-6.5 6.5" />,
+  down: <path d="m5.5 8.5 6.5 6.5 6.5-6.5" />,
+  swap: (
+    <>
+      <path d="M4 8.5h15M15.5 5l3.5 3.5-3.5 3.5" />
+      <path d="M20 15.5H5M8.5 12 5 15.5 8.5 19" />
+    </>
+  ),
   help: (
     <>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3" />
-      <path d="M12 17h.01" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.2 9.3A3 3 0 0 1 15 10c0 2-3 2.6-3 4" />
+      <path d="M12 17.5h.01" />
     </>
   ),
   undo: (
     <>
-      <path d="M3 7v6h6" />
-      <path d="M21 17a9 9 0 0 0-15-6.7L3 13" />
+      <path d="M4 8v5.5h5.5" />
+      <path d="M4.5 13a8 8 0 1 1 2.6 6" />
     </>
   ),
-  play: <path d="m6 4 14 8-14 8V4Z" />,
+  play: <path d="M7 4.5 20 12 7 19.5V4.5Z" />,
   link: (
     <>
-      <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
-      <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
+      <path d="M9.5 17H7.5a5 5 0 0 1 0-10h2" />
+      <path d="M14.5 7h2a5 5 0 0 1 0 10h-2" />
+      <path d="M8.5 12h7" />
     </>
   ),
-  // Sunum kumandası (presenter/klikır) — oyun kolu DEĞİL.
+  settings: (
+    <>
+      <path d="M4 7h6M14 7h6M4 17h10M18 17h2" />
+      <circle cx="12" cy="7" r="2.5" />
+      <circle cx="16" cy="17" r="2.5" />
+    </>
+  ),
   remote: (
     <>
       <rect x="7.5" y="2.5" width="9" height="19" rx="3" />
@@ -153,10 +146,50 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M9.8 12h4.4M9.8 16h4.4" />
     </>
   ),
-  settings: (
+  shield: (
     <>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1Z" />
+      <path d="M12 3 20 6v6c0 4.4-3.2 8-8 9.5C7.2 20 4 16.4 4 12V6l8-3Z" />
+      <path d="m8.8 12 2.4 2.4 4.4-4.6" />
     </>
   ),
+  pencil: (
+    <>
+      <path d="M16 3.5 20.5 8 9 19.5l-5 1.5 1.5-5L16 3.5Z" />
+      <path d="m14 5.5 4.5 4.5" />
+    </>
+  ),
+  refresh: (
+    <>
+      <path d="M20 12a8 8 0 1 1-2.4-5.7" />
+      <path d="M20 3.5V9h-5.5" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9.5" cy="8" r="3.7" />
+      <path d="M2.8 20a6.7 6.7 0 0 1 13.4 0" />
+      <path d="M16.5 5.2a3.5 3.5 0 0 1 0 6.4M18 14.6A6 6 0 0 1 21.2 20" />
+    </>
+  ),
+  plus: <path d="M12 5v14M5 12h14" />,
 };
+
+export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+  const filled = FILLED[name];
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth={filled ? 0 : strokeFor(size)}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="shrink-0"
+    >
+      {PATHS[name]}
+    </svg>
+  );
+}
