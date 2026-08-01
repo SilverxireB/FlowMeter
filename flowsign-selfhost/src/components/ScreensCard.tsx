@@ -40,18 +40,18 @@ export default function ScreensCard({ id }: { id: string }) {
   const online = screens.filter((s) => Date.now() - (s.lastSeenAt ?? 0) < ONLINE_MS);
 
   return (
-    <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
+    <div className="card p-5">
       <div className="flex items-center gap-2.5 mb-3">
-        <p className="text-white/60 text-[11px] font-bold uppercase tracking-[0.14em]">Ekranlar</p>
+        <p className="eyebrow">Ekranlar</p>
         {screens.length > 0 && (
-          <span className={`text-xs font-semibold ${online.length ? "text-emerald-300" : "text-white/40"}`}>
+          <span className={`text-xs font-semibold ${online.length ? "text-emerald-600" : "text-muted"}`}>
             {online.length ? `● ${online.length} çevrimiçi` : "○ çevrimiçi ekran yok"}
           </span>
         )}
       </div>
 
       {screens.length === 0 ? (
-        <p className="text-white/50 text-sm">
+        <p className="text-muted text-sm">
           Yayın linkini bir cihazda açınca burada görünür — hangi ekranların açık olduğunu buradan izlersin.
         </p>
       ) : (
@@ -60,14 +60,14 @@ export default function ScreensCard({ id }: { id: string }) {
             const seen = s.lastSeenAt ?? 0;
             const isOnline = Date.now() - seen < ONLINE_MS;
             return (
-              <li key={s.id} className="flex items-center gap-3 rounded-xl bg-black/25 border border-white/10 px-3 py-2.5 text-sm">
-                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOnline ? "bg-emerald-400" : "bg-white/25"}`} aria-hidden />
+              <li key={s.id} className="flex items-center gap-3 rounded-xl bg-paper border border-line px-3 py-2.5 text-sm">
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOnline ? "bg-emerald-500" : "bg-line"}`} aria-hidden />
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold truncate">
                     {uaLabel(s.ua)}
-                    {s.vwPx ? <span className="text-white/45 font-normal ml-2 tabular-nums">{s.vwPx}×{s.vhPx}</span> : null}
+                    {s.vwPx ? <span className="text-muted font-normal ml-2 tabular-nums">{s.vwPx}×{s.vhPx}</span> : null}
                   </p>
-                  <p className="text-white/50 text-xs">
+                  <p className="text-muted text-xs">
                     {isOnline ? "çevrimiçi" : seen ? `son görülme: ${ago(seen)}` : "hiç görülmedi"}
                     {s.startedAt ? ` · açılış: ${ago(s.startedAt)}` : ""}
                   </p>
@@ -75,7 +75,7 @@ export default function ScreensCard({ id }: { id: string }) {
                 {!isOnline && (
                   <button
                     onClick={() => deleteScreenBeat(id, s.id).catch(() => {})}
-                    className="shrink-0 w-8 h-8 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10"
+                    className="shrink-0 w-8 h-8 grid place-items-center rounded-lg text-muted hover:text-brand hover:bg-brand-soft/50"
                     title="Bayat kaydı kaldır (cihaz açıksa yeniden belirir)"
                     aria-label="Ekran kaydını kaldır"
                   >

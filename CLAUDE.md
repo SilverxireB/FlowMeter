@@ -31,8 +31,11 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
 - Font Plus Jakarta Sans; renkler: accent indigo #4f46e5 (birincil aksiyon),
   brand gül #e11d48 (YALNIZ uyarı/danger), ink/paper/line/muted nötrler.
   Logo lacisi #001e64. Skor semantiği (Pulse): yeşil ≥70 / amber ≥40 / gül <40.
-- Ürün yüzeyleri: Meter+Pulse kokpiti AYDINLIK; Wall lacivert, Sign #0d102f koyu,
-  Pulse kiosk/pano #101014. Koyu ekranlara `[color-scheme:dark]`.
+- Ürün yüzeyleri: Meter+Pulse+**Sign** kokpitleri AYDINLIK (aynı bg-wash/card/
+  input-base dili — Sign eskiden #0d102f koyuydu, tek başına mor kalıyordu:
+  online + self-host birlikte aydınlığa alındı); Wall lacivert, Pulse kiosk/pano
+  #101014, Sign PERDESİ siyah (yayın alanı içerik zeminidir, kokpit değil).
+  Koyu ekranlara `[color-scheme:dark]`.
 - **Logo (yeni dil):** başta yalnız **O-halkası ikonu** + devamında ad metni;
   "FLOW" yazısı YALNIZ çatıda (FLOW STUDIO), ürünler O + kısa ad (METER/WALL/
   SIGN/PULSE) (`Logo variant`; `public/logo-o-*.png` + `-white`).

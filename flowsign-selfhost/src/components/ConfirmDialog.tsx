@@ -28,20 +28,20 @@ export default function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-label={title}
-        className="w-full max-w-sm rounded-2xl bg-[#1e1b4b] border border-white/15 p-5 animate-pop"
+        className="w-full max-w-sm rounded-2xl bg-white border border-line p-5 shadow-xl animate-pop"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="font-display font-semibold mb-2 text-white">{title}</p>
-        <p className="text-sm text-white/75 leading-relaxed mb-5 whitespace-pre-line">{message}</p>
+        <p className="font-display font-semibold mb-2 text-ink">{title}</p>
+        <p className="text-sm text-muted leading-relaxed mb-5 whitespace-pre-line">{message}</p>
         <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#a5b4fc]/60">
+          <button onClick={onCancel} className="rounded-xl bg-white border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-paper focus-visible:ring-4 focus-visible:ring-accent-soft">
             {cancelLabel}
           </button>
           <button
             autoFocus
             onClick={onConfirm}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold text-white focus-visible:ring-2 focus-visible:ring-[#a5b4fc]/60 ${
-              danger ? "bg-rose-500 hover:bg-rose-600" : "bg-accent hover:bg-accent-dark"
+            className={`rounded-xl px-4 py-2 text-sm font-semibold text-white focus-visible:ring-4 focus-visible:ring-accent-soft ${
+              danger ? "bg-brand hover:bg-brand-dark" : "bg-accent hover:bg-accent-dark"
             }`}
           >
             {confirmLabel}

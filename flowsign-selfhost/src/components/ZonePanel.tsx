@@ -25,20 +25,19 @@ const DAYS = [
 const MAX_IMAGE_MB = 25;
 const MAX_VIDEO_MB = 500;
 
-const inputCls =
-  "rounded-lg bg-white/10 border border-white/15 focus:outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/30";
+const inputCls = "input-base !rounded-lg";
 
 function ItemThumb({ item }: { item: ZoneItem }) {
   const base = "w-14 h-14 rounded-lg overflow-hidden shrink-0 grid place-items-center";
   if (item.kind === "image" && item.src)
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={item.src} alt="" className={`${base} object-cover`} />;
-  if (item.kind === "video" && item.src) return <div className={`${base} bg-black/50 text-xl`}>🎬</div>;
+  if (item.kind === "video" && item.src) return <div className={`${base} bg-ink/80 text-xl`}>🎬</div>;
   if (item.kind === "text")
     return <div className={`${base} font-bold text-sm`} style={{ background: item.bg ?? "#312e81", color: item.color ?? "#fff" }}>Aa</div>;
   if (item.kind === "clock")
     return <div className={`${base} text-xl`} style={{ background: item.bg ?? "#0d102f", color: item.color ?? "#fff" }}>🕐</div>;
-  return <div className={`${base} bg-white/10 text-xl`}>🔗</div>;
+  return <div className={`${base} bg-paper border border-line text-xl`}>🔗</div>;
 }
 
 export default function ZonePanel({
@@ -241,53 +240,53 @@ export default function ZonePanel({
           uploadFiles(Array.from(e.dataTransfer.files));
         }
       }}
-      className={`relative rounded-2xl border p-5 transition-colors ${fileOver ? "border-[#6366f1] bg-[#6366f1]/10" : "border-white/10 bg-white/5"}`}
+      className={`relative rounded-2xl border p-5 transition-colors ${fileOver ? "border-accent bg-accent-soft" : "border-line bg-white"}`}
     >
       {fileOver && (
-        <div className="absolute inset-0 z-40 rounded-2xl border-2 border-dashed border-[#6366f1] bg-[#0d102f]/70 grid place-items-center pointer-events-none">
-          <p className="text-[#a5b4fc] font-semibold">Bırak → bu alana yükle</p>
+        <div className="absolute inset-0 z-40 rounded-2xl border-2 border-dashed border-accent bg-white/80 grid place-items-center pointer-events-none">
+          <p className="text-accent-dark font-semibold">Bırak → bu alana yükle</p>
         </div>
       )}
 
       {/* Başlık: alan adı + böl + kapat */}
       <div className="flex items-center gap-2 mb-4">
-        <span className="shrink-0 w-8 h-8 rounded-lg bg-[#6366f1]/20 text-[#a5b4fc] grid place-items-center text-sm font-bold">{index + 1}</span>
+        <span className="shrink-0 w-8 h-8 rounded-lg bg-accent-soft text-accent-dark grid place-items-center text-sm font-bold">{index + 1}</span>
         <input
           defaultValue={zone.name ?? ""}
           placeholder={`Alan ${index + 1} — ad ver (ör. Giriş)`}
           onBlur={(e) => patch({ name: e.target.value.trim() || undefined })}
-          className="flex-1 min-w-0 bg-transparent border-b border-white/15 focus:border-[#6366f1] focus:outline-none px-1 py-1.5 font-display font-semibold"
+          className="flex-1 min-w-0 bg-transparent border-b border-line focus:border-accent focus:outline-none px-1 py-1.5 font-display font-semibold"
         />
         {cells > 1 && (
-          <button onClick={onSplit} className="shrink-0 rounded-xl border border-white/15 text-white/70 hover:border-white/40 px-3 py-2 text-xs font-semibold inline-flex items-center gap-1.5">
+          <button onClick={onSplit} className="shrink-0 rounded-xl border border-line bg-white text-muted hover:text-ink hover:border-muted px-3 py-2 text-xs font-semibold inline-flex items-center gap-1.5">
             <Icon name="split" size={14} /> Böl
           </button>
         )}
-        <button onClick={onClose} className="shrink-0 w-9 h-9 grid place-items-center rounded-xl text-white/50 hover:text-white hover:bg-white/10" aria-label="Paneli kapat">
+        <button onClick={onClose} className="shrink-0 w-9 h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-paper" aria-label="Paneli kapat">
           <Icon name="close" size={16} />
         </button>
       </div>
 
       {/* Alan ayarları: geçiş + arka plan */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-4 text-xs text-white/60">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-4 text-xs text-muted">
         <span className="flex items-center gap-2">
           Geçiş:
           {(["fade", "cut", "slide"] as const).map((tr) => (
             <button
               key={tr}
               onClick={() => patch({ transition: tr })}
-              className={`px-2.5 py-1.5 rounded-full font-semibold border ${transition === tr ? "bg-white text-[#0d102f] border-white" : "border-white/20 text-white/70 hover:border-white/40"}`}
+              className={`px-2.5 py-1.5 rounded-full font-semibold border ${transition === tr ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"}`}
             >
               {tr === "fade" ? "Yumuşak" : tr === "cut" ? "Kesme" : "Kaydır"}
             </button>
           ))}
         </span>
-        <label className="flex items-center gap-1.5">Alan zemini <input type="color" defaultValue={zone.bg ?? "#000000"} onChange={(e) => patch({ bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
+        <label className="flex items-center gap-1.5">Alan zemini <input type="color" defaultValue={zone.bg ?? "#000000"} onChange={(e) => patch({ bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-line p-0.5 cursor-pointer" /></label>
       </div>
 
       {/* Hedef çözünürlük: içerik alana tam yayılır (stretch) → doğru boyutta
           hazırlansın diye alanın gerçek piksel ölçüsü söylenir */}
-      <div className="mb-4 rounded-xl bg-[#6366f1]/10 border border-[#6366f1]/25 px-3 py-2 text-xs text-[#a5b4fc]">
+      <div className="mb-4 rounded-xl bg-accent-soft border border-accent/25 px-3 py-2 text-xs text-accent-dark">
         📐 Bu alanın hedef çözünürlüğü:{" "}
         <b className="tabular-nums">{Math.round(vw.width * zone.w)} × {Math.round(vw.height * zone.h)} px</b>
         {" "}— görsel/videoyu bu boyutta hazırla; içerik alana tam yayılır.
@@ -295,7 +294,7 @@ export default function ZonePanel({
 
       {/* Tüm içerik takvim dışıysa uyarı — ekran boş görünür */}
       {allOutOfWindow && (
-        <div className="mb-4 rounded-xl bg-rose-400/15 border border-rose-400/30 text-rose-300 px-3 py-2 text-xs font-semibold">
+        <div className="mb-4 rounded-xl bg-brand-soft text-brand px-3 py-2 text-xs font-semibold">
           ⚠ Bu alanın tüm içeriği şu an takvim dışı — ekran bu alanda boş görünür.
         </div>
       )}
@@ -308,7 +307,7 @@ export default function ZonePanel({
             onClick={b.fn}
             disabled={b.disabled}
             title={b.title}
-            className="rounded-xl bg-white/[0.06] border border-white/10 hover:border-[#6366f1]/60 hover:bg-white/10 px-2 py-3 text-sm font-semibold flex flex-col items-center gap-1 transition-colors disabled:opacity-40"
+            className="rounded-xl bg-paper border border-line hover:border-accent/60 hover:bg-accent-soft/40 px-2 py-3 text-sm font-semibold flex flex-col items-center gap-1 transition-colors disabled:opacity-40"
           >
             <span className="text-lg" aria-hidden>{b.icon}</span>
             {b.label}
@@ -320,7 +319,7 @@ export default function ZonePanel({
 
       {/* URL inline formu (prompt yerine — doğrulama gözünün önünde) */}
       {urlForm && (
-        <div className="mb-4 rounded-xl bg-black/25 border border-[#6366f1]/40 p-3 flex flex-col gap-2">
+        <div className="mb-4 rounded-xl bg-paper border border-accent/40 p-3 flex flex-col gap-2">
           <input
             autoFocus
             value={urlForm.src}
@@ -338,25 +337,25 @@ export default function ZonePanel({
           />
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={submitUrl} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-4 py-2 text-sm font-semibold">Ekle</button>
-            <button onClick={() => { setUrlForm(null); setErr(null); }} className="rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/15">Vazgeç</button>
-            <span className="text-white/50 text-[11px]">Bazı siteler gömülmeye izin vermez, boş görünür — Önizle ile kontrol et.</span>
+            <button onClick={() => { setUrlForm(null); setErr(null); }} className="rounded-xl bg-white border border-line px-4 py-2 text-sm font-semibold hover:border-muted">Vazgeç</button>
+            <span className="text-muted text-[11px]">Bazı siteler gömülmeye izin vermez, boş görünür — Önizle ile kontrol et.</span>
           </div>
         </div>
       )}
 
       {queue && (
         <div className="mb-4">
-          <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-            <div className="h-full bg-[#6366f1] transition-[width]" style={{ width: `${queue.pct}%` }} />
+          <div className="h-1.5 rounded-full bg-line overflow-hidden">
+            <div className="h-full bg-accent transition-[width]" style={{ width: `${queue.pct}%` }} />
           </div>
-          <p className="text-white/50 text-xs mt-1 tabular-nums">Yükleniyor… {queue.done + 1}/{queue.total} · {queue.pct}%</p>
+          <p className="text-muted text-xs mt-1 tabular-nums">Yükleniyor… {queue.done + 1}/{queue.total} · {queue.pct}%</p>
         </div>
       )}
-      {err && <p className="text-rose-300 text-xs mb-3 font-semibold">{err}</p>}
+      {err && <p className="text-brand text-xs mb-3 font-semibold">{err}</p>}
 
       {/* Öğe listesi (sürükle-bırak + ▲▼) */}
       {zone.items.length === 0 ? (
-        <div className="text-center py-10 text-white/50 border border-dashed border-white/10 rounded-xl">
+        <div className="text-center py-10 text-muted border border-dashed border-line rounded-xl">
           <p className="text-3xl mb-2" aria-hidden>📺</p>
           <p className="text-sm">Bu alan boş. İçerik ekle ya da dosyayı buraya sürükle.</p>
         </div>
@@ -379,8 +378,8 @@ export default function ZonePanel({
                   setDragIdx(null);
                   setOverIdx(null);
                 }}
-                className={`rounded-xl bg-black/25 border p-2.5 flex flex-col gap-2 transition-colors ${
-                  overIdx === i && dragIdx !== null ? "border-[#6366f1]" : "border-white/10"
+                className={`rounded-xl bg-paper border p-2.5 flex flex-col gap-2 transition-colors ${
+                  overIdx === i && dragIdx !== null ? "border-accent" : "border-line"
                 } ${dragIdx === i ? "opacity-40" : ""}`}
               >
                 <div className="flex items-center gap-2">
@@ -391,7 +390,7 @@ export default function ZonePanel({
                       setDragIdx(null);
                       setOverIdx(null);
                     }}
-                    className="shrink-0 cursor-grab active:cursor-grabbing text-white/40 hover:text-white/70 px-1 py-2 select-none hidden sm:block"
+                    className="shrink-0 cursor-grab active:cursor-grabbing text-muted hover:text-ink px-1 py-2 select-none hidden sm:block"
                     title="Sürükle sırala"
                     aria-label="Sürükle sırala"
                   >
@@ -399,32 +398,32 @@ export default function ZonePanel({
                   </span>
                   {/* ▲▼ — dokunmatikte HTML5 sürükleme çalışmaz; tek dokunuşla sırala */}
                   <span className="shrink-0 flex flex-col">
-                    <button onClick={() => reorder(i, i - 1)} disabled={i === 0} className="w-7 h-5 grid place-items-center text-white/40 hover:text-white disabled:opacity-20" aria-label="Yukarı taşı"><Icon name="up" size={13} /></button>
-                    <button onClick={() => reorder(i, i + 1)} disabled={i === zone.items.length - 1} className="w-7 h-5 grid place-items-center text-white/40 hover:text-white disabled:opacity-20" aria-label="Aşağı taşı"><Icon name="down" size={13} /></button>
+                    <button onClick={() => reorder(i, i - 1)} disabled={i === 0} className="w-7 h-5 grid place-items-center text-muted hover:text-ink disabled:opacity-20" aria-label="Yukarı taşı"><Icon name="up" size={13} /></button>
+                    <button onClick={() => reorder(i, i + 1)} disabled={i === zone.items.length - 1} className="w-7 h-5 grid place-items-center text-muted hover:text-ink disabled:opacity-20" aria-label="Aşağı taşı"><Icon name="down" size={13} /></button>
                   </span>
                   <ItemThumb item={it} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : it.name || it.src}</p>
                     <span className="inline-flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="text-[10px] uppercase tracking-wider text-[#a5b4fc]/90 bg-[#6366f1]/15 rounded px-1.5 py-0.5">{KIND_LABEL[it.kind]}</span>
+                      <span className="text-[10px] uppercase tracking-wider text-accent-dark bg-accent-soft rounded px-1.5 py-0.5">{KIND_LABEL[it.kind]}</span>
                       {/* Kompakt özet: ayrıntılar ⚙ ile açılır */}
-                      <span className="text-[10px] text-white/50 bg-white/5 rounded px-1.5 py-0.5 tabular-nums">
+                      <span className="text-[10px] text-muted bg-white border border-line rounded px-1.5 py-0.5 tabular-nums">
                         ⏱ {it.kind === "video" && !it.durationSec ? "video sonu" : `${it.durationSec ?? 8} sn`}
                       </span>
                       {(it.from || it.to || it.days?.length || it.fromDate || it.toDate) && (
-                        <span className="text-[10px] text-white/50 bg-white/5 rounded px-1.5 py-0.5 tabular-nums">
+                        <span className="text-[10px] text-muted bg-white border border-line rounded px-1.5 py-0.5 tabular-nums">
                           🗓 {it.fromDate || it.toDate ? `${(it.fromDate ?? "…").slice(5)} – ${(it.toDate ?? "…").slice(5)}` : "takvimli"}
                         </span>
                       )}
                       {it.kind === "url" && (it.zoom ?? 100) !== 100 && (
-                        <span className="text-[10px] text-white/50 bg-white/5 rounded px-1.5 py-0.5">🔍 %{it.zoom}</span>
+                        <span className="text-[10px] text-muted bg-white border border-line rounded px-1.5 py-0.5">🔍 %{it.zoom}</span>
                       )}
-                      {outOfWindow && <span className="text-[10px] text-white/60 bg-white/10 rounded px-1.5 py-0.5">şu an takvim dışı</span>}
+                      {outOfWindow && <span className="text-[10px] text-ink/70 bg-line/60 rounded px-1.5 py-0.5">şu an takvim dışı</span>}
                     </span>
                   </div>
                   <button
                     onClick={() => setOpenItemId(openItemId === it.id ? null : it.id)}
-                    className={`shrink-0 w-9 h-9 grid place-items-center rounded-lg hover:bg-white/10 ${openItemId === it.id ? "text-[#a5b4fc] bg-white/10" : "text-white/40 hover:text-white"}`}
+                    className={`shrink-0 w-9 h-9 grid place-items-center rounded-lg hover:bg-white ${openItemId === it.id ? "text-accent-dark bg-white" : "text-muted hover:text-ink"}`}
                     title="Süre / takvim / ayarlar"
                     aria-label="Öğe ayarları"
                     aria-expanded={openItemId === it.id}
@@ -438,14 +437,14 @@ export default function ZonePanel({
                         replaceRef.current?.click();
                       }}
                       disabled={queue !== null}
-                      className="shrink-0 w-9 h-9 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 disabled:opacity-30"
+                      className="shrink-0 w-9 h-9 grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-white disabled:opacity-30"
                       title="Dosyayı değiştir (sıra ve takvim korunur)"
                       aria-label="Dosyayı değiştir"
                     >
                       <Icon name="swap" size={15} />
                     </button>
                   )}
-                  <button onClick={() => removeItem(it.id)} className="shrink-0 w-9 h-9 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10" aria-label="Sil">
+                  <button onClick={() => removeItem(it.id)} className="shrink-0 w-9 h-9 grid place-items-center rounded-lg text-muted hover:text-brand hover:bg-brand-soft/50" aria-label="Sil">
                     <Icon name="trash" size={15} />
                   </button>
                 </div>
@@ -489,11 +488,11 @@ export default function ZonePanel({
                       </div>
                     )}
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-9 text-xs text-white/60">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-9 text-xs text-muted">
                       {(it.kind === "text" || it.kind === "clock") && (
                         <>
-                          <label className="flex items-center gap-1.5">Zemin <input type="color" defaultValue={it.bg ?? "#312e81"} onChange={(e) => patchItem(it.id, { bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
-                          <label className="flex items-center gap-1.5">Yazı <input type="color" defaultValue={it.color ?? "#ffffff"} onChange={(e) => patchItem(it.id, { color: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-white/15 p-0.5 cursor-pointer" /></label>
+                          <label className="flex items-center gap-1.5">Zemin <input type="color" defaultValue={it.bg ?? "#312e81"} onChange={(e) => patchItem(it.id, { bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-line p-0.5 cursor-pointer" /></label>
+                          <label className="flex items-center gap-1.5">Yazı <input type="color" defaultValue={it.color ?? "#ffffff"} onChange={(e) => patchItem(it.id, { color: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-line p-0.5 cursor-pointer" /></label>
                         </>
                       )}
                       {it.kind === "url" && (
@@ -511,7 +510,7 @@ export default function ZonePanel({
                         </label>
                       )}
                       {it.kind === "url" && it.src && (
-                        <a href={it.src} target="_blank" rel="noreferrer" className="text-[#a5b4fc] hover:underline font-semibold" title="Sayfanın kendisi açılıyor mu diye hızlı kontrol">
+                        <a href={it.src} target="_blank" rel="noreferrer" className="text-accent hover:underline font-semibold" title="Sayfanın kendisi açılıyor mu diye hızlı kontrol">
                           Sayfayı yeni sekmede aç ↗
                         </a>
                       )}
@@ -526,7 +525,7 @@ export default function ZonePanel({
                             const v = Number(e.target.value);
                             patchItem(it.id, { durationSec: v >= 2 ? Math.round(v) : undefined });
                           }}
-                          className={`w-20 ${inputCls} px-2 py-1 tabular-nums placeholder:text-white/30`}
+                          className={`w-20 ${inputCls} !px-2 !py-1 tabular-nums`}
                         />
                         sn
                       </label>
@@ -547,20 +546,20 @@ export default function ZonePanel({
 
                     {/* Günler (boşsa her gün) */}
                     <div className="flex items-center gap-1.5 pl-9 flex-wrap">
-                      <span className="text-xs text-white/50 mr-1">Gün:</span>
+                      <span className="text-xs text-muted mr-1">Gün:</span>
                       {DAYS.map((d) => {
                         const active = it.days?.includes(d.v);
                         return (
                           <button
                             key={d.v}
                             onClick={() => toggleDay(it, d.v)}
-                            className={`text-xs font-semibold rounded-full px-2.5 py-1.5 border ${active ? "bg-[#6366f1] text-white border-[#6366f1]" : "border-white/15 text-white/60 hover:border-white/40"}`}
+                            className={`text-xs font-semibold rounded-full px-2.5 py-1.5 border ${active ? "bg-accent text-white border-accent" : "bg-white border-line text-muted hover:border-muted"}`}
                           >
                             {d.l}
                           </button>
                         );
                       })}
-                      {!it.days?.length && <span className="text-[11px] text-white/50 ml-1">her gün</span>}
+                      {!it.days?.length && <span className="text-[11px] text-muted ml-1">her gün</span>}
                     </div>
                   </>
                 )}
@@ -569,17 +568,17 @@ export default function ZonePanel({
           })}
         </ul>
       )}
-      <p className="text-white/50 text-[11px] mt-3">İçerik alana tam yayılır — hedef çözünürlük yukarıda 📐 · süre/takvim öğedeki ⚙ ile · dosyayı panele sürükleyip bırakabilirsin.</p>
+      <p className="text-muted text-[11px] mt-3">İçerik alana tam yayılır — hedef çözünürlük yukarıda 📐 · süre/takvim öğedeki ⚙ ile · dosyayı panele sürükleyip bırakabilirsin.</p>
 
       {/* Medya kütüphanesi */}
       {libOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 grid place-items-center p-4" onClick={() => setLibOpen(false)}>
-          <div className="bg-[#1e1b4b] border border-white/15 rounded-2xl p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white border border-line rounded-2xl p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <p className="font-display font-semibold">🗂 Medya kütüphanesi</p>
-              <button onClick={() => setLibOpen(false)} className="w-9 h-9 grid place-items-center rounded-xl text-white/50 hover:text-white hover:bg-white/10" aria-label="Kapat"><Icon name="close" size={16} /></button>
+              <button onClick={() => setLibOpen(false)} className="w-9 h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-paper" aria-label="Kapat"><Icon name="close" size={16} /></button>
             </div>
-            <p className="text-white/50 text-xs mb-3">Bu ekrana daha önce yüklediğin medya (taslak + yayın) — tıkla, bu alana ekle.</p>
+            <p className="text-muted text-xs mb-3">Bu ekrana daha önce yüklediğin medya (taslak + yayın) — tıkla, bu alana ekle.</p>
 
             {/* Tür sekmeleri: Tümü / Foto / Video */}
             <div className="flex gap-1.5 mb-3">
@@ -592,7 +591,7 @@ export default function ZonePanel({
                   key={t.v}
                   onClick={() => setLibFilter(t.v)}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
-                    libFilter === t.v ? "bg-white text-[#0d102f] border-white" : "border-white/20 text-white/70 hover:border-white/40"
+                    libFilter === t.v ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"
                   }`}
                 >
                   {t.label}
@@ -604,7 +603,7 @@ export default function ZonePanel({
               {library
                 .filter((it) => libFilter === "all" || it.kind === libFilter)
                 .map((it) => (
-                  <button key={it.src} onClick={() => addFromLib(it)} className="rounded-lg overflow-hidden border border-white/10 hover:border-[#6366f1] text-left">
+                  <button key={it.src} onClick={() => addFromLib(it)} className="rounded-lg overflow-hidden border border-line hover:border-accent text-left">
                     <span className="block aspect-square relative">
                       {it.kind === "video" ? (
                         <span className="w-full h-full grid place-items-center bg-black text-2xl">🎬</span>
@@ -614,14 +613,14 @@ export default function ZonePanel({
                       )}
                     </span>
                     {/* Dosya adı — hangi dosya olduğu görünsün */}
-                    <span className="block px-1.5 py-1 text-[10px] text-white/70 truncate bg-black/30">
+                    <span className="block px-1.5 py-1 text-[10px] text-muted truncate bg-paper">
                       {it.name || "adsız"}
                     </span>
                   </button>
                 ))}
             </div>
             {library.filter((it) => libFilter === "all" || it.kind === libFilter).length === 0 && (
-              <p className="text-white/40 text-sm text-center py-8">Bu türde medya yok.</p>
+              <p className="text-muted text-sm text-center py-8">Bu türde medya yok.</p>
             )}
           </div>
         </div>

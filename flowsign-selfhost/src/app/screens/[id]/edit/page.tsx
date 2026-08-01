@@ -31,7 +31,7 @@ import { clampScreens, slugify, splitZone } from "@/lib/zones";
 import { Videowall } from "@/lib/types";
 
 const inputCls =
-  "rounded-lg bg-white/10 border border-white/15 px-3 py-2 focus:outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/30";
+  "input-base !py-2 !px-3 !rounded-lg";
 
 // Sıra-bağımsız derin karşılaştırma — içerik AYNIYKEN "yayınlanmamış değişiklik
 // var" uyarısı kalıcı görünmesin.
@@ -142,8 +142,8 @@ export default function ScreenEditPage() {
     : null;
 
   if (vw === undefined || loading)
-    return <main className="min-h-screen grid place-items-center bg-[#0d102f] text-white/60 animate-pulse">Yükleniyor…</main>;
-  if (vw === null) return <main className="min-h-screen grid place-items-center bg-[#0d102f] text-white/60">Ekran bulunamadı.</main>;
+    return <main className="min-h-screen grid place-items-center bg-wash text-muted animate-pulse">Yükleniyor…</main>;
+  if (vw === null) return <main className="min-h-screen grid place-items-center bg-wash text-muted">Ekran bulunamadı.</main>;
 
   // Taslak yazımları: hata SESSİZ geçmez. Her yazımdan önce anlık görüntü → tek adım Geri Al.
   const saveZones = (zones: Videowall["zones"]) => {
@@ -173,29 +173,29 @@ export default function ScreenEditPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0d102f] text-white">
-      <header className="border-b border-white/10 px-4 sm:px-6 py-3 flex items-center flex-wrap gap-x-3 gap-y-2">
-        <Link href="/screens" className="text-white/50 hover:text-white shrink-0 text-lg" aria-label="Ekran listesine dön">←</Link>
+    <main className="min-h-screen bg-wash">
+      <header className="bg-white/80 backdrop-blur border-b border-line px-4 sm:px-6 py-3 flex items-center flex-wrap gap-x-3 gap-y-2">
+        <Link href="/screens" className="text-muted hover:text-ink shrink-0 text-lg" aria-label="Ekran listesine dön">←</Link>
         {/* Mobilde isim alta iner (basis-full) — aksiyonlar adı ezmez */}
         <input
           key={vw.name}
           defaultValue={vw.name}
           onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== vw.name && renameWall(id, e.target.value).catch(() => setSaveErr("Ad kaydedilemedi — tekrar dene."))}
-          className="order-last basis-full sm:order-none sm:basis-auto sm:flex-1 min-w-0 bg-transparent font-display font-semibold text-lg focus:outline-none border-b border-transparent focus:border-[#6366f1]"
+          className="order-last basis-full sm:order-none sm:basis-auto sm:flex-1 min-w-0 bg-transparent font-display font-semibold text-lg focus:outline-none border-b border-transparent focus:border-accent"
           aria-label="Ekran adı"
         />
         <div className="flex items-center gap-2 shrink-0 ml-auto">
-          <button onClick={() => setGuide(true)} className="w-9 h-9 grid place-items-center rounded-xl bg-white/10 border border-white/15 text-white/70 hover:bg-white/15" title="Rehberi aç" aria-label="Rehberi aç">
+          <button onClick={() => setGuide(true)} className="w-9 h-9 grid place-items-center rounded-xl bg-white border border-line text-muted hover:text-ink hover:border-muted" title="Rehberi aç" aria-label="Rehberi aç">
             <Icon name="help" size={16} />
           </button>
-          <a href={`/play/${id}?draft=1`} target={playTarget} className="rounded-xl bg-white/10 border border-white/15 px-3.5 py-2 text-sm font-semibold hover:bg-white/15 inline-flex items-center gap-1.5">
+          <a href={`/play/${id}?draft=1`} target={playTarget} className="rounded-xl bg-white border border-line px-3.5 py-2 text-sm font-semibold hover:border-muted inline-flex items-center gap-1.5">
             <Icon name="eye" size={15} /> <span className="hidden sm:inline">Önizle</span>{playTarget ? " ↗" : ""}
           </a>
           <button
             onClick={publish}
             disabled={!dirty || publishing}
-            className={`rounded-xl px-3.5 py-2 text-sm font-semibold inline-flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-[#a5b4fc]/60 ${
-              dirty ? "bg-accent hover:bg-accent-dark text-white disabled:opacity-60" : "bg-white/10 border border-white/15 text-white/70"
+            className={`rounded-xl px-3.5 py-2 text-sm font-semibold inline-flex items-center gap-1.5 focus-visible:ring-4 focus-visible:ring-accent-soft ${
+              dirty ? "bg-accent hover:bg-accent-dark text-white disabled:opacity-60" : "bg-white border border-line text-muted"
             }`}
           >
             <Icon name="save" size={15} />
@@ -206,16 +206,16 @@ export default function ScreenEditPage() {
 
       {/* Hata / kaydedilmemiş değişiklik şeritleri */}
       {saveErr && (
-        <div className="bg-rose-400/15 border-b border-rose-400/30 px-4 sm:px-6 py-2.5 text-sm text-rose-300 font-semibold flex items-center justify-between gap-3">
+        <div className="bg-brand-soft border-b border-brand/20 px-4 sm:px-6 py-2.5 text-sm text-brand font-semibold flex items-center justify-between gap-3">
           <span>⚠ {saveErr}</span>
-          <button onClick={() => setSaveErr(null)} className="text-rose-300/70 hover:text-rose-300 shrink-0" aria-label="Kapat"><Icon name="close" size={14} /></button>
+          <button onClick={() => setSaveErr(null)} className="text-brand/70 hover:text-brand shrink-0" aria-label="Kapat"><Icon name="close" size={14} /></button>
         </div>
       )}
       {dirty && !saveErr && (
-        <div className="bg-[#6366f1]/10 border-b border-[#6366f1]/20 px-4 sm:px-6 py-2 text-xs text-[#a5b4fc] flex items-center flex-wrap gap-x-3 gap-y-1">
+        <div className="bg-accent-soft border-b border-accent/20 px-4 sm:px-6 py-2 text-xs text-accent-dark flex items-center flex-wrap gap-x-3 gap-y-1">
           <span>● Taslakta yayınlanmamış değişiklik var — canlı ekran son yayınlanan hâli oynatıyor. <b>Kaydet & Yayınla</b> ile gönder.</span>
           {vw.live && (
-            <button onClick={revertToLive} className="inline-flex items-center gap-1 font-semibold underline decoration-[#a5b4fc]/40 hover:decoration-[#a5b4fc]">
+            <button onClick={revertToLive} className="inline-flex items-center gap-1 font-semibold underline decoration-accent/40 hover:decoration-accent">
               <Icon name="undo" size={12} /> Yayındaki hâle dön
             </button>
           )}
@@ -223,14 +223,14 @@ export default function ScreenEditPage() {
       )}
       {/* Pozitif onay: "oldu mu olmadı mı" belirsizliği kalmasın */}
       {!dirty && !saveErr && vw.live && (
-        <div className="bg-emerald-400/10 border-b border-emerald-400/20 px-4 sm:px-6 py-2 text-xs text-emerald-300">
+        <div className="bg-emerald-50 border-b border-emerald-200 px-4 sm:px-6 py-2 text-xs text-emerald-700">
           ✓ Yayında — canlı ekran taslağınla birebir aynı{lastPublished ? ` · son yayın: ${lastPublished}` : ""}.
         </div>
       )}
 
       {/* Yayın sonrası onay balonu */}
       {toast && (
-        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] rounded-xl bg-[#1e1b4b] border border-[#6366f1]/40 text-white px-5 py-3 text-sm font-semibold shadow-lg animate-pop">
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] rounded-xl bg-ink border border-ink text-white px-5 py-3 text-sm font-semibold shadow-lg animate-pop">
           {toast}
         </div>
       )}
@@ -238,12 +238,12 @@ export default function ScreenEditPage() {
       <section className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
         {/* Rehber (ilk açılışta otomatik; ❓ ile her zaman) */}
         {guide && (
-          <div className="rounded-2xl bg-[#6366f1]/10 border border-[#6366f1]/30 p-5">
+          <div className="rounded-2xl bg-accent-soft border border-accent/25 p-5">
             <div className="flex items-start justify-between gap-3 mb-3">
-              <p className="font-display font-semibold text-[#a5b4fc]">👋 FlowSign — 5 adımda ekranın hazır</p>
-              <button onClick={dismissGuide} className="text-white/50 hover:text-white text-sm shrink-0">Anladım ✕</button>
+              <p className="font-display font-semibold text-accent-dark">👋 FlowSign — 5 adımda ekranın hazır</p>
+              <button onClick={dismissGuide} className="text-muted hover:text-ink text-sm shrink-0">Anladım ✕</button>
             </div>
-            <ol className="text-sm text-white/75 space-y-1.5 list-decimal list-inside">
+            <ol className="text-sm text-ink/75 space-y-1.5 list-decimal list-inside">
               <li><b>Yerleşim:</b> hücrelere sürükle → alanları birleştir, tıkla → seç, gerekirse böl.</li>
               <li><b>İçerik:</b> seçili alana görsel/video/URL/metin/saat ekle (dosyayı sürükleyip de bırakabilirsin).</li>
               <li><b>Önizle:</b> 👁 ile taslağı gör — canlı ekran bozulmaz, değişiklikler yayına gitmez.</li>
@@ -254,23 +254,23 @@ export default function ScreenEditPage() {
         )}
 
         {/* Yayın linki + QR */}
-        <div className="rounded-2xl bg-white/5 border border-white/10 p-5 flex flex-col sm:flex-row items-start gap-5">
+        <div className="card p-5 flex flex-col sm:flex-row items-start gap-5">
           <div className="flex-1 min-w-0">
-            <p className="text-white/60 text-[11px] font-bold uppercase tracking-[0.14em] mb-2">Yayın linki</p>
+            <p className="eyebrow mb-2">Yayın linki</p>
             <div className="flex flex-wrap items-center gap-2">
-              <code className="text-sm bg-black/30 rounded-lg px-3 py-2 text-[#a5b4fc] break-all min-w-0">{playUrl}</code>
-              <button onClick={copyLink} className="rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-sm font-semibold hover:bg-white/15">{copied ? "✓ Kopyalandı" : "Kopyala"}</button>
+              <code className="text-sm bg-paper border border-line rounded-lg px-3 py-2 text-accent-dark break-all min-w-0">{playUrl}</code>
+              <button onClick={copyLink} className="rounded-xl bg-white border border-line px-3 py-2 text-sm font-semibold hover:border-muted">{copied ? "✓ Kopyalandı" : "Kopyala"}</button>
               <a href={playUrl} target={playTarget} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-3 py-2 text-sm font-semibold">Aç{playTarget ? " ↗" : ""}</a>
             </div>
-            <p className="text-white/50 text-xs mt-2 leading-relaxed">
+            <p className="text-muted text-xs mt-2 leading-relaxed">
               Linki tabela PC&apos;sinde Chrome ile aç, tam ekran yap — her zaman <b>son yayınlanan</b> hâli oynatır. Adı değiştirince link de yenilenir; <b>eski link çalışmaya devam eder</b>.
-              {lastPublished && <span className="text-white/60"> · Son yayın: {lastPublished}</span>}
+              {lastPublished && <span className="text-ink/70"> · Son yayın: {lastPublished}</span>}
               <br />
               Birden çok TV&apos;yi tek duvar yapacaksan: ekran kartında TV&apos;leri <b>tek birleşik görüntü</b> olarak ayarla (Surround/Eyefinity ya da video-wall denetleyici); yayında ⊞ ile sırayı kontrol et.
             </p>
           </div>
           {playUrl && (
-            <div className="shrink-0 bg-white rounded-xl p-2">
+            <div className="shrink-0 bg-white border border-line rounded-xl p-2">
               <QrCode text={playUrl} size={104} />
             </div>
           )}
@@ -280,33 +280,33 @@ export default function ScreenEditPage() {
         <ScreensCard id={id} />
 
         {/* Config */}
-        <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
-          <p className="text-white/60 text-[11px] font-bold uppercase tracking-[0.14em] mb-3">Duvar tanımı</p>
+        <div className="card p-5">
+          <p className="eyebrow mb-3">Duvar tanımı</p>
           <div className="flex flex-wrap items-end gap-4 text-sm">
             {/* Çözünürlük düzenlenebilir (oluşturmadaki yazım hatası duvarı silmeden düzeltilir) */}
             <label className="flex flex-col gap-1">
-              <span className="text-white/50 text-xs">Genişlik (px)</span>
+              <span className="text-muted text-xs">Genişlik (px)</span>
               <input key={`w${vw.width}`} type="number" min={1} defaultValue={vw.width} onBlur={(e) => { const nw = Math.max(1, Math.round(Number(e.target.value) || 0)); if (nw && nw !== vw.width) updateWall(id, { width: nw }).catch(() => setSaveErr("Çözünürlük kaydedilemedi — tekrar dene.")); else e.target.value = String(vw.width); }} className={`w-24 ${inputCls}`} />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-white/50 text-xs">Yükseklik (px)</span>
+              <span className="text-muted text-xs">Yükseklik (px)</span>
               <input key={`h${vw.height}`} type="number" min={1} defaultValue={vw.height} onBlur={(e) => { const nh = Math.max(1, Math.round(Number(e.target.value) || 0)); if (nh && nh !== vw.height) updateWall(id, { height: nh }).catch(() => setSaveErr("Çözünürlük kaydedilemedi — tekrar dene.")); else e.target.value = String(vw.height); }} className={`w-24 ${inputCls}`} />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-white/50 text-xs">Yan yana kaç ekran?</span>
+              <span className="text-muted text-xs">Yan yana kaç ekran?</span>
               <input key={`c${vw.cols}`} type="number" min={1} max={24} defaultValue={vw.cols} onBlur={(e) => { const c = clampScreens(Number(e.target.value)); if (c !== vw.cols) changeGrid(c, vw.rows); e.target.value = String(vw.cols); }} className={`w-24 ${inputCls}`} />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-white/50 text-xs">Üst üste kaç ekran?</span>
+              <span className="text-muted text-xs">Üst üste kaç ekran?</span>
               <input key={`r${vw.rows}`} type="number" min={1} max={24} defaultValue={vw.rows} onBlur={(e) => { const rr = clampScreens(Number(e.target.value)); if (rr !== vw.rows) changeGrid(vw.cols, rr); e.target.value = String(vw.rows); }} className={`w-24 ${inputCls}`} />
             </label>
-            <span className="text-white/50 text-xs pb-2 tabular-nums">{vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan</span>
+            <span className="text-muted text-xs pb-2 tabular-nums">{vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan</span>
           </div>
 
           {/* Oynatma modu: tabela (otomatik) / sunum (kumanda). Yayından bağımsız —
               seçim perdeye ANINDA gider (Kaydet & Yayınla gerekmez). */}
-          <div className="mt-4 pt-4 border-t border-white/10">
-            <span className="text-white/50 text-xs block mb-2">Oynatma modu</span>
+          <div className="mt-4 pt-4 border-t border-line">
+            <span className="text-muted text-xs block mb-2">Oynatma modu</span>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               {([
                 { v: "auto", label: "🔁 Tabela — otomatik akış" },
@@ -317,14 +317,14 @@ export default function ScreenEditPage() {
                   <button
                     key={m.v}
                     onClick={() => !active && setPlayMode(id, m.v).catch(() => setSaveErr("Mod kaydedilemedi — tekrar dene."))}
-                    className={`px-3.5 py-2 rounded-xl font-semibold border ${active ? "bg-white text-[#0d102f] border-white" : "border-white/20 text-white/70 hover:border-white/40"}`}
+                    className={`px-3.5 py-2 rounded-xl font-semibold border ${active ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"}`}
                   >
                     {m.label}
                   </button>
                 );
               })}
             </div>
-            <p className="text-white/50 text-xs mt-2 leading-relaxed">
+            <p className="text-muted text-xs mt-2 leading-relaxed">
               {(vw.playMode ?? "auto") === "manual"
                 ? "Sunum modu: içerik kumandayla/klavyeyle ilerler (→ ← boşluk PgUp/PgDn), sağ altta sayaç, B = siyah ekran, F = tam ekran; uçlarda durur, süre/otomatik geçiş çalışmaz. Seçim yayına anında gider."
                 : "Tabela modu (varsayılan): içerik süre ve takvime göre kendiliğinden döner."}
@@ -333,13 +333,13 @@ export default function ScreenEditPage() {
         </div>
 
         {/* Yerleşim editörü */}
-        <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
+        <div className="card p-5">
           <div className="flex items-center justify-between gap-3 mb-3">
-            <p className="text-white/60 text-[11px] font-bold uppercase tracking-[0.14em]">Yerleşim</p>
+            <p className="eyebrow">Yerleşim</p>
             {undoZones && (
               <button
                 onClick={undoLayout}
-                className="rounded-lg bg-white/10 border border-white/15 px-2.5 py-1 text-xs font-semibold text-white/80 hover:bg-white/15 inline-flex items-center gap-1"
+                className="rounded-lg bg-white border border-line px-2.5 py-1 text-xs font-semibold text-ink/80 hover:border-muted inline-flex items-center gap-1"
               >
                 <Icon name="undo" size={12} /> Son değişikliği geri al
               </button>

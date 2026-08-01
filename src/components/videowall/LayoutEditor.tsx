@@ -147,7 +147,7 @@ export default function LayoutEditor({
   return (
     <div>
       <div
-        className="relative mx-auto bg-black rounded-lg overflow-hidden border border-white/15 select-none touch-none"
+        className="relative mx-auto bg-black rounded-lg overflow-hidden border border-line select-none touch-none"
         style={{ width: "100%", maxWidth: aspect >= 1 ? 900 : 900 * aspect, aspectRatio: `${vw.width} / ${vw.height}` }}
       >
         {/* Alanlar (görsel) */}
@@ -210,9 +210,9 @@ export default function LayoutEditor({
           onPointerCancel={() => setDrag(null)}
         />
       </div>
-      <p className="text-white/50 text-xs mt-3 leading-relaxed">
+      <p className="text-muted text-xs mt-3 leading-relaxed">
         Hücrelere <b>sürükle</b> → alanları birleştir · alana <b>tıkla</b> → seç (içerik ekle / böl).
-        <span className="text-white/45"> Kesik çizgiler = fiziksel ekran sınırları; renkli çerçeveler = içerik alanların.</span>
+        <span className="text-muted/80"> Kesik çizgiler = fiziksel ekran sınırları; renkli çerçeveler = içerik alanların.</span>
       </p>
     </div>
   );

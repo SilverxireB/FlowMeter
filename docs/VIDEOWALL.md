@@ -117,10 +117,17 @@ Eski duvarda `live` yoksa perde taslağa düşer. Create/duplicate `live`'ı da 
 (link ilk andan çalışır). Birleştir/böl İÇERİK KORUR (en büyük içerikli alan
 devralır / sol-üst hücrede kalır) + içerik etkileniyorsa confirm sorusu.
 
-## Marka rengi (turkuaz → indigo, kullanıcı kararı)
-FlowSign paleti tasarım sistemine hizalandı: zemin #0d102f, panel indigo-950
-#1e1b4b / #312e81, aksan #6366f1, açık aksan metni #a5b4fc. Turkuaz (#2dd4bf)
-tamamen kaldırıldı. Hub kartı gradyanı #1e1b4b→#312e81.
+## Marka rengi (turkuaz → indigo → AYDINLIK kokpit, kullanıcı kararı)
+Önce turkuaz (#2dd4bf) kaldırılıp indigo ailesine geçildi (zemin #0d102f, panel
+#1e1b4b/#312e81, aksan #6366f1). 2026-08'de KOKPİT AYDINLIĞA alındı: diğer üç
+ürün beyazken Sign tek başına mor kalıyordu (kullanıcı: "her yer beyazken sign
+çok mor kaldı"). Artık liste/editör/panel suite'in ortak dilini kullanır
+(`bg-wash` · `card` · `input-base` · `chip` · ink/paper/line/muted + accent
+#4f46e5; hata = brand gül). KOYU KALAN yerler bilinçli: PERDE (yayın) ve
+editördeki yerleşim tuvali + kart minyatürü — oralar ekranın kendi içeriğidir,
+UI değil. Aynı değişiklik `flowsign-selfhost/` paketinde birebir yapıldı
+(oraya ortak sınıflar globals.css + tailwind paletiyle taşındı; başlık logosu
+beyaz sürümden renkli `logo-o-sign.png` + "SIGN" yazısına döndü).
 
 ## Güvenlik/dayanıklılık (inceleme ajanı bulguları — uygulandı)
 - URL öğesi: yalnız http(s) kabul (editör) + perde `safeSrc` filtresi + iframe

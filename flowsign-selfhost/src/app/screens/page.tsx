@@ -27,7 +27,7 @@ const PRESETS: { label: string; w: number; h: number; cols: number; rows: number
 ];
 
 const inputCls =
-  "rounded-lg bg-white/10 border border-white/15 px-3 py-2 focus:outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/30";
+  "input-base !py-2 !px-3 !rounded-lg";
 
 /** Yayın linki: slug kayıtlıysa kolay link; değilse id (ölü link vermesin). */
 const playHref = (v: Videowall) => `/play/${v.slug ?? v.id}`;
@@ -70,9 +70,9 @@ export default function ScreensPage() {
     if (b?.lastSeen) {
       const d = Date.now() - b.lastSeen;
       const ago = d < 3600_000 ? `${Math.max(1, Math.round(d / 60_000))} dk` : d < 86_400_000 ? `${Math.round(d / 3600_000)} sa` : `${Math.round(d / 86_400_000)} gün`;
-      return { text: `○ ${ago} önce`, cls: "bg-black/60 text-white/70" };
+      return { text: `○ ${ago} önce`, cls: "bg-black/55 text-white/80" };
     }
-    return { text: "○ çevrimdışı", cls: "bg-black/60 text-white/50" };
+    return { text: "○ çevrimdışı", cls: "bg-black/55 text-white/60" };
   };
 
   useEffect(() => {
@@ -155,34 +155,37 @@ export default function ScreensPage() {
   }
 
   if (loading || !authed) {
-    return <main className="min-h-screen grid place-items-center bg-[#0d102f] text-white/60 animate-pulse">Yükleniyor…</main>;
+    return <main className="min-h-screen grid place-items-center bg-wash text-muted animate-pulse">Yükleniyor…</main>;
   }
 
   return (
-    <main className="min-h-screen bg-[#0d102f] text-white">
-      <header className="border-b border-white/10 px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
-        <Image src="/logo.png" alt="FlowSign" width={140} height={40} className="h-8 w-auto shrink-0" priority />
-        <button onClick={logout} className="text-white/45 hover:text-white text-sm font-semibold">Çıkış yap</button>
+    <main className="min-h-screen bg-wash">
+      <header className="bg-white/80 backdrop-blur border-b border-line px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+        <span className="inline-flex items-center gap-1.5 shrink-0" role="img" aria-label="FlowSign">
+          <Image src="/logo.png" alt="" width={140} height={40} className="h-7 w-auto" priority />
+          <span aria-hidden className="font-display font-semibold text-[26px] leading-none tracking-[0.03em] text-[#001e64]">SIGN</span>
+        </span>
+        <button onClick={logout} className="text-muted hover:text-ink text-sm font-semibold">Çıkış yap</button>
       </header>
 
       <section className="max-w-5xl mx-auto px-4 py-10">
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">Ekranların</h1>
-        <p className="text-white/50 text-sm mb-6">Çözünürlük + ekran ızgarası tanımla, alanlara içerik yerleştir, tam ekran yayınla.</p>
+        <p className="text-muted text-sm mb-6">Çözünürlük + ekran ızgarası tanımla, alanlara içerik yerleştir, tam ekran yayınla.</p>
 
-        {err && <div className="mb-5 rounded-2xl bg-rose-400/15 border border-rose-400/30 text-rose-300 px-4 py-3 text-sm font-semibold">{err}</div>}
+        {err && <div className="mb-5 rounded-2xl bg-brand-soft text-brand px-4 py-3 text-sm font-semibold">{err}</div>}
 
         {/* Oluştur */}
-        <form onSubmit={create} className="rounded-2xl bg-white/5 border border-white/10 p-5 mb-8 flex flex-col gap-4">
+        <form onSubmit={create} className="card p-5 mb-8 flex flex-col gap-4">
           <input
             ref={nameRef}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Ekran adı (ör. Giriş Holü)"
-            className="w-full rounded-xl bg-white/10 border border-white/15 px-4 py-3 focus:outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/30 font-semibold placeholder:font-normal placeholder:text-white/30"
+            className="input-base font-semibold placeholder:font-normal"
           />
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((p, i) => (
-              <button type="button" key={i} onClick={() => applyPreset(i)} className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${preset === i ? "bg-white text-[#0d102f] border-white" : "border-white/20 text-white/70 hover:border-white/40"}`}>
+              <button type="button" key={i} onClick={() => applyPreset(i)} className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${preset === i ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"}`}>
                 {p.label}
               </button>
             ))}
@@ -190,50 +193,50 @@ export default function ScreensPage() {
           {/* Canlı ızgara önizleme — tanımladığın duvarı burada gör */}
           <div className="flex items-center gap-4">
             <div
-              className="relative bg-black rounded-lg border border-white/15 overflow-hidden shrink-0"
+              className="relative bg-ink rounded-lg border border-line overflow-hidden shrink-0"
               style={{ width: numOr(w, 1920) >= numOr(h, 1080) ? 200 : 200 * (numOr(w, 1920) / numOr(h, 1080)), height: numOr(w, 1920) >= numOr(h, 1080) ? 200 * (numOr(h, 1080) / numOr(w, 1920)) : 200, maxWidth: 200, maxHeight: 200 }}
             >
               {Array.from({ length: Math.max(0, numOr(cols, 1) - 1) }).map((_, i) => (
-                <div key={`c${i}`} className="absolute top-0 bottom-0 border-l border-dashed border-[#6366f1]/40" style={{ left: `${((i + 1) / numOr(cols, 1)) * 100}%` }} />
+                <div key={`c${i}`} className="absolute top-0 bottom-0 border-l border-dashed border-white/30" style={{ left: `${((i + 1) / numOr(cols, 1)) * 100}%` }} />
               ))}
               {Array.from({ length: Math.max(0, numOr(rows, 1) - 1) }).map((_, i) => (
-                <div key={`r${i}`} className="absolute left-0 right-0 border-t border-dashed border-[#6366f1]/40" style={{ top: `${((i + 1) / numOr(rows, 1)) * 100}%` }} />
+                <div key={`r${i}`} className="absolute left-0 right-0 border-t border-dashed border-white/30" style={{ top: `${((i + 1) / numOr(rows, 1)) * 100}%` }} />
               ))}
-              <div className="absolute inset-0 grid place-items-center text-[#a5b4fc]/80 text-xs font-semibold tabular-nums">{numOr(cols, 1)}×{numOr(rows, 1)}</div>
+              <div className="absolute inset-0 grid place-items-center text-white/70 text-xs font-semibold tabular-nums">{numOr(cols, 1)}×{numOr(rows, 1)}</div>
             </div>
-            <p className="text-white/50 text-xs leading-relaxed">
-              <span className="text-white/70 font-semibold tabular-nums">{numOr(cols, 1) * numOr(rows, 1)} fiziksel ekran</span> · {numOr(w, 1920)}×{numOr(h, 1080)}px<br />
+            <p className="text-muted text-xs leading-relaxed">
+              <span className="text-ink font-semibold tabular-nums">{numOr(cols, 1) * numOr(rows, 1)} fiziksel ekran</span> · {numOr(w, 1920)}×{numOr(h, 1080)}px<br />
               Oluşturunca alanları sürükle-birleştir ile düzenler, içerik eklersin.
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-3 text-sm">
             <div className="flex items-end gap-3">
               <label className="flex flex-col gap-1">
-                <span className="text-white/50 text-xs">Genişlik (px)</span>
+                <span className="text-muted text-xs">Genişlik (px)</span>
                 <input type="number" min={1} value={w} onChange={(e) => setW(e.target.value === "" ? "" : Math.max(1, Math.round(Number(e.target.value) || 0)))} onBlur={() => w === "" && setW(1920)} className={`w-28 ${inputCls}`} />
               </label>
-              <span className="pb-2 text-white/40">×</span>
+              <span className="pb-2 text-muted">×</span>
               <label className="flex flex-col gap-1">
-                <span className="text-white/50 text-xs">Yükseklik (px)</span>
+                <span className="text-muted text-xs">Yükseklik (px)</span>
                 <input type="number" min={1} value={h} onChange={(e) => setH(e.target.value === "" ? "" : Math.max(1, Math.round(Number(e.target.value) || 0)))} onBlur={() => h === "" && setH(1080)} className={`w-28 ${inputCls}`} />
               </label>
             </div>
             <label className="flex flex-col gap-1">
-              <span className="text-white/50 text-xs">Yan yana kaç ekran?</span>
+              <span className="text-muted text-xs">Yan yana kaç ekran?</span>
               <input type="number" min={1} max={24} value={cols} onChange={(e) => setCols(e.target.value === "" ? "" : clampScreens(Number(e.target.value)))} onBlur={() => cols === "" && setCols(1)} className={`w-24 ${inputCls}`} />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-white/50 text-xs">Üst üste kaç ekran?</span>
+              <span className="text-muted text-xs">Üst üste kaç ekran?</span>
               <input type="number" min={1} max={24} value={rows} onChange={(e) => setRows(e.target.value === "" ? "" : clampScreens(Number(e.target.value)))} onBlur={() => rows === "" && setRows(1)} className={`w-24 ${inputCls}`} />
             </label>
-            <button type="submit" disabled={busy} className="w-full sm:w-auto sm:ml-auto rounded-xl bg-accent hover:bg-accent-dark text-white px-6 py-2.5 font-semibold disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#a5b4fc]/60">
+            <button type="submit" disabled={busy} className="w-full sm:w-auto sm:ml-auto btn-primary !py-2.5">
               ＋ Oluştur
             </button>
           </div>
         </form>
 
         {walls.length === 0 ? (
-          <div className="text-center py-16 text-white/50">
+          <div className="text-center py-16 text-muted">
             <p className="text-5xl mb-4" aria-hidden>🖥️</p>
             <p>Henüz ekranın yok. Yukarıdan ilkini oluştur.</p>
           </div>
@@ -241,11 +244,11 @@ export default function ScreensPage() {
           <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {/* Telefonda TEK sıra (dar kartta aksiyonlar eziliyordu); sm+ çoklu */}
             {walls.map((v) => (
-              <li key={v.id} className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex flex-col">
+              <li key={v.id} className="card overflow-hidden flex flex-col">
                 {/* Önizleme = yayındaki yerleşim; tıkla → editör */}
                 <Link href={`/screens/${v.id}/edit`} className="relative block group" aria-label={`${v.name} — düzenle`}>
                   <WallThumb vw={v} />
-                  <span className="absolute inset-0 ring-1 ring-inset ring-white/10 group-hover:ring-[#6366f1]/60 transition" aria-hidden />
+                  <span className="absolute inset-0 ring-1 ring-inset ring-ink/10 group-hover:ring-accent/60 transition" aria-hidden />
                   <span className={`absolute top-1.5 right-1.5 rounded-full backdrop-blur px-2 py-0.5 text-[10px] font-bold tracking-wide ${beatLabel(v.id).cls}`}>
                     {beatLabel(v.id).text}
                   </span>
@@ -253,17 +256,17 @@ export default function ScreensPage() {
                 <div className="p-3 flex flex-col gap-2.5 flex-1">
                   <div className="min-w-0">
                     <p className="font-display font-semibold text-sm truncate">{v.name}</p>
-                    <p className="text-white/50 text-[11px] mt-0.5 tabular-nums">{v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan</p>
+                    <p className="text-muted text-[11px] mt-0.5 tabular-nums">{v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan</p>
                   </div>
                   <div className="flex items-center gap-1 mt-auto">
-                    <Link href={`/screens/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-white/10 border border-white/15 px-2 py-1.5 text-xs font-semibold hover:bg-white/15">Düzenle</Link>
+                    <Link href={`/screens/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-paper border border-line px-2 py-1.5 text-xs font-semibold hover:border-muted">Düzenle</Link>
                     <a href={playHref(v)} target={playTarget} title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
                       <Icon name="play" size={12} />
                     </a>
-                    <button onClick={() => duplicate(v)} disabled={busy} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 disabled:opacity-30" title="Kopyala" aria-label="Kopyala">
+                    <button onClick={() => duplicate(v)} disabled={busy} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-paper disabled:opacity-30" title="Kopyala" aria-label="Kopyala">
                       <Icon name="copy" size={13} />
                     </button>
-                    <button onClick={() => setConfirmDel(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/10" title="Sil" aria-label="Sil">
+                    <button onClick={() => setConfirmDel(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-brand hover:bg-brand-soft/50" title="Sil" aria-label="Sil">
                       <Icon name="trash" size={13} />
                     </button>
                   </div>

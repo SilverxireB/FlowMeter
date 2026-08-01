@@ -39,23 +39,27 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen grid place-items-center bg-[#0d102f] text-white px-4">
+    <main className="min-h-screen grid place-items-center bg-wash px-4">
       <form onSubmit={submit} className="w-full max-w-xs flex flex-col items-center gap-5">
-        <Image src="/logo.png" alt="FlowSign" width={160} height={48} className="h-10 w-auto" priority />
-        <p className="text-white/50 text-sm text-center">Ekranları yönetmek için yönetici parolasını gir.</p>
+        {/* Marka dili ana ürünle aynı: O-halkası ikonu + kısa ad ("FLOW" yalnız çatıda) */}
+        <span className="inline-flex items-center gap-2" role="img" aria-label="FlowSign">
+          <Image src="/logo.png" alt="" width={160} height={48} className="h-9 w-auto" priority />
+          <span aria-hidden className="font-display font-semibold text-[34px] leading-none tracking-[0.03em] text-[#001e64]">SIGN</span>
+        </span>
+        <p className="text-muted text-sm text-center">Ekranları yönetmek için yönetici parolasını gir.</p>
         <input
           autoFocus
           type="password"
           value={pw}
           onChange={(e) => setPw(e.target.value)}
           placeholder="Yönetici parolası"
-          className="w-full rounded-xl bg-white/10 border border-white/15 px-4 py-3 focus:outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/30"
+          className="input-base"
         />
-        {err && <p className="text-rose-300 text-sm font-semibold">{err}</p>}
+        {err && <p className="text-brand text-sm font-semibold">{err}</p>}
         <button
           type="submit"
           disabled={busy || !pw}
-          className="w-full rounded-xl bg-accent hover:bg-accent-dark text-white px-6 py-3 font-semibold disabled:opacity-50"
+          className="w-full btn-primary"
         >
           {busy ? "Giriş yapılıyor…" : "Giriş yap"}
         </button>
