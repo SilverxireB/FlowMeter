@@ -6,6 +6,7 @@
  * yer tutucuyla). Self-host: görsel yerel yolundan gösterilir, video 🎬.
  */
 import { Videowall, ZoneItem } from "@/lib/types";
+import { ZONE_BG_DEFAULT } from "@/lib/zones";
 
 function ItemFace({ item }: { item?: ZoneItem }) {
   if (!item) return <div className="absolute inset-0 grid place-items-center text-white/15 text-[10px]">boş</div>;
@@ -54,7 +55,7 @@ export default function WallThumb({ vw }: { vw: Videowall }) {
         <div
           key={z.id}
           className="absolute overflow-hidden border border-white/15"
-          style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%`, background: z.bg ?? "#000" }}
+          style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%`, background: z.bg ?? ZONE_BG_DEFAULT }}
         >
           <ItemFace item={z.items?.[0]} />
         </div>

@@ -75,6 +75,10 @@ function unitZone(c: number, r: number, cols: number, rows: number): Zone {
   return { id: zid(), ...rectFromCells({ c0: c, r0: r, c1: c, r1: r }, cols, rows), items: [] };
 }
 
+/** Alan zemini VARSAYILANI — Flow lacivert (siyah yerine marka rengi;
+ *  kullanıcı kararı). Alanın kendi `bg`si varsa o kazanır. */
+export const ZONE_BG_DEFAULT = "#001e64";
+
 /** Ekran sayısı üst sınırı — devasa ızgara tarayıcıyı patlatır. */
 export const MAX_SCREENS_PER_AXIS = 24;
 export const clampScreens = (n: number) => Math.min(MAX_SCREENS_PER_AXIS, Math.max(1, Math.round(n) || 1));

@@ -511,10 +511,7 @@ export default function WallManage() {
         <div className="card p-5 flex items-start gap-4 flex-wrap">
           <div className="min-w-0 flex-1">
             <p className="eyebrow mb-1">Perde linki</p>
-            <p className="text-muted text-xs leading-relaxed mb-2">
-              Perdeyi kokpitin açık olduğu bilgisayardan yansıtacaksan yukarıdaki <b>▶ Perde ekranı</b> düğmesi yeter.
-              Ayrı bir cihazda (TV kutusu, mini PC, ikinci tablet) çalıştıracaksan bu adresi oraya taşı — <b>giriş gerekmez</b>.
-            </p>
+            <p className="text-muted text-xs mb-2">Ayrı bir cihazda açacaksan bu adresi taşı — giriş gerekmez.</p>
             <div className="flex items-center gap-2 flex-wrap">
               <code className="text-xs bg-paper rounded-lg px-2 py-1 break-all min-w-0">{screenUrl}</code>
               <button onClick={copyScreenUrl} className="btn-ghost !py-1.5 !px-3 text-xs shrink-0">

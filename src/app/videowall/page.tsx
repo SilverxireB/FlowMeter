@@ -295,7 +295,7 @@ export default function VideowallListPage() {
 
       <section className="max-w-5xl mx-auto px-4 py-10">
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">Ekranların</h1>
-        <p className="text-muted text-sm mb-6">Çözünürlük + ekran ızgarası tanımla, alanlara içerik yerleştir, tam ekran yayınla.</p>
+        <p className="text-muted text-sm mb-6">Ekranı tanımla, alanlara içerik yerleştir, yayınla.</p>
 
         {err && <div className="mb-5 rounded-2xl bg-brand-soft text-brand px-4 py-3 text-sm font-semibold">{err}</div>}
 
@@ -329,9 +329,8 @@ export default function VideowallListPage() {
               ))}
               <div className="absolute inset-0 grid place-items-center text-white/70 text-xs font-semibold tabular-nums">{numOr(cols, 1)}×{numOr(rows, 1)}</div>
             </div>
-            <p className="text-muted text-xs leading-relaxed">
-              <span className="text-ink font-semibold tabular-nums">{numOr(cols, 1) * numOr(rows, 1)} fiziksel ekran</span> · {numOr(w, 1920)}×{numOr(h, 1080)}px<br />
-              Oluşturunca alanları sürükle-birleştir ile düzenler, içerik eklersin.
+            <p className="text-muted text-xs">
+              <span className="text-ink font-semibold tabular-nums">{numOr(cols, 1) * numOr(rows, 1)} fiziksel ekran</span> · {numOr(w, 1920)}×{numOr(h, 1080)}px
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-3 text-sm">

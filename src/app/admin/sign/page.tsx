@@ -174,8 +174,7 @@ export default function AdminSignPage() {
         <AdminTabs />
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">Sign yetkileri</h1>
         <p className="text-muted text-sm mb-6">
-          Kim hangi ekranı yönetebilir? Kişiye tıkla, altındaki ekran listesinden tikle. Kendi oluşturduğu
-          ekranlarda kişi zaten tam yetkilidir — tik kaldırırsan o da geçerli olur.
+          Kişiye tıkla, ekranlarını tikle. Kendi oluşturduğu ekranlarda zaten tam yetkilidir.
         </p>
 
         {err && <div className="mb-4 rounded-2xl bg-brand-soft text-brand px-4 py-3 text-sm font-semibold">{err}</div>}

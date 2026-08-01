@@ -310,12 +310,12 @@ export default function VideowallEditPage() {
               <p className="font-display font-semibold text-accent-dark">👋 FlowSign — 5 adımda ekranın hazır</p>
               <button onClick={dismissGuide} className="text-muted hover:text-ink text-sm shrink-0">Anladım ✕</button>
             </div>
-            <ol className="text-sm text-ink/75 space-y-1.5 list-decimal list-inside">
-              <li><b>Yerleşim:</b> hücrelere sürükle → alanları birleştir, tıkla → seç, gerekirse böl.</li>
-              <li><b>İçerik:</b> seçili alana görsel/video/URL/metin/saat ekle (dosyayı sürükleyip de bırakabilirsin).</li>
-              <li><b>Önizle:</b> 👁 ile taslağı gör — canlı ekran bozulmaz, değişiklikler yayına gitmez.</li>
-              <li><b>Kaydet & Yayınla:</b> hazır olunca bas → aşağıdaki link/QR bu hâli oynatır. Ekran uyumaz.</li>
-              <li><b>Çoklu ekran:</b> tabela PC&apos;sinde TV&apos;leri tek birleşik görüntü yap (ekran kartında &ldquo;Surround/Eyefinity&rdquo; ya da video-wall denetleyici). Tarayıcı tek pencerede tüm duvarı kaplar; <b>⊞ Ekranları tanı</b> ile sırayı doğrula.</li>
+            <ol className="text-sm text-ink/75 space-y-1 list-decimal list-inside">
+              <li><b>Yerleşim:</b> alana tıkla → seç; sürükle → birleştir; panelden böl.</li>
+              <li><b>İçerik:</b> seçili alana görsel/video/URL/metin/saat ekle.</li>
+              <li><b>Önizle:</b> 👁 taslağı gösterir, canlı ekran bozulmaz.</li>
+              <li><b>Kaydet &amp; Yayınla:</b> aşağıdaki link bu hâli oynatır.</li>
+              <li><b>Çoklu TV:</b> ekran kartında tek birleşik görüntü yap (Surround/Eyefinity); yayında ⊞ ile sırayı doğrula.</li>
             </ol>
           </div>
         )}
@@ -343,9 +343,27 @@ export default function VideowallEditPage() {
             </label>
             <span className="text-muted text-xs pb-2 tabular-nums">{vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan</span>
           </div>
+        </div>
 
-          {/* Oynatma modu: tabela (otomatik) / sunum (kumanda). Yayından bağımsız —
-              seçim perdeye ANINDA gider (Kaydet & Yayınla gerekmez). */}
+        {/* Yerleşim editörü */}
+        <div className="card p-5">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <p className="eyebrow">Yerleşim</p>
+            {undoZones && (
+              <button
+                onClick={undoLayout}
+                className="rounded-lg bg-white border border-line px-2.5 py-1 text-xs font-semibold text-ink/80 hover:border-muted inline-flex items-center gap-1"
+              >
+                <Icon name="undo" size={12} /> Son değişikliği geri al
+              </button>
+            )}
+          </div>
+          <LayoutEditor vw={vw} selectedId={selectedId} onSelect={setSelectedId} onZones={saveZones} onConfirm={setConfirmBox} />
+
+          {/* Oynatma modu — YERLEŞİMİN ALTINDA (kullanıcı isteği): içeriğin nasıl
+              aktığı yerleşimle birlikte düşünülür, duvar tanımıyla değil.
+              Tabela (otomatik) / sunum (kumanda); yayından BAĞIMSIZ — seçim
+              perdeye ANINDA gider (Kaydet & Yayınla gerekmez). */}
           <div className="mt-4 pt-4 border-t border-line">
             <span className="text-muted text-xs block mb-2">Oynatma modu</span>
             <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -365,28 +383,12 @@ export default function VideowallEditPage() {
                 );
               })}
             </div>
-            <p className="text-muted text-xs mt-2 leading-relaxed">
+            <p className="text-muted text-xs mt-2">
               {(vw.playMode ?? "auto") === "manual"
-                ? "Sunum modu: içerik kumandayla/klavyeyle ilerler (→ ← boşluk PgUp/PgDn), sağ altta sayaç, B = siyah ekran, F = tam ekran; uçlarda durur, süre/otomatik geçiş çalışmaz. Seçim yayına anında gider."
-                : "Tabela modu (varsayılan): içerik süre ve takvime göre kendiliğinden döner."}
+                ? "Kumandayla ilerler (→ ← boşluk); süre/otomatik geçiş çalışmaz."
+                : "İçerik süre ve takvime göre kendiliğinden döner."}
             </p>
           </div>
-        </div>
-
-        {/* Yerleşim editörü */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <p className="eyebrow">Yerleşim</p>
-            {undoZones && (
-              <button
-                onClick={undoLayout}
-                className="rounded-lg bg-white border border-line px-2.5 py-1 text-xs font-semibold text-ink/80 hover:border-muted inline-flex items-center gap-1"
-              >
-                <Icon name="undo" size={12} /> Son değişikliği geri al
-              </button>
-            )}
-          </div>
-          <LayoutEditor vw={vw} selectedId={selectedId} onSelect={setSelectedId} onZones={saveZones} onConfirm={setConfirmBox} />
         </div>
 
         {/* İçerik paneli (seçili alan) */}
@@ -432,11 +434,9 @@ export default function VideowallEditPage() {
               <button onClick={copyLink} className="rounded-xl bg-white border border-line px-3 py-2 text-sm font-semibold hover:border-muted">{copied ? "✓ Kopyalandı" : "Kopyala"}</button>
               <a href={playUrl} target={playTarget} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-3 py-2 text-sm font-semibold">Aç{playTarget ? " ↗" : ""}</a>
             </div>
-            <p className="text-muted text-xs mt-2 leading-relaxed">
-              Linki tabela PC&apos;sinde Chrome ile aç, tam ekran yap — her zaman <b>son yayınlanan</b> hâli oynatır. Adı değiştirince link de yenilenir; <b>eski link çalışmaya devam eder</b>.
+            <p className="text-muted text-xs mt-2">
+              Tabela PC&apos;sinde Chrome ile aç, tam ekran yap. Eski linkler çalışmaya devam eder.
               {lastPublished && <span className="text-ink/70"> · Son yayın: {lastPublished}</span>}
-              <br />
-              Birden çok TV&apos;yi tek duvar yapacaksan: ekran kartında TV&apos;leri <b>tek birleşik görüntü</b> olarak ayarla (Surround/Eyefinity ya da video-wall denetleyici); yayında ⊞ ile sırayı kontrol et.
             </p>
           </div>
           {playUrl && (

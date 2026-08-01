@@ -98,6 +98,10 @@ function rectFromCells(b: CellBox, cols: number, rows: number) {
   };
 }
 
+/** Alan zemini VARSAYILANI — Flow lacivert (siyah yerine marka rengi;
+ *  kullanıcı kararı). Alanın kendi `bg`si varsa o kazanır. */
+export const ZONE_BG_DEFAULT = "#001e64";
+
 /** Tek hücrelik alan. */
 function unitZone(c: number, r: number, cols: number, rows: number): Zone {
   return { id: zid(), ...rectFromCells({ c0: c, r0: r, c1: c, r1: r }, cols, rows), items: [] };

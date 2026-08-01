@@ -50,6 +50,10 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   (emoji efektin kendisini gösterir), Pulse yüz ölçeği, tepkiler/kutlamalar.
   İkon kontrol sayfası: `/dev/icons`.
   Onaylar `ConfirmDialog` (native confirm değil). Girdilere odak reçetesi.
+- **Metin ekonomisi (kullanıcı kararı):** yardım paragrafları KISA — "demo sayfa"
+  hissi veriyordu. Kural: bir cümle, gerekiyorsa kalın vurgu; tekrar eden bilgi
+  (zaten ekranda görünen) yazılmaz. 2026-08'de Sign editörü/listesi, Wall perde
+  linki ve Pulse kiosk ipuçları buna göre budandı.
 
 ## Kritik Mimari Notlar
 - **FlowSign:** editör TASLAK (`zones`), perde YAYIN (`live`); birleştir/böl içerik
@@ -71,8 +75,10 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   GÖSTERİLMEZ (kokpitteki satır kaldırıldı, kafa karıştırıyordu). Bölme SEÇİLİ
   ALANIN panelinde: "Bu alanı böl ⇄/⇅ 2·3·4" → `splitZoneInto` ızgarayı sessizce
   katlar, diğer alanları ölçekler, sonra EBOB ile sadeleştirir; `saveLayout`
-  ızgara+alanları tek yazımda gönderir. Editör sırası: tanım → yerleşim → içerik
-  → yayın linki + ekranlar (EN ALTTA).
+  ızgara+alanları tek yazımda gönderir. Editör sırası: tanım → yerleşim
+  (+ oynatma modu) → içerik → yayın linki + ekranlar (EN ALTTA).
+  Alan zemini varsayılanı `ZONE_BG_DEFAULT` = Flow lacivert #001e64 (siyah
+  değil; editör tuvali de aynı renk).
   **Self-host paketi VAR: `flowsign-selfhost/`** (bağımsız Next app; Firestore→
   `data/` JSON dosya deposu, Cloudinary→yerel disk + güvenli dosya adı
   [boşluk/TR→alt çizgi], realtime→SSE, kişi başına hesap (users.json),

@@ -427,7 +427,7 @@ export default function PulseManagePage() {
                 <LinkRow
                   label="Kiosk linki"
                   icon="monitor"
-                  hint="Tabletin kamerasıyla yandaki kodu okut → kiosk açılır (giriş gerekmez). Çıkmak için sol üst köşeye 3 sn içinde 5 kez dokun + PIN gir."
+                  hint="Tabletin kamerasıyla okut → kiosk açılır. Çıkış: sol üst köşeye 5 dokunuş + PIN."
                   url={kioskUrl}
                   copied={copied === "kiosk"}
                   onCopy={() => copyLink(kioskUrl, "kiosk")}
@@ -444,7 +444,7 @@ export default function PulseManagePage() {
               <LinkRow
                 label="Pano linki"
                   icon="chart"
-                hint="Ekranda tek başına açabilir ya da FlowSign'da bir alana URL öğesi olarak yapıştırabilirsin → sonuçlar tabelada döner."
+                hint="Ekranda tek başına aç ya da FlowSign'da URL öğesi olarak kullan."
                 url={boardUrl}
                 copied={copied === "board"}
                 onCopy={() => copyLink(boardUrl, "board")}

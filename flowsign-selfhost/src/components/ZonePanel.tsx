@@ -11,7 +11,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { uploadMedia } from "@/lib/media";
-import { itemInWindow } from "@/lib/zones";
+import { itemInWindow, ZONE_BG_DEFAULT } from "@/lib/zones";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 const iid = () => `it-${Math.random().toString(36).slice(2, 9)}`;
@@ -262,32 +262,36 @@ export default function ZonePanel({
       </div>
 
       {/* BÖLME — alanın kendi panelinde (kokpitte genel "yerleşim ızgarası"
-          satırı YOK). Buradaki bölme YALNIZ bu alanı parçalar. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 text-xs text-muted">
-        <span className="font-semibold text-ink">Bu alanı böl:</span>
-        {([
-          { axis: "h", label: "yan yana", icon: "⇄" },
-          { axis: "v", label: "alt alta", icon: "⇅" },
-        ] as const).map((dir) => (
-          <span key={dir.axis} className="inline-flex items-center gap-1.5">
-            <span aria-hidden>{dir.icon}</span>
-            <span>{dir.label}</span>
-            {[2, 3, 4].map((n) => (
-              <button
-                key={n}
-                onClick={() => onSplit(n, dir.axis)}
-                className="w-7 h-7 rounded-lg border border-line bg-white font-semibold text-ink hover:border-accent hover:text-accent"
-                title={`${dir.label} ${n} parçaya böl`}
-                aria-label={`${dir.label} ${n} parçaya böl`}
-              >
-                {n}
-              </button>
-            ))}
-          </span>
-        ))}
-        <span className="text-muted/80 basis-full leading-relaxed">
-          İçerik ilk parçada kalır. Geri almak için parçaları sürükleyip birleştir.
-        </span>
+          satırı YOK). İKİ SATIR + sabit genişlikte yön etiketi: tek satıra
+          sıkıştırılınca telefonda sarıp kırık görünüyordu (kullanıcı ekran
+          görüntüsü). Sayı düğmeleri iki satırda alt alta hizalı durur. */}
+      <div className="mb-4">
+        <p className="text-xs font-semibold text-ink mb-2">Bu alanı böl</p>
+        <div className="flex flex-col gap-2">
+          {([
+            { axis: "h", label: "yan yana", icon: "⇄" },
+            { axis: "v", label: "alt alta", icon: "⇅" },
+          ] as const).map((dir) => (
+            <div key={dir.axis} className="flex items-center gap-2">
+              <span className="text-xs text-muted inline-flex items-center gap-1.5 w-24 shrink-0">
+                <span aria-hidden>{dir.icon}</span>
+                {dir.label}
+              </span>
+              {[2, 3, 4].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => onSplit(n, dir.axis)}
+                  className="w-9 h-9 rounded-xl border border-line bg-white text-sm font-semibold text-ink hover:border-accent hover:text-accent"
+                  title={`${dir.label} ${n} parçaya böl`}
+                  aria-label={`${dir.label} ${n} parçaya böl`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <p className="text-muted text-[11px] mt-2">İçerik ilk parçada kalır.</p>
       </div>
 
       {/* Alan ayarları: geçiş + arka plan */}
@@ -304,15 +308,14 @@ export default function ZonePanel({
             </button>
           ))}
         </span>
-        <label className="flex items-center gap-1.5">Alan zemini <input type="color" defaultValue={zone.bg ?? "#000000"} onChange={(e) => patch({ bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-line p-0.5 cursor-pointer" /></label>
+        <label className="flex items-center gap-1.5">Alan zemini <input type="color" defaultValue={zone.bg ?? ZONE_BG_DEFAULT} onChange={(e) => patch({ bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-line p-0.5 cursor-pointer" /></label>
       </div>
 
       {/* Hedef çözünürlük: içerik alana tam yayılır (stretch) → doğru boyutta
           hazırlansın diye alanın gerçek piksel ölçüsü söylenir */}
       <div className="mb-4 rounded-xl bg-accent-soft border border-accent/25 px-3 py-2 text-xs text-accent-dark">
-        📐 Bu alanın hedef çözünürlüğü:{" "}
+        📐 Hedef çözünürlük:{" "}
         <b className="tabular-nums">{Math.round(vw.width * zone.w)} × {Math.round(vw.height * zone.h)} px</b>
-        {" "}— görsel/videoyu bu boyutta hazırla; içerik alana tam yayılır.
       </div>
 
       {/* Tüm içerik takvim dışıysa uyarı — ekran boş görünür */}
@@ -361,7 +364,7 @@ export default function ZonePanel({
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={submitUrl} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-4 py-2 text-sm font-semibold">Ekle</button>
             <button onClick={() => { setUrlForm(null); setErr(null); }} className="rounded-xl bg-white border border-line px-4 py-2 text-sm font-semibold hover:border-muted">Vazgeç</button>
-            <span className="text-muted text-[11px]">Bazı siteler gömülmeye izin vermez, boş görünür — Önizle ile kontrol et.</span>
+            <span className="text-muted text-[11px]">Bazı siteler gömülmeye izin vermez — Önizle ile kontrol et.</span>
           </div>
         </div>
       )}
@@ -591,7 +594,7 @@ export default function ZonePanel({
           })}
         </ul>
       )}
-      <p className="text-muted text-[11px] mt-3">İçerik alana tam yayılır — hedef çözünürlük yukarıda 📐 · süre/takvim öğedeki ⚙ ile · dosyayı panele sürükleyip bırakabilirsin.</p>
+      <p className="text-muted text-[11px] mt-3">Süre ve takvim öğedeki ⚙ ile ayarlanır.</p>
 
       {/* Medya kütüphanesi */}
       {libOpen && (

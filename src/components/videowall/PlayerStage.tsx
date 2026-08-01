@@ -10,7 +10,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { itemInWindow as inWindow, sendScreenBeat } from "@/lib/videowalls";
+import { itemInWindow as inWindow, sendScreenBeat, ZONE_BG_DEFAULT } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 type Transition = "fade" | "cut" | "slide";
@@ -327,7 +327,7 @@ function ZonePlayer({
   return (
     <div
       className="absolute overflow-hidden"
-      style={{ left: `${zone.x * 100}%`, top: `${zone.y * 100}%`, width: `${zone.w * 100}%`, height: `${zone.h * 100}%`, background: zone.bg ?? "#000" }}
+      style={{ left: `${zone.x * 100}%`, top: `${zone.y * 100}%`, width: `${zone.w * 100}%`, height: `${zone.h * 100}%`, background: zone.bg ?? ZONE_BG_DEFAULT }}
     >
       {layers.length === 0 ? (
         <div className="w-full h-full grid place-items-center text-white/15 text-sm select-none">FlowSign</div>

@@ -7,6 +7,7 @@
  * sıkıştırılır (bilgi değil vitrin — gerçek oran editörde).
  */
 import { cldFit, cldVideoPoster } from "@/lib/cloudinary";
+import { ZONE_BG_DEFAULT } from "@/lib/videowalls";
 import { Videowall, ZoneItem } from "@/lib/types";
 
 function ItemFace({ item }: { item?: ZoneItem }) {
@@ -63,7 +64,7 @@ export default function WallThumb({ vw }: { vw: Videowall }) {
         <div
           key={z.id}
           className="absolute overflow-hidden border border-white/15"
-          style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%`, background: z.bg ?? "#000" }}
+          style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%`, background: z.bg ?? ZONE_BG_DEFAULT }}
         >
           <ItemFace item={z.items?.[0]} />
         </div>

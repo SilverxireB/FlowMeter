@@ -8,7 +8,7 @@
  * video minyatürü 🎬 yer tutucudur.
  */
 import { useRef, useState } from "react";
-import { CellBox, contentZonesIn, layoutColsOf, layoutRowsOf, mergeCells, zoneCells } from "@/lib/zones";
+import { CellBox, contentZonesIn, layoutColsOf, layoutRowsOf, mergeCells, zoneCells, ZONE_BG_DEFAULT } from "@/lib/zones";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 /**
@@ -142,8 +142,13 @@ export default function LayoutEditor({
   return (
     <div>
       <div
-        className="relative mx-auto bg-black rounded-lg overflow-hidden border border-line select-none touch-none"
-        style={{ width: "100%", maxWidth: aspect >= 1 ? 900 : 900 * aspect, aspectRatio: `${vw.width} / ${vw.height}` }}
+        className="relative mx-auto rounded-lg overflow-hidden border border-line select-none touch-none"
+        style={{
+          width: "100%",
+          maxWidth: aspect >= 1 ? 900 : 900 * aspect,
+          aspectRatio: `${vw.width} / ${vw.height}`,
+          background: ZONE_BG_DEFAULT,
+        }}
       >
         {/* Alanlar (görsel) */}
         {(vw.zones ?? []).map((z, i) => {
@@ -205,12 +210,9 @@ export default function LayoutEditor({
           onPointerCancel={() => setDrag(null)}
         />
       </div>
-      <p className="text-muted text-xs mt-3 leading-relaxed">
-        Hücrelere <b>sürükle</b> → alanları birleştir · alana <b>tıkla</b> → seç (içerik ekle / böl).
-        <span className="text-muted/80">
-          {" "}Kesik çizgiler = <b>fiziksel ekran (çerçeve) sınırı</b> — yazıyı ortasından bölme; renkli çerçeveler = içerik alanların.
-          {screenCols * screenRows === 1 ? " Tek ekranlısın: kesik çizgi yok, yerleşimi istediğin gibi böl." : ""}
-        </span>
+      <p className="text-muted text-xs mt-3">
+        <b>Sürükle</b> → birleştir · <b>tıkla</b> → seç
+        {screenCols * screenRows > 1 ? " · kesik çizgi = ekran çerçevesi" : ""}
       </p>
     </div>
   );

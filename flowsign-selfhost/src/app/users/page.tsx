@@ -143,8 +143,8 @@ export default function UsersPage() {
         </h1>
         <p className="text-muted text-sm mb-6">
           {tab === "accounts"
-            ? "Her kişiye kendi hesabını aç. Ekran yetkilerini yandaki sekmeden dağıtırsın."
-            : "Kim hangi ekranı yönetebilir? Kişiye tıkla, altındaki ekran listesinden tikle. Kendi oluşturduğu ekranlarda kişi zaten tam yetkilidir — tik kaldırırsan o da geçerli olur."}
+            ? "Her kişiye kendi hesabını aç; yetkileri yandaki sekmeden dağıt."
+            : "Kişiye tıkla, ekranlarını tikle. Kendi oluşturduğu ekranlarda zaten tam yetkilidir."}
         </p>
 
         {err && <div className="mb-5 rounded-2xl bg-brand-soft text-brand px-4 py-3 text-sm font-semibold">{err}</div>}
@@ -197,9 +197,7 @@ export default function UsersPage() {
             <button type="submit" disabled={busy || !name.trim() || pw.length < 4} className="btn-primary !py-2.5 self-start text-sm">
               <Icon name="plus" size={15} /> Hesabı aç
             </button>
-            <p className="text-muted text-xs">
-              Parolayı kişiye kendin ilet; sistem e-posta göndermez (internetsiz iç ağda çalışır).
-            </p>
+            <p className="text-muted text-xs">Parolayı kişiye kendin ilet — sistem e-posta göndermez.</p>
           </form>
         )}
 
