@@ -11,7 +11,8 @@ export type IconName =
   | "palette"
   | "dots"
   | "chevronRight"
-  | "chevronLeft";
+  | "chevronLeft"
+  | "play";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   pencil: (
@@ -44,6 +45,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
   ),
   chevronRight: <path d="m9 6 6 6-6 6" />,
   chevronLeft: <path d="m15 6-6 6 6 6" />,
+  play: <path d="m7 5 12 7-12 7V5Z" />,
 };
 
 export default function Icon({

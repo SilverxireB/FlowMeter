@@ -10,6 +10,19 @@ import SlidePreview from "@/components/editor/SlidePreview";
 import ThemePanel from "@/components/editor/ThemePanel";
 import { useAuthUser, usePresentation, useSlides } from "@/lib/hooks";
 import { fileToCompressedDataUrl } from "@/lib/images";
+import { setResponseDryRun } from "@/lib/responses";
+import { Timestamp } from "firebase/firestore";
+import Grid2x2Vote from "@/components/vote/Grid2x2Vote";
+import GuessNumberVote from "@/components/vote/GuessNumberVote";
+import HundredPointsVote from "@/components/vote/HundredPointsVote";
+import MultipleChoiceVote from "@/components/vote/MultipleChoiceVote";
+import OpenEndedVote from "@/components/vote/OpenEndedVote";
+import PinOnImageVote from "@/components/vote/PinOnImageVote";
+import QuizTypeVote from "@/components/vote/QuizTypeVote";
+import QuizVote from "@/components/vote/QuizVote";
+import RankingVote from "@/components/vote/RankingVote";
+import ScalesVote from "@/components/vote/ScalesVote";
+import WordCloudVote from "@/components/vote/WordCloudVote";
 import {
   addSlide,
   changeSlideType,
@@ -33,7 +46,7 @@ import {
   SlideType,
 } from "@/lib/types";
 
-type SheetKind = "edit" | "add" | "more" | "interactivity" | null;
+type SheetKind = "edit" | "add" | "more" | "interactivity" | "test" | null;
 
 /**
  * Slayt editörü — Menti mobil düzeni: ortada canlı önizleme, altında yüzen
@@ -200,6 +213,9 @@ export default function EditPage() {
           <ToolButton label="Etkileşim" onClick={() => setSheet("interactivity")}>
             <Icon name="chat" />
           </ToolButton>
+          <ToolButton label="Dene — katılımcı gözünden prova" onClick={() => selected && setSheet("test")} disabled={!selected}>
+            <Icon name="play" />
+          </ToolButton>
           <ToolButton label="Tema" onClick={() => setThemeOpen(true)}>
             <Icon name="palette" />
           </ToolButton>
@@ -266,6 +282,12 @@ export default function EditPage() {
           }}
           onClose={() => setSheet(null)}
         />
+      )}
+
+      {sheet === "test" && selected && (
+        <Sheet title="Dene — katılımcı gözünden" onClose={() => setSheet(null)}>
+          <TestPane slide={selected} presentationId={id} />
+        </Sheet>
       )}
 
       {sheet === "interactivity" && (
@@ -1019,6 +1041,77 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
           className="input-base resize-none"
         />
       </Accordion>
+    </div>
+  );
+}
+
+/**
+ * Prova paneli: seçili slaytı GERÇEK katılımcı bileşenleriyle dener —
+ * kuru çalışma modunda hiçbir cevap Firestore'a yazılmaz, yerel oy
+ * sayaçları kirlenmez. Quiz'lerde geri sayım provada hemen başlar.
+ */
+function TestPane({ slide, presentationId }: { slide: Slide; presentationId: string }) {
+  const [runId, setRunId] = useState(0);
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    setResponseDryRun(true);
+    return () => setResponseDryRun(false);
+  }, []);
+  useEffect(() => {
+    setDone(false);
+  }, [slide.id, runId]);
+
+  // Quiz provası: geri sayım sunucu tetiklemesini beklemesin
+  const s: Slide =
+    slide.type === "quiz" || slide.type === "quiz-type"
+      ? { ...slide, quizStartedAt: Timestamp.now() }
+      : slide;
+  const markDone = () => setDone(true);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-2.5 text-xs text-amber-800 font-semibold">
+        🧪 Prova modu — cevaplar kaydedilmez, gerçek sonuçlara karışmaz.
+      </div>
+      <div key={`${slide.id}-${runId}`} className="rounded-2xl border border-line bg-white p-4">
+        <h2 className="font-display text-xl font-semibold mb-1">{s.question}</h2>
+        {s.settings?.description && <p className="text-muted text-sm mb-3">{s.settings.description}</p>}
+        <div className="mt-3">
+          {done ? (
+            <div className="text-center py-8">
+              <p className="text-4xl mb-2" aria-hidden>🎉</p>
+              <p className="font-bold">Cevabın alındı! <span className="font-normal text-muted">(prova — kaydedilmedi)</span></p>
+            </div>
+          ) : s.type === "multiple-choice" ? (
+            <MultipleChoiceVote presentationId={presentationId} slide={s} onVoted={markDone} />
+          ) : s.type === "word-cloud" ? (
+            <WordCloudVote presentationId={presentationId} slide={s} onDone={markDone} />
+          ) : s.type === "open-ended" ? (
+            <OpenEndedVote presentationId={presentationId} slide={s} onDone={markDone} />
+          ) : s.type === "scales" ? (
+            <ScalesVote presentationId={presentationId} slide={s} onVoted={markDone} />
+          ) : s.type === "ranking" ? (
+            <RankingVote presentationId={presentationId} slide={s} onVoted={markDone} />
+          ) : s.type === "quiz" ? (
+            <QuizVote presentationId={presentationId} slide={s} onVoted={markDone} />
+          ) : s.type === "quiz-type" ? (
+            <QuizTypeVote presentationId={presentationId} slide={s} onVoted={markDone} />
+          ) : s.type === "pin-on-image" ? (
+            <PinOnImageVote presentationId={presentationId} slide={s} onVoted={markDone} />
+          ) : s.type === "guess-number" ? (
+            <GuessNumberVote presentationId={presentationId} slide={s} onVoted={markDone} />
+          ) : s.type === "hundred-points" ? (
+            <HundredPointsVote presentationId={presentationId} slide={s} onVoted={markDone} />
+          ) : s.type === "grid-2x2" ? (
+            <Grid2x2Vote presentationId={presentationId} slide={s} onVoted={markDone} />
+          ) : (
+            <p className="text-muted text-sm">Bu slayt tipi cevap toplamaz — katılımcı yalnız içeriği görür.</p>
+          )}
+        </div>
+      </div>
+      <button onClick={() => setRunId((r) => r + 1)} className="btn-ghost !py-2.5 text-sm">
+        ↻ Baştan dene
+      </button>
     </div>
   );
 }

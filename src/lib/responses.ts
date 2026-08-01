@@ -33,6 +33,7 @@ function votedKey(slideId: string): string {
 /** Bu cihaz bu slayta kaç kez cevap gönderdi (mükerrer oy engeli için). */
 export function getVoteCount(slideId: string): number {
   if (typeof window === "undefined") return 0;
+  if (dryRun) return 0; // prova hep temiz başlar — gerçek oy kaydı karışmasın
   return Number(localStorage.getItem(votedKey(slideId)) ?? 0);
 }
 
@@ -45,12 +46,23 @@ export function clearSlideVotes(slideIds: string[]): void {
   });
 }
 
+// Prova (kuru çalışma) modu: editördeki "Dene" paneli açıkken cevaplar
+// Firestore'a YAZILMAZ, yerel oy sayaçları da kirlenmez — veri temiz kalır.
+let dryRun = false;
+export function setResponseDryRun(on: boolean): void {
+  dryRun = on;
+}
+
 export async function submitResponse(
   presentationId: string,
   slideId: string,
   value: ResponseValue,
   opts?: { pending?: boolean }
 ): Promise<void> {
+  if (dryRun) {
+    await new Promise((r) => setTimeout(r, 250)); // gerçekçi "gönderiliyor" hissi
+    return;
+  }
   const sessionId = getActiveSession();
   // Açık uçlu/kelime bulutu gibi serbest metin cevaplarında küfür süzgeci
   // (sayı/seçenek indeksi gibi değerlere dokunmaz).
