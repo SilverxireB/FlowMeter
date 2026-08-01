@@ -43,9 +43,11 @@ export default function Logo({
   const color = onDark ? "#ffffff" : "#001e64";
 
   // Çatı marka: O-halkası kelimenin İÇİNDE — FL◯W STUDIO (başta ikon değil)
+  // shrink-0: dar başlıklarda flex logoyu EZEMEZ — ezerse yazı taşar ve
+  // yanındaki başlıkla üst üste biner (kokpit mobil vakası).
   if (variant === "studio" && imgOk) {
     return (
-      <span className="inline-flex items-center" role="img" aria-label="FLOW STUDIO">
+      <span className="inline-flex items-center shrink-0 whitespace-nowrap" role="img" aria-label="FLOW STUDIO">
         <span
           aria-hidden
           className="font-display font-semibold inline-flex items-center"
@@ -67,7 +69,7 @@ export default function Logo({
 
   return (
     // Ekran okuyucu markayı TEK kez tam adıyla duyar; parçalar gizli.
-    <span className="inline-flex items-center" role="img" aria-label={v.full}>
+    <span className="inline-flex items-center shrink-0 whitespace-nowrap" role="img" aria-label={v.full}>
       {imgOk && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
