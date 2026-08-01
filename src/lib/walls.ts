@@ -21,6 +21,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { censorText } from "./profanity";
 import { getVoterId } from "./responses";
 import { ContestVote, RaffleDraw, RaffleEntry, RaffleWinner, Wall, WallEffect, WallMedia, WallScreenMode, WallWish } from "./types";
 
@@ -323,7 +324,7 @@ let lastWishSent = 0;
 /** Duvara dilek/not bırakır (create-only). Moderasyon açıksa status=pending.
  *  Dönüş: yazıldı mı? (throttle/boş metin → false; UI sahte başarı göstermesin) */
 export async function sendWallWish(wallId: string, text: string, nickname: string | undefined, moderation: boolean): Promise<boolean> {
-  const clean = text.trim().slice(0, 140);
+  const clean = censorText(text.trim().slice(0, 140));
   if (!clean) return false;
   const now = Date.now();
   if (now - lastWishSent < 800) return false;
@@ -334,7 +335,7 @@ export async function sendWallWish(wallId: string, text: string, nickname: strin
     status: moderation ? "pending" : "approved",
     createdAt: serverTimestamp(),
   };
-  if (nickname && nickname.trim()) data.nickname = nickname.trim().slice(0, 30);
+  if (nickname && nickname.trim()) data.nickname = censorText(nickname.trim().slice(0, 30));
   await addDoc(collection(db(), "walls", wallId, "wishes"), data);
   return true;
 }

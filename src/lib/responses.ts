@@ -1,5 +1,6 @@
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
+import { censorText } from "./profanity";
 import { ResponseValue } from "./types";
 import { withTimeout } from "./withTimeout";
 
@@ -50,12 +51,16 @@ export async function submitResponse(
   value: ResponseValue
 ): Promise<void> {
   const sessionId = getActiveSession();
+  // Açık uçlu/kelime bulutu gibi serbest metin cevaplarında küfür süzgeci
+  // (sayı/seçenek indeksi gibi değerlere dokunmaz).
+  const safe: ResponseValue =
+    typeof value === "string" ? censorText(value) : Array.isArray(value) ? (value.map((v) => (typeof v === "string" ? censorText(v) : v)) as ResponseValue) : value;
   await withTimeout(
     addDoc(
       collection(db(), "presentations", presentationId, "slides", slideId, "responses"),
       {
         voterId: getVoterId(),
-        value,
+        value: safe,
         createdAt: serverTimestamp(),
         ...(sessionId ? { sessionId } : {}),
       }

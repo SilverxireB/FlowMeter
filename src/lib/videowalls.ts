@@ -25,6 +25,13 @@ import { ScreenBeat, Videowall, VideowallPlayMode, Zone, ZoneItem } from "./type
  * rozetini gösterirken aynı fonksiyon kullanılır — asla ayrışmasınlar.
  */
 export function itemInWindow(item: ZoneItem, now: Date): boolean {
+  // Kampanya tarih aralığı (yerel tarih, bitiş günü DAHİL): "5–15 Ağustos arası
+  // dönsün, sonra kendiliğinden düşsün". Sözlük sırası = tarih sırası (YYYY-MM-DD).
+  if (item.fromDate || item.toDate) {
+    const ymd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    if (item.fromDate && ymd < item.fromDate) return false;
+    if (item.toDate && ymd > item.toDate) return false;
+  }
   if (item.days?.length && !item.days.includes(now.getDay())) return false;
   if (!item.from && !item.to) return true;
   const hm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;

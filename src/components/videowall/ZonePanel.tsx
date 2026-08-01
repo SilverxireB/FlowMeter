@@ -434,8 +434,10 @@ export default function ZonePanel({
                       <span className="text-[10px] text-white/50 bg-white/5 rounded px-1.5 py-0.5 tabular-nums">
                         ⏱ {it.kind === "video" && !it.durationSec ? "video sonu" : `${it.durationSec ?? 8} sn`}
                       </span>
-                      {(it.from || it.to || it.days?.length) && (
-                        <span className="text-[10px] text-white/50 bg-white/5 rounded px-1.5 py-0.5">🗓 takvimli</span>
+                      {(it.from || it.to || it.days?.length || it.fromDate || it.toDate) && (
+                        <span className="text-[10px] text-white/50 bg-white/5 rounded px-1.5 py-0.5 tabular-nums">
+                          🗓 {it.fromDate || it.toDate ? `${(it.fromDate ?? "…").slice(5)} – ${(it.toDate ?? "…").slice(5)}` : "takvimli"}
+                        </span>
                       )}
                       {it.kind === "url" && (it.zoom ?? 100) !== 100 && (
                         <span className="text-[10px] text-white/50 bg-white/5 rounded px-1.5 py-0.5">🔍 %{it.zoom}</span>
@@ -556,6 +558,13 @@ export default function ZonePanel({
                         <input type="time" defaultValue={it.from ?? ""} onBlur={(e) => patchItem(it.id, { from: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
                         –
                         <input type="time" defaultValue={it.to ?? ""} onBlur={(e) => patchItem(it.id, { to: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
+                      </label>
+                      {/* Kampanya aralığı: bitiş günü DAHİL; boş uç = sınırsız o yönde */}
+                      <label className="flex items-center gap-1.5" title="Bu tarihler arasında döner, bitince kendiliğinden düşer (bitiş günü dahil)">
+                        Tarih
+                        <input type="date" defaultValue={it.fromDate ?? ""} onBlur={(e) => patchItem(it.id, { fromDate: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
+                        –
+                        <input type="date" defaultValue={it.toDate ?? ""} onBlur={(e) => patchItem(it.id, { toDate: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
                       </label>
                     </div>
 

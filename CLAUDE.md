@@ -62,5 +62,5 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
 ## Sıradaki (kullanıcı söyleyince)
 - **v5 self-host:** FlowSign (+Pulse) fabrika iç ağı paketi — medya/veri/auth
   katman takası, online BOZULMADAN (plan: `docs/VIDEOWALL.md`).
-- Park: Sign ekran-sağlık heartbeat/ses/90°; Pulse profanity+e-posta eşiği;
-  Meter kalanları `docs/ROADMAP.md`.
+- Park: Sign ekran-sağlık ses/90°; Pulse e-posta eşiği (profanity TAMAM —
+  `lib/profanity.ts` tüm açık uçlu girişlerde); Meter kalanları `docs/ROADMAP.md`.

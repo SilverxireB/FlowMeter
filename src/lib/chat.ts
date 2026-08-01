@@ -1,5 +1,6 @@
 import { addDoc, collection, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
+import { censorText } from "./profanity";
 import { getVoterId } from "./responses";
 
 const MAX_LENGTH = 200;
@@ -11,7 +12,7 @@ export async function sendChatMessage(
   nickname: string,
   text: string
 ): Promise<void> {
-  const clean = text.trim().slice(0, MAX_LENGTH);
+  const clean = censorText(text.trim().slice(0, MAX_LENGTH));
   if (!clean) return;
   const now = Date.now();
   if (now - lastSentAt < 1500) return; // saniyede bir mesajdan fazlasını engelle
@@ -19,7 +20,7 @@ export async function sendChatMessage(
   await addDoc(collection(db(), "presentations", presentationId, "messages"), {
     text: clean,
     voterId: getVoterId(),
-    nickname: nickname.slice(0, 30),
+    nickname: censorText(nickname.slice(0, 30)),
     createdAt: serverTimestamp(),
   });
 }

@@ -8,12 +8,13 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { censorText } from "./profanity";
 import { getVoterId } from "./responses";
 
 /** Q&A: izleyici soru gönderir, diğerleri upvote eder (sunum geneli havuz). */
 export async function submitQuestion(presentationId: string, text: string): Promise<void> {
   await addDoc(collection(db(), "presentations", presentationId, "questions"), {
-    text: text.slice(0, 250),
+    text: censorText(text.slice(0, 250)),
     voterId: getVoterId(),
     upvotes: 0,
     createdAt: serverTimestamp(),

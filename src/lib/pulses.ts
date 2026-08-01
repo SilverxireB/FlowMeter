@@ -26,6 +26,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { censorText } from "./profanity";
 import { Pulse, PulseDay, PulseQuestionType } from "./types";
 
 /** Yerel tarih anahtarı (kiosk saat dilimi) — yyyy-mm-dd. */
@@ -166,7 +167,7 @@ export interface PulseComment {
 
 export async function addComment(pulseId: string, text: string, moderation: boolean): Promise<void> {
   await addDoc(collection(db(), "pulses", pulseId, "comments"), {
-    text: text.trim().slice(0, 200),
+    text: censorText(text.trim().slice(0, 200)),
     status: moderation ? "pending" : "approved",
     createdAt: serverTimestamp(),
   });
