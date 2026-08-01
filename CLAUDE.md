@@ -51,6 +51,13 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   (`firebase.ts` persistentLocalCache — tüm suite).
   **Sign AYRI PAKET olarak ayrılacak** (satış/self-host) → Sign kodu diğer
   ürünlerle bağ KURMASIN; ortak yalnız çekirdek (firebase/cloudinary/withTimeout).
+  **Self-host paketi VAR: `flowsign-selfhost/`** (bağımsız Next app; Firestore→
+  `data/` JSON dosya deposu, Cloudinary→yerel disk + güvenli dosya adı
+  [boşluk/TR→alt çizgi], realtime→SSE, tek yönetici parolası, internetsiz iç
+  ağ; README ile yazılımcıya teslim edilir; ana repo tsconfig'inden dışlandı).
+  KURAL: Sign ürün davranışı değişince İKİ yerde güncellenir — `src/` (online)
+  + `flowsign-selfhost/` (kopya bileşenler: PlayerStage/ZonePanel/LayoutEditor/
+  zones.ts birebir mantık taşır).
   7/24 bekçiler Sign dosyalarında: donma bekçisi + dayanıklı abonelik + gece
   04:0x reload + tek-URL 15dk tazeleme + play error boundary (PlayerStage,
   videowalls.ts, play rotaları). Liste kartları `WallThumb` (YAYIN minyatürü;
@@ -89,7 +96,9 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
 - **Onay bekleyen:** W6 uygulama içi etiket/hashtag (dış servissiz varyant).
 - **Adaylar:** vitrin paketi (Wall perdeye `?embed=1` sade mod → Sign'a gömme;
   Pulse board `?compact/?alert`; Meter public sonuç `/r/[id]`; dashboard "Bugün"
-  şeridi) · FlowQueue MVP · self-host Adım 1 (Sign bağlarını kesme cerrahisi).
-- **v5 self-host:** FlowSign (+Pulse) fabrika paketi — plan `docs/VIDEOWALL.md` +
-  rapor 3'teki A1-A10/7 adım. Park: Sign ses/90°; Pulse e-posta eşiği;
+  şeridi) · FlowQueue MVP · mobil PWA'da ▶ perde linki geri-tuşu davranışı
+  (telefonda aynı pencerede aç / perdeye "← Kapat" — kullanıcı istedi, bekliyor).
+- **v5 self-host:** ✅ v1 paketi HAZIR — `flowsign-selfhost/` (2026-08; rapor
+  3'teki Adım 1-4'ün ürün karşılığı). Kalan: lisans/ekran limiti, Docker,
+  markalama (A5-A8). Park: Sign ses/90°; Pulse e-posta eşiği;
   Meter kalanları `docs/ROADMAP.md`.

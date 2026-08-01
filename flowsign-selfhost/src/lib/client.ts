@@ -1,0 +1,170 @@
+"use client";
+
+/**
+ * FlowSign self-host — İSTEMCİ veri katmanı. Online sürümdeki `videowalls.ts`
+ * imzalarının karşılığı: izleme SSE (EventSource) ile, yazma fetch ile.
+ *
+ * 7/24 BEKÇİ (dayanıklı abonelik): EventSource kopunca tarayıcı kendisi
+ * yeniden bağlanır; sunucu hiç ulaşılamazsa mevcut içerik KORUNUR (cb null
+ * çağrılmaz) ve bağlantı gelince ilk olayda tazelenir. cb(null) yalnız sunucu
+ * "böyle bir ekran yok" dediğinde çağrılır.
+ */
+import { ScreenBeat, Videowall, VideowallPlayMode, Zone } from "./types";
+import { clampScreens, gridZones, stripUndefined } from "./zones";
+
+type WallEvent = { found: boolean; wall: Videowall | null; screens: ScreenBeat[] };
+
+async function j<T>(res: Response): Promise<T> {
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `İstek başarısız (${res.status})`);
+  return (await res.json()) as T;
+}
+
+// ── İzleme (SSE) ─────────────────────────────────────────────────────────────
+
+function watchSse(url: string, cb: (v: Videowall | null) => void, onScreens?: (s: ScreenBeat[]) => void): () => void {
+  const es = new EventSource(url);
+  es.onmessage = (e) => {
+    try {
+      const d = JSON.parse(e.data) as WallEvent;
+      cb(d.found ? d.wall : null);
+      if (onScreens && d.found) onScreens(d.screens ?? []);
+    } catch {}
+  };
+  // onerror: EventSource kendi backoff'uyla yeniden bağlanır; içerik korunur.
+  return () => es.close();
+}
+
+/** id ile duvarı canlı izle (kokpit + önizleme). */
+export function watchWall(id: string, cb: (v: Videowall | null) => void): () => void {
+  return watchSse(`/api/walls/${encodeURIComponent(id)}/events`, cb);
+}
+
+/** slug → eski slug → id zinciriyle duvarı canlı izle (public yayın linki). */
+export function watchWallByKey(key: string, cb: (v: Videowall | null) => void): () => void {
+  return watchSse(`/api/resolve/${encodeURIComponent(key)}/events`, cb);
+}
+
+/** Ekran kayıtlarını canlı izle (kokpit ekran sağlığı kartı). */
+export function watchScreens(id: string, cb: (s: ScreenBeat[]) => void): () => void {
+  return watchSse(`/api/walls/${encodeURIComponent(id)}/events`, () => {}, cb);
+}
+
+// ── CRUD ─────────────────────────────────────────────────────────────────────
+
+export async function listWalls(): Promise<{ walls: Videowall[]; beats: Record<string, { online: number; lastSeen: number }> }> {
+  return j(await fetch("/api/walls", { cache: "no-store" }));
+}
+
+export async function createWall(name: string, width: number, height: number, cols: number, rows: number): Promise<Videowall> {
+  return j(
+    await fetch("/api/walls", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, width, height, cols, rows }),
+    })
+  );
+}
+
+export async function updateWall(id: string, patch: Partial<Videowall>): Promise<void> {
+  await j(
+    await fetch(`/api/walls/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(stripUndefined(patch)),
+    })
+  );
+}
+
+/** TASLAK yerleşim/içerik yazımı (birleştir/böl/öğe ekle). Yayına dokunmaz. */
+export async function updateZones(id: string, zones: Zone[]): Promise<void> {
+  await updateWall(id, { zones });
+}
+
+/** Oynatma modu (tabela/sunum) — yayından bağımsız, perde anında uyar. */
+export async function setPlayMode(id: string, playMode: VideowallPlayMode): Promise<void> {
+  await updateWall(id, { playMode });
+}
+
+/** Yeniden adlandır — slug sunucuda yenilenir, eski slug history'ye eklenir. */
+export async function renameWall(id: string, name: string): Promise<void> {
+  await j(
+    await fetch(`/api/walls/${encodeURIComponent(id)}/rename`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    })
+  );
+}
+
+/** Taslağı yayına al — anlık görüntü sunucuda alınır (atomik). */
+export async function publishWall(id: string): Promise<void> {
+  await j(await fetch(`/api/walls/${encodeURIComponent(id)}/publish`, { method: "POST" }));
+}
+
+/** Çözünürlük/ızgara değişince TASLAK yerleşimi taze ızgaraya sıfırlar.
+ *  İÇERİK KAYBOLMAZ: eski alanlardaki tüm öğeler ilk alana taşınır — kullanıcı oradan dağıtır. */
+export async function resetGrid(id: string, cols: number, rows: number, oldZones: Zone[] = []): Promise<void> {
+  const cc = clampScreens(cols);
+  const rr = clampScreens(rows);
+  const zones = gridZones(cc, rr);
+  const carried = oldZones.flatMap((z) => z.items ?? []);
+  if (carried.length && zones.length) zones[0] = { ...zones[0], items: carried };
+  await updateWall(id, { cols: cc, rows: rr, zones });
+}
+
+export async function duplicateWall(id: string): Promise<void> {
+  await j(await fetch(`/api/walls/${encodeURIComponent(id)}/duplicate`, { method: "POST" }));
+}
+
+export async function deleteWall(id: string): Promise<void> {
+  await j(await fetch(`/api/walls/${encodeURIComponent(id)}`, { method: "DELETE" }));
+}
+
+// ── Ekran sağlığı (heartbeat) ────────────────────────────────────────────────
+
+const SCREEN_ID_KEY = "flowsign-screen-id";
+
+/** Bu cihazın kalıcı ekran kimliği (localStorage). */
+export function getScreenId(): string {
+  if (typeof localStorage === "undefined") return "anon";
+  let id = localStorage.getItem(SCREEN_ID_KEY);
+  if (!id) {
+    id = `scr-${Math.random().toString(36).slice(2, 10)}`;
+    try {
+      localStorage.setItem(SCREEN_ID_KEY, id);
+    } catch {}
+  }
+  return id;
+}
+
+/** "Canlıyım" yaz (perde). includeStart: sayfa oturumu başlangıcında true. */
+export async function sendScreenBeat(wallId: string, includeStart = false): Promise<void> {
+  await fetch(`/api/walls/${encodeURIComponent(wallId)}/beat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      screenId: getScreenId(),
+      ua: (typeof navigator !== "undefined" ? navigator.userAgent : "").slice(0, 140),
+      vwPx: typeof window !== "undefined" ? window.innerWidth : 0,
+      vhPx: typeof window !== "undefined" ? window.innerHeight : 0,
+      includeStart,
+    }),
+  });
+}
+
+/** Bayat ekran kaydını sil (kokpit temizliği). */
+export async function deleteScreenBeat(wallId: string, screenId: string): Promise<void> {
+  await j(
+    await fetch(`/api/walls/${encodeURIComponent(wallId)}/beat?screenId=${encodeURIComponent(screenId)}`, { method: "DELETE" })
+  );
+}
+
+// ── Yardımcılar ──────────────────────────────────────────────────────────────
+
+/** Bir yazma `ms` içinde dönmezse anlaşılır hatayla reddet (buton sonsuza dek "gönderiliyor" kalmasın). */
+export function withTimeout<T>(promise: Promise<T>, ms = 12000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Sunucuya ulaşılamadı — bağlantıyı kontrol edip tekrar dene.")), ms)),
+  ]);
+}
