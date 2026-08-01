@@ -18,16 +18,16 @@ type Kind = "busy" | "done" | "error";
 
 function ToastView({ text, kind }: { text: string; kind: Kind }) {
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[80] max-w-[92vw] animate-pop"
-    >
+    // DİKKAT — konumlandırma ve animasyon AYRI katmanlarda olmalı: ikisi de
+    // `transform` kullanıyor. Aynı elemana verilince giriş animasyonu ortalama
+    // dönüşümünü eziyordu; şerit sağa kayıp ekrandan taşıyor, taşan sabit eleman
+    // da SAYFAYI YATAY KAYDIRIYORDU (asıl "mobilde kayma" şikâyeti buydu).
+    // Dış katman: konum. İç katman: animasyon. Genişlik sınırı da iç katmanda,
+    // yoksa metin kabına sığmayıp balonu dışarı taşırıyor.
+    <div role="status" aria-live="polite" className="fixed bottom-5 inset-x-0 z-[80] flex justify-center px-4 pointer-events-none">
       <div
-        className={`flex items-center gap-2.5 rounded-full px-4 py-2.5 text-sm font-semibold shadow-lg border ${
-          kind === "error"
-            ? "bg-brand text-white border-brand-dark"
-            : "bg-ink text-white border-ink"
+        className={`animate-pop pointer-events-auto max-w-full inline-flex items-center gap-2.5 rounded-full px-4 py-2.5 text-sm font-semibold shadow-lg border ${
+          kind === "error" ? "bg-brand text-white border-brand-dark" : "bg-ink text-white border-ink"
         }`}
       >
         {kind === "busy" && (
@@ -35,7 +35,9 @@ function ToastView({ text, kind }: { text: string; kind: Kind }) {
         )}
         {kind === "done" && <Icon name="check" size={16} />}
         {kind === "error" && <Icon name="warning" size={16} />}
-        <span className="truncate">{text}</span>
+        {/* min-w-0: esnek kutuda metin kutusu varsayılan olarak KÜÇÜLMEZ;
+            bu olmadan "truncate" hiç çalışmıyor ve balon taşıyordu. */}
+        <span className="truncate min-w-0">{text}</span>
       </div>
     </div>
   );

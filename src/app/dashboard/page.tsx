@@ -64,7 +64,7 @@ function CardThumb({ presentation, view }: { presentation: Presentation; view: "
       )}
       <span
         className={`text-center font-display font-semibold ${dark ? "text-white" : "text-ink"} ${
-          view === "grid" ? "text-lg" : "text-xs"
+          view === "grid" ? "text-lg line-clamp-3" : "text-xs line-clamp-2"
         }`}
       >
         {presentation.title}
@@ -197,6 +197,7 @@ export default function DashboardPage() {
   }
 
   async function removeWall(w: Wall) {
+    setMenuFor(null);
     // Duvar silme en yavaş işlem: medya dokümanları sayfalı siliniyor + Cloudinary
     // klasörü temizleniyor. Alt şerit işlem boyunca görünür kalır.
     setDeletingId(w.id);
@@ -266,6 +267,7 @@ export default function DashboardPage() {
   }
 
   async function remove(p: Presentation) {
+    setMenuFor(null); // kart soluklaşınca açık menü hayalet gibi kalıyordu
     setDeletingId(p.id);
     show(`"${p.title}" siliniyor…`, "busy");
     try {
