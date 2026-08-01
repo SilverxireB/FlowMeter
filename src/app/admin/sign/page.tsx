@@ -99,6 +99,30 @@ export default function AdminSignPage() {
     }
   };
 
+  /**
+   * Satır sonundaki "Hepsi": dördü de tikliyse hepsini kaldırır, değilse hepsini
+   * verir. Oluşturan kişide "hepsi" = açık kaydı silmek (varsayılana dönmek);
+   * "hiçbiri" = tamamen boş açık kayıt yazmak (erişimi kesmek).
+   */
+  const toggleAll = async (wall: Videowall, uid: string, allOn: boolean) => {
+    setErr(null);
+    setBusy(true);
+    try {
+      if (allOn) {
+        await setSignGrant(wall.id, uid, { view: false, edit: false, copy: false, delete: false });
+      } else if (wall.ownerId === uid) {
+        await clearSignGrant(wall.id, uid);
+      } else {
+        await setSignGrant(wall.id, uid, { view: true, edit: true, copy: true, delete: true });
+      }
+      await refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Yetki kaydedilemedi — tekrar dene.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const toggleCreate = async (u: UserRecord) => {
     setErr(null);
     setBusy(true);
@@ -230,11 +254,16 @@ export default function AdminSignPage() {
                                   {p.label}
                                 </th>
                               ))}
+                              <th className="font-bold px-2 py-1 whitespace-nowrap" title="Dördünü birden aç/kapat">
+                                Hepsi
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
                             {wallsSorted.map((w) => {
                               const perm = signPerm(w, u.id);
+                              const allOn = PERMS.every((p) => perm[p.key]);
+                              const someOn = PERMS.some((p) => perm[p.key]);
                               const isOwner = w.ownerId === u.id;
                               return (
                                 <tr key={w.id} className="bg-white">
@@ -242,11 +271,8 @@ export default function AdminSignPage() {
                                     <span className="font-semibold">{w.name}</span>
                                     {isOwner && <span className="text-muted text-xs"> · oluşturan</span>}
                                   </td>
-                                  {PERMS.map((p, i) => (
-                                    <td
-                                      key={p.key}
-                                      className={`text-center px-2 py-2 ${i === PERMS.length - 1 ? "rounded-r-xl" : ""}`}
-                                    >
+                                  {PERMS.map((p) => (
+                                    <td key={p.key} className="text-center px-2 py-2">
                                       <input
                                         type="checkbox"
                                         checked={!!perm[p.key]}
@@ -257,6 +283,21 @@ export default function AdminSignPage() {
                                       />
                                     </td>
                                   ))}
+                                  {/* "Hepsi": kısmen tikliyken BELİRSİZ (—) görünür;
+                                      indeterminate yalnız DOM'dan verilebilir. */}
+                                  <td className="text-center px-2 py-2 rounded-r-xl border-l border-line">
+                                    <input
+                                      type="checkbox"
+                                      checked={allOn}
+                                      ref={(el) => {
+                                        if (el) el.indeterminate = someOn && !allOn;
+                                      }}
+                                      disabled={busy}
+                                      onChange={() => toggleAll(w, u.id, allOn)}
+                                      aria-label={`${w.name} — hepsi`}
+                                      className="w-4 h-4 accent-accent cursor-pointer"
+                                    />
+                                  </td>
                                 </tr>
                               );
                             })}

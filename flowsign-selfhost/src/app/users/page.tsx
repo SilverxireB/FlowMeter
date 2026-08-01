@@ -71,6 +71,17 @@ export default function UsersPage() {
     run(() => setWallGrant(w.id, u.id, backToDefault ? null : next));
   };
 
+  /**
+   * Satır sonundaki "Hepsi": dördü de tikliyse hepsini kaldırır, değilse
+   * hepsini verir. Oluşturan kişide "hepsi" = kaydı silmek (varsayılana dönmek),
+   * "hiçbiri" = boş kayıt yazmak (erişimi kesmek).
+   */
+  const toggleAllGrants = (w: Videowall, u: PublicUser, allOn: boolean) => {
+    if (allOn) run(() => setWallGrant(w.id, u.id, { view: false, edit: false, copy: false, delete: false }));
+    else if (w.ownerId === u.id) run(() => setWallGrant(w.id, u.id, null));
+    else run(() => setWallGrant(w.id, u.id, { view: true, edit: true, copy: true, delete: true }));
+  };
+
   useEffect(() => {
     refresh();
   }, [refresh]);
@@ -351,19 +362,24 @@ export default function UsersPage() {
                                         {p.label}
                                       </th>
                                     ))}
+                                    <th className="font-bold px-2 py-1 whitespace-nowrap" title="Dördünü birden aç/kapat">
+                                      Hepsi
+                                    </th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {walls.map((w) => {
                                     const perm = wallPerm(w, u);
+                                    const allOn = PERMS.every((p) => perm[p.key]);
+                                    const someOn = PERMS.some((p) => perm[p.key]);
                                     return (
                                       <tr key={w.id} className="bg-white">
                                         <td className="rounded-l-xl px-3 py-2 min-w-0">
                                           <span className="font-semibold">{w.name}</span>
                                           {w.ownerId === u.id && <span className="text-muted text-xs"> · oluşturan</span>}
                                         </td>
-                                        {PERMS.map((p, i) => (
-                                          <td key={p.key} className={`text-center px-2 py-2 ${i === PERMS.length - 1 ? "rounded-r-xl" : ""}`}>
+                                        {PERMS.map((p) => (
+                                          <td key={p.key} className="text-center px-2 py-2">
                                             <input
                                               type="checkbox"
                                               checked={!!perm[p.key]}
@@ -374,6 +390,21 @@ export default function UsersPage() {
                                             />
                                           </td>
                                         ))}
+                                        {/* "Hepsi": kısmen tikliyken BELİRSİZ (—) görünür;
+                                            indeterminate yalnız DOM'dan verilebilir. */}
+                                        <td className="text-center px-2 py-2 rounded-r-xl border-l border-line">
+                                          <input
+                                            type="checkbox"
+                                            checked={allOn}
+                                            ref={(el) => {
+                                              if (el) el.indeterminate = someOn && !allOn;
+                                            }}
+                                            disabled={busy}
+                                            onChange={() => toggleAllGrants(w, u, allOn)}
+                                            aria-label={`${w.name} — hepsi`}
+                                            className="w-4 h-4 accent-accent cursor-pointer"
+                                          />
+                                        </td>
                                       </tr>
                                     );
                                   })}
