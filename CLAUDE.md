@@ -67,9 +67,12 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   (uid→tikler) + `users.canCreateSign`; self-host `data/users.json` (scrypt,
   rol+canCreate) + wall `grants`, kararlar SUNUCUDA (serverAuth.ts).
   **Izgara AYRIMI:** `cols/rows` = FİZİKSEL ekran (kesik çizgi = çerçeve/bezel),
-  `layoutCols/layoutRows` = YERLEŞİM (yoksa fiziksele eşit) → tek TV 3 alana
-  bölünebilir; "3 ekran yaz" kestirmesi bilinçli reddedildi (olmayan çerçeve
-  çizip montajdaki "Ekranları tanı"yı yalanlıyordu).
+  `layoutCols/layoutRows` = YERLEŞİM — ama yerleşim ızgarası KULLANICIYA
+  GÖSTERİLMEZ (kokpitteki satır kaldırıldı, kafa karıştırıyordu). Bölme SEÇİLİ
+  ALANIN panelinde: "Bu alanı böl ⇄/⇅ 2·3·4" → `splitZoneInto` ızgarayı sessizce
+  katlar, diğer alanları ölçekler, sonra EBOB ile sadeleştirir; `saveLayout`
+  ızgara+alanları tek yazımda gönderir. Editör sırası: tanım → yerleşim → içerik
+  → yayın linki + ekranlar (EN ALTTA).
   **Self-host paketi VAR: `flowsign-selfhost/`** (bağımsız Next app; Firestore→
   `data/` JSON dosya deposu, Cloudinary→yerel disk + güvenli dosya adı
   [boşluk/TR→alt çizgi], realtime→SSE, kişi başına hesap (users.json),

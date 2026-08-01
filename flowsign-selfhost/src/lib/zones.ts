@@ -138,31 +138,86 @@ export function mergeCells(zones: Zone[], cols: number, rows: number, box: CellB
   return [...kept, ...leftovers, merged];
 }
 
-/** Bir alanı hücrelere böl. İçerik/ayarlar İLK (sol-üst) hücrede kalır — kaybolmaz. */
-export function splitZone(zones: Zone[], cols: number, rows: number, zoneId: string): Zone[] {
-  const out: Zone[] = [];
-  for (const z of zones) {
-    if (z.id !== zoneId) {
-      out.push(z);
-      continue;
-    }
-    const cb = zoneCells(z, cols, rows);
-    let first = true;
-    for (let r = cb.r0; r <= cb.r1; r++)
-      for (let c = cb.c0; c <= cb.c1; c++) {
-        const u = unitZone(c, r, cols, rows);
-        if (first) {
-          u.items = z.items ?? [];
-          if (z.name) u.name = z.name;
-          if (z.transition) u.transition = z.transition;
-          if (z.bg) u.bg = z.bg;
-          first = false;
-        }
-        out.push(u);
-      }
-  }
-  return out;
+/**
+ * ALANI PARÇALARA BÖL — "bu alanı 3'e böl" (yatay ⇄ / dikey ⇅).
+ * Bölme alanın KENDİ panelindedir; kokpitte genel "yerleşim ızgarası" satırı
+ * YOKTUR (kullanıcı kararı: çok ekranlı duvarda kafa karıştırıyordu).
+ * Altta ızgara sessizce `parts` katına çıkar, diğer alanların hücre kutuları
+ * aynı oranda ölçeklenir (oransal dikdörtgenler değişmez), sonra ızgara EBOB
+ * ile sadeleşir. İçerik/ayarlar İLK parçada kalır.
+ */
+export interface SplitResult {
+  zones: Zone[];
+  cols: number;
+  rows: number;
 }
 
-/** JSON'a `undefined` sızmasın — opsiyonel alan temizlerken düşür. */
+const gcd2 = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd2(b, a % b));
+
+function normalizeGrid(zones: Zone[], cols: number, rows: number): SplitResult {
+  const boxes = zones.map((z) => zoneCells(z, cols, rows));
+  let gx = cols;
+  let gy = rows;
+  for (const b of boxes) {
+    gx = gcd2(gcd2(gx, b.c0), b.c1 + 1);
+    gy = gcd2(gcd2(gy, b.r0), b.r1 + 1);
+  }
+  if (gx <= 1 && gy <= 1) return { zones, cols, rows };
+  const nc = Math.max(1, cols / Math.max(1, gx));
+  const nr = Math.max(1, rows / Math.max(1, gy));
+  const nz = zones.map((z, i) => ({
+    ...z,
+    ...rectFromCells(
+      { c0: boxes[i].c0 / gx, c1: (boxes[i].c1 + 1) / gx - 1, r0: boxes[i].r0 / gy, r1: (boxes[i].r1 + 1) / gy - 1 },
+      nc,
+      nr
+    ),
+  }));
+  return { zones: nz, cols: nc, rows: nr };
+}
+
+export function splitZoneInto(
+  zones: Zone[],
+  cols: number,
+  rows: number,
+  zoneId: string,
+  parts: number,
+  axis: "h" | "v"
+): SplitResult | null {
+  const p = Math.max(2, Math.min(8, Math.round(parts) || 2));
+  const nc = axis === "h" ? cols * p : cols;
+  const nr = axis === "v" ? rows * p : rows;
+  if (nc > MAX_SCREENS_PER_AXIS * 4 || nr > MAX_SCREENS_PER_AXIS * 4) return null;
+
+  const scaled = (b: CellBox): CellBox =>
+    axis === "h"
+      ? { c0: b.c0 * p, c1: (b.c1 + 1) * p - 1, r0: b.r0, r1: b.r1 }
+      : { c0: b.c0, c1: b.c1, r0: b.r0 * p, r1: (b.r1 + 1) * p - 1 };
+
+  const out: Zone[] = [];
+  for (const z of zones) {
+    const box = scaled(zoneCells(z, cols, rows));
+    if (z.id !== zoneId) {
+      out.push({ ...z, ...rectFromCells(box, nc, nr) });
+      continue;
+    }
+    const span = axis === "h" ? (box.c1 - box.c0 + 1) / p : (box.r1 - box.r0 + 1) / p;
+    for (let i = 0; i < p; i++) {
+      const piece: CellBox =
+        axis === "h"
+          ? { c0: box.c0 + i * span, c1: box.c0 + (i + 1) * span - 1, r0: box.r0, r1: box.r1 }
+          : { c0: box.c0, c1: box.c1, r0: box.r0 + i * span, r1: box.r0 + (i + 1) * span - 1 };
+      const nz: Zone = { id: i === 0 ? z.id : `z-${Math.random().toString(36).slice(2, 8)}`, ...rectFromCells(piece, nc, nr), items: [] };
+      if (i === 0) {
+        nz.items = z.items ?? [];
+        if (z.name) nz.name = z.name;
+        if (z.transition) nz.transition = z.transition;
+        if (z.bg) nz.bg = z.bg;
+      }
+      out.push(nz);
+    }
+  }
+  return normalizeGrid(out, nc, nr);
+}
+
 export const stripUndefined = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;

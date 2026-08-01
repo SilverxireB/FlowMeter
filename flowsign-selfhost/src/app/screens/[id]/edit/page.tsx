@@ -22,7 +22,7 @@ import {
   publishWall,
   renameWall,
   resetGrid,
-  setLayoutGrid,
+  saveLayout,
   setScreenGrid,
   setPlayMode,
   updateWall,
@@ -30,7 +30,7 @@ import {
   watchWall,
   withTimeout,
 } from "@/lib/client";
-import { clampScreens, hasCustomLayout, layoutColsOf, layoutRowsOf, slugify, splitZone } from "@/lib/zones";
+import { clampScreens, hasCustomLayout, layoutColsOf, layoutRowsOf, slugify, splitZoneInto } from "@/lib/zones";
 import { Videowall } from "@/lib/types";
 
 const inputCls =
@@ -193,21 +193,6 @@ export default function ScreenEditPage() {
     changeGrid(cols, rows);
   };
 
-  /** YERLEŞİM ızgarası → taze ızgara; içerik ilk alana taşınır (kaybolmaz). */
-  const changeLayout = (cols: number, rows: number) => {
-    setConfirmBox({
-      title: "Yerleşimi değiştir",
-      message:
-        "Taslak yerleşim taze ızgaraya kurulur; alanlardaki TÜM içerik kaybolmaz — hepsi ilk alana taşınır, oradan dağıtırsın. (Yayın etkilenmez.) Devam?",
-      confirmLabel: "Yerleşimi değiştir",
-      run: () => {
-        setUndoZones(null);
-        setLayoutGrid(id, cols, rows, vw.zones ?? []).catch(() => setSaveErr("Yerleşim kaydedilemedi — tekrar dene."));
-        setSelectedId(null);
-      },
-    });
-  };
-
   const changeGrid = (cols: number, rows: number) => {
     setConfirmBox({
       title: "Izgarayı değiştir",
@@ -303,32 +288,6 @@ export default function ScreenEditPage() {
           </div>
         )}
 
-        {/* Yayın linki + QR */}
-        <div className="card p-5 flex flex-col sm:flex-row items-start gap-5">
-          <div className="flex-1 min-w-0">
-            <p className="eyebrow mb-2">Yayın linki</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <code className="text-sm bg-paper border border-line rounded-lg px-3 py-2 text-accent-dark break-all min-w-0">{playUrl}</code>
-              <button onClick={copyLink} className="rounded-xl bg-white border border-line px-3 py-2 text-sm font-semibold hover:border-muted">{copied ? "✓ Kopyalandı" : "Kopyala"}</button>
-              <a href={playUrl} target={playTarget} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-3 py-2 text-sm font-semibold">Aç{playTarget ? " ↗" : ""}</a>
-            </div>
-            <p className="text-muted text-xs mt-2 leading-relaxed">
-              Linki tabela PC&apos;sinde Chrome ile aç, tam ekran yap — her zaman <b>son yayınlanan</b> hâli oynatır. Adı değiştirince link de yenilenir; <b>eski link çalışmaya devam eder</b>.
-              {lastPublished && <span className="text-ink/70"> · Son yayın: {lastPublished}</span>}
-              <br />
-              Birden çok TV&apos;yi tek duvar yapacaksan: ekran kartında TV&apos;leri <b>tek birleşik görüntü</b> olarak ayarla (Surround/Eyefinity ya da video-wall denetleyici); yayında ⊞ ile sırayı kontrol et.
-            </p>
-          </div>
-          {playUrl && (
-            <div className="shrink-0 bg-white border border-line rounded-xl p-2">
-              <QrCode text={playUrl} size={104} />
-            </div>
-          )}
-        </div>
-
-        {/* Ekran sağlığı: bu yayını açık tutan cihazlar (heartbeat) */}
-        <ScreensCard id={id} />
-
         {/* Config */}
         <div className="card p-5">
           <p className="eyebrow mb-3">Duvar tanımı</p>
@@ -351,49 +310,6 @@ export default function ScreenEditPage() {
               <input key={`r${vw.rows}`} type="number" min={1} max={24} defaultValue={vw.rows} onBlur={(e) => { const rr = clampScreens(Number(e.target.value)); if (rr !== vw.rows) changeScreens(vw.cols, rr); e.target.value = String(vw.rows); }} className={`w-24 ${inputCls}`} />
             </label>
             <span className="text-muted text-xs pb-2 tabular-nums">{vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan</span>
-          </div>
-
-          {/* YERLEŞİM ızgarası — fiziksel ekran sayısından bağımsız (tek TV 3 alana bölünebilir) */}
-          <div className="mt-4 pt-4 border-t border-line">
-            <span className="text-muted text-xs block mb-2">Yerleşim ızgarası — içeriği kaç parçaya böleceksin?</span>
-            <div className="flex flex-wrap items-end gap-3 text-sm">
-              <label className="flex flex-col gap-1">
-                <span className="text-muted text-xs">Yatayda kaç alan?</span>
-                <input
-                  key={`lc${layoutColsOf(vw)}`}
-                  type="number"
-                  min={1}
-                  max={24}
-                  defaultValue={layoutColsOf(vw)}
-                  onBlur={(e) => {
-                    const c = clampScreens(Number(e.target.value));
-                    if (c !== layoutColsOf(vw)) changeLayout(c, layoutRowsOf(vw));
-                    e.target.value = String(layoutColsOf(vw));
-                  }}
-                  className={`w-24 ${inputCls}`}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-muted text-xs">Dikeyde kaç alan?</span>
-                <input
-                  key={`lr${layoutRowsOf(vw)}`}
-                  type="number"
-                  min={1}
-                  max={24}
-                  defaultValue={layoutRowsOf(vw)}
-                  onBlur={(e) => {
-                    const r = clampScreens(Number(e.target.value));
-                    if (r !== layoutRowsOf(vw)) changeLayout(layoutColsOf(vw), r);
-                    e.target.value = String(layoutRowsOf(vw));
-                  }}
-                  className={`w-24 ${inputCls}`}
-                />
-              </label>
-              <p className="text-muted text-xs pb-2 leading-relaxed flex-1 min-w-[16rem]">
-                Fiziksel ekran sayısıyla aynı olmak ZORUNDA değil: <b>tek TV&apos;yi 3 alana bölebilirsin</b> (yatayda 3 yaz).
-                Eşit olmayan bölme için ızgarayı ince tut ve alanları sürükleyip birleştir (ör. 5&apos;e böl → ilk 3&apos;ü birleştir = %60/%20/%20).
-              </p>
-            </div>
           </div>
 
           {/* Oynatma modu: tabela (otomatik) / sunum (kumanda). Yayından bağımsız —
@@ -449,15 +365,22 @@ export default function ScreenEditPage() {
             zone={selected}
             index={selectedIndex}
             onZones={saveZones}
-            onSplit={() => {
+            onSplit={(parts, axis) => {
               const doSplit = () => {
-                saveZones(splitZone(vw.zones ?? [], layoutColsOf(vw), layoutRowsOf(vw), selected.id));
+                const next = splitZoneInto(vw.zones ?? [], layoutColsOf(vw), layoutRowsOf(vw), selected.id, parts, axis);
+                if (!next) {
+                  setSaveErr("Bu alan daha fazla bölünemez — önce birkaç parçayı birleştir.");
+                  return;
+                }
+                setUndoZones(vw.zones ?? []);
+                setSaveErr(null);
+                saveLayout(id, next).catch(() => setSaveErr("Bölme kaydedilemedi — tekrar dene."));
                 setSelectedId(null);
               };
               if (selected.items.length > 0) {
                 setConfirmBox({
                   title: "Alanı böl",
-                  message: `"${selected.name || `Alan ${selectedIndex + 1}`}" hücrelere bölünecek; içeriği sol-üst hücrede kalır (kaybolmaz).`,
+                  message: `"${selected.name || `Alan ${selectedIndex + 1}`}" ${parts} parçaya bölünecek; içeriği İLK parçada kalır (kaybolmaz).`,
                   confirmLabel: "Böl",
                   run: doSplit,
                 });
@@ -466,6 +389,33 @@ export default function ScreenEditPage() {
             onClose={() => setSelectedId(null)}
           />
         )}
+        {/* Yayın linki + QR + ekran sağlığı EN ALTTA: önce tasarla (tanım →
+            yerleşim → içerik), sonra yayınla/izle. */}
+        <div className="card p-5 flex flex-col sm:flex-row items-start gap-5">
+          <div className="flex-1 min-w-0">
+            <p className="eyebrow mb-2">Yayın linki</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="text-sm bg-paper border border-line rounded-lg px-3 py-2 text-accent-dark break-all min-w-0">{playUrl}</code>
+              <button onClick={copyLink} className="rounded-xl bg-white border border-line px-3 py-2 text-sm font-semibold hover:border-muted">{copied ? "✓ Kopyalandı" : "Kopyala"}</button>
+              <a href={playUrl} target={playTarget} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-3 py-2 text-sm font-semibold">Aç{playTarget ? " ↗" : ""}</a>
+            </div>
+            <p className="text-muted text-xs mt-2 leading-relaxed">
+              Linki tabela PC&apos;sinde Chrome ile aç, tam ekran yap — her zaman <b>son yayınlanan</b> hâli oynatır. Adı değiştirince link de yenilenir; <b>eski link çalışmaya devam eder</b>.
+              {lastPublished && <span className="text-ink/70"> · Son yayın: {lastPublished}</span>}
+              <br />
+              Birden çok TV&apos;yi tek duvar yapacaksan: ekran kartında TV&apos;leri <b>tek birleşik görüntü</b> olarak ayarla (Surround/Eyefinity ya da video-wall denetleyici); yayında ⊞ ile sırayı kontrol et.
+            </p>
+          </div>
+          {playUrl && (
+            <div className="shrink-0 bg-white border border-line rounded-xl p-2">
+              <QrCode text={playUrl} size={104} />
+            </div>
+          )}
+        </div>
+
+        {/* Ekran sağlığı: bu yayını açık tutan cihazlar (heartbeat) */}
+        <ScreensCard id={id} />
+
       </section>
 
       {confirmBox && (

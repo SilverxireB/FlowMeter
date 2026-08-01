@@ -161,26 +161,33 @@ beyaz sürümden renkli `logo-o-sign.png` + "SIGN" yazısına döndü).
 - Kalan (bilinçli park): ekran sağlık heartbeat'i, ses aç/kapa, 90° döndürme,
   alan-seviyesi takvim varsayılanı, ~~FlowSign özel O-glif PNG~~ → YAPILDI: logo-flowsign(.png/-white.png), 2×2 video-wall ızgaralı monitör glifi.
 
-## Yerleşim ızgarası ≠ fiziksel ekran ızgarası (2026-08)
+## Bölme ALANIN İÇİNDE; yerleşim ızgarası gizli (2026-08)
 
-Tek `cols×rows` iki farklı şeyi temsil ediyordu ve bu yüzden **tek ekranlı duvar
-bölünemiyordu** ("Böl" bölecek hücre bulamıyor). Ayrıldılar:
+Tek `cols×rows` iki farklı şeyi temsil ediyordu → tek ekranlı duvar
+bölünemiyordu. Önce kokpite "yerleşim ızgarası" satırı eklendi; kullanıcı
+reddetti (6 fiziksel ekranın yanında "yerleşim 3×4" kafa karıştırıyordu,
+ekran görüntüsüyle geldi). Şimdi:
 
-| Izgara | Ne demek | Nerede görünür |
+| Kavram | Nerede | Kullanıcı görür mü |
 |---|---|---|
-| `cols/rows` | **Fiziksel** ekran sayısı — çerçeve (bezel) nerede | Editörde kesik çizgiler · perdede "Ekranları tanı" numaraları |
-| `layoutCols/layoutRows` | **Yerleşim** — içerik kaç parçaya bölünür (yoksa = fiziksel) | Alan çerçeveleri; birleştir/böl matematiğinin tamamı |
+| **Fiziksel** `cols/rows` | "Duvar tanımı" — yan yana/üst üste kaç ekran | ✅ (çerçeve/bezel gerçeği) |
+| **Yerleşim** `layoutCols/layoutRows` | otomatik | ❌ gizli |
+| **Bölme** | seçili ALANIN panelinde: "Bu alanı böl: ⇄ 2/3/4 · ⇅ 2/3/4" | ✅ |
 
-Kullanıcının önerdiği "1 ekran yerine 3 ekran gir" kestirmesi bilinçli olarak
-REDDEDİLDİ: kesik çizgi tasarımda uyulması gereken tek donanım gerçeğidir
-(yazıyı ortasından bölme); olmayan çerçeve çizmek montajda "Ekranları tanı"yı da
-yalanlar. Ayrıca keşfedilebilir değil.
+`splitZoneInto(zones, cols, rows, zoneId, parts, axis)`: yerleşim ızgarası
+sessizce `parts` katına çıkar, TÜM alanların hücre kutuları aynı oranda
+ölçeklenir (oransal dikdörtgenler değişmez), hedef alan eşit parçalara ayrılır,
+sonra ızgara **EBOB ile sadeleşir** (sayılar şişip sınıra dayanmasın). Böylece
+sürükle-birleştir mantığı hiç bozulmadan "şu alanı 3'e böl" mümkün oldu.
+İçerik/ayarlar İLK parçada kalır; `saveLayout` ızgara + alanları TEK yazımda
+gönderir (perde arada tutarsız kare görmesin).
 
-Davranış: yerleşim ELLE ayarlanmışsa fiziksel ekran sayısını değiştirmek
-yerleşime DOKUNMAZ (`setScreenGrid`); yerleşim fiziksele bağlıysa eski davranış
-sürer (taze ızgara + onay). Yerleşim değişikliği `setLayoutGrid` ile onaydan
-geçer, içerik ilk alana taşınır (kaybolmaz). Eşit olmayan bölme: ızgarayı ince
-tut + sürükleyip birleştir (5'e böl → ilk 3'ü birleştir = %60/%20/%20).
+Doğrulandı: 2×2 fiziksel duvarda sol-üst alan "yan yana 3" ile bölündü →
+fiziksel 2×2 kaldı, yerleşim 6×2 oldu, alan sayısı 4→6, diğer alanların
+dikdörtgenleri değişmedi.
+
+**Editör kart sırası** (kullanıcı isteği): Duvar tanımı → Yerleşim → İçerik
+paneli → **Yayın linki + Ekranlar EN ALTTA** (önce tasarla, sonra yayınla/izle).
 
 ## Yetki modeli (2026-08) — TEK yerden: "Sign yetkileri"
 

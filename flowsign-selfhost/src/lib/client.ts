@@ -10,7 +10,7 @@
  * "böyle bir ekran yok" dediğinde çağrılır.
  */
 import { PublicUser, ScreenBeat, SignGrant, Videowall, VideowallPlayMode, Zone } from "./types";
-import { clampScreens, gridZones, stripUndefined } from "./zones";
+import { clampScreens, gridZones, SplitResult, stripUndefined } from "./zones";
 
 type WallEvent = { found: boolean; wall: Videowall | null; screens: ScreenBeat[] };
 
@@ -122,14 +122,9 @@ export async function setScreenGrid(id: string, cols: number, rows: number): Pro
   await updateWall(id, { cols: clampScreens(cols), rows: clampScreens(rows) });
 }
 
-/** YERLEŞİM ızgarasını değiştir → taze ızgara; içerik ilk alana taşınır (kaybolmaz). */
-export async function setLayoutGrid(id: string, cols: number, rows: number, oldZones: Zone[] = []): Promise<void> {
-  const cc = clampScreens(cols);
-  const rr = clampScreens(rows);
-  const zones = gridZones(cc, rr);
-  const carried = oldZones.flatMap((z) => z.items ?? []);
-  if (carried.length && zones.length) zones[0] = { ...zones[0], items: carried };
-  await updateWall(id, { layoutCols: cc, layoutRows: rr, zones });
+/** Alan bölme sonucu: yerleşim ızgarası + alanlar TEK yazımda gider. */
+export async function saveLayout(id: string, r: SplitResult): Promise<void> {
+  await updateWall(id, { layoutCols: r.cols, layoutRows: r.rows, zones: r.zones });
 }
 
 export async function duplicateWall(id: string): Promise<void> {

@@ -62,7 +62,8 @@ export default function ZonePanel({
   zone: Zone;
   index: number;
   onZones: (zones: Zone[]) => void;
-  onSplit: () => void;
+  /** Bu alanı `parts` parçaya böl (h = yan yana, v = alt alta). */
+  onSplit: (parts: number, axis: "h" | "v") => void;
   onClose: () => void;
 }) {
   const [queue, setQueue] = useState<{ done: number; total: number; pct: number } | null>(null);
@@ -227,7 +228,6 @@ export default function ZonePanel({
     setItems(arr);
   };
 
-  const cells = Math.round(zone.w * vw.cols) * Math.round(zone.h * vw.rows);
   const transition = zone.transition ?? "fade";
   const allOutOfWindow = zone.items.length > 0 && zone.items.every((it) => !itemInWindow(it, now));
 
@@ -280,14 +280,39 @@ export default function ZonePanel({
           onBlur={(e) => patch({ name: e.target.value.trim() || undefined })}
           className="flex-1 min-w-0 bg-transparent border-b border-line focus:border-accent focus:outline-none px-1 py-1.5 font-display font-semibold"
         />
-        {cells > 1 && (
-          <button onClick={onSplit} className="shrink-0 rounded-xl border border-line bg-white text-muted hover:text-ink hover:border-muted px-3 py-2 text-xs font-semibold inline-flex items-center gap-1.5">
-            <Icon name="split" size={14} /> Böl
-          </button>
-        )}
         <button onClick={onClose} className="shrink-0 w-9 h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-paper" aria-label="Paneli kapat">
           <Icon name="close" size={16} />
         </button>
+      </div>
+
+      {/* BÖLME — alanın kendi panelinde (eskiden kokpitte genel "yerleşim ızgarası"
+          satırı vardı; 6 fiziksel ekranın yanında kafa karıştırıyordu). Buradaki
+          bölme YALNIZ bu alanı parçalar; diğer alanlar yerinde kalır. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 text-xs text-muted">
+        <span className="font-semibold text-ink">Bu alanı böl:</span>
+        {([
+          { axis: "h", label: "yan yana", icon: "⇄" },
+          { axis: "v", label: "alt alta", icon: "⇅" },
+        ] as const).map((dir) => (
+          <span key={dir.axis} className="inline-flex items-center gap-1.5">
+            <span aria-hidden>{dir.icon}</span>
+            <span>{dir.label}</span>
+            {[2, 3, 4].map((n) => (
+              <button
+                key={n}
+                onClick={() => onSplit(n, dir.axis)}
+                className="w-7 h-7 rounded-lg border border-line bg-white font-semibold text-ink hover:border-accent hover:text-accent"
+                title={`${dir.label} ${n} parçaya böl`}
+                aria-label={`${dir.label} ${n} parçaya böl`}
+              >
+                {n}
+              </button>
+            ))}
+          </span>
+        ))}
+        <span className="text-muted/80 basis-full leading-relaxed">
+          İçerik ilk parçada kalır. Geri almak için parçaları sürükleyip birleştir.
+        </span>
       </div>
 
       {/* Alan ayarları: geçiş + arka plan */}

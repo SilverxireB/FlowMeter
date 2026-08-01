@@ -169,30 +169,100 @@ export function mergeCells(zones: Zone[], cols: number, rows: number, box: CellB
   return [...kept, ...leftovers, merged];
 }
 
-/** Bir alanı hücrelere böl. İçerik/ayarlar İLK (sol-üst) hücrede kalır — kaybolmaz. */
-export function splitZone(zones: Zone[], cols: number, rows: number, zoneId: string): Zone[] {
+/**
+ * ALANI PARÇALARA BÖL — "bu alanı 3'e böl" (yatay ⇄ ya da dikey ⇅).
+ *
+ * Kullanıcı kararı: yerleşim ızgarası ARTIK KOKPİTTE GÖRÜNMÜYOR (6 fiziksel
+ * ekranın yanında "yerleşim 3×4" satırı kafa karıştırıyordu). Bölme artık
+ * alanın kendi panelinde: seçili alanı kaça böleceğini söylüyorsun.
+ *
+ * Altta ızgara mantığı korunur (sürükle-birleştir bozulmasın): ızgara sessizce
+ * `parts` katına çıkar, diğer alanların hücre kutuları aynı oranda ölçeklenir —
+ * oransal dikdörtgenler DEĞİŞMEZ. Sonra ızgara EBOB ile sadeleştirilir ki
+ * sayılar şişip 24 sınırına dayanmasın.
+ *
+ * İçerik kaybolmaz: öğeler/ayarlar İLK parçada kalır.
+ * Sınır aşılırsa null döner (çağıran "daha fazla bölünemez" der).
+ */
+export interface SplitResult {
+  zones: Zone[];
+  cols: number;
+  rows: number;
+}
+
+const gcd2 = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd2(b, a % b));
+
+/** Izgarayı en sade hâline indir (tüm sınırların EBOB'u kadar küçült). */
+function normalizeGrid(zones: Zone[], cols: number, rows: number): SplitResult {
+  const boxes = zones.map((z) => zoneCells(z, cols, rows));
+  let gx = cols;
+  let gy = rows;
+  for (const b of boxes) {
+    gx = gcd2(gcd2(gx, b.c0), b.c1 + 1);
+    gy = gcd2(gcd2(gy, b.r0), b.r1 + 1);
+  }
+  if (gx <= 1 && gy <= 1) return { zones, cols, rows };
+  const nc = Math.max(1, cols / Math.max(1, gx));
+  const nr = Math.max(1, rows / Math.max(1, gy));
+  const nz = zones.map((z, i) => ({
+    ...z,
+    ...rectFromCells(
+      {
+        c0: boxes[i].c0 / gx,
+        c1: (boxes[i].c1 + 1) / gx - 1,
+        r0: boxes[i].r0 / gy,
+        r1: (boxes[i].r1 + 1) / gy - 1,
+      },
+      nc,
+      nr
+    ),
+  }));
+  return { zones: nz, cols: nc, rows: nr };
+}
+
+export function splitZoneInto(
+  zones: Zone[],
+  cols: number,
+  rows: number,
+  zoneId: string,
+  parts: number,
+  axis: "h" | "v"
+): SplitResult | null {
+  const p = Math.max(2, Math.min(8, Math.round(parts) || 2));
+  const nc = axis === "h" ? cols * p : cols;
+  const nr = axis === "v" ? rows * p : rows;
+  if (nc > MAX_SCREENS_PER_AXIS * 4 || nr > MAX_SCREENS_PER_AXIS * 4) return null;
+
+  const scaled = (b: CellBox): CellBox =>
+    axis === "h"
+      ? { c0: b.c0 * p, c1: (b.c1 + 1) * p - 1, r0: b.r0, r1: b.r1 }
+      : { c0: b.c0, c1: b.c1, r0: b.r0 * p, r1: (b.r1 + 1) * p - 1 };
+
   const out: Zone[] = [];
   for (const z of zones) {
+    const box = scaled(zoneCells(z, cols, rows));
     if (z.id !== zoneId) {
-      out.push(z);
+      out.push({ ...z, ...rectFromCells(box, nc, nr) });
       continue;
     }
-    const cb = zoneCells(z, cols, rows);
-    let first = true;
-    for (let r = cb.r0; r <= cb.r1; r++)
-      for (let c = cb.c0; c <= cb.c1; c++) {
-        const u = unitZone(c, r, cols, rows);
-        if (first) {
-          u.items = z.items ?? [];
-          if (z.name) u.name = z.name;
-          if (z.transition) u.transition = z.transition;
-          if (z.bg) u.bg = z.bg;
-          first = false;
-        }
-        out.push(u);
+    // Hedef alan: eşit parçalara ayrılır; içerik/ayarlar İLK parçada kalır.
+    const span = axis === "h" ? (box.c1 - box.c0 + 1) / p : (box.r1 - box.r0 + 1) / p;
+    for (let i = 0; i < p; i++) {
+      const piece: CellBox =
+        axis === "h"
+          ? { c0: box.c0 + i * span, c1: box.c0 + (i + 1) * span - 1, r0: box.r0, r1: box.r1 }
+          : { c0: box.c0, c1: box.c1, r0: box.r0 + i * span, r1: box.r0 + (i + 1) * span - 1 };
+      const piece0: Zone = { id: i === 0 ? z.id : zid(), ...rectFromCells(piece, nc, nr), items: [] };
+      if (i === 0) {
+        piece0.items = z.items ?? [];
+        if (z.name) piece0.name = z.name;
+        if (z.transition) piece0.transition = z.transition;
+        if (z.bg) piece0.bg = z.bg;
       }
+      out.push(piece0);
+    }
   }
-  return out;
+  return normalizeGrid(out, nc, nr);
 }
 
 export async function createVideowall(
@@ -501,18 +571,13 @@ export async function setScreenGrid(id: string, cols: number, rows: number): Pro
   });
 }
 
-/** YERLEŞİM ızgarasını değiştir → taslak yerleşim taze ızgaraya kurulur.
- *  İÇERİK KAYBOLMAZ: eski alanlardaki tüm öğeler ilk alana taşınır. */
-export async function setLayoutGrid(id: string, cols: number, rows: number, oldZones: Zone[] = []): Promise<void> {
-  const cc = clampScreens(cols);
-  const rr = clampScreens(rows);
-  const zones = gridZones(cc, rr);
-  const carried = oldZones.flatMap((z) => z.items ?? []);
-  if (carried.length && zones.length) zones[0] = { ...zones[0], items: carried };
+/** Alan bölme sonucunu yaz: yerleşim ızgarası + alanlar TEK yazımda gider
+ *  (ikisi ayrı yazılırsa arada perde/kokpit tutarsız kare görebilir). */
+export async function saveLayout(id: string, r: SplitResult): Promise<void> {
   await updateDoc(doc(db(), "videowalls", id), {
-    layoutCols: cc,
-    layoutRows: rr,
-    zones: stripUndefined(zones),
+    layoutCols: r.cols,
+    layoutRows: r.rows,
+    zones: stripUndefined(r.zones),
     updatedAt: serverTimestamp(),
   });
 }

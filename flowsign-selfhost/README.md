@@ -103,10 +103,11 @@ koymak (uygulama kapalıyken). Veritabanı kurulumu/migrasyonu yoktur.
 
 - **Video:** MP4 (H.264 + AAC) yükleyin. Sunucu dönüştürme YAPMAZ; tarayıcının
   oynatamadığı biçim (ör. bazı .mov/.mkv) ekranda boş kalır.
-- **Tek ekranı bölmek:** "Duvar tanımı" kartındaki **Yerleşim ızgarası** fiziksel
-  ekran sayısından bağımsızdır — tek TV'yi 3 alana bölmek için "Yatayda kaç alan?"
-  kutusuna 3 yazın. Eşit olmayan bölme için ızgarayı ince tutup alanları
-  sürükleyip birleştirin (5'e böl → ilk 3'ü birleştir = %60/%20/%20).
+- **Bir alanı bölmek:** Yerleşimde alana tıklayın; açılan panelde
+  **"Bu alanı böl: ⇄ yan yana 2/3/4 · ⇅ alt alta 2/3/4"** düğmeleri var.
+  Bölme yalnız o alanı parçalar, diğerleri yerinde kalır — tek TV'yi 3 alana
+  bölmek de böyle yapılır. İçerik ilk parçada kalır; geri almak için parçaları
+  sürükleyip birleştirin. Eşit olmayan bölme: 3'e böl → iki parçayı birleştir.
 - **Görsel:** JPG/PNG/WebP. Alanın "hedef çözünürlüğü" editörde yazar —
   görseli o boyutta hazırlayın; içerik alana tam yayılır (stretch).
 - Dosya adları otomatik güvenli hale getirilir: boşluk ve Türkçe karakterler
