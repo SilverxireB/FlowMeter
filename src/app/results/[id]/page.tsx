@@ -119,6 +119,136 @@ export default function ResultsPage() {
     }
   }
 
+  /** Grafikli PDF özet: slayt slayt sorular + çubuk grafikler (jspdf, dış servis yok). */
+  async function exportPdf() {
+    if (!presentation || exporting) return;
+    setExporting(true);
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      // jsPDF gömülü fontu ğ/ş/ı bilmiyor → Türkçe karakterleri katla (Pulse deseni)
+      const fold = (s: string) =>
+        s.replace(/[çğıöşüÇĞİÖŞÜ]/g, (m) => ({ ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", Ç: "C", Ğ: "G", İ: "I", Ö: "O", Ş: "S", Ü: "U" })[m] ?? m);
+      const pdf = new jsPDF();
+      let y = 0;
+      const need = (h: number) => {
+        if (y + h > 282) {
+          pdf.addPage();
+          y = 18;
+        }
+      };
+      const bars = (rows: { label: string; n: number; hint?: string }[]) => {
+        const max = Math.max(1, ...rows.map((r) => r.n));
+        for (const r of rows) {
+          need(8);
+          pdf.setFontSize(9);
+          pdf.text(fold(r.label).slice(0, 48), 14, y + 3.5);
+          pdf.setFillColor(234, 235, 250);
+          pdf.rect(104, y, 66, 4.5, "F");
+          pdf.setFillColor(79, 70, 229);
+          pdf.rect(104, y, (66 * r.n) / max, 4.5, "F");
+          pdf.setFontSize(8.5);
+          pdf.text(`${r.n}${r.hint ? ` ${r.hint}` : ""}`, 172, y + 3.5);
+          y += 7;
+        }
+      };
+
+      pdf.setFontSize(16);
+      pdf.text(`FlowMeter Raporu — ${fold(presentation.title)}`.slice(0, 70), 14, 18);
+      pdf.setFontSize(9);
+      pdf.setTextColor(120);
+      pdf.text(`${new Date().toLocaleString("tr-TR")} · ${sessionSel === "all" ? "Tum oturumlar" : "Secili oturum"} · kod ${presentation.joinCode}`, 14, 25);
+      pdf.setTextColor(0);
+      y = 36;
+
+      const noChart = ["content", "image", "video", "instructions", "leaderboard", "qna"];
+      for (const [i, s] of slides.entries()) {
+        if (s.settings?.skipped || noChart.includes(s.type)) continue;
+        const snap = await getDocs(query(collection(db(), "presentations", id, "slides", s.id, "responses"), orderBy("createdAt")));
+        const rs = snap.docs
+          .map((d) => d.data())
+          .filter((r) => (!sessionFilter || r.sessionId === sessionFilter) && r.status !== "pending");
+
+        need(22);
+        pdf.setFontSize(12);
+        pdf.text(fold(`${i + 1}. ${s.question}`).slice(0, 88), 14, y);
+        pdf.setFontSize(9);
+        pdf.setTextColor(120);
+        pdf.text(`${fold(SLIDE_TYPE_LABELS[s.type])} · ${rs.length} cevap`, 14, y + 5.5);
+        pdf.setTextColor(0);
+        y += 12;
+        if (rs.length === 0) {
+          y += 3;
+          continue;
+        }
+
+        if (s.type === "multiple-choice" || s.type === "quiz") {
+          const counts = s.options.map(() => 0);
+          rs.forEach((r) => {
+            const v = r.value;
+            const idxs = Array.isArray(v) ? v : [v];
+            idxs.forEach((x) => {
+              if (typeof x === "number" && counts[x] !== undefined) counts[x] += 1;
+            });
+          });
+          bars(s.options.map((o, oi) => ({ label: o, n: counts[oi], hint: s.type === "quiz" && s.settings?.correctIndex === oi ? "(dogru)" : undefined })));
+        } else if (s.type === "word-cloud" || s.type === "quiz-type") {
+          const freq = new Map<string, number>();
+          rs.forEach((r) => {
+            const raw = Array.isArray(r.value) ? r.value[0] : r.value;
+            const w = String(raw ?? "").trim().toLocaleLowerCase("tr");
+            if (w) freq.set(w, (freq.get(w) ?? 0) + 1);
+          });
+          bars([...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([w, n]) => ({ label: w, n })));
+        } else if (s.type === "open-ended") {
+          pdf.setFontSize(9);
+          rs.slice(0, 12).forEach((r) => {
+            const lines: string[] = pdf.splitTextToSize(`• ${fold(String(r.value ?? ""))}`, 176);
+            need(lines.length * 4.5 + 2);
+            pdf.text(lines, 14, y + 3);
+            y += lines.length * 4.5 + 1.5;
+          });
+          if (rs.length > 12) {
+            need(6);
+            pdf.setTextColor(120);
+            pdf.text(`… ve ${rs.length - 12} cevap daha (CSV'de tamami)`, 14, y + 3);
+            pdf.setTextColor(0);
+            y += 6;
+          }
+        } else if (s.type === "scales") {
+          const sums = s.options.map(() => ({ t: 0, n: 0 }));
+          rs.forEach((r) => {
+            if (Array.isArray(r.value))
+              (r.value as number[]).forEach((v, vi) => {
+                if (typeof v === "number" && sums[vi]) {
+                  sums[vi].t += v;
+                  sums[vi].n += 1;
+                }
+              });
+          });
+          bars(s.options.map((o, oi) => ({ label: o, n: sums[oi].n ? Math.round((sums[oi].t / sums[oi].n) * 10) / 10 : 0, hint: "ort" })));
+        } else if (s.type === "guess-number") {
+          const nums = rs.map((r) => Number(r.value)).filter((n) => !Number.isNaN(n));
+          const avg = nums.length ? Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 10) / 10 : 0;
+          need(7);
+          pdf.setFontSize(9);
+          pdf.text(`Ortalama ${avg} · en dusuk ${Math.min(...nums)} · en yuksek ${Math.max(...nums)}${s.settings?.correctNumber !== undefined ? ` · dogru ${s.settings.correctNumber}` : ""}`, 14, y + 3);
+          y += 8;
+        } else {
+          need(7);
+          pdf.setFontSize(9);
+          pdf.setTextColor(120);
+          pdf.text("Bu tipin grafigi icin Sonuclar ekranina bak (CSV'de ham veri var).", 14, y + 3);
+          pdf.setTextColor(0);
+          y += 8;
+        }
+        y += 6;
+      }
+      pdf.save(`flowmeter-rapor-${presentation.joinCode || id}.pdf`);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (!presentation) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-wash">
@@ -157,6 +287,9 @@ export default function ResultsPage() {
                 </option>
               ))}
           </select>
+          <button onClick={exportPdf} disabled={exporting} className="btn-ghost !py-2 !px-4 text-sm" title="Grafikli tek dosya özet — yöneticiye atmalık">
+            {exporting ? "…" : "📄 PDF"}
+          </button>
           <button onClick={exportCsv} disabled={exporting} className="btn-primary !py-2 !px-4 text-sm">
             {exporting ? "Hazırlanıyor…" : "⬇ CSV indir"}
           </button>
