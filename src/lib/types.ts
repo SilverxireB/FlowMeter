@@ -276,6 +276,8 @@ export interface SlideSettings {
   description?: string;
   /** Başlık üstündeki küçük etiket (eyebrow) — boşsa slayt tipi yazılır */
   label?: string;
+  /** Konuşmacı notu — yalnız sahibi görür (telefon kumandası /remote) */
+  notes?: string;
   /** quiz: doğru seçeneğin index'i */
   correctIndex?: number;
   /** quiz / quiz-type: cevap süresi (saniye, varsayılan 20) */

@@ -140,6 +140,9 @@ export default function EditPage() {
                 <Link href={`/results/${id}`} className="rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper">
                   Sonuçlar
                 </Link>
+                <Link href={`/remote/${id}`} className="rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper">
+                  📱 Kumanda
+                </Link>
                 <div className="border-t border-line my-1.5" />
                 <label className="flex items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper cursor-pointer">
                   💬 Canlı sohbet
@@ -612,6 +615,7 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
   const [options, setOptions] = useState<string[]>(slide.options);
   const [description, setDescription] = useState(slide.settings?.description ?? "");
   const [label, setLabel] = useState(slide.settings?.label ?? "");
+  const [notes, setNotes] = useState(slide.settings?.notes ?? "");
   const [allowMultiple, setAllowMultiple] = useState(slide.settings?.allowMultiple ?? false);
   const [correctIndex, setCorrectIndex] = useState(slide.settings?.correctIndex ?? 0);
   const [timeLimit, setTimeLimit] = useState(slide.settings?.timeLimit ?? 20);
@@ -656,6 +660,7 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
         ...slide.settings,
         description: description.trim(),
         label: label.trim(),
+        notes: notes.trim(),
       };
       if (slide.type === "multiple-choice") settings.allowMultiple = allowMultiple;
       if (hasMaxEntries) settings.maxEntries = Math.min(10, Math.max(1, maxEntries));
@@ -691,7 +696,7 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
     }, 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [question, options, description, label, allowMultiple, correctIndex, timeLimit, scoreMode, music, videoUrl, image, correctArea, correctNumber, numMin, numMax, unit, gridLabels, maxEntries]);
+  }, [question, options, description, label, notes, allowMultiple, correctIndex, timeLimit, scoreMode, music, videoUrl, image, correctArea, correctNumber, numMin, numMax, unit, gridLabels, maxEntries]);
 
   async function uploadImage(file: File | undefined) {
     if (!file) return;
@@ -1004,6 +1009,15 @@ function SlideEditor({ presentationId, slide }: { presentationId: string; slide:
             />
           </>
         )}
+        <label className="block text-sm font-medium mb-1 mt-4">🗒 Konuşmacı notu</label>
+        <p className="text-muted text-xs mb-1.5">Yalnız sen görürsün — telefon kumandasında bu slaytın yanında çıkar.</p>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={2}
+          placeholder="Burada şunu anlat…"
+          className="input-base resize-none"
+        />
       </Accordion>
     </div>
   );
