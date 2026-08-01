@@ -21,6 +21,7 @@ export default function PulseKioskPage() {
   const [pin, setPin] = useState("");
   const [pinErr, setPinErr] = useState(false);
   const [adminMenu, setAdminMenu] = useState(false);
+  const [lastErr, setLastErr] = useState<string | null>(null);
   const [offlineHint, setOfflineHint] = useState(false);
   const lastVote = useRef(0);
   const taps = useRef<number[]>([]);
@@ -60,7 +61,13 @@ export default function PulseKioskPage() {
     // Teşekkür, FREN süresi kadar kalır — "hazır görünüp oy yutan" ölü bölge yok.
     setThanks(true);
     window.setTimeout(() => setThanks(false), cd);
-    castVote(id, v, "kiosk").catch(() => {}); // offline → kuyruk; kiosk asla hata göstermez
+    // Kiosk misafire asla hata göstermez; ama hata SESSİZCE kaybolmasın —
+    // yönetici menüsünde (5 dokunuş) son hata görünür, teşhis kör kalmaz.
+    castVote(id, v, "kiosk").catch((e) => {
+      const code = (e as { code?: string })?.code ?? (e instanceof Error ? e.message : String(e));
+      console.error("[pulse-kiosk] oy yazılamadı:", e);
+      setLastErr(`${new Date().toLocaleTimeString("tr-TR")} · ${code}`);
+    });
   };
 
   // Gizli çıkış: sol üst köşeye 3 sn içinde 5 dokunuş → PIN (varsa) → yönetici menüsü.
@@ -149,6 +156,14 @@ export default function PulseKioskPage() {
         <div className="absolute inset-0 z-50 bg-black/80 grid place-items-center p-6" onClick={() => setAdminMenu(false)}>
           <div className="bg-[#1c1c22] border border-white/15 rounded-2xl p-6 w-full max-w-xs flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
             <p className="font-display font-semibold mb-1">Yönetici menüsü</p>
+            {lastErr ? (
+              <p className="rounded-xl bg-rose-400/15 border border-rose-400/30 text-rose-300 px-3 py-2 text-xs break-words">
+                ⚠ Son oy hatası: {lastErr}
+                {lastErr.includes("permission") && <span className="block mt-1 text-rose-200/80">→ Firestore rules eski/eksik yayınlanmış olabilir.</span>}
+              </p>
+            ) : (
+              <p className="text-white/40 text-xs px-1">Oy hatası kaydı yok (bu oturumda).</p>
+            )}
             <button onClick={() => setAdminMenu(false)} className="rounded-xl bg-accent hover:bg-accent-dark text-white py-3 font-semibold">← Kioska dön</button>
             <button onClick={() => router.push(`/pulse/${id}/manage`)} className="rounded-xl bg-white/10 border border-white/15 py-3 font-semibold hover:bg-white/15">
               Kokpiti aç <span className="text-white/50 text-xs">(giriş gerekir)</span>
