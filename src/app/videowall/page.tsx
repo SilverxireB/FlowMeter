@@ -239,8 +239,8 @@ export default function VideowallListPage() {
             <p>Henüz ekranın yok. Yukarıdan ilkini oluştur.</p>
           </div>
         ) : (
-          {/* Telefonda TEK sıra (dar kartta aksiyonlar eziliyordu); sm+ çoklu */}
           <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {/* Telefonda TEK sıra (dar kartta aksiyonlar eziliyordu); sm+ çoklu */}
             {mine.map((v) => (
               <li key={v.id} className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex flex-col">
                 {/* Önizleme = yayındaki yerleşim; tıkla → editör */}
