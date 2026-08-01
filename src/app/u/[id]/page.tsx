@@ -7,7 +7,6 @@
  */
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import CreateYourOwn from "@/components/CreateYourOwn";
 import Logo from "@/components/Logo";
 import { useConfirm } from "@/components/ConfirmDialog";
 import WallReactionBar from "@/components/wall/WallReactionBar";
@@ -509,13 +508,6 @@ export default function UploadPage() {
               <img src={celebrate} alt="" className="mx-auto max-h-[40vh] rounded-2xl shadow-2xl border-2 border-white/30 animate-pop" />
             )}
             <p className="text-white/60 text-sm mt-4">Perdeye bak 👀</p>
-            {/* Ürünü ÇALIŞIRKEN gördüğü an — büyüme çağrısı için en doğru yer */}
-            <CreateYourOwn
-              tone="dark"
-              className="mt-8"
-              text="Kendi etkinliğinde de böyle bir duvar ister misin?"
-              cta="Ücretsiz kur"
-            />
           </div>
         </div>
       )}

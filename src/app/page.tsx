@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import CodeInput from "@/components/CodeInput";
-import CreateYourOwn from "@/components/CreateYourOwn";
 import Logo from "@/components/Logo";
 import { useAuthUser } from "@/lib/hooks";
 import { getLastPresentation, LastPresentation } from "@/lib/participants";
@@ -109,18 +108,20 @@ export default function LandingPage() {
 
       {/* Çatı vitrini: minik O + ad — salt görsel, tıklanmaz */}
       <footer className="relative z-10 px-6 pb-8 pt-2">
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5">
+        {/* DÖRT SÜTUN sabit: esnek sarmada dar telefonda "PULSE" tek başına alt
+            satıra düşüp şerit kırık görünüyordu. Izgara her genişlikte tek sıra
+            tutar; dar ekranda yazı ve boşluk küçülür. */}
+        <div className="grid grid-cols-4 gap-x-1 max-w-sm mx-auto">
           {PRODUCTS.map((p) => (
-            <span key={p.name} className="inline-flex items-center gap-1.5 opacity-70">
+            <span key={p.name} className="inline-flex items-center justify-center gap-1 sm:gap-1.5 opacity-70 min-w-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.o} alt="" className="h-4 w-auto" />
-              <span className="text-[11px] font-bold tracking-[0.12em] text-ink/45">{p.name}</span>
+              <img src={p.o} alt="" className="h-3.5 sm:h-4 w-auto shrink-0" />
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.08em] sm:tracking-[0.12em] text-ink/45 truncate">
+                {p.name}
+              </span>
             </span>
           ))}
         </div>
-        {/* Büyüme halkası: katılımcı ürünü çalışırken gördü — en ikna olduğu an.
-            Oturumu açık sahibe gösterilmez (CreateYourOwn içinde kapılı). */}
-        <CreateYourOwn className="mt-5" />
       </footer>
     </main>
   );

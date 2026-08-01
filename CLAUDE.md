@@ -100,7 +100,6 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
 - **UI ortak bileşenleri:** `Icon` (tek ikon seti) · `ConfirmDialog`+`useConfirm`
   (native confirm YOK) · `CodeInput` (6 haneli kod, aydınlık/koyu) · `Skeleton`
   (kokpit yükleme iskeletleri; perde/kiosk'ta tek satır yazı doğru) ·
-  `CreateYourOwn` (katılımcıya "sen de kur" — sahibe gösterilmez) ·
   `ScreenClose` · `usePlayTarget`. Koyu yüzey sınıfları: `card-dark`,
   `btn-dark`, `btn-dark-primary`, `btn-dark-icon`, `input-dark`.
 - **Kayıt açan her aksiyonda ÇİFT TIKLAMA KİLİDİ `useRef` ile** (state kilidi
