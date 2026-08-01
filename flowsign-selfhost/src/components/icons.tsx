@@ -43,6 +43,7 @@ export type IconName =
   | "play"
   | "link"
   | "settings"
+  | "remote"
   | "shield"
   | "pencil"
   | "refresh"
@@ -142,6 +143,14 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
       <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
+    </>
+  ),
+  // Sunum kumandası (presenter/klikır) — oyun kolu DEĞİL.
+  remote: (
+    <>
+      <rect x="7.5" y="2.5" width="9" height="19" rx="3" />
+      <circle cx="12" cy="7" r="1.15" fill="currentColor" stroke="none" />
+      <path d="M9.8 12h4.4M9.8 16h4.4" />
     </>
   ),
   settings: (

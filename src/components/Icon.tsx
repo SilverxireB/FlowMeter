@@ -33,6 +33,7 @@ export type IconName =
   | "swap"
   | "search"
   | "settings"
+  | "remote"
   | "close"
   | "check"
   | "link"
@@ -170,6 +171,15 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   // Dişli çark 15px'te lekeye dönüşüyordu → "ayar sürgüleri" (net + tanıdık)
+  // Sunum kumandası (presenter/klikır) — oyun kolu DEĞİL: ince dikey gövde,
+  // üstte tek gösterge, altında ileri/geri tuşları.
+  remote: (
+    <>
+      <rect x="7.5" y="2.5" width="9" height="19" rx="3" />
+      <circle cx="12" cy="7" r="1.15" fill="currentColor" stroke="none" />
+      <path d="M9.8 12h4.4M9.8 16h4.4" />
+    </>
+  ),
   settings: (
     <>
       <path d="M4 7h6M14 7h6M4 17h10M18 17h2" />

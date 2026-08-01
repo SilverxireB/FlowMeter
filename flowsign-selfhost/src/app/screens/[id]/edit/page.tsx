@@ -333,25 +333,30 @@ export default function ScreenEditPage() {
               Tabela (otomatik) / sunum (kumanda); yayından BAĞIMSIZ — seçim
               perdeye ANINDA gider (Kaydet & Yayınla gerekmez). */}
           <div className="mt-4 pt-4 border-t border-line">
-            <span className="text-muted text-xs block mb-2">Oynatma modu</span>
-            <div className="flex flex-wrap items-center gap-2 text-sm">
+            {/* KOMPAKT: mod bir kez seçilir, sonra elleşilmez — küçük çipler ve
+                etiketle aynı satırda. Emoji YOK: "🎮" oyun kolu, ürünün işi sunum
+                kumandası (Icon "remote"); işlevsel glifler zaten SVG olmalı. */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted text-xs shrink-0">Oynatma modu</span>
               {([
-                { v: "auto", label: "🔁 Tabela — otomatik akış" },
-                { v: "manual", label: "🎮 Sunum — kumanda ile" },
+                { v: "auto", label: "Tabela", icon: "refresh" },
+                { v: "manual", label: "Sunum", icon: "remote" },
               ] as const).map((m) => {
                 const active = (vw.playMode ?? "auto") === m.v;
                 return (
                   <button
                     key={m.v}
                     onClick={() => !active && setPlayMode(id, m.v).catch(() => setSaveErr("Mod kaydedilemedi — tekrar dene."))}
-                    className={`px-3.5 py-2 rounded-xl font-semibold border ${active ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"}`}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                      active ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"
+                    }`}
                   >
-                    {m.label}
+                    <Icon name={m.icon} size={13} /> {m.label}
                   </button>
                 );
               })}
             </div>
-            <p className="text-muted text-xs mt-2">
+            <p className="text-muted text-[11px] mt-1.5">
               {(vw.playMode ?? "auto") === "manual"
                 ? "Kumandayla ilerler (→ ← boşluk); süre/otomatik geçiş çalışmaz."
                 : "İçerik süre ve takvime göre kendiliğinden döner."}
