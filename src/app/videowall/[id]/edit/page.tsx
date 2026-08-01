@@ -387,6 +387,10 @@ export default function VideowallEditPage() {
                   </button>
                 );
               })}
+              {/* Mod, YAYINDAN bağımsızdır: seçim perdeye anında gider, "Kaydet &
+                  Yayınla" beklemez. Bunu söylemezsek kullanıcı yayınlaması
+                  gerektiğini sanıyor (üstteki şerit içerik için uyarı veriyor). */}
+              <span className="text-muted text-[11px] shrink-0">· anında yayında</span>
             </div>
             <p className="text-muted text-[11px] mt-1.5">
               {(vw.playMode ?? "auto") === "manual"
