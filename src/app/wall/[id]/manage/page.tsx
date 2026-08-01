@@ -1114,16 +1114,25 @@ export default function WallManage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {approved.map((m) => (
                 <MediaCard key={m.id} m={m}>
-                  <div className="flex gap-1.5">
+                  {/* Dar mobil kartta 3'lü sıra taşmasın: ikonlar sabit-dar, orta buton esner */}
+                  <div className="flex items-center gap-1 min-w-0">
                     <button
                       onClick={() => setWallPinned(id, wall.pinnedMediaId === m.id ? null : m.id).catch(console.error)}
-                      className={`btn-ghost !py-1.5 !px-2.5 text-xs ${wall.pinnedMediaId === m.id ? "!border-accent !text-accent !bg-accent-soft/40" : ""}`}
+                      className={`shrink-0 w-8 h-8 grid place-items-center rounded-full border text-sm ${wall.pinnedMediaId === m.id ? "border-accent text-accent bg-accent-soft/40" : "border-line text-muted hover:text-ink"}`}
                       title={wall.pinnedMediaId === m.id ? "Sabitlemeyi kaldır — perde normale döner" : "Perdede sabitle — kaldırana dek büyük durur"}
+                      aria-label="Perdede sabitle"
                     >
                       📌
                     </button>
-                    <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="flex-1 btn-ghost !py-1.5 text-xs">Kaldır</button>
-                    <button onClick={() => setConfirmReq({ title: "Kalıcı silme", message: "Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?", confirmLabel: "Kalıcı sil", danger: true, action: () => hardDelete(m) })} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil (Cloudinary dahil)">🗑</button>
+                    <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="flex-1 min-w-0 btn-ghost !py-1.5 !px-1 text-xs truncate">Kaldır</button>
+                    <button
+                      onClick={() => setConfirmReq({ title: "Kalıcı silme", message: "Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?", confirmLabel: "Kalıcı sil", danger: true, action: () => hardDelete(m) })}
+                      className="shrink-0 w-8 h-8 grid place-items-center rounded-full border border-brand/40 text-brand text-sm"
+                      title="Kalıcı sil (Cloudinary dahil)"
+                      aria-label="Kalıcı sil"
+                    >
+                      🗑
+                    </button>
                   </div>
                 </MediaCard>
               ))}
@@ -1138,9 +1147,16 @@ export default function WallManage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {rejected.map((m) => (
                 <MediaCard key={m.id} m={m}>
-                  <div className="flex gap-1.5">
-                    <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 btn-accent !py-1.5 text-xs">↩ Geri al</button>
-                    <button onClick={() => setConfirmReq({ title: "Kalıcı silme", message: "Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?", confirmLabel: "Kalıcı sil", danger: true, action: () => hardDelete(m) })} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" title="Kalıcı sil (Cloudinary dahil)">🗑</button>
+                  <div className="flex items-center gap-1 min-w-0">
+                    <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 min-w-0 btn-accent !py-1.5 !px-1 text-xs truncate">↩ Geri al</button>
+                    <button
+                      onClick={() => setConfirmReq({ title: "Kalıcı silme", message: "Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?", confirmLabel: "Kalıcı sil", danger: true, action: () => hardDelete(m) })}
+                      className="shrink-0 w-8 h-8 grid place-items-center rounded-full border border-brand/40 text-brand text-sm"
+                      title="Kalıcı sil (Cloudinary dahil)"
+                      aria-label="Kalıcı sil"
+                    >
+                      🗑
+                    </button>
                   </div>
                 </MediaCard>
               ))}
