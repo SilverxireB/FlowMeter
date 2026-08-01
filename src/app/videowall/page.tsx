@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
+import { SkelBoxDark, SkelCards } from "@/components/Skeleton";
 import { Icon } from "@/components/Icon";
 import { useConfirm } from "@/components/ConfirmDialog";
 import WallThumb from "@/components/videowall/WallThumb";
@@ -165,7 +166,15 @@ export default function VideowallListPage() {
   }
 
   if (loading || !user) {
-    return <main className="min-h-screen grid place-items-center bg-[#0d102f] text-white/60 animate-pulse">Yükleniyor…</main>;
+    return (
+      <main className="min-h-screen bg-[#0d102f]" style={{ colorScheme: "dark" }}>
+        <div className="max-w-5xl mx-auto px-4 py-10">
+          <SkelBoxDark className="h-8 w-40 mb-6" />
+          <SkelBoxDark className="h-52 w-full !rounded-2xl mb-8" />
+          <SkelCards count={4} dark />
+        </div>
+      </main>
+    );
   }
 
   return (

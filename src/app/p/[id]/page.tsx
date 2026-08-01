@@ -19,6 +19,7 @@ import WordCloudVote from "@/components/vote/WordCloudVote";
 import { usePresentation, useSlides } from "@/lib/hooks";
 import { setAudienceLang, t } from "@/lib/i18n";
 import Avatar from "@/components/Avatar";
+import CreateYourOwn from "@/components/CreateYourOwn";
 import Logo from "@/components/Logo";
 import {
   AVATAR_SEEDS,
@@ -219,6 +220,7 @@ export default function AudiencePage() {
           {t("Sunum sona erdi 🎉", "That's a wrap 🎉")}
         </h1>
         <p className="text-muted">{t("Katıldığın için teşekkürler", "Thanks for joining")}, {nickname}!</p>
+        <CreateYourOwn className="mt-10" text={t("Kendi sunumunu yönetmek ister misin?", "Want to run your own?")} cta={t("Ücretsiz başla", "Start free")} />
       </Centered>
     );
   }
@@ -232,6 +234,7 @@ export default function AudiencePage() {
         </div>
         <h1 className="font-display text-3xl font-semibold tracking-tight mb-2">{t("Hepsi bu kadar 🎉", "All done 🎉")}</h1>
         <p className="text-muted">{t("Cevapların kaydedildi — teşekkürler", "Your answers are saved — thanks")}, {nickname}!</p>
+        <CreateYourOwn className="mt-8" text={t("Kendi sunumunu yönetmek ister misin?", "Want to run your own?")} cta={t("Ücretsiz başla", "Start free")} />
         <button
           onClick={() => {
             setFinished(false);

@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QrCode from "@/components/present/QrCode";
+import { SkelCockpit } from "@/components/Skeleton";
 import { Icon, IconName } from "@/components/Icon";
 import { scoreColor, scoreEmoji } from "@/components/pulse/shared";
 import { useAuthUser } from "@/lib/hooks";
@@ -162,7 +163,11 @@ export default function PulseManagePage() {
   }
 
   if (pulse === undefined || loading)
-    return <main className="min-h-screen grid place-items-center bg-wash text-muted animate-pulse">Yükleniyor…</main>;
+    return (
+      <main className="min-h-screen bg-wash">
+        <SkelCockpit />
+      </main>
+    );
   if (pulse === null) return <main className="min-h-screen grid place-items-center bg-wash text-muted">Nokta bulunamadı.</main>;
   if (user && pulse.ownerId !== user.uid)
     return (

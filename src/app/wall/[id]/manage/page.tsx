@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
+import { SkelCockpit } from "@/components/Skeleton";
 import QrCode from "@/components/present/QrCode";
 import { downloadQrCard } from "@/components/WallQrCard";
 import { downloadCollage } from "@/components/WallCollage";
@@ -328,7 +329,11 @@ export default function WallManage() {
   }
 
   if (authLoading || loading) {
-    return <main className="min-h-screen grid place-items-center bg-wash text-muted animate-pulse">Yükleniyor…</main>;
+    return (
+      <main className="min-h-screen bg-wash">
+        <SkelCockpit />
+      </main>
+    );
   }
   if (!wall) {
     return <main className="min-h-screen grid place-items-center bg-wash text-muted">Duvar bulunamadı.</main>;

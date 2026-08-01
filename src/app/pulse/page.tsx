@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Logo from "@/components/Logo";
+import { SkelBox, SkelCards } from "@/components/Skeleton";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { Icon } from "@/components/Icon";
 import { useAuthUser } from "@/lib/hooks";
@@ -108,7 +109,15 @@ export default function PulseListPage() {
   }
 
   if (loading || !user)
-    return <main className="min-h-screen grid place-items-center bg-wash text-muted animate-pulse">Yükleniyor…</main>;
+    return (
+      <main className="min-h-screen bg-wash">
+        <div className="max-w-4xl mx-auto px-4 py-10">
+          <SkelBox className="h-8 w-44 mb-6" />
+          <SkelBox className="h-36 w-full !rounded-2xl mb-8" />
+          <SkelCards count={2} />
+        </div>
+      </main>
+    );
 
   return (
     <main className="min-h-screen bg-wash">

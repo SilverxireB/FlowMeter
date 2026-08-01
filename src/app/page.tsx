@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import CodeInput from "@/components/CodeInput";
+import CreateYourOwn from "@/components/CreateYourOwn";
 import Logo from "@/components/Logo";
 import { useAuthUser } from "@/lib/hooks";
 import { getLastPresentation, LastPresentation } from "@/lib/participants";
@@ -117,6 +118,9 @@ export default function LandingPage() {
             </span>
           ))}
         </div>
+        {/* Büyüme halkası: katılımcı ürünü çalışırken gördü — en ikna olduğu an.
+            Oturumu açık sahibe gösterilmez (CreateYourOwn içinde kapılı). */}
+        <CreateYourOwn className="mt-5" />
       </footer>
     </main>
   );

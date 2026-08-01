@@ -14,6 +14,7 @@ import LayoutEditor from "@/components/videowall/LayoutEditor";
 import ScreensCard from "@/components/videowall/ScreensCard";
 import ZonePanel from "@/components/videowall/ZonePanel";
 import QrCode from "@/components/present/QrCode";
+import { SkelCockpit } from "@/components/Skeleton";
 import { Icon } from "@/components/Icon";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useAuthUser } from "@/lib/hooks";
@@ -154,7 +155,11 @@ export default function VideowallEditPage() {
     : null;
 
   if (vw === undefined || loading)
-    return <main className="min-h-screen grid place-items-center bg-[#0d102f] text-white/60 animate-pulse">Yükleniyor…</main>;
+    return (
+      <main className="min-h-screen bg-[#0d102f]" style={{ colorScheme: "dark" }}>
+        <SkelCockpit dark />
+      </main>
+    );
   if (vw === null) return <main className="min-h-screen grid place-items-center bg-[#0d102f] text-white/60">Ekran bulunamadı.</main>;
 
   // Yetki: düzenleme yalnız sahibinde — başkası açarsa bilgi + izleme.

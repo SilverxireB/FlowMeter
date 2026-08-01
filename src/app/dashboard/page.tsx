@@ -22,6 +22,7 @@ import {
 } from "@/lib/presentations";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { Icon } from "@/components/Icon";
+import { SkelBox, SkelCards } from "@/components/Skeleton";
 import { SLIDE_TYPE_ICON_NAMES } from "@/lib/slideTypeIcons";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { getUserRecord, isAdminUser, upsertUserRecord } from "@/lib/users";
@@ -335,8 +336,16 @@ export default function DashboardPage() {
 
   if (loading || !user) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-wash">
-        <p className="text-muted animate-pulse">Yükleniyor…</p>
+      <main className="min-h-screen bg-wash">
+        <div className="h-[68px] border-b border-line bg-white/80" />
+        <div className="max-w-5xl mx-auto px-4 py-10">
+          <SkelBox className="h-9 w-52 mb-6" />
+          <div className="grid gap-4 sm:grid-cols-2 mb-8">
+            <SkelBox className="h-40 !rounded-2xl" />
+            <SkelBox className="h-40 !rounded-2xl" />
+          </div>
+          <SkelCards count={2} />
+        </div>
       </main>
     );
   }
