@@ -64,6 +64,15 @@ export interface VideowallLive {
 export interface Videowall {
   id: string;
   name: string;
+  /**
+   * YETKİ: ownerId = SAHİP (siler, devreder, yetki dağıtır),
+   * editorIds = YETKİLİLER (düzenler + yayınlar). Yönetici her ekranda
+   * sahip sayılır; ownerId boş olan (eski sürümden kalma) ekranlar da
+   * yöneticinindir. Kararlar sunucuda verilir (bkz. serverAuth.ts) —
+   * istemci yalnız düğmeleri gizler.
+   */
+  ownerId?: string;
+  editorIds?: string[];
   slug?: string; // yayın linki: /play/{slug} — ad değişince yenilenir
   slugHistory?: string[]; // eski sluglar — eski linkler kararmasın
   width: number;
@@ -75,4 +84,13 @@ export interface Videowall {
   playMode?: VideowallPlayMode;
   createdAt: number | null; // ms
   updatedAt?: number | null; // ms
+}
+
+/** Kullanıcı defterinin İSTEMCİYE giden hâli (parola özeti/tuz asla gelmez). */
+export interface PublicUser {
+  id: string;
+  name: string;
+  label?: string;
+  role: "admin" | "user";
+  createdAt: number;
 }

@@ -189,7 +189,8 @@ export async function createVideowall(
   height: number,
   cols: number,
   rows: number,
-  ownerName?: string
+  ownerName?: string,
+  ownerEmail?: string
 ): Promise<string> {
   const nm = name.trim() || "Yeni duvar";
   const w = Math.max(1, Math.round(width));
@@ -200,6 +201,8 @@ export async function createVideowall(
   const ref = await addDoc(collection(db(), "videowalls"), {
     ownerId,
     ownerName: ownerName ?? "",
+    ownerEmail: normEmail(ownerEmail),
+    editorEmails: [],
     name: nm,
     slug: await uniqueSlug(nm),
     width: w,
@@ -479,7 +482,7 @@ export async function resetGrid(id: string, cols: number, rows: number, oldZones
 }
 
 /** Duvarı kopyala (yeni id + taze zone/öğe id'leri; içerik referansları korunur). */
-export async function duplicateVideowall(ownerId: string, v: Videowall): Promise<string> {
+export async function duplicateVideowall(ownerId: string, v: Videowall, ownerEmail?: string): Promise<string> {
   const zones = (v.zones ?? []).map((z) => ({
     ...z,
     id: zid(),
@@ -490,6 +493,10 @@ export async function duplicateVideowall(ownerId: string, v: Videowall): Promise
   const ref = await addDoc(collection(db(), "videowalls"), {
     ownerId,
     ownerName: v.ownerName ?? "",
+    // Kopya YENİ sahibinindir; yetkili listesi taşınmaz (bilinçli: kopyayı alan
+    // kişi paylaşımı yeniden kurar — sessizce yetki miras kalmasın).
+    ownerEmail: normEmail(ownerEmail),
+    editorEmails: [],
     name,
     slug: await uniqueSlug(name),
     width: v.width,
@@ -523,4 +530,94 @@ export async function deleteVideowall(v: Videowall, idToken?: string): Promise<v
     await Promise.all(beats.docs.map((d) => deleteDoc(d.ref)));
   } catch {}
   await deleteDoc(doc(db(), "videowalls", v.id));
+}
+
+// ── YETKİ (yalnız FlowSign) ─────────────────────────────────────────────────
+// Neden e-posta? Ekranı "İK'dan Ayşe'ye" devrederken Ayşe'nin uid'sini bilmiyoruz;
+// kullanıcı dizinini okumak da yalnız yöneticiye açık (users rules). Firebase
+// kimlik belirteci e-postayı taşıdığından rules `request.auth.token.email` ile
+// doğrudan doğrulayabiliyor — dizin araması gerekmiyor, kişi hiç giriş yapmamış
+// olsa bile davet edilebiliyor.
+
+/** Karşılaştırmalar HEP küçük harf + kırpılmış (kullanıcı "Ayse@X.com" yazar). */
+export const normEmail = (e?: string | null): string => (e ?? "").trim().toLowerCase();
+
+/** Basit biçim kontrolü — yanlış yazılmış e-posta sessizce yetki vermesin. */
+export const isEmailLike = (e: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+
+type Identity = { uid: string; email?: string | null } | null | undefined;
+
+/** SAHİP: uid eşleşir VEYA (devir sonrası, henüz sahiplenilmeden) e-posta eşleşir. */
+export function isSignOwner(v: Videowall | null | undefined, user: Identity): boolean {
+  if (!v || !user) return false;
+  if (v.ownerId && v.ownerId === user.uid) return true;
+  const mail = normEmail(user.email);
+  return !!mail && normEmail(v.ownerEmail) === mail;
+}
+
+/** YETKİLİ: düzenler + yayınlar; silemez, devredemez, yetki dağıtamaz. */
+export function isSignEditor(v: Videowall | null | undefined, user: Identity): boolean {
+  if (!v || !user) return false;
+  const mail = normEmail(user.email);
+  return !!mail && (v.editorEmails ?? []).some((e) => normEmail(e) === mail);
+}
+
+export function canEditSign(v: Videowall | null | undefined, user: Identity): boolean {
+  return isSignOwner(v, user) || isSignEditor(v, user);
+}
+
+/** Yetkili ekle (yalnız sahip). Zaten varsa/sahibin kendisiyse sessiz geçer. */
+export async function addSignEditor(v: Videowall, email: string): Promise<void> {
+  const mail = normEmail(email);
+  if (!mail || !isEmailLike(mail)) throw new Error("Geçerli bir e-posta yaz.");
+  if (mail === normEmail(v.ownerEmail)) throw new Error("Bu kişi zaten sahibi.");
+  const list = (v.editorEmails ?? []).map(normEmail).filter(Boolean);
+  if (list.includes(mail)) return;
+  await updateDoc(doc(db(), "videowalls", v.id), { editorEmails: [...list, mail], updatedAt: serverTimestamp() });
+}
+
+/** Yetkiyi geri al (yalnız sahip). */
+export async function removeSignEditor(v: Videowall, email: string): Promise<void> {
+  const mail = normEmail(email);
+  const list = (v.editorEmails ?? []).map(normEmail).filter((e) => e && e !== mail);
+  await updateDoc(doc(db(), "videowalls", v.id), { editorEmails: list, updatedAt: serverTimestamp() });
+}
+
+/**
+ * DEVRET — "al bu senin olsun, bundan sonra sen yönet".
+ * ownerId BOŞALTILIR: yeni sahibin uid'sini bilmiyoruz; o kişi ekranı ilk
+ * açtığında `claimSignOwnership` sessizce doldurur. Eski sahip istenirse
+ * yetkili olarak kalır (devir teslim dönemi) — yeni sahip dilediğinde çıkarır.
+ */
+export async function transferSignOwnership(
+  v: Videowall,
+  newOwnerEmail: string,
+  opts: { keepAsEditor: boolean; previousOwnerEmail?: string | null }
+): Promise<void> {
+  const mail = normEmail(newOwnerEmail);
+  if (!mail || !isEmailLike(mail)) throw new Error("Geçerli bir e-posta yaz.");
+  const prev = normEmail(opts.previousOwnerEmail ?? v.ownerEmail);
+  const editors = (v.editorEmails ?? []).map(normEmail).filter((e) => e && e !== mail);
+  if (opts.keepAsEditor && prev && prev !== mail && !editors.includes(prev)) editors.push(prev);
+  await updateDoc(doc(db(), "videowalls", v.id), {
+    ownerEmail: mail,
+    ownerId: "", // sahiplenilmeyi bekler (rules e-posta üzerinden yetki verir)
+    ownerName: "",
+    editorEmails: editors,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Sahiplenme: devredilen ekranı yeni sahip ilk açtığında uid'yi doldurur.
+ * Sessizdir (kullanıcıya soru sorulmaz — ekran zaten ona verilmiştir) ve
+ * yalnız e-posta eşleşiyorsa çalışır; başkasının ekranına dokunamaz.
+ */
+export async function claimSignOwnership(v: Videowall, user: { uid: string; email?: string | null; displayName?: string | null }): Promise<void> {
+  const mail = normEmail(user.email);
+  if (!mail || normEmail(v.ownerEmail) !== mail || v.ownerId === user.uid) return;
+  await updateDoc(doc(db(), "videowalls", v.id), {
+    ownerId: user.uid,
+    ownerName: user.displayName || user.email || "",
+  }).catch(() => {});
 }

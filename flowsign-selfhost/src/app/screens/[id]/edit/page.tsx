@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import AccessCard from "@/components/AccessCard";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import LayoutEditor from "@/components/LayoutEditor";
 import QrCode from "@/components/QrCode";
@@ -18,6 +19,8 @@ import { Icon } from "@/components/icons";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useSession } from "@/lib/useSession";
 import {
+  canEditWall,
+  listUsers,
   publishWall,
   renameWall,
   resetGrid,
@@ -28,7 +31,7 @@ import {
   withTimeout,
 } from "@/lib/client";
 import { clampScreens, slugify, splitZone } from "@/lib/zones";
-import { Videowall } from "@/lib/types";
+import { PublicUser, Videowall } from "@/lib/types";
 
 const inputCls =
   "input-base !py-2 !px-3 !rounded-lg";
@@ -51,7 +54,13 @@ type Confirm = { title: string; message: string; confirmLabel?: string; danger?:
 export default function ScreenEditPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { loading, authed } = useSession();
+  const { loading, authed, me } = useSession();
+  // Yetki paneli kişi seçicisi defterden beslenir (yazım hatası olmasın).
+  const [users, setUsers] = useState<PublicUser[]>([]);
+  const [accessTick, setAccessTick] = useState(0);
+  useEffect(() => {
+    if (authed) listUsers().then((d) => setUsers(d.users)).catch(() => {});
+  }, [authed, accessTick]);
   const playTarget = usePlayTarget();
   const [vw, setVw] = useState<Videowall | null | undefined>(undefined);
   const [origin, setOrigin] = useState("");
@@ -144,6 +153,29 @@ export default function ScreenEditPage() {
   if (vw === undefined || loading)
     return <main className="min-h-screen grid place-items-center bg-wash text-muted animate-pulse">Yükleniyor…</main>;
   if (vw === null) return <main className="min-h-screen grid place-items-center bg-wash text-muted">Ekran bulunamadı.</main>;
+
+  // Yetki: SAHİP ya da YETKİLİ düzenler (yönetici hepsinde sahiptir). Başkası
+  // açarsa bilgi + izleme — sunucu zaten yazmayı reddeder, burada da yolu kapat
+  // ki kullanıcı boşuna düzenleyip "kaydedilemedi" duvarına toslamasın.
+  if (!canEditWall(vw, me)) {
+    return (
+      <main className="min-h-screen grid place-items-center bg-wash px-4">
+        <div className="text-center max-w-sm">
+          <p className="text-5xl mb-4" aria-hidden>🔒</p>
+          <h1 className="font-display text-xl font-semibold mb-2">Bu ekranda düzenleme yetkin yok</h1>
+          <p className="text-muted text-sm mb-6">
+            &ldquo;{vw.name}&rdquo; başka bir kullanıcıya ait. Yayını izleyebilirsin; düzenlemek için sahibinden yetki iste.
+          </p>
+          <div className="flex gap-2 justify-center">
+            <a href={`/play/${vw.slug ?? vw.id}`} target={playTarget} className="btn-primary !py-2.5 text-sm">
+              ▶ İzle{playTarget ? " ↗" : ""}
+            </a>
+            <Link href="/screens" className="btn-ghost !py-2.5 text-sm">← Ekranlar</Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   // Taslak yazımları: hata SESSİZ geçmez. Her yazımdan önce anlık görüntü → tek adım Geri Al.
   const saveZones = (zones: Videowall["zones"]) => {
@@ -277,6 +309,9 @@ export default function ScreenEditPage() {
         </div>
 
         {/* Ekran sağlığı: bu yayını açık tutan cihazlar (heartbeat) */}
+        {/* Kim yönetebilir: sahip + yetkililer + devret (teslim akışı) */}
+        <AccessCard vw={vw} me={me} users={users} onChanged={() => setAccessTick((t) => t + 1)} />
+
         <ScreensCard id={id} />
 
         {/* Config */}

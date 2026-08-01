@@ -57,7 +57,11 @@ export async function POST(req: Request) {
   if (!lookup.ok) {
     return NextResponse.json({ ok: false, error: "auth-failed" }, { status: 401 });
   }
-  const uid: string | undefined = (await lookup.json())?.users?.[0]?.localId;
+  const account = (await lookup.json())?.users?.[0];
+  const uid: string | undefined = account?.localId;
+  // E-posta da lazım: FlowSign'da ekran DEVREDİLEBİLİYOR ve devirde ownerId
+  // boşalır (yeni sahibin uid'si bilinmiyor, kimlik e-posta ile taşınıyor).
+  const email: string = String(account?.email ?? "").trim().toLowerCase();
   if (!uid) return NextResponse.json({ ok: false, error: "auth-failed" }, { status: 401 });
 
   // 2) yetki: misafir modunda MEDYANIN voterId'si == uid (kendi yüklediği);
@@ -82,8 +86,14 @@ export async function POST(req: Request) {
       `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/${ownerCollection}/${wallId}`
     );
     if (!wallRes.ok) return NextResponse.json({ ok: false, error: "wall-not-found" }, { status: 404 });
-    const ownerId = (await wallRes.json())?.fields?.ownerId?.stringValue;
-    if (ownerId !== uid) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    const fields = (await wallRes.json())?.fields ?? {};
+    const ownerId = fields?.ownerId?.stringValue;
+    // FlowSign: sahiplik e-posta ile de taşınabilir (devredilmiş, henüz
+    // sahiplenilmemiş ekran). Firestore rules ile AYNI kapı — sunucu tarafı da
+    // gevşek kalmasın diye burada birebir tekrarlanır.
+    const ownerEmail = String(fields?.ownerEmail?.stringValue ?? "").trim().toLowerCase();
+    const isOwner = ownerId === uid || (signMode && !!email && ownerEmail === email);
+    if (!isOwner) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
   // ── Toplu temizlik: duvarın klasörü altındaki TÜM dosyaları sil ───────────────

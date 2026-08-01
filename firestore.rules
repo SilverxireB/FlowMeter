@@ -327,25 +327,54 @@ service cloud.firestore {
     }
 
     // ── FlowSign (VideoWall): dijital tabela / video-wall CMS ────────────────
-    // Config herkes okur (oynatma linki auth'suz açılır), sadece sahibi yazar.
+    // Config herkes okur (oynatma linki auth'suz açılır); YAZMA yetki modeline
+    // bağlı. Kimlik E-POSTA ile taşınır (uid ile değil): ekranı "İK'dan Ayşe'ye"
+    // devrederken Ayşe'nin uid'si bilinmiyor, kullanıcı dizini de yalnız
+    // yöneticiye açık. Kimlik belirteci e-postayı taşıdığı için burada doğrudan
+    // doğrulanabiliyor — davet edilen kişi hiç giriş yapmamış olsa bile çalışır.
+    //   SAHİP  : ownerId == uid  VEYA  ownerEmail == token.email
+    //            (devirde ownerId boşaltılır; yeni sahip ilk açtığında doldurur)
+    //   YETKİLİ: token.email, editorEmails içinde → düzenler + yayınlar
+    //            ama ownerId/ownerEmail/editorEmails'a DOKUNAMAZ (aşağıda kilitli)
     match /videowalls/{id} {
+      function signOwner(d) {
+        return request.auth != null && (
+          d.get('ownerId', '') == request.auth.uid
+          || (request.auth.token.get('email', null) != null
+              && d.get('ownerEmail', '') == request.auth.token.email)
+        );
+      }
+      function signEditor(d) {
+        return request.auth != null
+          && request.auth.token.get('email', null) != null
+          && request.auth.token.email in d.get('editorEmails', []);
+      }
+      // Yetkili yazımı: yetki alanlarının ÜÇÜ DE aynı kalmalı (yetki yükseltme yok).
+      function accessUnchanged() {
+        return request.resource.data.get('ownerId', '') == resource.data.get('ownerId', '')
+          && request.resource.data.get('ownerEmail', '') == resource.data.get('ownerEmail', '')
+          && request.resource.data.get('editorEmails', []) == resource.data.get('editorEmails', []);
+      }
       allow read: if true;
       allow create: if request.auth != null
         && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if request.auth != null
-        && resource.data.ownerId == request.auth.uid;
+      allow update: if signOwner(resource.data)
+        || (signEditor(resource.data) && accessUnchanged());
+      allow delete: if signOwner(resource.data);
 
       // Ekran sağlığı (heartbeat): perde AUTH'SUZ "canlıyım" yazar — alan seti
       // sabit ve zararsız (yalnız görünürlük bilgisi; içerik/yayına dokunamaz).
-      // Silme (bayat kayıt temizliği) sadece sahibinde.
+      // Bayat kayıt temizliği: sahip VE yetkili (ekranı yöneten kişi yapar).
       match /screens/{screenId} {
+        function wall() {
+          return get(/databases/$(database)/documents/videowalls/$(id)).data;
+        }
         allow read: if true;
         allow create, update: if request.resource.data.keys()
             .hasOnly(['ua', 'vwPx', 'vhPx', 'startedAt', 'lastSeenAt'])
           && (!('ua' in request.resource.data)
               || (request.resource.data.ua is string && request.resource.data.ua.size() <= 160));
-        allow delete: if request.auth != null
-          && get(/databases/$(database)/documents/videowalls/$(id)).data.ownerId == request.auth.uid;
+        allow delete: if signOwner(wall()) || signEditor(wall());
       }
     }
 

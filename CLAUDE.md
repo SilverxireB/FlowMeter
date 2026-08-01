@@ -58,10 +58,17 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   (`firebase.ts` persistentLocalCache — tüm suite).
   **Sign AYRI PAKET olarak ayrılacak** (satış/self-host) → Sign kodu diğer
   ürünlerle bağ KURMASIN; ortak yalnız çekirdek (firebase/cloudinary/withTimeout).
+  **YETKİ (yalnız Sign):** sahip/yetkili + DEVRET ("al bu senin olsun") — devir
+  yayın linkini değiştirmez. Online kimlik E-POSTA ile taşınır (`ownerEmail`/
+  `editorEmails`; uid dizini yalnız yöneticiye açık, rules token.email'e bakar;
+  devirde ownerId boşalır, yeni sahip ilk açılışta sessizce sahiplenir).
+  Self-host'ta gerçek kullanıcı defteri (`data/users.json`, scrypt; roller
+  yönetici/kullanıcı; `/users` sayfası; kararlar SUNUCUDA serverAuth.ts).
   **Self-host paketi VAR: `flowsign-selfhost/`** (bağımsız Next app; Firestore→
   `data/` JSON dosya deposu, Cloudinary→yerel disk + güvenli dosya adı
-  [boşluk/TR→alt çizgi], realtime→SSE, tek yönetici parolası, internetsiz iç
-  ağ; README ile yazılımcıya teslim edilir; ana repo tsconfig'inden dışlandı).
+  [boşluk/TR→alt çizgi], realtime→SSE, kişi başına hesap (users.json),
+  internetsiz iç ağ; README ile yazılımcıya teslim edilir; ana repo
+  tsconfig'inden dışlandı).
   KURAL: Sign ürün davranışı değişince İKİ yerde güncellenir — `src/` (online)
   + `flowsign-selfhost/` (kopya bileşenler: PlayerStage/ZonePanel/LayoutEditor/
   zones.ts birebir mantık taşır).

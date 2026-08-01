@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
-import { isAuthed, unauthorized } from "@/lib/serverAuth";
+import { canEdit, currentUser, forbidden, unauthorized } from "@/lib/serverAuth";
 import { getWall, MEDIA_DIR } from "@/lib/store";
 
 export const runtime = "nodejs";
@@ -35,9 +35,13 @@ function sanitizeName(original: string): { base: string; ext: string } {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAuthed(req)) return unauthorized();
+  const me = await currentUser(req);
+  if (!me) return unauthorized();
   const wallId = req.nextUrl.searchParams.get("wall") ?? "";
   const wall = await getWall(wallId);
+  // Medya HEDEF EKRANIN klasörüne yazılır → yükleme de o ekranın yetkisine bağlı
+  // (yoksa yetkisiz kişi başkasının ekranına dosya bırakabilirdi).
+  if (wall && !canEdit(wall, me)) return forbidden();
   if (!wall) return NextResponse.json({ error: "Ekran bulunamadı" }, { status: 404 });
 
   const form = await req.formData().catch(() => null);

@@ -90,6 +90,8 @@ WantedBy=multi-user.target
 
 | Ne | Nerede |
 |---|---|
+| Kullanıcı hesapları | `data/users.json` (parolalar scrypt + tuz ile; düz metin YOK) |
+| Oturum imza anahtarı | `data/session-secret` (ilk açılışta üretilir) |
 | Ekran tanımları | `data/walls/*.json` |
 | Ekran sağlığı kayıtları | `data/screens/*.json` |
 | Yüklenen medya | `data/media/<ekran-id>/...` |
@@ -111,10 +113,45 @@ koymak (uygulama kapalıyken). Veritabanı kurulumu/migrasyonu yoktur.
   internetsiz ortamda da çalışır. Bazı siteler iframe'e gömülmeyi yasaklar;
   editör eklerken uyarır.
 
+## Kullanıcılar ve yetkiler
+
+Her kişinin **kendi hesabı** vardır (ortak parola yok): kim ne değiştirdi
+bellidir, ayrılan personelin erişimi tek tıkla kesilir.
+
+| Rol | Ne yapabilir |
+|---|---|
+| **Yönetici** | Hesap açar/siler, parola sıfırlar, **tüm** ekranları yönetir |
+| **Kullanıcı** | Kendi ekranlarının sahibidir + kendisine yetki verilen ekranları düzenler |
+
+Ekran başına iki yetki vardır:
+
+| Yetki | Düzenle & yayınla | Sil | Devret | Yetki dağıt |
+|---|---|---|---|---|
+| **Sahip** | ✅ | ✅ | ✅ | ✅ |
+| **Yetkili** | ✅ | ❌ | ❌ | ❌ |
+
+**Teslim akışı (paketin asıl kullanımı):** ekranı siz kurun, içeriği hazırlayın,
+sonra editördeki **Kimler yönetebilir → Ekranı devret** ile ilgilisine verin —
+"al bu senin olsun, bundan sonra sen yönet". Devir **yayın linkini ve QR'ı
+değiştirmez**; sahadaki ekranlar kararmaz. İsterseniz eski sahip "yetkili"
+olarak kalır (devir teslim dönemi).
+
+- İlk açılışta `.env`'deki `SIGN_ADMIN_PASSWORD` ile **`yonetici`** adlı
+  yönetici hesabı kurulur. Girişte kullanıcı adı boş bırakılırsa (tek hesaplı
+  kurulum) doğrudan bu hesap denenir — eski sürümden gelenler alışkanlığını
+  bozmaz.
+- Yeni hesaplar **Kullanıcılar** sayfasından açılır (üst çubuk → Kullanıcılar).
+  Parolayı kişiye kendiniz iletirsiniz; sistem e-posta göndermez (internetsiz
+  iç ağda çalışır).
+- Bir hesap silinince o kişinin ekranları **yöneticiye devrolur** — yönetilemeyen
+  yetim ekran kalmaz.
+- Parola değişince o kullanıcının açık oturumları kendiliğinden geçersizleşir.
+
 ## Güvenlik modeli
 
-- Kokpit + yazma uçları: `.env`'deki **tek yönetici parolası** (çerez oturumu,
-  30 gün). Parola değişince tüm oturumlar düşer.
+- Kokpit + yazma uçları: **kişiye özel hesap** (kullanıcı adı + parola, imzalı
+  çerez oturumu, 30 gün). Yetki kararları **sunucuda** verilir — arayüzdeki
+  düğmeleri gizlemek yetmez, uçlar da reddeder.
 - Perde (`/play/...`) ve medya dosyaları: **giriş istemez** (tabela cihazı
   oturum açamaz). Bu sistem fabrika/kurum İÇ AĞI için tasarlandı — sunucuyu
   internete açacaksanız önüne reverse proxy + HTTPS koyun.
@@ -139,5 +176,9 @@ koymak (uygulama kapalıyken). Veritabanı kurulumu/migrasyonu yoktur.
 - **Video oynamıyor:** Biçim MP4/H.264 mü? Değilse dönüştürüp yeniden yükleyin.
 - **İçerik güncellenmiyor:** "Kaydet & Yayınla"ya basıldı mı? Editör taslağı
   canlıya otomatik göndermez (bilerek).
-- **Parolayı unuttum:** Sunucuda `.env` içindeki `SIGN_ADMIN_PASSWORD`'ü
-  değiştirip servisi yeniden başlatın.
+- **Kullanıcı parolasını unuttu:** Yönetici, **Kullanıcılar** sayfasından
+  "Parola" ile yeni parola verir.
+- **Yönetici parolasını unuttum:** Sunucuda `data/users.json` dosyasını silip
+  servisi yeniden başlatın — `.env`'deki `SIGN_ADMIN_PASSWORD` ile `yonetici`
+  hesabı yeniden kurulur. (Ekranlar ve medya etkilenmez; diğer hesaplar silinir,
+  ekranlar sahipsiz kalır ve yönetici tarafından yeniden dağıtılır.)

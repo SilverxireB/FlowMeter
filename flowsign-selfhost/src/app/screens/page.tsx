@@ -1,8 +1,11 @@
 "use client";
 
 /**
- * FlowSign — ekran listesi + oluştur (self-host). Tek yönetici: tüm ekranlar
- * tam yetkiyle görünür. Terminoloji: FlowSign varlığı = "ekran".
+ * FlowSign — ekran listesi + oluştur (self-host).
+ *
+ * YETKİ GÖRÜNÜMÜ üç grup: SAHİBİ olduklarım · bana YETKİ verilenler (düzenler
+ * ve yayınlarım, silemem) · diğerleri (yalnız izleme). Yönetici tüm ekranlarda
+ * sahip yetkisindedir. Terminoloji: FlowSign varlığı = "ekran".
  */
 import Image from "next/image";
 import Link from "next/link";
@@ -13,9 +16,9 @@ import { Icon } from "@/components/icons";
 import WallThumb from "@/components/WallThumb";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useSession } from "@/lib/useSession";
-import { createWall, deleteWall, duplicateWall, listWalls } from "@/lib/client";
+import { createWall, deleteWall, duplicateWall, isWallEditor, isWallOwner, listWalls } from "@/lib/client";
 import { clampScreens } from "@/lib/zones";
-import { Videowall } from "@/lib/types";
+import { PublicUser, Videowall } from "@/lib/types";
 
 // DİKKAT: preset çözünürlükleri fiziksel gerçek — 3 dikey (portre) TV yan yana
 // 3×(1080×1920) = 3240×1920'dir (1920×3240 DEĞİL).
@@ -55,13 +58,23 @@ export default function ScreensPage() {
 
   // Kart canlılığı: ekran başına çevrimiçi cihaz sayısı + son görülme (heartbeat)
   const [beats, setBeats] = useState<Record<string, { online: number; lastSeen: number }>>({});
+  const [me, setMe] = useState<PublicUser | null>(null);
+  const [users, setUsers] = useState<PublicUser[]>([]);
   const refresh = useCallback(async () => {
     try {
       const d = await listWalls();
       setWalls(d.walls);
       setBeats(d.beats);
+      setMe(d.me);
+      setUsers(d.users);
     } catch {}
   }, []);
+
+  /** Kart altındaki "sahibi" satırı için kişi adı (defterden). */
+  const ownerLabel = (v: Videowall) => {
+    const u = users.find((x) => x.id === v.ownerId);
+    return u ? u.label || u.name : "yönetici";
+  };
 
   // Canlılık rozeti — HER kartta görünür ki canlı/çevrimdışı ayrımı net olsun.
   const beatLabel = (id: string) => {
@@ -154,6 +167,52 @@ export default function ScreensPage() {
     router.replace("/login");
   }
 
+  // Yetki grupları (istemcide yalnız GÖRÜNÜM; asıl kapı sunucuda — serverAuth.ts)
+  const mine = walls.filter((v) => isWallOwner(v, me));
+  const shared = walls.filter((v) => !isWallOwner(v, me) && isWallEditor(v, me));
+  const others = walls.filter((v) => !isWallOwner(v, me) && !isWallEditor(v, me));
+
+  /** Kart gövdesi TEK yerde: kopyala/sil YALNIZ sahip kartında. */
+  const wallCard = (v: Videowall, owned: boolean) => (
+    <li key={v.id} className="card overflow-hidden flex flex-col">
+      {/* Önizleme = yayındaki yerleşim; tıkla → editör */}
+      <Link href={`/screens/${v.id}/edit`} className="relative block group" aria-label={`${v.name} — düzenle`}>
+        <WallThumb vw={v} />
+        <span className="absolute inset-0 ring-1 ring-inset ring-ink/10 group-hover:ring-accent/60 transition" aria-hidden />
+        <span className={`absolute top-1.5 right-1.5 rounded-full backdrop-blur px-2 py-0.5 text-[10px] font-bold tracking-wide ${beatLabel(v.id).cls}`}>
+          {beatLabel(v.id).text}
+        </span>
+      </Link>
+      <div className="p-3 flex flex-col gap-2.5 flex-1">
+        <div className="min-w-0">
+          <p className="font-display font-semibold text-sm truncate">{v.name}</p>
+          {!owned && <p className="text-muted text-[11px] mt-0.5 truncate">Sahibi: {ownerLabel(v)}</p>}
+          <p className="text-muted text-[11px] mt-0.5 tabular-nums">
+            {v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan
+          </p>
+        </div>
+        <div className="flex items-center gap-1 mt-auto">
+          <Link href={`/screens/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-paper border border-line px-2 py-1.5 text-xs font-semibold hover:border-muted">
+            Düzenle
+          </Link>
+          <a href={playHref(v)} target={playTarget} title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
+            <Icon name="play" size={12} />
+          </a>
+          {owned && (
+            <>
+              <button onClick={() => duplicate(v)} disabled={busy} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-paper disabled:opacity-30" title="Kopyala" aria-label="Kopyala">
+                <Icon name="copy" size={13} />
+              </button>
+              <button onClick={() => setConfirmDel(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-brand hover:bg-brand-soft/50" title="Sil" aria-label="Sil">
+                <Icon name="trash" size={13} />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+
   if (loading || !authed) {
     return <main className="min-h-screen grid place-items-center bg-wash text-muted animate-pulse">Yükleniyor…</main>;
   }
@@ -165,7 +224,15 @@ export default function ScreensPage() {
           <Image src="/logo.png" alt="" width={140} height={40} className="h-7 w-auto" priority />
           <span aria-hidden className="font-display font-semibold text-[26px] leading-none tracking-[0.03em] text-[#001e64]">SIGN</span>
         </span>
-        <button onClick={logout} className="text-muted hover:text-ink text-sm font-semibold">Çıkış yap</button>
+        <div className="flex items-center gap-2 min-w-0">
+          <Link href="/users" className="chip !py-1.5 text-xs text-muted hover:border-muted shrink-0 inline-flex items-center gap-1.5" title="Kullanıcılar">
+            <Icon name="users" size={14} /> <span className="hidden sm:inline">Kullanıcılar</span>
+          </Link>
+          <span className="chip text-muted text-xs min-w-0 max-w-[35vw] hidden sm:inline-flex">
+            <span className="truncate min-w-0">{me?.label || me?.name}</span>
+          </span>
+          <button onClick={logout} className="text-muted hover:text-ink text-sm font-semibold shrink-0">Çıkış</button>
+        </div>
       </header>
 
       <section className="max-w-5xl mx-auto px-4 py-10">
@@ -235,45 +302,65 @@ export default function ScreensPage() {
           </div>
         </form>
 
+        {/* Üç grup: sahibi olduklarım · bana yetki verilenler · diğerleri */}
         {walls.length === 0 ? (
           <div className="text-center py-16 text-muted">
             <p className="text-5xl mb-4" aria-hidden>🖥️</p>
-            <p>Henüz ekranın yok. Yukarıdan ilkini oluştur.</p>
+            <p>Henüz ekran yok. Yukarıdan ilkini oluştur.</p>
           </div>
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {/* Telefonda TEK sıra (dar kartta aksiyonlar eziliyordu); sm+ çoklu */}
-            {walls.map((v) => (
-              <li key={v.id} className="card overflow-hidden flex flex-col">
-                {/* Önizleme = yayındaki yerleşim; tıkla → editör */}
-                <Link href={`/screens/${v.id}/edit`} className="relative block group" aria-label={`${v.name} — düzenle`}>
-                  <WallThumb vw={v} />
-                  <span className="absolute inset-0 ring-1 ring-inset ring-ink/10 group-hover:ring-accent/60 transition" aria-hidden />
-                  <span className={`absolute top-1.5 right-1.5 rounded-full backdrop-blur px-2 py-0.5 text-[10px] font-bold tracking-wide ${beatLabel(v.id).cls}`}>
-                    {beatLabel(v.id).text}
-                  </span>
-                </Link>
-                <div className="p-3 flex flex-col gap-2.5 flex-1">
-                  <div className="min-w-0">
-                    <p className="font-display font-semibold text-sm truncate">{v.name}</p>
-                    <p className="text-muted text-[11px] mt-0.5 tabular-nums">{v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan</p>
-                  </div>
-                  <div className="flex items-center gap-1 mt-auto">
-                    <Link href={`/screens/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-paper border border-line px-2 py-1.5 text-xs font-semibold hover:border-muted">Düzenle</Link>
-                    <a href={playHref(v)} target={playTarget} title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
-                      <Icon name="play" size={12} />
-                    </a>
-                    <button onClick={() => duplicate(v)} disabled={busy} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-paper disabled:opacity-30" title="Kopyala" aria-label="Kopyala">
-                      <Icon name="copy" size={13} />
-                    </button>
-                    <button onClick={() => setConfirmDel(v)} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-brand hover:bg-brand-soft/50" title="Sil" aria-label="Sil">
-                      <Icon name="trash" size={13} />
-                    </button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <>
+            {mine.length > 0 && (
+              <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 [&>*]:min-w-0">
+                {/* Telefonda TEK sıra (dar kartta aksiyonlar eziliyordu); sm+ çoklu */}
+                {mine.map((v) => wallCard(v, true))}
+              </ul>
+            )}
+
+            {shared.length > 0 && (
+              <div className={mine.length > 0 ? "mt-10" : ""}>
+                <p className="eyebrow mb-3">
+                  Sana yetki verilenler{" "}
+                  <span className="normal-case tracking-normal font-normal text-muted">(düzenler ve yayınlarsın)</span>
+                </p>
+                <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 [&>*]:min-w-0">
+                  {shared.map((v) => wallCard(v, false))}
+                </ul>
+              </div>
+            )}
+
+            {others.length > 0 && (
+              <div className="mt-10">
+                <p className="eyebrow mb-3">
+                  Diğer ekranlar{" "}
+                  <span className="normal-case tracking-normal font-normal text-muted">(yetkin yok — yalnız izleme)</span>
+                </p>
+                <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 [&>*]:min-w-0">
+                  {others.map((v) => (
+                    <li key={v.id} className="rounded-2xl bg-white/60 border border-line overflow-hidden flex flex-col">
+                      <div className="relative opacity-60">
+                        <WallThumb vw={v} />
+                        <span className={`absolute top-1.5 right-1.5 rounded-full backdrop-blur px-2 py-0.5 text-[10px] font-bold tracking-wide ${beatLabel(v.id).cls}`}>
+                          {beatLabel(v.id).text}
+                        </span>
+                      </div>
+                      <div className="p-3 flex flex-col gap-2.5 flex-1">
+                        <div className="min-w-0">
+                          <p className="font-display font-semibold text-sm truncate text-ink/60">{v.name}</p>
+                          <p className="text-muted text-[11px] mt-0.5 truncate">Sahibi: {ownerLabel(v)}</p>
+                        </div>
+                        <div className="flex gap-1.5 items-center mt-auto">
+                          <a href={playHref(v)} target={playTarget} className="flex-1 text-center rounded-lg bg-paper border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:border-muted">
+                            ▶ İzle{playTarget ? " ↗" : ""}
+                          </a>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
         )}
       </section>
 

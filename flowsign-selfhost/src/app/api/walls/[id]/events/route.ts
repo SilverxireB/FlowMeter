@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { isAuthed, unauthorized } from "@/lib/serverAuth";
+import { currentUser, unauthorized } from "@/lib/serverAuth";
 import { emitter, getScreens, getWall } from "@/lib/store";
 
 export const runtime = "nodejs";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  * tarayıcıda kendiliğinden yeniden bağlanır.
  */
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  if (!isAuthed(req)) return unauthorized();
+  if (!(await currentUser(req))) return unauthorized();
   const id = params.id;
   const enc = new TextEncoder();
   let cleanup = () => {};

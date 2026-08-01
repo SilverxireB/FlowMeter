@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAuthed, unauthorized } from "@/lib/serverAuth";
-import { beat, deleteScreen } from "@/lib/store";
+import { canEdit, currentUser, forbidden, unauthorized } from "@/lib/serverAuth";
+import { beat, deleteScreen, getWall } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,9 +24,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   return NextResponse.json({ ok: true });
 }
 
-/** Bayat ekran kaydını sil (kokpit temizliği — yönetici). */
+/** Bayat ekran kaydını sil (kokpit temizliği — ekranı yöneten kişi). */
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  if (!isAuthed(req)) return unauthorized();
+  const me = await currentUser(req);
+  if (!me) return unauthorized();
+  const wall = await getWall(params.id);
+  if (wall && !canEdit(wall, me)) return forbidden();
   const screenId = req.nextUrl.searchParams.get("screenId") ?? "";
   if (!screenId) return NextResponse.json({ error: "screenId gerekli" }, { status: 400 });
   await deleteScreen(params.id, screenId);

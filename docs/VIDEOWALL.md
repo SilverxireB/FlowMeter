@@ -160,3 +160,50 @@ beyaz sürümden renkli `logo-o-sign.png` + "SIGN" yazısına döndü).
   44px dokunma hedefleri; mobil başlık sarması; kontrast tabanı white/50.
 - Kalan (bilinçli park): ekran sağlık heartbeat'i, ses aç/kapa, 90° döndürme,
   alan-seviyesi takvim varsayılanı, ~~FlowSign özel O-glif PNG~~ → YAPILDI: logo-flowsign(.png/-white.png), 2×2 video-wall ızgaralı monitör glifi.
+
+## Yetki modeli (2026-08) — "ekranı hazırla, ilgilisine teslim et"
+
+FlowSign'ın satılabilirliğinin şartı: bir ekranı kurup **başkasına verebilmek**
+("İK'ya bir ekran hazırla → al bu senin olsun, bundan sonra sen yönet").
+İki rol var, izleyici rolü YOK (yayın linki zaten public):
+
+| Yetki | Düzenle & yayınla | Sil | Devret | Yetki dağıt |
+|---|---|---|---|---|
+| **Sahip** | ✅ | ✅ | ✅ | ✅ |
+| **Yetkili** | ✅ | ❌ | ❌ | ❌ |
+
+**Devir yayın linkini/slug'ı DEĞİŞTİRMEZ** — sahadaki 7/24 ekranlar el
+değiştirmeden etkilenmez. Eski sahip isteğe bağlı olarak "yetkili" kalır.
+
+### Online (Firestore) — kimlik E-POSTA ile taşınır
+`videowalls/{id}`: `ownerEmail` (sahip) + `editorEmails[]` (yetkililer).
+Neden uid değil: devrederken karşı tarafın uid'si bilinmiyor ve kullanıcı
+dizinini okumak yalnız yöneticiye açık (`users` rules). Kimlik belirteci
+e-postayı taşıdığından rules `request.auth.token.email` ile doğrudan doğrular —
+davet edilen kişi **hiç giriş yapmamış olsa bile** yetki verilebilir.
+Devirde `ownerId` boşaltılır; yeni sahip ekranı ilk açtığında
+`claimSignOwnership` uid'yi sessizce doldurur. Rules'ta yetkili yazımı
+`ownerId/ownerEmail/editorEmails` ÜÇÜNÜ DE değişmemiş olmaya zorlar (yetki
+yükseltme yolu kapalı). `/api/wall/destroy` (Cloudinary temizliği) sunucu
+tarafında AYNI kapıyı tekrarlar.
+Arayüz: liste üç grup (sahibi olduklarım · bana yetki verilenler · diğerleri),
+editörde **AccessCard** ("Kimler yönetebilir": sahip, yetkililer, e-posta ile
+ekle, devret).
+
+### Self-host — gerçek KULLANICI DEFTERİ
+Tek ortak parola kalktı: `data/users.json` (scrypt + tuz), roller
+**yönetici / kullanıcı**. Oturum çerezi `userId.HMAC(gizli, id+parolaÖzeti)` —
+parola değişince o kullanıcının oturumları düşer; gizli anahtar
+`data/session-secret`. Yetki kararları SUNUCUDA (`serverAuth.ts`:
+`isOwner/isEditor/canEdit`) — her yazma ucu (`PATCH/DELETE/publish/rename/
+duplicate/upload/beat-sil`) kontrol eder; `patchWall` `ownerId/editorIds`
+alanlarını serbest patch'ten ayıklar (yetkili kendini sahip yapamaz).
+`/api/walls/[id]/access` → ekle/çıkar/devret (yalnız sahip). Kullanıcı silinince
+ekranları yöneticiye devrolur (`purgeUserFromWalls`). Yeni sayfa: `/users`.
+İlk açılışta `.env` parolasıyla `yonetici` hesabı kurulur (eski kurulumlar
+sorunsuz geçer).
+
+Uçtan uca doğrulandı (yerel sunucu + curl): yetkisiz PATCH/DELETE 403 · devir
+sonrası aynı kişi 200 · yetkili sil/devret/yetki-dağıt 403 · rol yükseltme ve
+`PATCH` ile sahiplenme reddedildi · oturumsuz uçlar 401 ama perde 200 ·
+parola değişince eski çerez 401.

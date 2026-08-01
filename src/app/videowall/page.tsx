@@ -18,7 +18,17 @@ import { useToast } from "@/components/Toast";
 import WallThumb from "@/components/videowall/WallThumb";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useAuthUser } from "@/lib/hooks";
-import { clampScreens, createVideowall, deleteVideowall, duplicateVideowall, fetchScreenSummaries, listAllVideowalls } from "@/lib/videowalls";
+import {
+  claimSignOwnership,
+  clampScreens,
+  createVideowall,
+  deleteVideowall,
+  duplicateVideowall,
+  fetchScreenSummaries,
+  isSignEditor,
+  isSignOwner,
+  listAllVideowalls,
+} from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
 
 // DİKKAT: preset çözünürlükleri fiziksel gerçek — 3 dikey (portre) TV yan yana
@@ -81,8 +91,16 @@ export default function VideowallListPage() {
     return { text: "○ çevrimdışı", cls: "bg-black/55 text-white/60" };
   };
 
-  const mine = useMemo(() => walls.filter((v) => v.ownerId === user?.uid), [walls, user]);
-  const others = useMemo(() => walls.filter((v) => v.ownerId !== user?.uid), [walls, user]);
+  // ÜÇ GRUP: sahibi olduklarım · bana YETKİ verilenler · geri kalanı (yalnız izleme)
+  const mine = useMemo(() => walls.filter((v) => isSignOwner(v, user)), [walls, user]);
+  const shared = useMemo(() => walls.filter((v) => !isSignOwner(v, user) && isSignEditor(v, user)), [walls, user]);
+  const others = useMemo(() => walls.filter((v) => !isSignOwner(v, user) && !isSignEditor(v, user)), [walls, user]);
+  // Devredilen ekranı ilk görüşte sessizce sahiplen (uid alanını doldur) —
+  // devirde yeni sahibin uid'si bilinmiyordu, kimlik e-posta ile taşınmıştı.
+  useEffect(() => {
+    if (!user) return;
+    mine.filter((v) => v.ownerId !== user.uid).forEach((v) => claimSignOwnership(v, user).catch(() => {}));
+  }, [mine, user]);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -130,7 +148,7 @@ export default function VideowallListPage() {
     setBusy(true);
     setErr(null);
     try {
-      const id = await createVideowall(user.uid, name.trim() || "Yeni ekran", Math.max(1, numOr(w, 1920)), Math.max(1, numOr(h, 1080)), clampScreens(numOr(cols, 1)), clampScreens(numOr(rows, 1)), user.displayName || user.email || "");
+      const id = await createVideowall(user.uid, name.trim() || "Yeni ekran", Math.max(1, numOr(w, 1920)), Math.max(1, numOr(h, 1080)), clampScreens(numOr(cols, 1)), clampScreens(numOr(rows, 1)), user.displayName || user.email || "", user.email || "");
       router.push(`/videowall/${id}/edit`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Ekran oluşturulamadı, tekrar dene.");
@@ -164,7 +182,7 @@ export default function VideowallListPage() {
     setBusy(true);
     setErr(null);
     try {
-      await duplicateVideowall(user.uid, v);
+      await duplicateVideowall(user.uid, v, user.email || "");
       refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Kopyalanamadı, tekrar dene.");
@@ -173,6 +191,63 @@ export default function VideowallListPage() {
       setBusy(false);
     }
   }
+
+  /**
+   * Kart gövdesi TEK yerde: sahip kartında kopyala/sil var, YETKİLİ kartında yok
+   * (yetkili düzenler ve yayınlar; silmek/devretmek sahibindedir).
+   */
+  const wallCard = (v: Videowall, owned: boolean) => (
+    <li key={v.id} className={`card overflow-hidden flex flex-col transition-opacity ${deletingId === v.id ? "opacity-40 pointer-events-none" : ""}`}>
+      {/* Önizleme = yayındaki yerleşim; tıkla → editör */}
+      <Link href={`/videowall/${v.id}/edit`} className="relative block group" aria-label={`${v.name} — düzenle`}>
+        <WallThumb vw={v} />
+        <span className="absolute inset-0 ring-1 ring-inset ring-ink/10 group-hover:ring-accent/60 transition" aria-hidden />
+        <span className={`absolute top-1.5 right-1.5 rounded-full backdrop-blur px-2 py-0.5 text-[10px] font-bold tracking-wide ${beatLabel(v.id).cls}`}>
+          {beatLabel(v.id).text}
+        </span>
+      </Link>
+      <div className="p-3 flex flex-col gap-2.5 flex-1">
+        <div className="min-w-0">
+          <p className="font-display font-semibold text-sm truncate">{v.name}</p>
+          {!owned && (
+            <p className="text-muted text-[11px] mt-0.5 truncate">Sahibi: {v.ownerEmail || v.ownerName || "—"}</p>
+          )}
+          <p className="text-muted text-[11px] mt-0.5 tabular-nums">
+            {v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan
+          </p>
+        </div>
+        <div className="flex items-center gap-1 mt-auto">
+          <Link href={`/videowall/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-paper border border-line px-2 py-1.5 text-xs font-semibold hover:border-muted">
+            Düzenle
+          </Link>
+          {/* "Yayınla" değil — editördeki Kaydet & Yayınla ile karışıyordu */}
+          <a href={playHref(v)} target={playTarget} title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
+            <Icon name="play" size={12} />
+          </a>
+          {owned && (
+            <>
+              <button onClick={() => duplicate(v)} disabled={busy} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-paper disabled:opacity-30" title="Kopyala" aria-label="Kopyala">
+                <Icon name="copy" size={13} />
+              </button>
+              <button
+                onClick={() =>
+                  confirm(
+                    { title: "Ekranı sil", message: `"${v.name}" ekranı ve yüklenmiş medyası silinecek. Bu işlem geri alınamaz.`, confirmLabel: "Sil", danger: true },
+                    () => remove(v)
+                  )
+                }
+                className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-brand hover:bg-brand-soft/50"
+                title="Sil"
+                aria-label="Sil"
+              >
+                <Icon name="trash" size={13} />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </li>
+  );
 
   if (loading || !user) {
     return (
@@ -264,53 +339,32 @@ export default function VideowallListPage() {
           </div>
         </form>
 
-        {/* Senin ekranların — tam yetki (parlak) */}
-        {mine.length === 0 ? (
+        {/* Senin ekranların — SAHİP (tam yetki) */}
+        {mine.length === 0 && shared.length === 0 ? (
           <div className="text-center py-16 text-muted">
             <p className="text-5xl mb-4" aria-hidden>🖥️</p>
             <p>Henüz ekranın yok. Yukarıdan ilkini oluştur.</p>
           </div>
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 [&>*]:min-w-0">
-            {/* Telefonda TEK sıra (dar kartta aksiyonlar eziliyordu); sm+ çoklu */}
-            {mine.map((v) => (
-              <li key={v.id} className={`card overflow-hidden flex flex-col transition-opacity ${deletingId === v.id ? "opacity-40 pointer-events-none" : ""}`}>
-                {/* Önizleme = yayındaki yerleşim; tıkla → editör */}
-                <Link href={`/videowall/${v.id}/edit`} className="relative block group" aria-label={`${v.name} — düzenle`}>
-                  <WallThumb vw={v} />
-                  <span className="absolute inset-0 ring-1 ring-inset ring-ink/10 group-hover:ring-accent/60 transition" aria-hidden />
-                  <span className={`absolute top-1.5 right-1.5 rounded-full backdrop-blur px-2 py-0.5 text-[10px] font-bold tracking-wide ${beatLabel(v.id).cls}`}>
-                    {beatLabel(v.id).text}
-                  </span>
-                </Link>
-                <div className="p-3 flex flex-col gap-2.5 flex-1">
-                  <div className="min-w-0">
-                    <p className="font-display font-semibold text-sm truncate">{v.name}</p>
-                    <p className="text-muted text-[11px] mt-0.5 tabular-nums">{v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan</p>
-                  </div>
-                  <div className="flex items-center gap-1 mt-auto">
-                    <Link href={`/videowall/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-paper border border-line px-2 py-1.5 text-xs font-semibold hover:border-muted">Düzenle</Link>
-                    {/* "Yayınla" değil — editördeki Kaydet & Yayınla ile karışıyordu */}
-                    <a href={playHref(v)} target={playTarget} title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
-                      <Icon name="play" size={12} />
-                    </a>
-                    <button onClick={() => duplicate(v)} disabled={busy} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-paper disabled:opacity-30" title="Kopyala" aria-label="Kopyala">
-                      <Icon name="copy" size={13} />
-                    </button>
-                    <button
-                      onClick={() =>
-                        confirm(
-                          { title: "Ekranı sil", message: `"${v.name}" ekranı ve yüklenmiş medyası silinecek. Bu işlem geri alınamaz.`, confirmLabel: "Sil", danger: true },
-                          () => remove(v)
-                        )
-                      } className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-brand hover:bg-brand-soft/50" title="Sil" aria-label="Sil">
-                      <Icon name="trash" size={13} />
-                    </button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          mine.length > 0 && (
+            <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 [&>*]:min-w-0">
+              {/* Telefonda TEK sıra (dar kartta aksiyonlar eziliyordu); sm+ çoklu */}
+              {mine.map((v) => wallCard(v, true))}
+            </ul>
+          )
+        )}
+
+        {/* SANA YETKİ VERİLENLER — düzenleyip yayınlarsın; silme/devretme sahibinde.
+            Ayrı başlık altında: "benim ekranım mı, bana emanet mi" karışmasın. */}
+        {shared.length > 0 && (
+          <div className={mine.length > 0 ? "mt-10" : ""}>
+            <p className="eyebrow mb-3">
+              Sana yetki verilenler <span className="normal-case tracking-normal font-normal text-muted">(düzenler ve yayınlarsın)</span>
+            </p>
+            <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 [&>*]:min-w-0">
+              {shared.map((v) => wallCard(v, false))}
+            </ul>
+          </div>
         )}
 
         {/* Diğer kullanıcıların ekranları — yetkisiz (sönük, bilgi + izleme) */}

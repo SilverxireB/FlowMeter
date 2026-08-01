@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAuthed, unauthorized } from "@/lib/serverAuth";
+import { currentUser, unauthorized } from "@/lib/serverAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  * yanlış alarm, gerçek uyarıyı değersizleştirir.
  */
 export async function GET(req: NextRequest) {
-  if (!isAuthed(req)) return unauthorized();
+  if (!(await currentUser(req))) return unauthorized();
   const url = req.nextUrl.searchParams.get("url") ?? "";
   if (!/^https?:\/\//i.test(url)) return NextResponse.json({ verdict: "invalid" });
   try {

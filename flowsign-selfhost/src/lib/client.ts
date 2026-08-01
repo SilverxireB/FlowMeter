@@ -9,7 +9,7 @@
  * çağrılmaz) ve bağlantı gelince ilk olayda tazelenir. cb(null) yalnız sunucu
  * "böyle bir ekran yok" dediğinde çağrılır.
  */
-import { ScreenBeat, Videowall, VideowallPlayMode, Zone } from "./types";
+import { PublicUser, ScreenBeat, Videowall, VideowallPlayMode, Zone } from "./types";
 import { clampScreens, gridZones, stripUndefined } from "./zones";
 
 type WallEvent = { found: boolean; wall: Videowall | null; screens: ScreenBeat[] };
@@ -51,7 +51,12 @@ export function watchScreens(id: string, cb: (s: ScreenBeat[]) => void): () => v
 
 // ── CRUD ─────────────────────────────────────────────────────────────────────
 
-export async function listWalls(): Promise<{ walls: Videowall[]; beats: Record<string, { online: number; lastSeen: number }> }> {
+export async function listWalls(): Promise<{
+  walls: Videowall[];
+  beats: Record<string, { online: number; lastSeen: number }>;
+  users: PublicUser[];
+  me: PublicUser;
+}> {
   return j(await fetch("/api/walls", { cache: "no-store" }));
 }
 
@@ -167,4 +172,82 @@ export function withTimeout<T>(promise: Promise<T>, ms = 12000): Promise<T> {
     promise,
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Sunucuya ulaşılamadı — bağlantıyı kontrol edip tekrar dene.")), ms)),
   ]);
+}
+
+// ── Kim kim (oturum + defter) ────────────────────────────────────────────────
+
+export async function whoAmI(): Promise<PublicUser | null> {
+  const r = await fetch("/api/auth/me", { cache: "no-store" }).catch(() => null);
+  if (!r || !r.ok) return null;
+  return ((await r.json()) as { user: PublicUser | null }).user;
+}
+
+export async function listUsers(): Promise<{ users: PublicUser[]; me: PublicUser }> {
+  return j(await fetch("/api/users", { cache: "no-store" }));
+}
+
+export async function createUser(name: string, password: string, role: "admin" | "user", label?: string): Promise<void> {
+  await j(
+    await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, password, role, label }),
+    })
+  );
+}
+
+export async function updateUser(id: string, patch: { password?: string; role?: "admin" | "user"; label?: string }): Promise<void> {
+  await j(
+    await fetch(`/api/users/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    })
+  );
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  await j(await fetch(`/api/users/${encodeURIComponent(id)}`, { method: "DELETE" }));
+}
+
+// ── Ekran yetkisi (sahip / yetkili / devret) ─────────────────────────────────
+
+async function access(wallId: string, body: Record<string, unknown>): Promise<void> {
+  await j(
+    await fetch(`/api/walls/${encodeURIComponent(wallId)}/access`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  );
+}
+
+export async function addWallEditor(wallId: string, userId: string): Promise<void> {
+  await access(wallId, { action: "add", userId });
+}
+
+export async function removeWallEditor(wallId: string, userId: string): Promise<void> {
+  await access(wallId, { action: "remove", userId });
+}
+
+/** "Al bu senin olsun, bundan sonra sen yönet" — yayın linki DEĞİŞMEZ. */
+export async function transferWall(wallId: string, userId: string, keepAsEditor: boolean): Promise<void> {
+  await access(wallId, { action: "transfer", userId, keepAsEditor });
+}
+
+// ── Yetki kararları (istemcide yalnız DÜĞME GİZLEME; asıl kapı sunucuda) ─────
+
+export function isWallOwner(w: Videowall | null | undefined, me: PublicUser | null): boolean {
+  if (!w || !me) return false;
+  if (me.role === "admin") return true;
+  return !!w.ownerId && w.ownerId === me.id;
+}
+
+export function isWallEditor(w: Videowall | null | undefined, me: PublicUser | null): boolean {
+  if (!w || !me) return false;
+  return (w.editorIds ?? []).includes(me.id);
+}
+
+export function canEditWall(w: Videowall | null | undefined, me: PublicUser | null): boolean {
+  return isWallOwner(w, me) || isWallEditor(w, me);
 }

@@ -513,6 +513,19 @@ export interface Videowall {
   id: string;
   ownerId: string;
   ownerName?: string; // listede "kimin duvarı" (yetkisiz sönük kartlarda bilgi)
+  /**
+   * YETKİ (yalnız FlowSign): kimlik E-POSTA ile taşınır, uid ile değil —
+   * "İK'dan Ayşe'ye devret" derken Ayşe'nin uid'sini bilmiyoruz, e-postasını
+   * biliyoruz (kullanıcı dizinini okumak da yalnız yöneticiye açık). Firebase
+   * kimlik belirtecinde e-posta bulunduğu için rules bu alanları doğrudan
+   * doğrulayabiliyor.
+   *  - ownerEmail: SAHİP e-postası; devir = bu alanı değiştirmek. Yeni sahip
+   *    ilk açtığında ownerId kendi uid'siyle "sahiplenilir" (sessiz).
+   *  - editorEmails: YETKİLİ e-postaları — düzenler ve yayınlar; silemez,
+   *    devredemez, yetkili listesine dokunamaz (rules bunu da kilitler).
+   */
+  ownerEmail?: string;
+  editorEmails?: string[];
   name: string;
   slug?: string; // insan-dostu yayın linki: /flowsign/{slug} — ad değişince YENİLENİR
   slugHistory?: string[]; // eski sluglar (yeniden adlandırma) — eski linkler kararmasın

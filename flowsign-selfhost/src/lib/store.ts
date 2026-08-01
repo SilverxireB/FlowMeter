@@ -95,13 +95,15 @@ async function uniqueSlug(name: string, excludeId?: string): Promise<string> {
   return `${base}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-export async function createWall(name: string, width: number, height: number, cols: number, rows: number): Promise<Videowall> {
+export async function createWall(name: string, width: number, height: number, cols: number, rows: number, ownerId?: string): Promise<Videowall> {
   await ensureDirs();
   const id = `w-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   const zones = gridZones(cols, rows);
   const now = Date.now();
   const wall: Videowall = {
     id,
+    ownerId: ownerId ?? "",
+    editorIds: [],
     name: name.trim() || "Yeni ekran",
     slug: await uniqueSlug(name.trim() || "Yeni ekran"),
     width: Math.max(1, Math.round(width)),
@@ -123,8 +125,9 @@ export async function createWall(name: string, width: number, height: number, co
 export async function patchWall(id: string, patch: Partial<Videowall>): Promise<Videowall | null> {
   const cur = await getWall(id);
   if (!cur) return null;
-  // id/slug alanları serbest patch ile ezilemez (rename ayrı kapıdan geçer).
-  const { id: _i, slug: _s, slugHistory: _h, createdAt: _c, ...rest } = patch;
+  // id/slug ve YETKİ alanları serbest patch ile ezilemez: yetki yalnız
+  // /access kapısından değişir (yoksa yetkili kendini sahip yapardı).
+  const { id: _i, slug: _s, slugHistory: _h, createdAt: _c, ownerId: _o, editorIds: _e, ...rest } = patch;
   const next = stripUndefined({ ...cur, ...rest, updatedAt: Date.now() }) as Videowall;
   await writeJsonAtomic(path.join(WALLS_DIR, `${id}.json`), next);
   emitWall(id);
@@ -165,7 +168,7 @@ export async function publishWall(id: string): Promise<Videowall | null> {
 }
 
 /** Duvarı kopyala (yeni id + taze zone/öğe id'leri; medya dosyaları paylaşılır). */
-export async function duplicateWall(id: string): Promise<Videowall | null> {
+export async function duplicateWall(id: string, ownerId?: string): Promise<Videowall | null> {
   const cur = await getWall(id);
   if (!cur) return null;
   const zones: Zone[] = (cur.zones ?? []).map((z) => ({
@@ -179,6 +182,10 @@ export async function duplicateWall(id: string): Promise<Videowall | null> {
   const wall: Videowall = {
     ...stripUndefined({ ...cur, zones }),
     id: nid,
+    // Kopya KOPYALAYANIN'dır; yetkili listesi taşınmaz (paylaşım sessizce
+    // miras kalmasın — kopyayı alan kişi yeniden kurar).
+    ownerId: ownerId ?? cur.ownerId ?? "",
+    editorIds: [],
     name,
     slug: await uniqueSlug(name),
     slugHistory: [],
@@ -259,4 +266,51 @@ export async function screenSummaries(ids: string[]): Promise<Record<string, { o
     })
   );
   return out;
+}
+
+// ── Yetki (sahip / yetkililer) ───────────────────────────────────────────────
+// Kararları SUNUCU verir (bkz. serverAuth.ts); burada yalnız yazma var.
+// Ekranın teslimi (devir) yayın linkini/slug'ı DEĞİŞTİRMEZ — sahadaki ekranlar
+// el değiştirmeden etkilenmez.
+
+export async function setWallEditors(id: string, editorIds: string[]): Promise<Videowall | null> {
+  const cur = await getWall(id);
+  if (!cur) return null;
+  const next: Videowall = { ...cur, editorIds: Array.from(new Set(editorIds.filter(Boolean))), updatedAt: Date.now() };
+  await writeJsonAtomic(path.join(WALLS_DIR, `${id}.json`), next);
+  emitWall(id);
+  return next;
+}
+
+/** Devret: sahiplik yeni kişiye geçer; eski sahip istenirse yetkili kalır. */
+export async function transferWall(id: string, newOwnerId: string, previousOwnerId: string, keepAsEditor: boolean): Promise<Videowall | null> {
+  const cur = await getWall(id);
+  if (!cur) return null;
+  const editors = (cur.editorIds ?? []).filter((e) => e && e !== newOwnerId);
+  if (keepAsEditor && previousOwnerId && previousOwnerId !== newOwnerId && !editors.includes(previousOwnerId)) {
+    editors.push(previousOwnerId);
+  }
+  const next: Videowall = { ...cur, ownerId: newOwnerId, editorIds: editors, updatedAt: Date.now() };
+  await writeJsonAtomic(path.join(WALLS_DIR, `${id}.json`), next);
+  emitWall(id);
+  return next;
+}
+
+/** Kullanıcı silinince yetim yetki kalmasın: sahiplikler yöneticiye düşer. */
+export async function purgeUserFromWalls(userId: string, fallbackOwnerId: string): Promise<void> {
+  const walls = await listWalls();
+  await Promise.all(
+    walls
+      .filter((w) => w.ownerId === userId || (w.editorIds ?? []).includes(userId))
+      .map(async (w) => {
+        const next: Videowall = {
+          ...w,
+          ownerId: w.ownerId === userId ? fallbackOwnerId : w.ownerId,
+          editorIds: (w.editorIds ?? []).filter((e) => e !== userId),
+          updatedAt: Date.now(),
+        };
+        await writeJsonAtomic(path.join(WALLS_DIR, `${w.id}.json`), next);
+        emitWall(w.id);
+      })
+  );
 }

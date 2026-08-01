@@ -13,14 +13,18 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import LayoutEditor from "@/components/videowall/LayoutEditor";
 import ScreensCard from "@/components/videowall/ScreensCard";
 import ZonePanel from "@/components/videowall/ZonePanel";
+import AccessCard from "@/components/videowall/AccessCard";
 import QrCode from "@/components/present/QrCode";
 import { SkelCockpit } from "@/components/Skeleton";
 import { Icon } from "@/components/Icon";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useAuthUser } from "@/lib/hooks";
 import {
+  canEditSign,
+  claimSignOwnership,
   clampScreens,
   ensureSlug,
+  isSignOwner,
   publishVideowall,
   renameVideowall,
   resetGrid,
@@ -72,7 +76,12 @@ export default function VideowallEditPage() {
   useEffect(() => setOrigin(window.location.origin), []);
   // Eski (slug'sız) ekrana isimden slug doldur → kolay link çalışsın (yalnız sahibi yazabilir).
   useEffect(() => {
-    if (vw && !vw.slug && user && vw.ownerId === user.uid) ensureSlug(vw).catch(() => {});
+    if (vw && !vw.slug && user && isSignOwner(vw, user)) ensureSlug(vw).catch(() => {});
+  }, [vw, user]);
+  // DEVİR SONRASI SAHİPLENME: ekran sana e-postanla devredildiyse uid alanını
+  // sessizce doldur (kullanıcıya soru sorulmaz — ekran zaten ona verilmiştir).
+  useEffect(() => {
+    if (vw && user && isSignOwner(vw, user) && vw.ownerId !== user.uid) claimSignOwnership(vw, user).catch(() => {});
   }, [vw, user]);
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -161,15 +170,16 @@ export default function VideowallEditPage() {
     );
   if (vw === null) return <main className="min-h-screen grid place-items-center bg-wash text-muted">Ekran bulunamadı.</main>;
 
-  // Yetki: düzenleme yalnız sahibinde — başkası açarsa bilgi + izleme.
-  if (user && vw.ownerId !== user.uid) {
+  // Yetki: SAHİP ya da YETKİLİ düzenler; başkası açarsa bilgi + izleme.
+  if (user && !canEditSign(vw, user)) {
     return (
       <main className="min-h-screen grid place-items-center bg-wash px-4">
         <div className="text-center max-w-sm">
           <p className="text-5xl mb-4" aria-hidden>🔒</p>
           <h1 className="font-display text-xl font-semibold mb-2">Bu ekranda düzenleme yetkin yok</h1>
           <p className="text-muted text-sm mb-6">
-            &ldquo;{vw.name}&rdquo;{vw.ownerName ? ` ${vw.ownerName} kullanıcısına ait` : " başka bir kullanıcıya ait"}. Yayını izleyebilirsin.
+            &ldquo;{vw.name}&rdquo;{vw.ownerEmail ? ` ${vw.ownerEmail} kullanıcısına ait` : vw.ownerName ? ` ${vw.ownerName} kullanıcısına ait` : " başka bir kullanıcıya ait"}.
+            Yayını izleyebilirsin; düzenlemek için sahibinden yetki iste.
           </p>
           <div className="flex gap-2 justify-center">
             <a href={`/flowsign/${slug}`} target={playTarget} className="btn-primary !py-2.5 text-sm">▶ İzle{playTarget ? " ↗" : ""}</a>
@@ -311,6 +321,9 @@ export default function VideowallEditPage() {
             </div>
           )}
         </div>
+
+        {/* Kim yönetebilir: sahip + yetkililer + devret (FlowSign'ın teslim akışı) */}
+        {user && <AccessCard vw={vw} user={user} />}
 
         {/* Ekran sağlığı: bu yayını açık tutan cihazlar (heartbeat) */}
         <ScreensCard id={id} />
