@@ -1,11 +1,13 @@
 "use client";
 
 import { usePresentation, useQuestions } from "@/lib/hooks";
+import { usePlayTarget } from "@/lib/usePlayTarget";
 import { deleteQuestion, setQuestionAnswered, setQuestionHidden } from "@/lib/questions";
 
 /** Q&A sunum görünümü: upvote sırasına göre sorular + moderasyon + ✓ cevaplandı. */
 export default function QnaResult({ presentationId }: { presentationId: string }) {
   const { presentation } = usePresentation(presentationId);
+  const playTarget = usePlayTarget();
   const allQuestions = useQuestions(presentationId);
   // Moderasyon açıkken onaysız sorular ekranda görünmez (onay: /moderate/<kod>)
   const moderation = !!presentation?.qnaModeration;
@@ -21,7 +23,7 @@ export default function QnaResult({ presentationId }: { presentationId: string }
     pendingCount > 0 ? (
       <a
         href={`/moderate/${presentation?.joinCode || presentationId}`}
-        target="_blank"
+        target={playTarget}
         className="chip !py-1 text-xs font-semibold text-accent self-start"
         title="Moderasyon ekranını aç"
       >

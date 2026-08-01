@@ -20,6 +20,7 @@ import {
   renamePresentation,
   setPresentationFolder,
 } from "@/lib/presentations";
+import { usePlayTarget } from "@/lib/usePlayTarget";
 import { getUserRecord, isAdminUser, upsertUserRecord } from "@/lib/users";
 import { createWall, deleteWall, listWalls } from "@/lib/walls";
 import { listVideowalls } from "@/lib/videowalls";
@@ -69,6 +70,7 @@ function CardThumb({ presentation, view }: { presentation: Presentation; view: "
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading } = useAuthUser();
+  const playTarget = usePlayTarget();
   const [items, setItems] = useState<Presentation[]>([]);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
@@ -104,17 +106,45 @@ export default function DashboardPage() {
     if (user) listPulses(user.uid).then(setPulses).catch(() => {});
   }, [user]);
 
-  // Ürün seçimi URL'e yansır (geri-tuşu / paylaşılabilir link), join linkleri değişmez.
+  // Ürün seçimi URL'e yansır (paylaşılabilir link) VE geçmişe adım ekler:
+  // hub'dan bir ürüne girmek gerçek bir adımdır — geri tuşu ürün kartlarına
+  // (hub'a) dönmeli. Eskiden replaceState kullanıldığından geri tuşu hub'ı
+  // atlayıp karşılama sayfasına düşürüyordu (PWA'da uygulamayı kapatıyordu).
+  const pushedRef = useRef(false);
   const selectProduct = useCallback((p: "decks" | "walls" | null) => {
-    setProduct(p);
-    if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", p ? `/dashboard?p=${p}` : "/dashboard");
+    if (typeof window === "undefined") {
+      setProduct(p);
+      return;
     }
+    const cur = new URLSearchParams(window.location.search).get("p");
+    if (p && !cur) {
+      // Hub → ürün: YENİ geçmiş adımı
+      window.history.pushState(null, "", `/dashboard?p=${p}`);
+      pushedRef.current = true;
+      setProduct(p);
+      return;
+    }
+    if (!p && pushedRef.current) {
+      // "← Ürünler": eklediğimiz adımı geri sar (durumu popstate senkronlar) —
+      // sistem geri tuşuyla tıpatıp aynı davranış.
+      pushedRef.current = false;
+      window.history.back();
+      return;
+    }
+    // Ürünler arası geçiş / doğrudan linkle gelinmişse: adım biriktirme
+    setProduct(p);
+    window.history.replaceState(null, "", p ? `/dashboard?p=${p}` : "/dashboard");
   }, []);
+  // Geri/ileri tuşu → görünüm URL ile aynı kalsın (adres çubuğu ve ekran ayrışmasın)
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const p = new URLSearchParams(window.location.search).get("p");
-    if (p === "decks" || p === "walls") setProduct(p);
+    const sync = () => {
+      const p = new URLSearchParams(window.location.search).get("p");
+      setProduct(p === "decks" || p === "walls" ? p : null);
+    };
+    sync();
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
   }, []);
 
   // "＋ Yeni" → ürünü aç ve oluşturma alanına odaklan ("Aç"tan farklı davranış).
@@ -477,7 +507,7 @@ export default function DashboardPage() {
                       </button>
                     </div>
                     <div className="flex gap-2 flex-wrap">
-                      <a href={`/wall/${w.id}`} target="_blank" className="btn-primary !py-2 !px-4 text-sm">▶ Perde ↗</a>
+                      <a href={`/wall/${w.id}`} target={playTarget} className="btn-primary !py-2 !px-4 text-sm">▶ Perde{playTarget ? " ↗" : ""}</a>
                       <Link href={`/wall/${w.id}/manage`} className="btn-ghost !py-2 !px-4 text-sm">Yönet</Link>
                     </div>
                   </li>

@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import { useAuthUser } from "@/lib/hooks";
+import { usePlayTarget } from "@/lib/usePlayTarget";
 import { createPulse, deletePulse, listPulses, percentOf, watchToday } from "@/lib/pulses";
 import { scoreColor, scoreEmoji } from "@/components/pulse/shared";
 import { Pulse, PulseDay, PulseQuestionType } from "@/lib/types";
@@ -41,6 +42,7 @@ function TodayScore({ pulse }: { pulse: Pulse }) {
 export default function PulseListPage() {
   const router = useRouter();
   const { user, loading } = useAuthUser();
+  const playTarget = usePlayTarget();
   const [pulses, setPulses] = useState<Pulse[]>([]);
   const [title, setTitle] = useState("");
   const [qType, setQType] = useState<PulseQuestionType>("smiley");
@@ -158,8 +160,8 @@ export default function PulseListPage() {
                 <TodayScore pulse={p} />
                 <div className="flex gap-2 flex-wrap">
                   <Link href={`/pulse/${p.id}/manage`} className="btn-primary !py-2 !px-4 text-sm">Kokpit</Link>
-                  <a href={`/pulse/${p.id}/kiosk`} target="_blank" className="btn-ghost !py-2 !px-4 text-sm">🖥 Kiosk ↗</a>
-                  <a href={`/pulse/${p.id}/board`} target="_blank" className="btn-ghost !py-2 !px-4 text-sm">📊 Pano ↗</a>
+                  <a href={`/pulse/${p.id}/kiosk`} target={playTarget} className="btn-ghost !py-2 !px-4 text-sm">🖥 Kiosk{playTarget ? " ↗" : ""}</a>
+                  <a href={`/pulse/${p.id}/board`} target={playTarget} className="btn-ghost !py-2 !px-4 text-sm">📊 Pano{playTarget ? " ↗" : ""}</a>
                 </div>
               </li>
             ))}

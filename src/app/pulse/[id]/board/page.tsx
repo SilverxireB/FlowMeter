@@ -8,6 +8,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import QrCode from "@/components/present/QrCode";
+import ScreenClose from "@/components/ScreenClose";
 import { scoreColor, scoreEmoji } from "@/components/pulse/shared";
 import { getRecentDays, percentOf, watchPulse, watchToday } from "@/lib/pulses";
 import { Pulse, PulseDay } from "@/lib/types";
@@ -97,6 +98,8 @@ export default function PulseBoardPage() {
           Telefonunla okut, <b>anonim</b> oyunu ver — bu hafta {weekTotals} kişi katıldı.
         </p>
       </div>
+
+      <ScreenClose />
     </main>
   );
 }

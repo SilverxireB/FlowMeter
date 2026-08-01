@@ -17,6 +17,7 @@ import WallFilm from "@/components/wall/WallFilm";
 import WallOnboarding from "@/components/wall/WallOnboarding";
 import ConfirmDialog from "@/components/videowall/ConfirmDialog";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
+import { usePlayTarget } from "@/lib/usePlayTarget";
 import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallFrame, setWallGalleryOpen, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallPinned, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, endRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, watchDraws, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";
 import { cldThumb, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
@@ -64,6 +65,7 @@ export default function WallManage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading: authLoading } = useAuthUser();
+  const playTarget = usePlayTarget();
   const { wall, loading } = useWall(id);
   const rawMedia = useWallMedia(id);
   // Kokpit yalnız AKTİF oturumu yönetir (yeni oturum → temiz kokpit). Eski
@@ -336,8 +338,8 @@ export default function WallManage() {
           <Logo variant="wall" />
           <span className="font-display font-semibold truncate">{wall.title}</span>
         </div>
-        <a href={`/wall/${id}`} target="_blank" className="btn-primary !py-2 !px-4 text-sm shrink-0">
-          ▶ Perde ekranı ↗
+        <a href={`/wall/${id}`} target={playTarget} className="btn-primary !py-2 !px-4 text-sm shrink-0">
+          ▶ Perde ekranı{playTarget ? " ↗" : ""}
         </a>
       </header>
 

@@ -15,7 +15,7 @@ import ScreensCard from "@/components/videowall/ScreensCard";
 import ZonePanel from "@/components/videowall/ZonePanel";
 import QrCode from "@/components/present/QrCode";
 import { Icon } from "@/components/videowall/icons";
-import { usePlayTarget } from "@/components/videowall/usePlayTarget";
+import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useAuthUser } from "@/lib/hooks";
 import {
   clampScreens,
@@ -168,7 +168,7 @@ export default function VideowallEditPage() {
             &ldquo;{vw.name}&rdquo;{vw.ownerName ? ` ${vw.ownerName} kullanıcısına ait` : " başka bir kullanıcıya ait"}. Yayını izleyebilirsin.
           </p>
           <div className="flex gap-2 justify-center">
-            <a href={`/flowsign/${slug}`} target={playTarget} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-5 py-2.5 text-sm font-semibold">▶ İzle ↗</a>
+            <a href={`/flowsign/${slug}`} target={playTarget} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-5 py-2.5 text-sm font-semibold">▶ İzle{playTarget ? " ↗" : ""}</a>
             <Link href="/videowall" className="rounded-xl bg-white/10 border border-white/15 px-5 py-2.5 text-sm font-semibold hover:bg-white/15">← Ekranlar</Link>
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function VideowallEditPage() {
             <Icon name="help" size={16} />
           </button>
           <a href={`/videowall/${id}/play?draft=1`} target={playTarget} className="rounded-xl bg-white/10 border border-white/15 px-3.5 py-2 text-sm font-semibold hover:bg-white/15 inline-flex items-center gap-1.5">
-            <Icon name="eye" size={15} /> <span className="hidden sm:inline">Önizle</span> ↗
+            <Icon name="eye" size={15} /> <span className="hidden sm:inline">Önizle</span>{playTarget ? " ↗" : ""}
           </a>
           <button
             onClick={publish}
@@ -292,7 +292,7 @@ export default function VideowallEditPage() {
             <div className="flex flex-wrap items-center gap-2">
               <code className="text-sm bg-black/30 rounded-lg px-3 py-2 text-[#a5b4fc] break-all min-w-0">{playUrl}</code>
               <button onClick={copyLink} className="rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-sm font-semibold hover:bg-white/15">{copied ? "✓ Kopyalandı" : "Kopyala"}</button>
-              <a href={playUrl} target={playTarget} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-3 py-2 text-sm font-semibold">Aç ↗</a>
+              <a href={playUrl} target={playTarget} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-3 py-2 text-sm font-semibold">Aç{playTarget ? " ↗" : ""}</a>
             </div>
             <p className="text-white/50 text-xs mt-2 leading-relaxed">
               Linki tabela PC&apos;sinde Chrome ile aç, tam ekran yap — her zaman <b>son yayınlanan</b> hâli oynatır. Adı değiştirince link de yenilenir; <b>eski link çalışmaya devam eder</b>.

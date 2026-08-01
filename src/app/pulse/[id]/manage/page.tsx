@@ -12,6 +12,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import QrCode from "@/components/present/QrCode";
 import { scoreColor, scoreEmoji } from "@/components/pulse/shared";
 import { useAuthUser } from "@/lib/hooks";
+import { usePlayTarget } from "@/lib/usePlayTarget";
 import {
   dayKey,
   getRecentDays,
@@ -32,6 +33,7 @@ export default function PulseManagePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading } = useAuthUser();
+  const playTarget = usePlayTarget();
   const [pulse, setPulse] = useState<Pulse | null | undefined>(undefined);
   const [today, setToday] = useState<PulseDay | null>(null);
   const [days, setDays] = useState<PulseDay[]>([]);
@@ -148,8 +150,8 @@ export default function PulseManagePage() {
           aria-label="Nokta adı"
         />
         <div className="flex items-center gap-2 shrink-0 ml-auto">
-          <a href={`/pulse/${id}/kiosk`} target="_blank" className="btn-ghost !py-2 !px-3.5 text-sm">🖥 Kiosk ↗</a>
-          <a href={`/pulse/${id}/board`} target="_blank" className="btn-primary !py-2 !px-3.5 text-sm">📊 Pano ↗</a>
+          <a href={`/pulse/${id}/kiosk`} target={playTarget} className="btn-ghost !py-2 !px-3.5 text-sm">🖥 Kiosk{playTarget ? " ↗" : ""}</a>
+          <a href={`/pulse/${id}/board`} target={playTarget} className="btn-primary !py-2 !px-3.5 text-sm">📊 Pano{playTarget ? " ↗" : ""}</a>
         </div>
       </header>
 

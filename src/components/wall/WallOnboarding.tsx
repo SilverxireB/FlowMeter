@@ -7,6 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { downloadQrCard } from "@/components/WallQrCard";
+import { usePlayTarget } from "@/lib/usePlayTarget";
 import { setWallModeration } from "@/lib/walls";
 import { Wall } from "@/lib/types";
 
@@ -36,6 +37,7 @@ export default function WallOnboarding({
   onGoSettings: () => void;
 }) {
   const key = `flowwall.onboard.${wall.id}`;
+  const playTarget = usePlayTarget();
   const [hidden, setHidden] = useState(true);
   useEffect(() => {
     setHidden(typeof localStorage !== "undefined" && localStorage.getItem(key) === "1");
@@ -69,7 +71,7 @@ export default function WallOnboarding({
       <div className="flex flex-col gap-4">
         <Step done={false} icon="1" title="📽 Perde ekranını aç">
           Etkinlik ekranına/projeksiyona{" "}
-          <a href={`/wall/${wall.id}`} target="_blank" className="text-accent font-semibold underline">
+          <a href={`/wall/${wall.id}`} target={playTarget} className="text-accent font-semibold underline">
             perde ekranını
           </a>{" "}
           yansıt — anılar orada canlı akacak.

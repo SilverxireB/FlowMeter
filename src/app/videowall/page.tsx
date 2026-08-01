@@ -13,7 +13,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import Logo from "@/components/Logo";
 import { Icon } from "@/components/videowall/icons";
 import WallThumb from "@/components/videowall/WallThumb";
-import { usePlayTarget } from "@/components/videowall/usePlayTarget";
+import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useAuthUser } from "@/lib/hooks";
 import { clampScreens, createVideowall, deleteVideowall, duplicateVideowall, fetchScreenSummaries, listAllVideowalls } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
@@ -301,7 +301,7 @@ export default function VideowallListPage() {
                       </p>
                     </div>
                     <div className="flex gap-1.5 items-center mt-auto">
-                      <a href={playHref(v)} target={playTarget} className="flex-1 text-center rounded-lg bg-white/10 border border-white/15 px-2.5 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/15">▶ İzle ↗</a>
+                      <a href={playHref(v)} target={playTarget} className="flex-1 text-center rounded-lg bg-white/10 border border-white/15 px-2.5 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/15">▶ İzle{playTarget ? " ↗" : ""}</a>
                       <span className="shrink-0 text-xs text-white/45" title="Düzenleme sahibinde">🔒</span>
                     </div>
                   </div>

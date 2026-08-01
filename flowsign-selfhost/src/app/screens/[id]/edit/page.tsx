@@ -189,7 +189,7 @@ export default function ScreenEditPage() {
             <Icon name="help" size={16} />
           </button>
           <a href={`/play/${id}?draft=1`} target={playTarget} className="rounded-xl bg-white/10 border border-white/15 px-3.5 py-2 text-sm font-semibold hover:bg-white/15 inline-flex items-center gap-1.5">
-            <Icon name="eye" size={15} /> <span className="hidden sm:inline">Önizle</span> ↗
+            <Icon name="eye" size={15} /> <span className="hidden sm:inline">Önizle</span>{playTarget ? " ↗" : ""}
           </a>
           <button
             onClick={publish}
@@ -260,7 +260,7 @@ export default function ScreenEditPage() {
             <div className="flex flex-wrap items-center gap-2">
               <code className="text-sm bg-black/30 rounded-lg px-3 py-2 text-[#a5b4fc] break-all min-w-0">{playUrl}</code>
               <button onClick={copyLink} className="rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-sm font-semibold hover:bg-white/15">{copied ? "✓ Kopyalandı" : "Kopyala"}</button>
-              <a href={playUrl} target={playTarget} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-3 py-2 text-sm font-semibold">Aç ↗</a>
+              <a href={playUrl} target={playTarget} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-3 py-2 text-sm font-semibold">Aç{playTarget ? " ↗" : ""}</a>
             </div>
             <p className="text-white/50 text-xs mt-2 leading-relaxed">
               Linki tabela PC&apos;sinde Chrome ile aç, tam ekran yap — her zaman <b>son yayınlanan</b> hâli oynatır. Adı değiştirince link de yenilenir; <b>eski link çalışmaya devam eder</b>.

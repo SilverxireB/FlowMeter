@@ -86,6 +86,13 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   cevaplar, Wall dilek+takma ad, Pulse yorum) — engellemez, yıldızlar.
 - Silme akışları sayfalı (`limit(450)` batch) + Cloudinary prefix temizliği.
 - `Logo` bileşeni `shrink-0` (dar başlıkta ezilip yandaki adla binmesin).
+- **Geri tuşu disiplini (suite geneli):** perde/kiosk/pano linkleri `usePlayTarget`
+  ile açılır (masaüstü yeni sekme; telefon/PWA aynı pencere — `_blank` PWA'da
+  geçmişsiz pencere açıp geri tuşuyla uygulamayı kapatıyordu; "↗" da yalnız yeni
+  sekmede gösterilir). Hub'da ürün alanına giriş `pushState` (eskiden
+  `replaceState` → geri tuşu hub'ı atlayıp karşılamaya düşüyordu), `popstate`
+  senkronlar. Tam ekran yüzeylerde `ScreenClose` (dokunmatik + geçmiş varsa +
+  gömülü değilse); Pulse kiosk hariç (çıkış bilerek PIN'li).
 - rules değişince kullanıcıya İKİ ~200 satırlık parça halinde CHAT'e yazılır
   (dosya eki mobilde kopyalanamıyor); parçaların birleşimi diff ile doğrulanır.
 
