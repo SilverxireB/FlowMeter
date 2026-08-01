@@ -272,7 +272,7 @@ export default function VideowallListPage() {
             <p>Henüz ekranın yok. Yukarıdan ilkini oluştur.</p>
           </div>
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 [&>*]:min-w-0">
             {/* Telefonda TEK sıra (dar kartta aksiyonlar eziliyordu); sm+ çoklu */}
             {mine.map((v) => (
               <li key={v.id} className={`rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex flex-col transition-opacity ${deletingId === v.id ? "opacity-40 pointer-events-none" : ""}`}>
@@ -320,7 +320,7 @@ export default function VideowallListPage() {
             <p className="text-white/60 text-[11px] font-bold uppercase tracking-[0.14em] mb-3">
               Diğer ekranlar <span className="normal-case tracking-normal font-normal">(yetkin yok — yalnız izleme)</span>
             </p>
-            <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 [&>*]:min-w-0">
               {others.map((v) => (
                 <li key={v.id} className="rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden flex flex-col">
                   <div className="relative opacity-60">

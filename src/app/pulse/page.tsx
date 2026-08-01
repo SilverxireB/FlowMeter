@@ -173,7 +173,7 @@ export default function PulseListPage() {
             <p>Henüz nokta yok. İlkini oluştur, kioskı duvara as.</p>
           </div>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2">
+          <ul className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
             {pulses.map((p) => (
               <li key={p.id} className={`card p-4 flex flex-col gap-3 transition-opacity ${deletingId === p.id ? "opacity-40 pointer-events-none" : ""}`}>
                 <div className="flex items-start justify-between gap-2">

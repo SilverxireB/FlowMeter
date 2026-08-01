@@ -369,14 +369,23 @@ export default function DashboardPage() {
         <Link href="/" className="shrink-0">
           {product === null ? <Logo variant="studio" /> : <Logo variant={product === "walls" ? "wall" : "meter"} />}
         </Link>
+        {/* Dar telefonda başlığın EN KÜÇÜK genişliği ekranı aşıyordu (logo + Admin
+            + e-posta + Çıkış hepsi birden sığmıyor) — taşan başlık tüm sayfayı
+            yatay kaydırıyordu. Mobilde e-posta gizlenir (kim olduğunu zaten
+            bilirsin), Admin yalnız ikona iner; geniş ekranda hiçbiri değişmez. */}
         <div className="flex items-center gap-2 min-w-0">
           {isAdmin && (
-            <Link href="/admin" className="chip !py-1.5 text-accent font-semibold shrink-0 hover:border-accent inline-flex items-center gap-1.5">
-              <Icon name="shield" size={15} /> Admin
+            <Link
+              href="/admin"
+              title="Admin"
+              className="chip !py-1.5 text-accent font-semibold shrink-0 hover:border-accent inline-flex items-center gap-1.5"
+            >
+              <Icon name="shield" size={15} /> <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
-          <span className="chip text-muted min-w-0 max-w-[45vw]">
-            <span className="truncate">{user.email}</span>
+          <span className="chip text-muted min-w-0 max-w-[45vw] hidden sm:inline-flex">
+            {/* min-w-0 olmadan esnek kutuda "truncate" çalışmaz, metin dışarı taşar */}
+            <span className="truncate min-w-0">{user.email}</span>
           </span>
           <button
             onClick={() => signOut(auth()).then(() => router.replace("/login"))}
@@ -409,7 +418,7 @@ export default function DashboardPage() {
         {product === null && (
           <div>
             <StudioHero />
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-2 [&>*]:min-w-0">
               {/* FlowMeter */}
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
                 {/* Panel tonları O-halkasının dört yayından (kullanıcı kararı):
@@ -532,7 +541,7 @@ export default function DashboardPage() {
                 <p className="text-muted">Henüz duvarın yok. Yukarıdan ilkini oluştur!</p>
               </div>
             ) : (
-              <ul className="grid gap-4 sm:grid-cols-2">
+              <ul className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
                 {walls.map((w) => (
                   <li key={w.id} className={`card p-4 flex flex-col gap-3 transition-opacity ${deletingId === w.id ? "opacity-40 pointer-events-none" : ""}`}>
                     <div className="flex items-start justify-between gap-2">
@@ -651,7 +660,7 @@ export default function DashboardPage() {
             </p>
           </div>
         ) : (
-          <ul className={view === "grid" ? "grid gap-4 sm:grid-cols-2" : "flex flex-col gap-3"}>
+          <ul className={view === "grid" ? "grid gap-4 sm:grid-cols-2 [&>*]:min-w-0" : "flex flex-col gap-3"}>
             {visible.map((p) => {
               return (
                 <li
@@ -781,7 +790,7 @@ export default function DashboardPage() {
               return (
                 <div key={cat} className="mb-6 last:mb-0">
                   <p className="eyebrow mb-2.5">{cat}</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
                     {list.map((t) => (
                       <button
                         key={t.id}

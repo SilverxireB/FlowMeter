@@ -166,7 +166,9 @@ export default function AdminStatsPage() {
           <Logo size="sm" variant="studio" />
           <span className="eyebrow hidden sm:inline">İstatistikler</span>
         </div>
-        <span className="chip text-muted text-xs truncate max-w-[45vw]">{user?.email}</span>
+        <span className="chip text-muted text-xs min-w-0 max-w-[45vw]">
+          <span className="truncate min-w-0">{user?.email}</span>
+        </span>
       </header>
 
       <section className="max-w-4xl mx-auto px-4 py-8">

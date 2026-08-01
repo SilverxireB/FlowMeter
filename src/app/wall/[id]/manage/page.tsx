@@ -1136,7 +1136,7 @@ export default function WallManage() {
             {pending.length === 0 ? (
               <p className="text-muted text-sm">Bekleyen medya yok.</p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 [&>*]:min-w-0">
                 {pending.map((m) => (
                   <MediaCard key={m.id} m={m}>
                     <div className="flex gap-1.5">
@@ -1156,7 +1156,7 @@ export default function WallManage() {
           {approved.length === 0 ? (
             <p className="text-muted text-sm">Henüz onaylı medya yok.</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 [&>*]:min-w-0">
               {approved.map((m) => (
                 <MediaCard key={m.id} m={m}>
                   {/* Dar mobil kartta 3'lü sıra taşmasın: ikonlar sabit-dar, orta buton esner */}
@@ -1189,7 +1189,7 @@ export default function WallManage() {
         {rejected.length > 0 && (
           <section>
             <p className="eyebrow mb-3 text-muted">Kaldırılanlar ({rejected.length})</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 [&>*]:min-w-0">
               {rejected.map((m) => (
                 <MediaCard key={m.id} m={m}>
                   <div className="flex items-center gap-1 min-w-0">

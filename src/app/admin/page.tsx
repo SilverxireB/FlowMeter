@@ -108,7 +108,11 @@ export default function AdminPage() {
           <Logo size="sm" />
           <span className="eyebrow hidden sm:inline">Yönetici paneli</span>
         </div>
-        <span className="chip text-muted text-xs truncate max-w-[45vw]">{user?.email}</span>
+        {/* Kırpma İÇ katmanda: çip esnek kutu, metni doğrudan üstüne "truncate"
+            vermek üç nokta koymuyor, yazıyı kenardan makaslıyordu. */}
+        <span className="chip text-muted text-xs min-w-0 max-w-[45vw]">
+          <span className="truncate min-w-0">{user?.email}</span>
+        </span>
       </header>
 
       <section className="max-w-3xl mx-auto px-4 py-8">

@@ -2,10 +2,17 @@
 
 import { useState } from "react";
 
+/**
+ * Boyutlar EKRANA GÖRE esner: logo `whitespace-nowrap` olduğu için dar
+ * telefonda kırpılamıyor, sabit punto verildiğinde başlığın en küçük genişliği
+ * ekranı aşıp SAYFAYI YATAY KAYDIRIYORDU. `clamp` ile geniş ekranda punto
+ * eskisiyle birebir aynı kalır, dar ekranda kendiliğinden küçülür.
+ * İkon yüksekliği em cinsinden — yazıyla birlikte ölçeklenir, oran bozulmaz.
+ */
 const SIZES = {
-  sm: { img: "h-5", fontSize: 20 },
-  md: { img: "h-7", fontSize: 27 },
-  lg: { img: "h-10", fontSize: 38 },
+  sm: { fontSize: "clamp(15px, 4.6vw, 20px)" },
+  md: { fontSize: "clamp(19px, 6.2vw, 27px)" },
+  lg: { fontSize: "clamp(26px, 8.8vw, 38px)" },
 } as const;
 
 const VARIANTS = {
@@ -38,7 +45,7 @@ export default function Logo({
   variant?: "studio" | "meter" | "wall" | "sign" | "pulse";
 }) {
   const [imgOk, setImgOk] = useState(true);
-  const { img, fontSize } = SIZES[size];
+  const { fontSize } = SIZES[size];
   const v = VARIANTS[variant];
   const color = onDark ? "#ffffff" : "#001e64";
 
@@ -69,13 +76,19 @@ export default function Logo({
 
   return (
     // Ekran okuyucu markayı TEK kez tam adıyla duyar; parçalar gizli.
-    <span className="inline-flex items-center shrink-0 whitespace-nowrap" role="img" aria-label={v.full}>
+    <span
+      className="inline-flex items-center shrink-0 whitespace-nowrap"
+      role="img"
+      aria-label={v.full}
+      style={{ fontSize, lineHeight: 1 }}
+    >
       {imgOk && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={onDark ? v.iconDark : v.icon}
           alt=""
-          className={`${img} w-auto`}
+          className="w-auto"
+          style={{ height: "1.05em" }}
           onError={() => setImgOk(false)}
         />
       )}
@@ -84,7 +97,7 @@ export default function Logo({
         className="font-display font-semibold"
         style={{
           color: onDark ? "#ffffff" : "#001e64",
-          fontSize,
+          fontSize: "1em",
           lineHeight: 1,
           letterSpacing: "0.03em",
           marginLeft: imgOk ? "0.28em" : 0,
