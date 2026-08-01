@@ -106,6 +106,15 @@ export default function UploadPage() {
   const [finished, setFinished] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
+  // Sayfa içi kamera: uygulama değiştirmeden çek — Android düşük RAM'de kamera
+  // uygulamasına geçince PWA'yı öldürüp çekilen kareyi kaybedebiliyordu
+  // ("Bellek yetersiz..." vakası). getUserMedia yoksa capture input'a düşülür.
+  const [camOpen, setCamOpen] = useState(false);
+  const openCamera = () => {
+    const ok = typeof navigator !== "undefined" && !!navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function";
+    if (ok) setCamOpen(true);
+    else cameraRef.current?.click();
+  };
   const itemsRef = useRef<Item[]>([]);
   itemsRef.current = items;
 
@@ -142,8 +151,12 @@ export default function UploadPage() {
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (inputRef.current) inputRef.current.value = "";
+    if (cameraRef.current) cameraRef.current.value = "";
     if (!files.length) return;
+    await addFiles(files);
+  }
 
+  async function addFiles(files: File[]) {
     // Sınırlar: kişi başı foto tavanı + video süre/boyut (istemci tarafı, nazik).
     const cap = wallMaxPerPerson(wall); // 0 = sınırsız
     const mySession = wall?.sessionId;
@@ -377,7 +390,7 @@ export default function UploadPage() {
                 </button>
                 {/* Anlık kamera: galeri/dosya diyaloğunda kaybolmadan tek dokunuş çekim */}
                 <button
-                  onClick={() => cameraRef.current?.click()}
+                  onClick={openCamera}
                   className="rounded-2xl bg-white text-[#070c22] font-semibold py-4 flex items-center justify-center gap-2"
                 >
                   📷 Anında çek ve gönder
@@ -428,7 +441,7 @@ export default function UploadPage() {
                       ＋
                     </button>
                     <button
-                      onClick={() => cameraRef.current?.click()}
+                      onClick={openCamera}
                       className="aspect-square rounded-xl border border-dashed border-white/25 grid place-items-center text-2xl text-white/60"
                       aria-label="Kamerayla çek"
                     >
@@ -440,8 +453,18 @@ export default function UploadPage() {
             )}
 
             <input ref={inputRef} type="file" accept={videoOn ? "image/*,video/*" : "image/*"} multiple onChange={onPick} className="hidden" />
-            {/* capture=environment → doğrudan arka kamera açılır (destekleyen cihazlarda) */}
+            {/* capture=environment → doğrudan arka kamera açılır (getUserMedia yoksa yedek yol) */}
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={onPick} className="hidden" />
+            {camOpen && (
+              <CameraSheet
+                onShot={(f) => addFiles([f])}
+                onClose={() => setCamOpen(false)}
+                onFallback={() => {
+                  setCamOpen(false);
+                  cameraRef.current?.click();
+                }}
+              />
+            )}
 
             {pickMsg && (
               <p className="mt-3 rounded-xl bg-[#eda100]/15 border border-[#eda100]/40 px-3 py-2 text-xs text-[#ffdd99]">{pickMsg}</p>
@@ -809,6 +832,96 @@ function BrowseTile({ m, wallId, mine }: { m: WallMedia; wallId: string | null; 
         .ww-like-bump { display: inline-block; animation: likebump 0.4s ease; }
         @keyframes likebump { 30% { transform: scale(1.5); } 60% { transform: scale(0.9); } }
       `}</style>
+    </div>
+  );
+}
+
+/**
+ * Sayfa içi kamera (vizör + deklanşör). Uygulama değiştirmediği için Android'in
+ * düşük bellekte PWA'yı öldürüp kareyi kaybetmesi imkânsız. Arka arkaya çekim
+ * desteklenir; "Bitti" ile kapanır. Kamera açılamazsa (izin/destek yok) cihaz
+ * kamera uygulamasına düşme butonu gösterilir.
+ */
+function CameraSheet({ onShot, onClose, onFallback }: { onShot: (f: File) => void; onClose: () => void; onFallback: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [err, setErr] = useState(false);
+  const [flash, setFlash] = useState(false);
+  const [shots, setShots] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false })
+      .then((s) => {
+        if (!alive) {
+          s.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = s;
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          videoRef.current.play().catch(() => {});
+        }
+      })
+      .catch(() => setErr(true));
+    return () => {
+      alive = false;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  function shoot() {
+    const v = videoRef.current;
+    if (!v || !v.videoWidth) return;
+    const c = document.createElement("canvas");
+    c.width = v.videoWidth;
+    c.height = v.videoHeight;
+    c.getContext("2d")?.drawImage(v, 0, 0);
+    setFlash(true);
+    window.setTimeout(() => setFlash(false), 160);
+    c.toBlob(
+      (b) => {
+        if (!b) return;
+        onShot(new File([b], `cekim-${Date.now()}.jpg`, { type: "image/jpeg" }));
+        setShots((n) => n + 1);
+      },
+      "image/jpeg",
+      0.9
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+      {err ? (
+        <div className="flex-1 grid place-items-center text-center px-8">
+          <div>
+            <p className="text-5xl mb-4" aria-hidden>📷</p>
+            <p className="text-white font-semibold mb-2">Kamera açılamadı</p>
+            <p className="text-white/60 text-sm mb-6">İzin verilmemiş olabilir — cihazın kamera uygulamasıyla da çekebilirsin.</p>
+            <div className="flex flex-col gap-2">
+              <button onClick={onFallback} className="rounded-2xl bg-white text-[#070c22] font-semibold py-3 px-6">Cihaz kamerasını aç</button>
+              <button onClick={onClose} className="rounded-2xl border border-white/20 text-white/70 font-semibold py-3 px-6">Vazgeç</button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <video ref={videoRef} playsInline muted className="flex-1 min-h-0 w-full object-cover" />
+          {flash && <div className="absolute inset-0 bg-white/80" aria-hidden />}
+          <div className="shrink-0 flex items-center justify-between px-8 py-5 bg-black">
+            <button onClick={onClose} className="text-white/70 font-semibold py-2 px-3" aria-label="Kamerayı kapat">
+              {shots > 0 ? `Bitti ✓ (${shots})` : "Vazgeç"}
+            </button>
+            <button
+              onClick={shoot}
+              aria-label="Fotoğraf çek"
+              className="w-16 h-16 rounded-full bg-white ring-4 ring-white/30 active:scale-90 transition-transform"
+            />
+            <span className="w-16 text-right text-white/50 text-sm tabular-nums">{shots > 0 ? `${shots} kare` : ""}</span>
+          </div>
+        </>
+      )}
     </div>
   );
 }
