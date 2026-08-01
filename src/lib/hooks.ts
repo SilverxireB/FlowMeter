@@ -146,7 +146,8 @@ export function useLiveResponses(
     const col = collection(db(), "presentations", presentationId, "slides", slideId, "responses");
     const q = sessionId ? query(col, where("sessionId", "==", sessionId)) : col;
     return onSnapshot(q, (snap) => {
-      setResponses(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ResponseDoc));
+      // Açık metin moderasyonu: onay bekleyen cevaplar perde/sonuçlara sızmaz
+      setResponses(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ResponseDoc).filter((r) => r.status !== "pending"));
     });
   }, [presentationId, slideId, sessionId]);
 

@@ -8,10 +8,13 @@ export default function OpenEndedVote({
   presentationId,
   slide,
   onDone,
+  moderated,
 }: {
   presentationId: string;
   slide: Slide;
   onDone: () => void;
+  /** Açık metin moderasyonu açık: cevap pending yazılır, perdeye onayla düşer */
+  moderated?: boolean;
 }) {
   const maxEntries = slide.settings?.maxEntries ?? 1;
   const [text, setText] = useState("");
@@ -28,7 +31,7 @@ export default function OpenEndedVote({
     setSending(true);
     setError(null);
     try {
-      await submitResponse(presentationId, slide.id, clean.slice(0, 250));
+      await submitResponse(presentationId, slide.id, clean.slice(0, 250), { pending: moderated });
       const next = sent + 1;
       setSent(next);
       setText("");

@@ -135,13 +135,24 @@ service cloud.firestore {
           }
           allow read: if true;
           allow create: if request.resource.data.keys()
-              .hasOnly(['voterId', 'value', 'createdAt', 'sessionId'])
+              .hasOnly(['voterId', 'value', 'createdAt', 'sessionId', 'status'])
             && request.resource.data.voterId is string
+            // Açık metin moderasyonu: izleyici kendini ONAYLAYAMAZ (status ancak
+            // 'pending' olabilir); moderasyon açıkken open-ended/word-cloud
+            // cevabında 'pending' ZORUNLU — kapatılamaz istemci kapısı.
+            && (!('status' in request.resource.data)
+                || request.resource.data.status == 'pending')
+            && (!(slideData().type in ['open-ended', 'word-cloud'])
+                || pres().get('textModeration', false) != true
+                || request.resource.data.get('status', '') == 'pending')
             && pres().get('ended', false) != true
             && pres().get('votingClosed', false) != true
             && sessionOk()
             && quizWindowOpen();
-          allow update: if false;
+          // Moderasyon onayı: yalnız sunum sahibi, yalnız status alanı değişir
+          allow update: if request.auth != null
+            && pres().ownerId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
           // Sadece sunum sahibi silebilir ("cevapları sıfırla")
           allow delete: if request.auth != null
             && get(/databases/$(database)/documents/presentations/$(presentationId))

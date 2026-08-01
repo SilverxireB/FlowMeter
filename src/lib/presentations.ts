@@ -158,6 +158,11 @@ export async function setQnaModeration(id: string, enabled: boolean): Promise<vo
   await updateDoc(doc(db(), "presentations", id), { qnaModeration: enabled });
 }
 
+/** Açık metin moderasyonu (open-ended/word-cloud): açıkken cevaplar onay bekler. */
+export async function setTextModeration(id: string, enabled: boolean): Promise<void> {
+  await updateDoc(doc(db(), "presentations", id), { textModeration: enabled });
+}
+
 /** Son düzenleme zamanını günceller (dashboard "son düzenlenen" sıralaması). */
 async function touchPresentation(id: string): Promise<void> {
   await updateDoc(doc(db(), "presentations", id), { updatedAt: serverTimestamp() }).catch(() => {});

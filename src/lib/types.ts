@@ -38,6 +38,9 @@ export interface Presentation {
   chatEnabled?: boolean;
   /** Q&A moderasyonu: açıkken sorular önce /moderate ekranında onay bekler */
   qnaModeration?: boolean;
+  /** Açık metin moderasyonu: açıkken open-ended/word-cloud cevapları perdeye
+   *  düşmeden /moderate "Cevaplar" kuyruğunda onay bekler */
+  textModeration?: boolean;
   /** Dashboard klasörü (boş = klasörsüz) */
   folder?: string;
   /**
@@ -354,6 +357,9 @@ export interface ResponseDoc {
   value: ResponseValue;
   /** Yazıldığı oturum — canlı sonuçlar bununla filtrelenir (eski oturumlar saklı) */
   sessionId?: string;
+  /** Açık metin moderasyonu: pending → perde/sonuçlarda GİZLİ, onay bekler.
+   *  Alan yoksa (eski kayıt / moderasyon kapalı) onaylı sayılır. */
+  status?: "pending" | "approved";
   createdAt: Timestamp | null;
 }
 

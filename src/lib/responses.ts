@@ -1,4 +1,4 @@
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { censorText } from "./profanity";
 import { ResponseValue } from "./types";
@@ -48,7 +48,8 @@ export function clearSlideVotes(slideIds: string[]): void {
 export async function submitResponse(
   presentationId: string,
   slideId: string,
-  value: ResponseValue
+  value: ResponseValue,
+  opts?: { pending?: boolean }
 ): Promise<void> {
   const sessionId = getActiveSession();
   // Açık uçlu/kelime bulutu gibi serbest metin cevaplarında küfür süzgeci
@@ -63,8 +64,20 @@ export async function submitResponse(
         value: safe,
         createdAt: serverTimestamp(),
         ...(sessionId ? { sessionId } : {}),
+        // Açık metin moderasyonu açıkken cevap perdeye düşmeden onay bekler
+        ...(opts?.pending ? { status: "pending" } : {}),
       }
     )
   );
   localStorage.setItem(votedKey(slideId), String(getVoteCount(slideId) + 1));
+}
+
+/** Moderasyon: cevabı onayla (perde/sonuçlarda görünür olur). Sadece sahibi (rules). */
+export async function approveResponse(presentationId: string, slideId: string, responseId: string): Promise<void> {
+  await updateDoc(doc(db(), "presentations", presentationId, "slides", slideId, "responses", responseId), { status: "approved" });
+}
+
+/** Moderasyon: cevabı reddet (siler). Sadece sahibi (rules). */
+export async function deleteResponse(presentationId: string, slideId: string, responseId: string): Promise<void> {
+  await deleteDoc(doc(db(), "presentations", presentationId, "slides", slideId, "responses", responseId));
 }

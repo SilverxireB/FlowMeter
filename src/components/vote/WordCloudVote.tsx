@@ -8,10 +8,13 @@ export default function WordCloudVote({
   presentationId,
   slide,
   onDone,
+  moderated,
 }: {
   presentationId: string;
   slide: Slide;
   onDone: () => void;
+  /** Açık metin moderasyonu açık: kelime pending yazılır, perdeye onayla düşer */
+  moderated?: boolean;
 }) {
   const maxEntries = slide.settings?.maxEntries ?? 3;
   const [word, setWord] = useState("");
@@ -28,7 +31,7 @@ export default function WordCloudVote({
     setSending(true);
     setError(null);
     try {
-      await submitResponse(presentationId, slide.id, clean.slice(0, 30));
+      await submitResponse(presentationId, slide.id, clean.slice(0, 30), { pending: moderated });
       const next = sent + 1;
       setSent(next);
       setWord("");

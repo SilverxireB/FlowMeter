@@ -342,9 +342,9 @@ export default function AudiencePage() {
         ) : slide.type === "multiple-choice" ? (
           <MultipleChoiceVote presentationId={id} slide={slide} onVoted={markVoted} />
         ) : slide.type === "word-cloud" ? (
-          <WordCloudVote presentationId={id} slide={slide} onDone={markVoted} />
+          <WordCloudVote presentationId={id} slide={slide} onDone={markVoted} moderated={!!presentation.textModeration} />
         ) : slide.type === "open-ended" ? (
-          <OpenEndedVote presentationId={id} slide={slide} onDone={markVoted} />
+          <OpenEndedVote presentationId={id} slide={slide} onDone={markVoted} moderated={!!presentation.textModeration} />
         ) : slide.type === "scales" ? (
           <ScalesVote presentationId={id} slide={slide} onVoted={markVoted} />
         ) : slide.type === "ranking" ? (

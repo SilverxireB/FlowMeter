@@ -9,10 +9,46 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import Logo from "@/components/Logo";
-import { useAuthUser, usePresentation, useQuestions } from "@/lib/hooks";
-import { resolveJoinCode, setQnaModeration } from "@/lib/presentations";
+import { db } from "@/lib/firebase";
+import { useAuthUser, usePresentation, useQuestions, useSlides } from "@/lib/hooks";
+import { resolveJoinCode, setQnaModeration, setTextModeration } from "@/lib/presentations";
 import { deleteQuestion, setQuestionApproved } from "@/lib/questions";
+import { approveResponse, deleteResponse } from "@/lib/responses";
+import { ResponseDoc, Slide } from "@/lib/types";
+
+/** Bir açık metin slaydının ONAY BEKLEYEN cevap kuyruğu (canlı). */
+function PendingAnswers({ pid, slide }: { pid: string; slide: Slide }) {
+  const [items, setItems] = useState<ResponseDoc[]>([]);
+  useEffect(() => {
+    const col = collection(db(), "presentations", pid, "slides", slide.id, "responses");
+    return onSnapshot(query(col, where("status", "==", "pending")), (snap) =>
+      setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ResponseDoc))
+    );
+  }, [pid, slide.id]);
+  if (items.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-sm font-bold text-ink/70">
+        {slide.type === "word-cloud" ? "☁️" : "💬"} {slide.question} <span className="text-muted font-normal">({items.length} bekliyor)</span>
+      </p>
+      {items.map((r) => (
+        <div key={r.id} className="card p-4 flex items-start gap-3">
+          <p className="flex-1 break-words">{String(Array.isArray(r.value) ? r.value.join(", ") : r.value)}</p>
+          <span className="flex gap-2 shrink-0">
+            <button onClick={() => approveResponse(pid, slide.id, r.id)} className="btn-accent !py-1.5 !px-4 text-sm" title="Onayla — perde ve sonuçlarda görünür">
+              ✓ Onayla
+            </button>
+            <button onClick={() => deleteResponse(pid, slide.id, r.id)} className="btn-ghost !py-1.5 !px-3 text-sm !border-brand !text-brand" title="Reddet — cevabı siler">
+              ✕
+            </button>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function ModeratePage() {
   const { code: rawCode } = useParams<{ code: string }>();
@@ -32,6 +68,7 @@ export default function ModeratePage() {
 
   const { presentation } = usePresentation(id || null);
   const questions = useQuestions(id || null);
+  const { slides } = useSlides(id || null);
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
@@ -66,8 +103,10 @@ export default function ModeratePage() {
   }
 
   const moderation = !!presentation.qnaModeration;
+  const textMod = !!presentation.textModeration;
   const pending = questions.filter((q) => !q.approved && !q.hidden);
   const approved = questions.filter((q) => q.approved && !q.hidden);
+  const textSlides = slides.filter((s) => s.type === "open-ended" || s.type === "word-cloud");
 
   return (
     <main className="min-h-screen bg-wash">
@@ -146,6 +185,37 @@ export default function ModeratePage() {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Açık metin cevap moderasyonu (open-ended / kelime bulutu) */}
+        {textSlides.length > 0 && (
+          <section className="border-t border-line pt-6">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <p className="eyebrow">Cevap moderasyonu</p>
+              <label className="flex items-center gap-2.5 cursor-pointer select-none shrink-0">
+                <input
+                  type="checkbox"
+                  checked={textMod}
+                  onChange={(e) => setTextModeration(id, e.target.checked)}
+                  className="w-5 h-5 accent-[#4f46e5]"
+                />
+                <span className="text-sm font-semibold">{textMod ? "açık" : "kapalı"}</span>
+              </label>
+            </div>
+            {!textMod ? (
+              <div className="card p-4 text-sm text-muted">
+                Kapalı: açık uçlu / kelime bulutu cevapları doğrudan perdeye düşer. Açarsan yeni
+                cevaplar önce burada onay bekler (küfür süzgeci her durumda çalışır).
+              </div>
+            ) : (
+              <div className="flex flex-col gap-5">
+                {textSlides.map((s) => (
+                  <PendingAnswers key={s.id} pid={id} slide={s} />
+                ))}
+                <p className="text-muted text-sm">Yeni cevaplar geldikçe burada belirir; ✓ ile perdeye çıkar.</p>
+              </div>
+            )}
           </section>
         )}
       </div>
