@@ -16,6 +16,7 @@ import WallEffectLayer from "@/components/wall/WallEffectLayer";
 import WallFilm from "@/components/wall/WallFilm";
 import WallOnboarding from "@/components/wall/WallOnboarding";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { Icon } from "@/components/Icon";
 import { useAuthUser, useWall, useWallMedia, useWallWishes, useContestVotes } from "@/lib/hooks";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { addWallMedia, clearContest, clearWallAnnouncement, closeWall, deleteMedia, deleteWish, endContest, isCurrentSession, newWallSession, reopenWall, setMediaStatus, setWallAnnouncement, setWallAutoInterval, setWallAutoModes, setWallEffect, setWallHeadline, setWallFrame, setWallGalleryOpen, setWallKeepOriginal, setWallMaxPerPerson, setWallMilestones, setWallModeration, setWallPinned, setWallScreenMode, setWallTheme, setWallTopLovedInterval, setWallVideoLimit, setWallWishesEnabled, setWishStatus, startContest, tallyContest, wallMaxPerPerson, wallVideoLimitSec, startRaffle, endRaffle, setRaffleFields, clearRaffle, drawRaffle, watchRaffleEntries, watchDraws, bulkAddRaffleEntries, openRaffleRegistration, closeRaffleRegistration, raffleRegistrationOpen } from "@/lib/walls";
@@ -361,7 +362,7 @@ export default function WallManage() {
         {zipMsg && (
           <div className="rounded-2xl bg-white border border-line px-4 py-3 text-sm text-ink/80 shadow-sm flex items-start justify-between gap-3">
             <span>{zipMsg}</span>
-            <button onClick={() => setZipMsg(null)} className="text-muted hover:text-ink shrink-0" aria-label="Kapat">✕</button>
+            <button onClick={() => setZipMsg(null)} className="text-muted hover:text-ink shrink-0" aria-label="Kapat"><Icon name="close" size={15} /></button>
           </div>
         )}
 
@@ -407,9 +408,9 @@ export default function WallManage() {
         {/* Sekmeler — ayarlar çok büyüdüğü için moderasyon ayrı sekmede */}
         <div className="flex gap-1 rounded-2xl bg-paper border border-line p-1 sticky top-2 z-20">
           {([
-            ["ayarlar", "⚙ Sunum ayarları"],
-            ["moderasyon", "🛡 Moderasyon"],
-          ] as const).map(([t, label]) => {
+            ["ayarlar", "Sunum ayarları", "settings"],
+            ["moderasyon", "Moderasyon", "shield"],
+          ] as const).map(([t, label, icon]) => {
             const badge = t === "moderasyon" ? pending.length + pendingWishes.length : 0;
             return (
               <button
@@ -419,7 +420,9 @@ export default function WallManage() {
                   tab === t ? "bg-white shadow-sm text-ink" : "text-muted hover:text-ink"
                 }`}
               >
-                {label}
+                <span className="inline-flex items-center gap-1.5">
+                  <Icon name={icon} size={15} /> {label}
+                </span>
                 {badge > 0 && (
                   <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-brand text-white text-[11px] font-bold px-1.5 py-0.5 tabular-nums align-middle">
                     {badge}
@@ -461,21 +464,21 @@ export default function WallManage() {
             />
             <div className="flex items-center gap-3 mt-3 flex-wrap">
               <button onClick={downloadAll} disabled={zipping} className="btn-ghost !py-2 !px-4 text-sm">
-                {zipping ? "⏳ Paketleniyor…" : "⬇ Tümünü indir (ZIP)"}
+                <Icon name={zipping ? "hourglass" : "download"} size={15} /> {zipping ? "Paketleniyor…" : "Tümünü indir (ZIP)"}
               </button>
               <button
                 onClick={() => wall && joinUrl && downloadQrCard(wall, joinUrl)}
                 disabled={!wall?.joinCode}
                 className="btn-ghost !py-2 !px-4 text-sm"
               >
-                🖨 QR Kartı indir
+                <Icon name="print" size={15} /> QR Kartı indir
               </button>
               <button
                 onClick={() => wall && downloadCollage(wall, allMedia)}
                 disabled={approved.length === 0}
                 className="btn-ghost !py-2 !px-4 text-sm"
               >
-                🖼 Kolaj indir
+                <Icon name="image" size={15} /> Kolaj indir
               </button>
               <button
                 onClick={async () => {
@@ -492,7 +495,7 @@ export default function WallManage() {
                 disabled={approved.length === 0 || !!bookMsg}
                 className="btn-ghost !py-2 !px-4 text-sm"
               >
-                {bookMsg ? `📖 ${bookMsg}` : "📖 Hatıra kitabı (PDF)"}
+                <Icon name="book" size={15} /> {bookMsg || "Hatıra kitabı (PDF)"}
               </button>
 
             </div>
@@ -533,14 +536,14 @@ export default function WallManage() {
                   onClick={() => setConfirmReq({ title: "Duvarı kapat", message: 'Yükleme durur, perdede "🎉 Teşekkürler" görünür. Yeniden açabilir ya da yeni oturum başlatabilirsin.', confirmLabel: "Kapat", action: () => closeWall(id).catch(() => setZipMsg("Duvar kapatılamadı — tekrar dene.")) })}
                   className="btn-ghost !py-2 text-sm"
                 >
-                  ⏹ Duvarı kapat
+                  <Icon name="stop" size={15} /> Duvarı kapat
                 </button>
               )}
               <button
                 onClick={() => setConfirmReq({ title: "Yeni oturum", message: "Şu anki anılar perdeden ve kokpitten kalkar (SİLİNMEZ — arşivde kalır); duvar ikinci grup için temizlenir.", confirmLabel: "Yeni oturum başlat", action: () => newWallSession(id).catch(() => setZipMsg("Yeni oturum başlatılamadı — tekrar dene.")) })}
                 className="btn-primary !py-2 text-sm"
               >
-                🔄 Yeni oturum
+                <Icon name="refresh" size={15} /> Yeni oturum
               </button>
               <span className="text-xs text-muted">
                 {wall.closed ? "Kapalı — yükleme durdu." : "Açık — misafirler yükleyebilir."}
@@ -557,7 +560,7 @@ export default function WallManage() {
           <p className="eyebrow mb-3">İçerik izinleri & sınırlar</p>
           <div className="flex flex-col gap-4">
             <div>
-              <p className="text-sm font-semibold mb-1.5">🎬 Video <span className="text-muted font-normal">— süre limiti (kredi koruması)</span></p>
+              <p className="text-sm font-semibold mb-1.5 flex items-center gap-1.5"><Icon name="video" size={15} /> Video <span className="text-muted font-normal">— süre limiti (kredi koruması)</span></p>
               <div className="flex gap-1.5 flex-wrap">
                 {VIDEO_OPTS.map(([sec, lbl]) => (
                   <button key={sec} onClick={() => setWallVideoLimit(id, sec).catch(console.error)}
@@ -568,7 +571,7 @@ export default function WallManage() {
               </div>
             </div>
             <div>
-              <p className="text-sm font-semibold mb-1.5">📸 Kişi başı en fazla foto <span className="text-muted font-normal">— spam/tekel önler</span></p>
+              <p className="text-sm font-semibold mb-1.5 flex items-center gap-1.5"><Icon name="camera" size={15} /> Kişi başı en fazla foto <span className="text-muted font-normal">— spam/tekel önler</span></p>
               <div className="flex gap-1.5 flex-wrap">
                 {PERPERSON_OPTS.map(([n, lbl]) => (
                   <button key={n} onClick={() => setWallMaxPerPerson(id, n).catch(console.error)}
@@ -585,7 +588,7 @@ export default function WallManage() {
                 onChange={(e) => setWallWishesEnabled(id, e.target.checked).catch(console.error)}
                 className="w-5 h-5 accent-[#4f46e5]"
               />
-              <span className="text-sm font-semibold">💌 Dilekler <span className="text-muted font-normal">{wall.wishesEnabled !== false ? "— açık" : "— kapalı (misafirde dilek sekmesi yok)"}</span></span>
+              <span className="text-sm font-semibold inline-flex items-center gap-1.5"><Icon name="mail" size={15} /> Dilekler <span className="text-muted font-normal">{wall.wishesEnabled !== false ? "— açık" : "— kapalı (misafirde dilek sekmesi yok)"}</span></span>
             </label>
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <input
@@ -594,7 +597,7 @@ export default function WallManage() {
                 onChange={(e) => setWallKeepOriginal(id, e.target.checked).catch(console.error)}
                 className="w-5 h-5 accent-[#4f46e5]"
               />
-              <span className="text-sm font-semibold">🖼 Orijinal kalite <span className="text-muted font-normal">{wall.keepOriginal ? "— açık (tam çözünürlük saklanır, daha çok depolama)" : "— kapalı (görseller ~1920px'e küçültülür, depolama dostu)"}</span></span>
+              <span className="text-sm font-semibold inline-flex items-center gap-1.5"><Icon name="image" size={15} /> Orijinal kalite <span className="text-muted font-normal">{wall.keepOriginal ? "— açık (tam çözünürlük saklanır, daha çok depolama)" : "— kapalı (görseller ~1920px'e küçültülür, depolama dostu)"}</span></span>
             </label>
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <input
@@ -603,7 +606,7 @@ export default function WallManage() {
                 onChange={(e) => setWallGalleryOpen(id, e.target.checked).catch(console.error)}
                 className="w-5 h-5 accent-[#4f46e5]"
               />
-              <span className="text-sm font-semibold">📸 Galeri linki <span className="text-muted font-normal">{wall.galleryOpen ? "— açık (misafirler onaylı anıları görür ve indirir)" : "— kapalı (etkinlik bitince aç, linki gruba at)"}</span></span>
+              <span className="text-sm font-semibold inline-flex items-center gap-1.5"><Icon name="gallery" size={15} /> Galeri linki <span className="text-muted font-normal">{wall.galleryOpen ? "— açık (misafirler onaylı anıları görür ve indirir)" : "— kapalı (etkinlik bitince aç, linki gruba at)"}</span></span>
             </label>
             {wall.galleryOpen && (
               <div className="flex items-center gap-2 pl-7">
@@ -618,7 +621,7 @@ export default function WallManage() {
             )}
             {/* Etkinlik çerçevesi: şeffaf PNG — yeni yüklenen fotoların üstüne bindirilir */}
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-sm font-semibold">🪄 Etkinlik çerçevesi</span>
+              <span className="text-sm font-semibold inline-flex items-center gap-1.5"><Icon name="wand" size={15} /> Etkinlik çerçevesi</span>
               {wall.frameUrl ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -671,7 +674,7 @@ export default function WallManage() {
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3 flex-wrap">
                 <label className="btn-ghost !py-2 !px-4 text-sm cursor-pointer">
-                  🖼 Arka plan görseli
+                  <Icon name="image" size={15} /> Arka plan görseli
                   <input
                     type="file"
                     accept="image/*"
@@ -694,7 +697,7 @@ export default function WallManage() {
                     onClick={() => setWallTheme(id, { preset: wall?.theme?.preset ?? "gece" }).catch(console.error)}
                     className="btn-ghost !py-2 !px-4 text-sm !text-brand !border-brand"
                   >
-                    ✕ Görseli kaldır
+                    <Icon name="close" size={14} /> Görseli kaldır
                   </button>
                 )}
               </div>
@@ -815,7 +818,7 @@ export default function WallManage() {
 
         {/* En Sevilenler turu sıklığı */}
         <div className="card p-5">
-          <p className="eyebrow mb-1">✨ En Sevilenler turu</p>
+          <p className="eyebrow mb-1 flex items-center gap-1.5"><Icon name="sparkles" size={13} /> En Sevilenler turu</p>
           <p className="text-muted text-xs mb-3">Perdede belirli aralıklarla en çok beğenilen ilk 3 anı öne çıkar (#1 = günün karesi).</p>
           <div className="flex flex-wrap gap-2">
             {[{ s: 0, l: "Kapalı" }, { s: 60, l: "1 dk" }, { s: 120, l: "2 dk" }, { s: 300, l: "5 dk" }, { s: 600, l: "10 dk" }].map((o) => {
@@ -840,7 +843,7 @@ export default function WallManage() {
               onChange={(e) => setWallMilestones(id, e.target.checked).catch(console.error)}
               className="w-5 h-5 accent-[#4f46e5]"
             />
-            <span className="text-sm font-semibold">🎉 Milestone kutlamaları <span className="text-muted font-normal">(10, 25, 50, 100… anıda konfeti)</span></span>
+            <span className="text-sm font-semibold inline-flex items-center gap-1.5"><Icon name="sparkles" size={15} /> Milestone kutlamaları <span className="text-muted font-normal">(10, 25, 50, 100… anıda konfeti)</span></span>
           </label>
         </div>
 
@@ -856,13 +859,13 @@ export default function WallManage() {
           const remain = Math.max(0, Math.round((annUntil - annNow) / 1000));
           return (
             <details className="card p-5">
-              <summary className="eyebrow cursor-pointer select-none">📢 Canlı anons{annActive ? " · 🔴 yayında" : ""}</summary>
+              <summary className="eyebrow cursor-pointer select-none inline-flex items-center gap-1.5"><Icon name="megaphone" size={13} /> Canlı anons{annActive ? " · 🔴 yayında" : ""}</summary>
               <p className="text-muted text-xs mb-3 mt-3">Perdeye seçtiğin süre boyunca öne çıkan bir duyuru bas (ör. &quot;Kokteyller dağıtılıyor&quot;). Süre dolunca kendiliğinden kalkar.</p>
 
               {annActive && (
                 <div className="mb-4 rounded-2xl bg-accent-soft/50 border border-accent/30 px-4 py-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-semibold text-sm truncate">📢 {wall.announcement?.text}</p>
+                    <p className="font-semibold text-sm truncate flex items-center gap-1.5"><Icon name="megaphone" size={14} /> {wall.announcement?.text}</p>
                     <p className="text-muted text-xs tabular-nums">Perdede · kalan {Math.floor(remain / 60)}:{String(remain % 60).padStart(2, "0")}</p>
                   </div>
                   <button onClick={() => clearWallAnnouncement(id).catch(console.error)} className="btn-ghost !py-1.5 !px-3 text-xs !text-brand !border-brand shrink-0">
@@ -907,7 +910,7 @@ export default function WallManage() {
 
         {/* Foto yarışması */}
         <details className="card p-5">
-          <summary className="eyebrow mb-1 cursor-pointer select-none">🏆 Foto yarışması{wall.contest?.status === "running" ? " · 🔴 canlı" : ""}</summary>
+          <summary className="eyebrow mb-1 cursor-pointer select-none inline-flex items-center gap-1.5"><Icon name="trophy" size={13} /> Foto yarışması{wall.contest?.status === "running" ? " · 🔴 canlı" : ""}</summary>
           {!wall.contest ? (
             <>
               <p className="text-muted text-xs mb-3">Başlık ver, başlat; misafirler onaylı fotolara oy verir, kazanan perdede taçlanır. Süre eklersen geri sayım dolunca otomatik biter (kazanan = anlık lider).</p>
@@ -962,7 +965,7 @@ export default function WallManage() {
 
         {/* Çekiliş */}
         <details className="card p-5">
-          <summary className="eyebrow mb-1 cursor-pointer select-none">🎁 Çekiliş{wall.raffle ? " · kurulu" : ""}</summary>
+          <summary className="eyebrow mb-1 cursor-pointer select-none inline-flex items-center gap-1.5"><Icon name="gift" size={13} /> Çekiliş{wall.raffle ? " · kurulu" : ""}</summary>
           {!wall.raffle ? (
             <div className="mt-3">
               <p className="text-muted text-xs mb-3">Perdede büyük animasyonlu çekim. Tür seç: misafirler isim+sicil girer (veya Excel liste yüklersin) · ya da numara aralığı.</p>
@@ -996,10 +999,10 @@ export default function WallManage() {
                         {m === 0 ? "Aç" : l}
                       </button>
                     ))}
-                    <span className="text-muted text-xs tabular-nums ml-auto">👥 {raffleEntries.length}</span>
+                    <span className="text-muted text-xs tabular-nums ml-auto inline-flex items-center gap-1"><Icon name="users" size={13} /> {raffleEntries.length}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <button onClick={() => rosterRef.current?.click()} className="btn-ghost !py-1.5 !px-3 text-xs">📋 Liste yükle (Excel/CSV)</button>
+                    <button onClick={() => rosterRef.current?.click()} className="btn-ghost !py-1.5 !px-3 text-xs"><Icon name="upload" size={13} /> Liste yükle (Excel/CSV)</button>
                     <input ref={rosterRef} type="file" accept=".xlsx,.xls,.csv" onChange={onRoster} className="hidden" />
                     <span className="text-muted text-[11px]">1. sütun sicil · 2. sütun isim</span>
                     {rosterMsg && <span className="text-xs text-ink w-full">{rosterMsg}</span>}
@@ -1035,7 +1038,7 @@ export default function WallManage() {
         {/* Çekiliş sonuçları — kalıcı log (Bitir/Sil sonrası da görünür) */}
         {draws.length > 0 && (
           <details className="card p-5">
-            <summary className="eyebrow mb-1 cursor-pointer select-none">🏆 Çekiliş sonuçları ({draws.length})</summary>
+            <summary className="eyebrow mb-1 cursor-pointer select-none inline-flex items-center gap-1.5"><Icon name="trophy" size={13} /> Çekiliş sonuçları ({draws.length})</summary>
             <div className="mt-3 flex flex-col gap-3">
               {draws.map((d) => (
                 <div key={d.id} className="rounded-xl border border-line p-3">
@@ -1062,7 +1065,7 @@ export default function WallManage() {
         {/* Dilek moderasyonu */}
         {(pendingWishes.length > 0 || approvedWishes.length > 0) && (
           <div className="card p-5">
-            <p className="eyebrow mb-1">💌 Dilekler</p>
+            <p className="eyebrow mb-1 flex items-center gap-1.5"><Icon name="mail" size={13} /> Dilekler</p>
             <p className="text-muted text-xs mb-3">
               {wall.moderation ? "Moderasyon açık — dilekler onaydan sonra perdeye düşer." : "Moderasyon kapalı — dilekler direkt perdede."}
             </p>
@@ -1091,7 +1094,7 @@ export default function WallManage() {
                 <div className="flex flex-col gap-1.5">
                   {approvedWishes.map((w) => (
                     <div key={w.id} className="flex items-center gap-2 text-sm">
-                      <span className="flex-1 min-w-0 truncate">💌 {w.text}{w.nickname ? ` — ${w.nickname}` : ""}</span>
+                      <span className="flex-1 min-w-0 truncate inline-flex items-center gap-1.5"><Icon name="mail" size={13} className="opacity-60" /> {w.text}{w.nickname ? ` — ${w.nickname}` : ""}</span>
                       <button onClick={() => deleteWish(id, w.id).catch(console.error)} className="text-muted hover:text-brand text-xs shrink-0" aria-label="Sil">🗑</button>
                     </div>
                   ))}
@@ -1132,7 +1135,7 @@ export default function WallManage() {
                 {pending.map((m) => (
                   <MediaCard key={m.id} m={m}>
                     <div className="flex gap-1.5">
-                      <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 btn-accent !py-1.5 text-xs">✓ Onayla</button>
+                      <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 btn-accent !py-1.5 text-xs"><Icon name="check" size={13} /> Onayla</button>
                       <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand">✕</button>
                     </div>
                   </MediaCard>
@@ -1159,7 +1162,7 @@ export default function WallManage() {
                       title={wall.pinnedMediaId === m.id ? "Sabitlemeyi kaldır — perde normale döner" : "Perdede sabitle — kaldırana dek büyük durur"}
                       aria-label="Perdede sabitle"
                     >
-                      📌
+                      <Icon name="pin" size={15} />
                     </button>
                     <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="flex-1 min-w-0 btn-ghost !py-1.5 !px-1 text-xs truncate">Kaldır</button>
                     <button
@@ -1168,7 +1171,7 @@ export default function WallManage() {
                       title="Kalıcı sil (Cloudinary dahil)"
                       aria-label="Kalıcı sil"
                     >
-                      🗑
+                      <Icon name="trash" size={15} />
                     </button>
                   </div>
                 </MediaCard>
@@ -1192,7 +1195,7 @@ export default function WallManage() {
                       title="Kalıcı sil (Cloudinary dahil)"
                       aria-label="Kalıcı sil"
                     >
-                      🗑
+                      <Icon name="trash" size={15} />
                     </button>
                   </div>
                 </MediaCard>

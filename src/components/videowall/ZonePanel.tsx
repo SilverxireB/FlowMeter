@@ -9,7 +9,7 @@
  * İçerik alana STRETCH edilir (sığdır/doldur YOK). Yazım → updateZones (taslak).
  */
 import { useMemo, useRef, useState } from "react";
-import { Icon } from "@/components/Icon";
+import { Icon, IconName } from "@/components/Icon";
 import { cldFit, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { itemInWindow } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
@@ -232,18 +232,18 @@ export default function ZonePanel({
   const transition = zone.transition ?? "fade";
   const allOutOfWindow = zone.items.length > 0 && zone.items.every((it) => !itemInWindow(it, now));
 
-  const ADD_BTNS: { label: string; icon: string; fn: () => void; disabled?: boolean; title?: string }[] = [
+  const ADD_BTNS: { label: string; icon: IconName; fn: () => void; disabled?: boolean; title?: string }[] = [
     {
       label: "Görsel / Video",
-      icon: "🖼",
+      icon: "image" as const,
       fn: () => fileRef.current?.click(),
       disabled: queue !== null || !cloudReady,
       title: cloudReady ? undefined : "Medya deposu yapılandırılmadı",
     },
-    { label: "Kütüphane", icon: "🗂", fn: () => setLibOpen(true), disabled: library.length === 0 },
-    { label: "URL", icon: "🔗", fn: () => setUrlForm({ src: "", name: "" }) },
-    { label: "Metin", icon: "📝", fn: addText },
-    { label: "Saat", icon: "🕐", fn: addClock },
+    { label: "Kütüphane", icon: "folder" as const, fn: () => setLibOpen(true), disabled: library.length === 0 },
+    { label: "URL", icon: "link" as const, fn: () => setUrlForm({ src: "", name: "" }) },
+    { label: "Metin", icon: "pencil" as const, fn: addText },
+    { label: "Saat", icon: "clock" as const, fn: addClock },
   ];
 
   return (
@@ -333,7 +333,7 @@ export default function ZonePanel({
             title={b.title}
             className="rounded-xl bg-white/[0.06] border border-white/10 hover:border-[#6366f1]/60 hover:bg-white/10 px-2 py-3 text-sm font-semibold flex flex-col items-center gap-1 transition-colors disabled:opacity-40"
           >
-            <span className="text-lg" aria-hidden>{b.icon}</span>
+            <Icon name={b.icon} size={20} />
             {b.label}
           </button>
         ))}
@@ -599,7 +599,7 @@ export default function ZonePanel({
         <div className="fixed inset-0 z-50 bg-black/60 grid place-items-center p-4" onClick={() => setLibOpen(false)}>
           <div className="bg-[#1e1b4b] border border-white/15 rounded-2xl p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <p className="font-display font-semibold">🗂 Medya kütüphanesi</p>
+              <p className="font-display font-semibold inline-flex items-center gap-2"><Icon name="folder" size={16} /> Medya kütüphanesi</p>
               <button onClick={() => setLibOpen(false)} className="w-9 h-9 grid place-items-center rounded-xl text-white/50 hover:text-white hover:bg-white/10" aria-label="Kapat"><Icon name="close" size={16} /></button>
             </div>
             <p className="text-white/50 text-xs mb-3">Bu ekrana daha önce yüklediğin medya (taslak + yayın) — tıkla, bu alana ekle.</p>

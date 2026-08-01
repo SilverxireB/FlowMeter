@@ -31,7 +31,7 @@ function PendingAnswers({ pid, slide }: { pid: string; slide: Slide }) {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm font-bold text-ink/70">
-        {slide.type === "word-cloud" ? "☁️" : "💬"} {slide.question} <span className="text-muted font-normal">({items.length} bekliyor)</span>
+        {slide.question} <span className="text-muted font-normal">({items.length} bekliyor)</span>
       </p>
       {items.map((r) => (
         <div key={r.id} className="card p-4 flex items-start gap-3">

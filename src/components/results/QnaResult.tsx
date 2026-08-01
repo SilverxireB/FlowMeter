@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/Icon";
 import { usePresentation, useQuestions } from "@/lib/hooks";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { deleteQuestion, setQuestionAnswered, setQuestionHidden } from "@/lib/questions";
@@ -24,10 +25,10 @@ export default function QnaResult({ presentationId }: { presentationId: string }
       <a
         href={`/moderate/${presentation?.joinCode || presentationId}`}
         target={playTarget}
-        className="chip !py-1 text-xs font-semibold text-accent self-start"
+        className="chip !py-1 text-xs font-semibold text-accent self-start inline-flex items-center gap-1.5"
         title="Moderasyon ekranını aç"
       >
-        🛡 {pendingCount} soru onay bekliyor →
+        <Icon name="shield" size={13} /> {pendingCount} soru onay bekliyor →
       </a>
     ) : null;
 

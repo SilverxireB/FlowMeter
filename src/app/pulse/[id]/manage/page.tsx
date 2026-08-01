@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QrCode from "@/components/present/QrCode";
+import { Icon, IconName } from "@/components/Icon";
 import { scoreColor, scoreEmoji } from "@/components/pulse/shared";
 import { useAuthUser } from "@/lib/hooks";
 import { usePlayTarget } from "@/lib/usePlayTarget";
@@ -32,12 +33,14 @@ const DAY_NAMES = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
 /** Kopyalanabilir adres satırı (kokpit "Bağlantılar" kartı). */
 function LinkRow({
   label,
+  icon,
   hint,
   url,
   copied,
   onCopy,
 }: {
   label: string;
+  icon: IconName;
   hint: string;
   url: string;
   copied: boolean;
@@ -45,7 +48,7 @@ function LinkRow({
 }) {
   return (
     <div className="min-w-0">
-      <p className="font-semibold text-sm mb-1">{label}</p>
+      <p className="font-semibold text-sm mb-1 flex items-center gap-1.5"><Icon name={icon} size={15} /> {label}</p>
       <p className="text-muted text-xs leading-relaxed mb-2">{hint}</p>
       <div className="flex items-center gap-2 flex-wrap">
         <code className="text-xs bg-paper rounded-lg px-2 py-1 break-all min-w-0">{url}</code>
@@ -192,8 +195,8 @@ export default function PulseManagePage() {
           aria-label="Nokta adı"
         />
         <div className="flex items-center gap-2 shrink-0 ml-auto">
-          <a href={`/pulse/${id}/kiosk`} target={playTarget} className="btn-ghost !py-2 !px-3.5 text-sm">🖥 Kiosk{playTarget ? " ↗" : ""}</a>
-          <a href={`/pulse/${id}/board`} target={playTarget} className="btn-primary !py-2 !px-3.5 text-sm">📊 Pano{playTarget ? " ↗" : ""}</a>
+          <a href={`/pulse/${id}/kiosk`} target={playTarget} className="btn-ghost !py-2 !px-3.5 text-sm"><Icon name="monitor" size={15} /> Kiosk{playTarget ? " ↗" : ""}</a>
+          <a href={`/pulse/${id}/board`} target={playTarget} className="btn-primary !py-2 !px-3.5 text-sm"><Icon name="chart" size={15} /> Pano{playTarget ? " ↗" : ""}</a>
         </div>
       </header>
 
@@ -388,7 +391,7 @@ export default function PulseManagePage() {
               <label className="flex items-center gap-2"><input type="checkbox" checked={pulse.commentsEnabled !== false} onChange={(e) => updatePulse(id, { commentsEnabled: e.target.checked })} /> Yorumlar</label>
               <label className="flex items-center gap-2"><input type="checkbox" checked={pulse.moderation !== false} onChange={(e) => updatePulse(id, { moderation: e.target.checked })} /> Yorum moderasyonu</label>
             </div>
-            <button onClick={pdfReport} className="btn-ghost self-start !py-2 text-sm">🧾 PDF rapor indir</button>
+            <button onClick={pdfReport} className="btn-ghost self-start !py-2 text-sm"><Icon name="receipt" size={15} /> PDF rapor indir</button>
           </div>
 
           {/* Üç kanalın adresi: telefon (oy), tablet (kiosk), ekran (pano).
@@ -399,7 +402,8 @@ export default function PulseManagePage() {
             <div className="flex items-start gap-4 flex-wrap">
               <div className="min-w-0 flex-1">
                 <LinkRow
-                  label="📱 Oy linki"
+                  label="Oy linki"
+                  icon="phone"
                   hint="Postere bas — insanlar telefonla okutup oy versin."
                   url={voteUrl}
                   copied={copied === "vote"}
@@ -416,7 +420,8 @@ export default function PulseManagePage() {
             <div className="flex items-start gap-4 flex-wrap border-t border-line pt-4">
               <div className="min-w-0 flex-1">
                 <LinkRow
-                  label="🖥 Kiosk linki"
+                  label="Kiosk linki"
+                  icon="monitor"
                   hint="Tabletin kamerasıyla yandaki kodu okut → kiosk açılır (giriş gerekmez). Çıkmak için sol üst köşeye 3 sn içinde 5 kez dokun + PIN gir."
                   url={kioskUrl}
                   copied={copied === "kiosk"}
@@ -432,7 +437,8 @@ export default function PulseManagePage() {
 
             <div className="border-t border-line pt-4">
               <LinkRow
-                label="📊 Pano linki"
+                label="Pano linki"
+                  icon="chart"
                 hint="Ekranda tek başına açabilir ya da FlowSign'da bir alana URL öğesi olarak yapıştırabilirsin → sonuçlar tabelada döner."
                 url={boardUrl}
                 copied={copied === "board"}

@@ -69,7 +69,7 @@ export default function WallOnboarding({
       </div>
 
       <div className="flex flex-col gap-4">
-        <Step done={false} icon="1" title="📽 Perde ekranını aç">
+        <Step done={false} icon="1" title="Perde ekranını aç">
           Etkinlik ekranına/projeksiyona{" "}
           <a href={`/wall/${wall.id}`} target={playTarget} className="text-accent font-semibold underline">
             perde ekranını
@@ -77,16 +77,16 @@ export default function WallOnboarding({
           yansıt — anılar orada canlı akacak.
         </Step>
 
-        <Step done={false} icon="2" title="📱 Katılım kodunu paylaş">
+        <Step done={false} icon="2" title="Katılım kodunu paylaş">
           <span className="font-display font-bold tracking-[0.15em] text-ink">{wall.joinCode || "——————"}</span> — misafirler{" "}
           <span className="font-mono text-xs">/{"u/" + wall.joinCode}</span> adresinden katılır.
           <div className="flex flex-wrap gap-2 mt-2">
             <button onClick={() => downloadQrCard(wall, joinUrl)} disabled={!wall.joinCode} className="btn-ghost !py-1.5 !px-3 text-xs">🖨 QR kartı indir</button>
-            <button onClick={copyLink} disabled={!joinUrl} className="btn-ghost !py-1.5 !px-3 text-xs">🔗 Bağlantıyı kopyala</button>
+            <button onClick={copyLink} disabled={!joinUrl} className="btn-ghost !py-1.5 !px-3 text-xs">Bağlantıyı kopyala</button>
           </div>
         </Step>
 
-        <Step done={started} icon="3" title="✅ İlk anıyı test et">
+        <Step done={started} icon="3" title="İlk anıyı test et">
           {started ? (
             <>İlk anılar geldi — her şey çalışıyor.</>
           ) : (
@@ -100,7 +100,7 @@ export default function WallOnboarding({
         <span>{themed ? "🎨 Tema ayarlı ✓" : "🎨 Tema/başlık için"} <button onClick={onGoSettings} className="text-accent font-semibold underline">Sunum ayarları</button></span>
         <label className="flex items-center gap-1.5 cursor-pointer select-none">
           <input type="checkbox" checked={!!wall.moderation} onChange={(e) => setWallModeration(wall.id, e.target.checked).catch(() => {})} className="w-4 h-4 accent-[#4f46e5]" />
-          🛡 Moderasyon {wall.moderation ? "açık (önce onayla)" : "kapalı (direkt perdede)"}
+          Moderasyon {wall.moderation ? "açık (önce onayla)" : "kapalı (direkt perdede)"}
         </label>
       </div>
     </div>

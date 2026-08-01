@@ -21,6 +21,7 @@ import {
   setPresentationFolder,
 } from "@/lib/presentations";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { Icon } from "@/components/Icon";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 import { getUserRecord, isAdminUser, upsertUserRecord } from "@/lib/users";
 import { createWall, deleteWall, listWalls } from "@/lib/walls";
@@ -506,7 +507,7 @@ export default function DashboardPage() {
                       </button>
                     </div>
                     <div className="flex gap-2 flex-wrap">
-                      <a href={`/wall/${w.id}`} target={playTarget} className="btn-primary !py-2 !px-4 text-sm">▶ Perde{playTarget ? " ↗" : ""}</a>
+                      <a href={`/wall/${w.id}`} target={playTarget} className="btn-primary !py-2 !px-4 text-sm"><Icon name="play" size={14} /> Perde{playTarget ? " ↗" : ""}</a>
                       <Link href={`/wall/${w.id}/manage`} className="btn-ghost !py-2 !px-4 text-sm">Yönet</Link>
                     </div>
                   </li>
