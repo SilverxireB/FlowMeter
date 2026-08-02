@@ -1,0 +1,17 @@
+{
+  "name": "Kantin",
+  "short_name": "Kantin",
+  "description": "Molada sıra bekleme — siparişini telefondan ver, hazır olunca haber gelsin.",
+  "start_url": "/kantin",
+  "scope": "/kantin",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f7fa",
+  "theme_color": "#001e64",
+  "lang": "tr",
+  "icons": [
+    { "src": "/kantin-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/kantin-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/kantin-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
