@@ -33,7 +33,6 @@ import { Slide } from "@/lib/types";
 import { useConfirm } from "@/components/ConfirmDialog";
 
 const TICK_MS = 250;
-const VOTE_WINDOW = 7000;
 // Güvenlik tavanı: gerçekçi modda normalde çok altında kalır; kaçak yükü keser.
 const REACTIONS_PER_TICK_CAP = 40; // ~160 tepki/sn tavan (250 ms tick)
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -79,7 +78,6 @@ export default function SimPage() {
   const slideRef = useRef<Slide | null>(null);
   const voteQueueRef = useRef<{ bot: Bot; dueAt: number; willVote: boolean }[]>([]);
   const votedRef = useRef<Set<string>>(new Set()); // bu slaytta oyu işlenen botlar
-  const slideStartRef = useRef(0);
   const cfgRef = useRef({ reactionMul, qnaMul, chatOn });
   const sidRef = useRef<string | undefined>(undefined);
   const countRef = useRef({ reactions: 0, votes: 0, questions: 0, messages: 0 });
@@ -206,7 +204,6 @@ export default function SimPage() {
 
   // Aktif slayt DEĞİŞİNCE: işaretleri sıfırla + mevcut botlar için kuyruğu kur
   useEffect(() => {
-    slideStartRef.current = Date.now();
     votedRef.current = new Set();
     voteQueueRef.current =
       activeSlide && isVotingSlide(activeSlide) ? buildQueue(botsRef.current) : [];

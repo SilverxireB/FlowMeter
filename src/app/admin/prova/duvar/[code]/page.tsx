@@ -25,6 +25,7 @@ import { useWall } from "@/lib/hooks";
 import {
   addWallMedia,
   fetchApprovedMedia,
+  isCurrentSession,
   raffleRegistrationOpen,
   resolveCode,
   watchWallMediaRecent,
@@ -222,14 +223,16 @@ export default function WallProvaPage() {
   // Beğeni/yarışma oyu için medya listesi — TEK dinleyici (misafir başına
   // dinleyici açmak ölçeklenmez; perde zaten aynı listeyi izliyor).
   const medyaRef = useRef<WallMedia[]>([]);
+  const wallRef = useRef(wall);
   useEffect(() => {
     if (!wallId) return;
     return watchWallMediaRecent(wallId, 60, (m) => {
-      medyaRef.current = m.filter((x) => x.status === "approved");
+      // Misafirin gördüğü ne ise o: onaylı + AKTİF oturum. Eski oturumun
+      // medyasını beğenmek perdede zaten görünmeyen kareyi şişirirdi.
+      medyaRef.current = m.filter((x) => x.status === "approved" && isCurrentSession(x, wallRef.current));
     });
   }, [wallId]);
 
-  const wallRef = useRef(wall);
   useEffect(() => {
     wallRef.current = wall;
   }, [wall]);
@@ -337,6 +340,13 @@ export default function WallProvaPage() {
         }
       }
 
+      // Çekiliş kaldırıldıysa/yenilendiyse işaretleri sıfırla: kayıtlar da
+      // silinmiş olur, yoksa misafirler bir daha hiç kaydolmazdı.
+      if (!w.raffle) {
+        if (kayitliRef.current.size) kayitliRef.current = new Set();
+        for (const k of Object.keys(denemeRef.current)) if (k.startsWith("c-")) delete denemeRef.current[k];
+      }
+
       // 4) Çekiliş kaydı — yalnız kayıt türü + kayıt penceresi açıkken; her
       //    misafir BİR kez (sicil doc id, aynı sicil tek kayıt). Tik başına
       //    birkaç kişi: gerçek etkinlikte de sıra sıra kaydolurlar.
@@ -390,7 +400,7 @@ export default function WallProvaPage() {
 
       // 6) Gezme — misafir galeriyi açar (tek okuma turu). Seyrek tutuldu:
       //    her açılış tüm onaylı medyayı okur, kotayı boşuna yemesin.
-      if (cfg.gezmeAcik && Date.now() - gezmeRef.current > 10000) {
+      if (cfg.gezmeAcik && Date.now() - gezmeRef.current > 20000) {
         gezmeRef.current = Date.now();
         const bot = bots[Math.floor(Math.random() * bots.length)];
         fetchApprovedMedia(wallId)
@@ -543,7 +553,7 @@ export default function WallProvaPage() {
               </label>
               <label className="flex items-center gap-2.5 cursor-pointer select-none text-sm">
                 <input type="checkbox" checked={gezmeAcik} onChange={(e) => setGezmeAcik(e.target.checked)} className="w-5 h-5 accent-[#4f46e5]" />
-                Galeriyi gezsinler <span className="text-white/50 text-xs">(10 sn'de bir okuma turu)</span>
+                Galeriyi gezsinler <span className="text-white/50 text-xs">(20 sn'de bir okuma turu)</span>
               </label>
               <div className="flex items-center gap-3 pt-1 flex-wrap">
                 <button
