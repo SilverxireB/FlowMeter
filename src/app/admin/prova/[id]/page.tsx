@@ -55,7 +55,11 @@ export default function SimPage() {
   const { slides } = useSlides(id || null);
   const questions = useQuestions(id || null);
 
-  const [n, setN] = useState(100);
+  // Sayı alanı METİN tutulur: doğrudan sayı tutunca son hane silinemiyordu
+  // (boş girdi 0'a düşüp anında 1'e kenetleniyordu). Kenetleme kullanım anında.
+  const [nText, setNText] = useState("20");
+  const n = Math.max(1, Math.min(3000, Math.floor(Number(nText) || 0)));
+  const nGecerli = /^\d+$/.test(nText) && n >= 1;
   const [reactionMul, setReactionMul] = useState(1);
   const [qnaMul, setQnaMul] = useState(1);
   const [chatOn, setChatOn] = useState(false);
@@ -435,15 +439,15 @@ export default function SimPage() {
           <p className="eyebrow mb-3">Katılımcı</p>
           <div className="flex items-center gap-3 flex-wrap">
             <input
-              type="number"
-              min={1}
-              max={3000}
-              value={n}
-              onChange={(e) => setN(Math.max(1, Math.min(3000, Number(e.target.value))))}
+              type="text"
+              inputMode="numeric"
+              value={nText}
+              onChange={(e) => setNText(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              onBlur={() => setNText(String(n))}
               className="input-base !w-28 !py-2 text-center tabular-nums"
             />
-            <button onClick={join} disabled={busy} className="btn-primary !py-2 !px-5 text-sm">
-              + {n} bot ekle
+            <button onClick={join} disabled={busy || !nGecerli} className="btn-primary !py-2 !px-5 text-sm">
+              + {nGecerli ? n : "…"} bot ekle
             </button>
             <span className="text-muted text-sm tabular-nums">Aktif bot: {joined}</span>
           </div>

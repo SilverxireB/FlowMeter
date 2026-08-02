@@ -21,6 +21,8 @@ import { Icon } from "@/components/Icon";
 import { useAuthUser } from "@/lib/hooks";
 import { ADMIN_EMAIL, getUserRecord, isAdminUser } from "@/lib/users";
 import { Kontrol, saglikTara } from "@/lib/health";
+import { listPulses } from "@/lib/pulses";
+import { Pulse } from "@/lib/types";
 import { usePlayTarget } from "@/lib/usePlayTarget";
 
 const RENK: Record<Kontrol["durum"], string> = {
@@ -43,7 +45,20 @@ export default function ProvaPage() {
   const [kontroller, setKontroller] = useState<Kontrol[] | null>(null);
   const [tarali, setTarali] = useState(false);
   const [kod, setKod] = useState("");
+  const [noktalar, setNoktalar] = useState<Pulse[] | null>(null);
+  const [nokta, setNokta] = useState("");
   const hedef = usePlayTarget();
+
+  // Nabız noktaları: kod yok, kimlikle açılır → kendi noktalarını listele.
+  useEffect(() => {
+    if (!allowed || !user) return;
+    listPulses(user.uid)
+      .then((p) => {
+        setNoktalar(p);
+        setNokta((s) => s || p[0]?.id || "");
+      })
+      .catch(() => setNoktalar([]));
+  }, [allowed, user]);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -147,14 +162,17 @@ export default function ProvaPage() {
         </p>
 
         {/* PROVA — simülatör buraya taşındı. Eskiden /dev/sim gizli linkti ve
-            anahtarı istemci paketinin içindeydi (yani kapı değildi). */}
+            anahtarı istemci paketinin içindeydi (yani kapı değildi).
+            Dört ürünün de provası burada: her biri ürünün GERÇEK yazma yolunu
+            kullanır, kurallar hiç gevşetilmez. */}
         <div className="card p-5 mt-6">
           <p className="eyebrow mb-1">Prova</p>
           <p className="text-muted text-xs mb-4">
             Botlar gerçek izleyici gibi <b>anonim</b> yazar — kurallar değişmez, yani gerçek yol denenir.
-            Kendi sunumunda/duvarında dene; canlı etkinlikte kullanma.
+            Kendi içeriğinde dene; canlı etkinlikte kullanma.
           </p>
-          <label className="text-xs font-semibold text-muted">Katılım kodu ya da kimlik</label>
+
+          <label className="text-xs font-semibold text-muted">Sunum / duvar · katılım kodu ya da kimlik</label>
           <input
             value={kod}
             onChange={(e) => setKod(e.target.value.trim())}
@@ -177,6 +195,45 @@ export default function ProvaPage() {
                 <span className="btn-ghost !py-2 !px-4 text-sm opacity-40 pointer-events-none">Duvara örnek medya</span>
               </>
             )}
+          </div>
+
+          {/* Nabız noktalarının katılım kodu yoktur — kendi noktalarından seçilir. */}
+          <div className="border-t border-line mt-5 pt-5">
+            <label className="text-xs font-semibold text-muted">Nabız · nokta seç</label>
+            {noktalar === null ? (
+              <p className="text-muted text-sm mt-1">Yükleniyor…</p>
+            ) : noktalar.length === 0 ? (
+              <p className="text-muted text-sm mt-1">Henüz nabız noktan yok.</p>
+            ) : (
+              <div className="flex gap-2 mt-1 flex-wrap items-center">
+                <select
+                  value={nokta}
+                  onChange={(e) => setNokta(e.target.value)}
+                  className="input-base !py-2 text-sm !w-auto min-w-[12rem] max-w-full"
+                >
+                  {noktalar.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title}
+                    </option>
+                  ))}
+                </select>
+                <Link href={`/admin/prova/nabiz/${nokta}`} target={hedef} className="btn-ghost !py-2 !px-4 text-sm">
+                  Nabız provası
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Sign'da izleyici yazımı yok: prova kendi ekranını açar, var olan
+              tabelalara dokunmaz (sahadaki 7/24 ekranı bozmamak için). */}
+          <div className="border-t border-line mt-5 pt-5">
+            <label className="text-xs font-semibold text-muted">Tabela</label>
+            <p className="text-muted text-xs mt-0.5 mb-2">
+              Kendi prova ekranını açar (2×2 yerleşim, dört öğe türü); var olan ekranlara dokunmaz.
+            </p>
+            <Link href="/admin/prova/tabela" className="btn-ghost !py-2 !px-4 text-sm inline-block">
+              Tabela provası
+            </Link>
           </div>
         </div>
       </section>

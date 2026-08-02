@@ -96,23 +96,26 @@ function videoMime(): string | null {
 }
 
 /**
- * 10 kısa videoyu AYNI ANDA kaydeder: tek rAF döngüsü hepsini çizer, ~2.5 sn'de
- * biter (tek tek kaydetmek yarım dakika sürüyordu).
+ * Kısa videoları PARTİ HÂLİNDE kaydeder: bir partideki hepsini tek rAF döngüsü
+ * çizer. Tek tek kaydetmek yarım dakika sürüyordu; onunu birden kaydetmek ise
+ * telefonda 10 kodlayıcı + 10 tuval demek (bu üründe Android'de RAM ölümü daha
+ * önce kare kaybettirmişti). Dörderli parti ikisinin ortası.
  */
-async function videoUret(adet: number, sure = 2500): Promise<Uretilen[]> {
+async function videoPartisi(adet: number, ilkIndex: number, sure: number): Promise<Uretilen[]> {
   const mime = videoMime();
   if (!mime) return [];
   const uzanti = mime.startsWith("video/mp4") ? "mp4" : "webm";
-  const kanallar = Array.from({ length: adet }, (_, i) => {
+  const kanallar = Array.from({ length: adet }, (_, k) => {
+    const i = ilkIndex + k;
     const dikey = i % 3 === 2;
-    const w = dikey ? 720 : 1280;
-    const h = dikey ? 1280 : 720;
+    const w = dikey ? 480 : 854;
+    const h = dikey ? 854 : 480;
     const c = document.createElement("canvas");
     c.width = w;
     c.height = h;
     const ctx = c.getContext("2d")!;
     const stream = c.captureStream(30);
-    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1_200_000 });
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 800_000 });
     const parcalar: Blob[] = [];
     rec.ondataavailable = (e) => {
       if (e.data.size) parcalar.push(e.data);
@@ -150,6 +153,16 @@ async function videoUret(adet: number, sure = 2500): Promise<Uretilen[]> {
         })
     )
   );
+}
+
+/** N kısa video — 4'erli partiler hâlinde (bellek dostu). */
+async function videoUret(adet: number, parti = 4, sure = 2500): Promise<Uretilen[]> {
+  if (!videoMime()) return [];
+  const hepsi: Uretilen[] = [];
+  for (let i = 0; i < adet; i += parti) {
+    hepsi.push(...(await videoPartisi(Math.min(parti, adet - i), i, sure)));
+  }
+  return hepsi;
 }
 
 export default function SeedWallPage() {
