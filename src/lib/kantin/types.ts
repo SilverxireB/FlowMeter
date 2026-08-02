@@ -49,6 +49,10 @@ export interface MenuUrun {
   id: string;
   ad: string;
   aciklama?: string;
+  /** Ürün görseli (Cloudinary). Menü fotoğraflı olunca seçim hızlanıyor —
+   *  molada okumak yerine bakıp dokunuyorsun. */
+  gorselUrl?: string;
+  cloudinaryId?: string;
   /** Ödeme YOK — fiyat yalnız bilgi (tezgâhta ödenir). 0/boş = gösterme. */
   fiyat?: number;
   kategori?: string;
@@ -92,3 +96,6 @@ export interface Siparis {
 
 /** Kişinin işini bitirmemiş (hâlâ kantinde işlem gören) siparişleri. */
 export const ACIK_DURUMLAR: SiparisDurum[] = ["yeni", "hazirlaniyor", "hazir"];
+
+/** Menüde kullanılan hazır kategoriler — serbest metin de yazılabilir. */
+export const KATEGORILER = ["Sıcak içecek", "Soğuk içecek", "Tost & sandviç", "Atıştırmalık", "Tatlı", "Diğer"] as const;

@@ -30,14 +30,22 @@ function Kabuk({ children }: { children: React.ReactNode }) {
   const sekmeler = [
     { href: "/kantin/menu", label: "Menü" },
     { href: "/kantin/siparisim", label: "Siparişim" },
-    ...(yonetici ? [{ href: "/kantin/tezgah", label: "Tezgâh" }] : []),
-    ...(yonetici ? [{ href: "/kantin/ayarlar", label: "Ayarlar" }] : []),
+    ...(yonetici
+      ? [
+          { href: "/kantin/tezgah", label: "Tezgâh" },
+          { href: "/kantin/pano", label: "Pano" },
+          { href: "/kantin/rapor", label: "Rapor" },
+          { href: "/kantin/ayarlar", label: "Ayarlar" },
+        ]
+      : []),
     ...(rol === "admin" ? [{ href: "/kantin/kisiler", label: "Kişiler" }] : []),
   ];
 
   if (!user) return <>{children}</>;
   // Hesabı var ama kişi kaydı yok → önce ad/sicil (bkz. ProfilTamamla).
   if (kisiYok) return <ProfilTamamla />;
+  // Pano TAM EKRAN bir yüzey (kantindeki TV): başlık/sekme çerçevesi olmaz.
+  if (path === "/kantin/pano") return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-wash">

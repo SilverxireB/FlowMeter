@@ -11,6 +11,7 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -32,6 +33,7 @@ import {
   updateProfile,
   User,
 } from "firebase/auth";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { kAuth, kDb } from "./firebase";
 import { Kantin, KantinKisi, KantinRol, MenuUrun, Siparis, SiparisDurum, SiparisSatir } from "./types";
 
@@ -188,6 +190,29 @@ export async function urunSil(kantinId: string, urunId: string): Promise<void> {
   await deleteDoc(doc(kDb(), "kantin", kantinId, "menu", urunId));
 }
 
+/**
+ * Ürün görseli — Studio'nun Cloudinary yolunu kullanır (kural 4'ün tek istisnası
+ * zaten Cloudinary). Klasör `kantin/{kantinId}`: kantin silinince ön ek
+ * temizliğiyle topluca kaldırılabilir.
+ */
+export async function urunGorselYukle(
+  kantinId: string,
+  urunId: string,
+  dosya: File,
+  ilerleme?: (p: number) => void
+): Promise<string> {
+  const res = await uploadToCloudinary(dosya, `kantin/${kantinId}`, (p) => ilerleme?.(p));
+  await urunGuncelle(kantinId, urunId, { gorselUrl: res.url, cloudinaryId: res.cloudinaryId });
+  return res.url;
+}
+
+export async function urunGorselSil(kantinId: string, urunId: string): Promise<void> {
+  await updateDoc(doc(kDb(), "kantin", kantinId, "menu", urunId), {
+    gorselUrl: deleteField(),
+    cloudinaryId: deleteField(),
+  });
+}
+
 // ── Siparişler ───────────────────────────────────────────────────────────────
 
 /** Bugünün siparişleri — tek alan filtresi (`gun`), bileşik index gerekmez. */
@@ -213,6 +238,24 @@ export function izleSiparislerim(kantinId: string, uid: string, cb: (s: Siparis[
       cb(liste);
     }
   );
+}
+
+/**
+ * Tarih ARALIĞI (rapor). `gun` tek alan üzerinde aralık — bileşik index gerekmez.
+ * Canlı dinleme YOK: rapor bir kerelik okumadır, 30 günü canlı dinlemek boşuna
+ * kota yakardı.
+ */
+export async function siparisAraligi(kantinId: string, bas: string, bit: string): Promise<Siparis[]> {
+  const snap = await getDocs(
+    query(
+      collection(kDb(), "kantin", kantinId, "siparisler"),
+      where("gun", ">=", bas),
+      where("gun", "<=", bit)
+    )
+  );
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as Siparis)
+    .sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
 }
 
 export async function siparisVer(

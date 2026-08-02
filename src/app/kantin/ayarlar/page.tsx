@@ -19,11 +19,14 @@ import {
 import { useKantin } from "@/lib/kantin/oturum";
 import { MenuUrun } from "@/lib/kantin/types";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { useToast } from "@/components/Toast";
+import UrunSatiri from "@/components/kantin/UrunSatiri";
 
 export default function KantinAyarlarPage() {
   const { user, rol, hazir, seciliId, seciliKantin } = useKantin();
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
+  const { show, toast } = useToast();
   const [menu, setMenu] = useState<MenuUrun[]>([]);
   const [yeniAd, setYeniAd] = useState("");
   const [yeniKantin, setYeniKantin] = useState("");
@@ -60,6 +63,7 @@ export default function KantinAyarlarPage() {
   return (
     <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
       {dialog}
+      {toast}
       <h1 className="font-display text-2xl font-semibold mb-4">Ayarlar</h1>
 
       {seciliKantin && (
@@ -122,69 +126,11 @@ export default function KantinAyarlarPage() {
         ) : (
           <div className="flex flex-col gap-2">
             {menu.map((u) => (
-              <div key={u.id} className="rounded-2xl border border-line p-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <input
-                    key={`ad-${u.id}-${u.ad}`}
-                    defaultValue={u.ad}
-                    onBlur={(e) => e.target.value.trim() && urunGuncelle(seciliId, u.id, { ad: e.target.value.trim().slice(0, 60) })}
-                    className="input-base !py-1.5 text-sm flex-1 min-w-[8rem]"
-                  />
-                  <label className="flex items-center gap-1.5 text-xs shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={u.aktif}
-                      onChange={(e) => urunGuncelle(seciliId, u.id, { aktif: e.target.checked })}
-                      className="w-4 h-4 accent-[#4f46e5]"
-                    />
-                    Menüde
-                  </label>
-                  <button
-                    onClick={() =>
-                      confirm(
-                        { title: "Ürün silinsin mi?", message: `"${u.ad}" menüden kalkar.`, confirmLabel: "Sil", danger: true },
-                        () => void urunSil(seciliId, u.id)
-                      )
-                    }
-                    className="btn-ghost !py-1.5 !px-3 text-xs !text-brand !border-brand/40 shrink-0"
-                  >
-                    Sil
-                  </button>
-                </div>
-                <div className="flex gap-2 mt-2 flex-wrap">
-                  <input
-                    key={`ac-${u.id}-${u.aciklama}`}
-                    defaultValue={u.aciklama ?? ""}
-                    onBlur={(e) => urunGuncelle(seciliId, u.id, { aciklama: e.target.value.trim().slice(0, 90) })}
-                    placeholder="Açıklama"
-                    className="input-base !py-1.5 text-xs flex-1 min-w-[8rem]"
-                  />
-                  <input
-                    key={`f-${u.id}-${u.fiyat}`}
-                    defaultValue={u.fiyat ?? ""}
-                    onBlur={(e) => urunGuncelle(seciliId, u.id, { fiyat: Math.max(0, Number(e.target.value) || 0) })}
-                    placeholder="Fiyat ₺"
-                    inputMode="numeric"
-                    className="input-base !py-1.5 text-xs !w-24"
-                  />
-                  <input
-                    key={`s-${u.id}-${u.gunlukStok}`}
-                    defaultValue={u.gunlukStok ?? ""}
-                    onBlur={(e) =>
-                      urunGuncelle(seciliId, u.id, {
-                        gunlukStok: e.target.value.trim() ? Math.max(0, Number(e.target.value) || 0) : undefined,
-                      })
-                    }
-                    placeholder="Günlük stok"
-                    inputMode="numeric"
-                    className="input-base !py-1.5 text-xs !w-28"
-                  />
-                </div>
-              </div>
+              <UrunSatiri key={u.id} kantinId={seciliId} urun={u} onSil={confirm} onHata={(m) => show(m, "error")} />
             ))}
           </div>
         )}
-        <p className="text-muted text-xs mt-3">Fiyat yalnız bilgidir — ödeme tezgâhta. Stok boşsa sınırsız.</p>
+        <p className="text-muted text-xs mt-3">Görsele dokunup fotoğraf yükleyebilirsin. Fiyat yalnız bilgidir — ödeme tezgâhta; stok boşsa sınırsız.</p>
       </div>
 
       {rol === "admin" && (
