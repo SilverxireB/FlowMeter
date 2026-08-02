@@ -17,12 +17,20 @@ export default function FlowSpinner({
   size = 40,
   className = "",
   label = "Yükleniyor",
+  center,
 }: {
   size?: number;
   className?: string;
   label?: string;
+  /** Halkanın ORTASINDA duran içerik (ör. yüzde). Dönmez — yalnız halka döner. */
+  center?: React.ReactNode;
 }) {
-  return (
+  // Ortada yazı varken İÇ yaylar çizilmez: "%100" iç halkanın boşluğuna
+  // sığmıyor, yayların üstüne biniyordu. Dış halka tek başına da Flow halkası
+  // olarak okunuyor ve ortası ferah kalıyor.
+  const arcs = center === undefined ? ARCS : ARCS.filter((a) => a.r === 20);
+
+  const ring = (
     <svg
       width={size}
       height={size}
@@ -33,7 +41,7 @@ export default function FlowSpinner({
       aria-label={label}
     >
       <g fill="none" strokeLinecap="round" strokeWidth={5}>
-        {ARCS.map((a, i) => (
+        {arcs.map((a, i) => (
           <circle
             key={i}
             cx="24"
@@ -46,5 +54,13 @@ export default function FlowSpinner({
         ))}
       </g>
     </svg>
+  );
+
+  if (center === undefined) return ring;
+  return (
+    <span className="relative inline-grid place-items-center shrink-0" style={{ width: size, height: size }}>
+      {ring}
+      <span className="absolute inset-0 grid place-items-center leading-none">{center}</span>
+    </span>
   );
 }

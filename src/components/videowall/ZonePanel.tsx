@@ -398,8 +398,11 @@ export default function ZonePanel({
           arada "yüklenmiyor" hissi veriyordu. Dönen halka baştan sona hareket
           eder; DOSYA SAYACI kaldı, asıl ilerlemeyi o gösteriyor. */}
       {queue && (
-        <div className="mb-4 flex items-center gap-2.5">
-          <FlowSpinner size={20} />
+        <div className="mb-4 flex items-center gap-3">
+          <FlowSpinner
+            size={56}
+            center={<span className="text-[12px] font-bold tabular-nums text-ink">%{queue.pct}</span>}
+          />
           <p className="text-muted text-xs tabular-nums">
             Yükleniyor… {queue.done + 1}/{queue.total}
           </p>
