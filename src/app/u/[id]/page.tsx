@@ -9,6 +9,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import { Icon } from "@/components/Icon";
+import FlowSpinner from "@/components/FlowSpinner";
 import { useConfirm } from "@/components/ConfirmDialog";
 import WallReactionBar from "@/components/wall/WallReactionBar";
 import { useWall } from "@/lib/hooks";
@@ -410,10 +411,13 @@ export default function UploadPage() {
                     )}
                     {it.isVideo && <span className="absolute bottom-1 left-1 text-xs bg-black/50 rounded-full px-1.5">▶</span>}
 
-                    {/* Durum katmanı */}
+                    {/* Durum katmanı — yükleme sırasında dönen Flow halkası.
+                        Eskiden yüzde yazıyordu: küçük dosyalarda 0'da bekleyip
+                        birden 100 oluyor, arada "yüklenmiyor" hissi veriyordu.
+                        Dönen halka baştan sona hareket ettiği için iş görüyor. */}
                     {it.status === "uploading" && (
                       <div className="absolute inset-0 bg-black/55 grid place-items-center">
-                        <span className="text-sm font-bold tabular-nums">{it.pct}%</span>
+                        <FlowSpinner size={34} label="Yükleniyor" />
                       </div>
                     )}
                     {it.status === "done" && (

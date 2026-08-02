@@ -9,6 +9,7 @@ import {
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import FlowSpinner from "@/components/FlowSpinner";
 import StudioHero from "@/components/StudioHero";
 import { auth } from "@/lib/firebase";
 import { useAuthUser } from "@/lib/hooks";
@@ -50,15 +51,20 @@ function readableError(e: unknown): string {
 /** Sunucu girişi — sadece Google (izleyiciler hiç giriş yapmaz). */
 export default function LoginPage() {
   const router = useRouter();
-  const { user } = useAuthUser();
+  const { user, loading } = useAuthUser();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const bekci = useRef<number | null>(null);
 
-  // Oturum zaten açıksa (ör. /dashboard buraya attıysa) panele geç
+  // Oturum zaten açıksa (ör. /dashboard buraya attıysa) panele geç — girişi
+  // AÇIK olan birine "Google ile devam et" dayatmak yanlıştı.
   useEffect(() => {
     if (user) router.replace("/dashboard");
   }, [user, router]);
+
+  // Oturum daha okunurken buton aktif durmasın: kullanıcı gereksiz yere
+  // tıklıyor, sonra zaten panele atılıyordu.
+  const kontrol = loading || !!user;
 
   // Redirect ile dönüşte oturumu tamamla
   useEffect(() => {
@@ -123,8 +129,17 @@ export default function LoginPage() {
         <div className="card p-8 text-center">
         <p className="text-muted text-sm mb-8">Sunum, etkinlik duvarı, tabela ve nabız ölçümü için giriş yap</p>
 
-        <button onClick={signIn} disabled={busy} className="btn-accent w-full py-4">
-          {busy ? "Bağlanıyor…" : "Google ile devam et"}
+        <button onClick={signIn} disabled={busy || kontrol} className="btn-accent w-full py-4">
+          {kontrol ? (
+            <>
+              <FlowSpinner size={20} label="Oturum kontrol ediliyor" />
+              {user ? "Panele geçiliyor…" : "Kontrol ediliyor…"}
+            </>
+          ) : busy ? (
+            "Bağlanıyor…"
+          ) : (
+            "Google ile devam et"
+          )}
         </button>
 
         {error && <p className="text-brand text-sm mt-4">{error}</p>}
