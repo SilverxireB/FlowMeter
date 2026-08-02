@@ -10,6 +10,7 @@
  */
 import { useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import FlowSpinner from "@/components/FlowSpinner";
 import { uploadMedia } from "@/lib/media";
 import { itemInWindow, ZONE_BG_DEFAULT } from "@/lib/zones";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
@@ -369,12 +370,15 @@ export default function ZonePanel({
         </div>
       )}
 
+      {/* Yüzde ve çubuk kalktı: küçük dosyalarda 0'da bekleyip birden 100 oluyor,
+          arada "yüklenmiyor" hissi veriyordu. Dönen halka baştan sona hareket
+          eder; DOSYA SAYACI kaldı, asıl ilerlemeyi o gösteriyor. */}
       {queue && (
-        <div className="mb-4">
-          <div className="h-1.5 rounded-full bg-line overflow-hidden">
-            <div className="h-full bg-accent transition-[width]" style={{ width: `${queue.pct}%` }} />
-          </div>
-          <p className="text-muted text-xs mt-1 tabular-nums">Yükleniyor… {queue.done + 1}/{queue.total} · {queue.pct}%</p>
+        <div className="mb-4 flex items-center gap-2.5">
+          <FlowSpinner size={20} />
+          <p className="text-muted text-xs tabular-nums">
+            Yükleniyor… {queue.done + 1}/{queue.total}
+          </p>
         </div>
       )}
       {err && <p className="text-brand text-xs mb-3 font-semibold">{err}</p>}
