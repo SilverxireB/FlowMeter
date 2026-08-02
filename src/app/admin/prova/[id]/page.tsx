@@ -1,9 +1,12 @@
 "use client";
 
 /**
- * ⚠️ TEST/DEV ARACI — gizli link. Kaldırmak için: bu dosyayı (src/app/dev/)
- * ve src/lib/sim.ts'i sil. Kullanıcıya değmez: ?k=<SIM_SECRET> yoksa açılmaz,
- * hiçbir yerden linklenmez. Gerçek izleyici gibi anonim yazar (rules değişmez).
+ * PROVA — yönetici aracı (/admin → "Prova & sağlık" → sunum seç).
+ *
+ * Eskiden /dev/sim gizli linkti ve anahtarı istemci paketinin içindeydi: yani
+ * kapı değil, yalnızca bir yavaşlatıcıydı. Artık gerçek yönetici kapısının
+ * arkasında. Botlar gerçek izleyici gibi ANONİM yazar — rules hiç değişmedi,
+ * yani prova gerçek yolu dener.
  *
  * Amaç: N katılımcı + gerçekçi personalarla (hevesli, meraklı, sohbetçi,
  * aktif, sessiz) GERÇEK bir oturumu insanca oranlarda taklit etmek.
@@ -12,9 +15,9 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePresentation, useQuestions, useSlides } from "@/lib/hooks";
 import { newSession, resolveJoinCode } from "@/lib/presentations";
+import { useAdminGate } from "@/lib/useAdminGate";
 import {
   Bot,
-  SIM_SECRET,
   fireMessage,
   fireQuestion,
   fireReaction,
@@ -34,11 +37,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function SimPage() {
   const { id: rawId } = useParams<{ id: string }>();
-  const [authed, setAuthed] = useState<boolean | null>(null);
-  useEffect(() => {
-    const k = new URLSearchParams(window.location.search).get("k");
-    setAuthed(k === SIM_SECRET);
-  }, []);
+  const authed = useAdminGate();
 
   // 6 haneli kod da kabul et: koddan sunum id'sini çöz. undefined=çözülüyor, null=yok.
   const [pid, setPid] = useState<string | null | undefined>(undefined);
@@ -309,11 +308,14 @@ export default function SimPage() {
     }
   }, [id]);
 
-  if (authed === null) return <main className="min-h-screen grid place-items-center text-muted">…</main>;
+  if (authed === null) return <main className="min-h-screen grid place-items-center bg-wash text-muted animate-pulse">Yükleniyor…</main>;
   if (!authed) {
     return (
-      <main className="min-h-screen grid place-items-center bg-wash">
-        <p className="text-muted">404 — sayfa bulunamadı.</p>
+      <main className="min-h-screen grid place-items-center bg-wash text-center px-6">
+        <div>
+          <p className="text-xl font-bold mb-1">Yetki yok</p>
+          <p className="text-muted">Bu sayfa sadece yöneticilere açık.</p>
+        </div>
       </main>
     );
   }

@@ -21,6 +21,7 @@ import { Icon } from "@/components/Icon";
 import { useAuthUser } from "@/lib/hooks";
 import { ADMIN_EMAIL, getUserRecord, isAdminUser } from "@/lib/users";
 import { Kontrol, saglikTara } from "@/lib/health";
+import { usePlayTarget } from "@/lib/usePlayTarget";
 
 const RENK: Record<Kontrol["durum"], string> = {
   ok: "bg-[#1baf7a]/12 border-[#1baf7a]/35 text-[#0f7a55]",
@@ -41,6 +42,8 @@ export default function ProvaPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [kontroller, setKontroller] = useState<Kontrol[] | null>(null);
   const [tarali, setTarali] = useState(false);
+  const [kod, setKod] = useState("");
+  const hedef = usePlayTarget();
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -142,6 +145,40 @@ export default function ProvaPage() {
         <p className="text-muted text-xs mt-4">
           Kontroller oturumunu bozmaz: anonim giriş denemesi ayrı bir bağlantıda yapılır ve açılan hesap hemen silinir.
         </p>
+
+        {/* PROVA — simülatör buraya taşındı. Eskiden /dev/sim gizli linkti ve
+            anahtarı istemci paketinin içindeydi (yani kapı değildi). */}
+        <div className="card p-5 mt-6">
+          <p className="eyebrow mb-1">Prova</p>
+          <p className="text-muted text-xs mb-4">
+            Botlar gerçek izleyici gibi <b>anonim</b> yazar — kurallar değişmez, yani gerçek yol denenir.
+            Kendi sunumunda/duvarında dene; canlı etkinlikte kullanma.
+          </p>
+          <label className="text-xs font-semibold text-muted">Katılım kodu ya da kimlik</label>
+          <input
+            value={kod}
+            onChange={(e) => setKod(e.target.value.trim())}
+            placeholder="6 haneli kod"
+            className="input-base !py-2 mt-1 text-sm"
+          />
+          <div className="flex gap-2 mt-3 flex-wrap">
+            {kod ? (
+              <>
+                <Link href={`/admin/prova/${kod}`} target={hedef} className="btn-primary !py-2 !px-4 text-sm">
+                  Sunum provası
+                </Link>
+                <Link href={`/admin/prova/duvar/${kod}`} target={hedef} className="btn-ghost !py-2 !px-4 text-sm">
+                  Duvara örnek medya
+                </Link>
+              </>
+            ) : (
+              <>
+                <span className="btn-primary !py-2 !px-4 text-sm opacity-40 pointer-events-none">Sunum provası</span>
+                <span className="btn-ghost !py-2 !px-4 text-sm opacity-40 pointer-events-none">Duvara örnek medya</span>
+              </>
+            )}
+          </div>
+        </div>
       </section>
     </main>
   );

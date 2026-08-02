@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * ⚠️ TEST aracı — gizli link. FlowWall duvarına örnek 10 foto + 10 video ekler
- * (test perdesi için). Kaldırmak: bu klasörü sil. ?k=<SIM_SECRET> yoksa açılmaz.
+ * PROVA — duvara örnek 10 foto + 10 video ekler (yönetici aracı).
+ * Eskiden gizli linkti; anahtar istemci paketindeydi, yani kapı değildi.
  * Örnek medya: picsum (foto) + Google örnek videoları — Cloudinary-dışı URL'ler,
  * transform yardımcıları bunlara dokunmaz (bkz. cloudinary.ts isCld).
  */
@@ -10,7 +10,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useWall } from "@/lib/hooks";
 import { addWallMedia, resolveCode } from "@/lib/walls";
-import { SIM_SECRET } from "@/lib/sim";
+import { useAdminGate } from "@/lib/useAdminGate";
 
 const IMAGES = [
   { url: "https://picsum.photos/seed/ww-ani1/1200/1600", w: 1200, h: 1600 },
@@ -43,11 +43,7 @@ const NAMES = ["Ada K.", "Deniz Y.", "Ege A.", "Mira T.", "Kaan B.", "Elif S.", 
 
 export default function SeedWallPage() {
   const { code } = useParams<{ code: string }>();
-  const [authed, setAuthed] = useState<boolean | null>(null);
-  useEffect(() => {
-    const k = new URLSearchParams(window.location.search).get("k");
-    setAuthed(k === SIM_SECRET);
-  }, []);
+  const authed = useAdminGate();
 
   const [wallId, setWallId] = useState<string | null | undefined>(undefined);
   useEffect(() => {
@@ -103,8 +99,8 @@ export default function SeedWallPage() {
     setLog((l) => l + `\n✓ Bitti: ${n}/20 medya eklendi.` + (wall.moderation ? " (Moderasyon AÇIK — perdede görünmesi için Yönet'ten onayla.)" : ""));
   }
 
-  if (authed === null) return <main className="min-h-screen grid place-items-center bg-[#05091c] text-white/60">…</main>;
-  if (!authed) return <main className="min-h-screen grid place-items-center bg-[#05091c] text-white/60">404</main>;
+  if (authed === null) return <main className="min-h-screen grid place-items-center bg-[#05091c] text-white/60">Yükleniyor…</main>;
+  if (!authed) return <main className="min-h-screen grid place-items-center bg-[#05091c] text-white/60 px-6 text-center">Bu sayfa sadece yöneticilere açık.</main>;
 
   return (
     <main className="min-h-screen bg-[#05091c] text-white grid place-items-center p-6">

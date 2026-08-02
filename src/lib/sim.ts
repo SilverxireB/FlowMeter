@@ -1,7 +1,8 @@
 /**
- * ⚠️ TEST/DEV ARACI — sadece /dev/sim/[id] rotası kullanır.
- * Gerçek izleyici gibi anonim yazar (rules değişmez). Kaldırmak için:
- * bu dosyayı + src/app/dev/sim/ klasörünü sil. Kullanıcıya değmez (gizli link).
+ * PROVA botları — yalnız /admin/prova/[id] kullanır (yönetici kapısı arkasında).
+ * Gerçek izleyici gibi anonim yazar; rules hiç değişmez, yani prova gerçek yolu
+ * dener. Eski gizli anahtar (SIM_SECRET) kaldırıldı: istemci paketinin içinde
+ * durduğu için kapı değildi.
  *
  * Amaç: GERÇEK bir oturumu olabildiğince gerçekçi taklit etmek. Botlar
  * personaya göre insanca oranlarda tepki/oy/soru/mesaj üretir — yük bombası
@@ -19,9 +20,6 @@ import {
 import { db } from "./firebase";
 import { AVATAR_SEEDS } from "./participants";
 import { Slide } from "./types";
-
-/** Gizli link anahtarı — bu değer URL'de ?k= ile gelmezse sayfa açılmaz. */
-export const SIM_SECRET = "fm-sim-9x4qz-7k2s-do-not-share";
 
 export const SIM_REACTIONS = ["❤️", "👍", "🎉"] as const;
 
