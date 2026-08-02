@@ -9,36 +9,33 @@ import {
 } from "firebase/firestore";
 
 /**
- * authDomain SİTENİN KENDİ ALAN ADIDIR — env'den değil, tarayıcıdan alınır.
+ * authDomain — Google girişinin geri döneceği adres.
  *
- * Bu proje Firebase'in "auth yardımcısını kendi alan adından servis et"
- * mimarisini kullanıyor: `next.config.mjs` içindeki rewrite `/__/auth/*`
- * isteklerini firebaseapp.com'a proxyler. Yani hangi alan adından açılırsak
- * açalım, yardımcı O alan adında da çalışır.
+ * VARSAYILAN: Firebase'in kendi alan adı (`<projectId>.firebaseapp.com`).
+ * Bu adres Google tarafında OTOMATİK kayıtlıdır, yani her zaman çalışır.
  *
- * NEDEN ENV'DEN ALINMIYOR: alan adı değişince
- * env eskide kalıyordu; giriş penceresi ESKİ alan adının yardımcısına gidip
- * yeni alan adındaki sayfaya geri dönemiyor, Google ekranında asılı kalıyordu.
- * Kaynağı adresin kendisi yapmak bu hatayı imkânsız kılıyor.
+ * NEDEN "sitenin kendi adresi" DEĞİL: bir denemede authDomain'i sayfanın
+ * adresinden almıştım (rewrite sayesinde yardımcı bizim alan adımızda da
+ * çalışıyor). Ama Google girişi bir kapı daha kontrol ediyor: istenen dönüş
+ * adresi (`https://<authDomain>/__/auth/handler`) Google Cloud'daki OAuth
+ * istemcisinin "izin verilen yönlendirme adresleri" listesinde OLMALI. Yeni
+ * alan adı orada kayıtlı olmadığı için giriş "Hata 400: redirect_uri_mismatch"
+ * ile tamamen durdu. Yani kendi alan adımızı kullanmak TEK BAŞINA yetmiyor,
+ * konsolda bir kayıt daha istiyor.
  *
- * Env değeri sunucu tarafı için yedek olarak durur (tarayıcı yokken).
- * NOT: kullanılan alan adı Firebase Console > Authentication > Settings >
- * "Yetkili alan adları" listesinde OLMALI; değilse giriş reddedilir (bu durum
- * artık /login'de okunabilir bir mesajla görünür).
+ * Kendi alan adından servis etmek istenirse (PWA'da üçüncü-taraf çerez
+ * bölümlemesine takılmamak için tercih edilir) İKİ adım BİRLİKTE yapılmalı:
+ *   1. Google Cloud > APIs & Services > Credentials > (Firebase'in açtığı Web
+ *      OAuth istemcisi) > Authorized redirect URIs'e
+ *      `https://<alan-adi>/__/auth/handler` eklenir,
+ *   2. NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN o alan adına set edilir.
+ * Biri eksikse giriş kırılır — bu yüzden varsayılan güvenli olan.
  */
-function resolveAuthDomain(): string | undefined {
-  const env = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
-  if (typeof window === "undefined") return env;
-  const host = window.location.hostname;
-  // Yerel geliştirmede KULLANILMAZ: Firebase yardımcı adresini
-  // `https://<authDomain>/__/auth/handler` diye kurar; "localhost" verilirse
-  // port düşer ve https'e gider → dev sunucusunda çalışmaz. Orada env değeri
-  // (firebaseapp.com) doğru olanı.
-  if (host === "localhost" || host === "127.0.0.1" || host.endsWith(".local")) return env;
-  return host;
-}
-
-const authDomain = resolveAuthDomain();
+const authDomain =
+  process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ||
+  (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    ? `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com`
+    : undefined);
 
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
