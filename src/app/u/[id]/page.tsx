@@ -382,21 +382,6 @@ export default function UploadPage() {
               </a>
             )}
           </div>
-        ) : finished ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center">
-            <div className="text-6xl mb-4" aria-hidden>{wall?.moderation ? "🛡" : "🎉"}</div>
-            {/* KAÇ ADET gittiği yazılır: "gönderildi" tek başına, 10 fotoğrafın
-                hepsi gitti mi diye merak bırakıyordu. */}
-            <h1 className="text-2xl font-bold mb-2">{sentLabel(sent)} gönderildi</h1>
-            <p className="text-white/65 mb-8">
-              {wall?.moderation
-                ? "Moderatör onayı bekleniyor — onaylanınca perdede görünecek."
-                : "Anıların birazdan perdede akmaya başlıyor."}
-            </p>
-            <button onClick={() => inputRef.current?.click()} className="py-3.5 px-7 rounded-2xl bg-white text-[#070c22] font-semibold">
-              {videoOn ? "Yeni fotoğraf / video ekle" : "Yeni fotoğraf ekle"}
-            </button>
-          </div>
         ) : (
           <>
             <div className="mb-4">
@@ -524,6 +509,27 @@ export default function UploadPage() {
               >
                 {sending ? "Yükleniyor…" : `Gönder (${pendingCount}) →`}
               </button>
+            )}
+
+            {/* Gönderim sonucu: eskiden AYRI TAM EKRAN açılıyordu — hem seçim
+                yüzeyini götürüyordu hem de oradaki "yeni ekle" düğmesi çalışmıyordu
+                (dosya seçici o dalda DOM'da değildi, tıklanacak bir şey yoktu).
+                Artık yükleme sayfasının ALTINDA şerit: seçim ekranı yerinde
+                kalıyor, yeni fotoğraf eklemek için yukarıdaki düğme zaten var. */}
+            {finished && (
+              <div className="mt-5 rounded-2xl bg-[#1baf7a]/12 border border-[#1baf7a]/35 px-4 py-3.5 flex items-start gap-3">
+                <span className="text-xl leading-none shrink-0" aria-hidden>
+                  {wall?.moderation ? "🛡" : "🎉"}
+                </span>
+                <div className="min-w-0">
+                  <p className="font-semibold text-[15px]">{sentLabel(sent)} gönderildi</p>
+                  <p className="text-white/60 text-xs mt-0.5">
+                    {wall?.moderation
+                      ? "Moderatör onayı bekleniyor — onaylanınca perdede görünecek."
+                      : "Anıların birazdan perdede akmaya başlıyor."}
+                  </p>
+                </div>
+              </div>
             )}
           </>
         )}
