@@ -25,6 +25,7 @@ import {
   isVotingSlide,
   joinBots,
   makeBots,
+  needsPending,
   upvoteQuestion,
 } from "@/lib/sim";
 import { Slide } from "@/lib/types";
@@ -87,16 +88,48 @@ export default function SimPage() {
     sidRef.current = presentation?.sessionId;
   }, [presentation?.sessionId]);
   // Gerçek izleyici gibi: oylama kapalıyken / sunum bittiyse oy atma
-  const flagsRef = useRef({ votingClosed: false, ended: false });
+  const flagsRef = useRef({ votingClosed: false, ended: false, textModeration: false });
   useEffect(() => {
     flagsRef.current = {
       votingClosed: !!presentation?.votingClosed,
       ended: !!presentation?.ended,
+      textModeration: !!presentation?.textModeration,
     };
-  }, [presentation?.votingClosed, presentation?.ended]);
+  }, [presentation?.votingClosed, presentation?.ended, presentation?.textModeration]);
 
   const rawIndex = presentation?.currentSlideIndex ?? -1;
   const activeSlide: Slide | undefined = rawIndex < 0 ? undefined : slides[Math.min(rawIndex, slides.length - 1)];
+
+  // İŞLEM AKIŞI — "ne oluyor?" sorusunun cevabı. Sayaçlar kaç olduğunu söyler,
+  // akış NE olduğunu. Ref'te biriktirilip saniyede bir ekrana basılır: her olayda
+  // render etmek saniyede yüzlerce render demek olurdu.
+  //
+  // TEPKİLER BİLEREK YAZILMAZ: saniyede onlarca gelir, akışı boğar ve okunacak
+  // bir şey bırakmaz (kullanıcı kararı: "boşyere bin tane emoji gerek yok").
+  // Sayıları üstteki sayaçta zaten görünüyor.
+  //
+  // HATALAR ise MUTLAKA yazılır. Eskiden her yazım `.catch(() => {})` ile
+  // sessizce yutuluyordu: kural reddi ile "hiç denenmedi" ekranda aynı
+  // görünüyordu, teşhis kör kalıyordu. Artık tür bazında sayılıp saniyede bir
+  // tek satır olarak basılır (100 bot × aynı hata listeyi boğmasın).
+  type Tur = "oy" | "soru" | "mesaj" | "bilgi" | "hata";
+  const logRef = useRef<{ id: number; tur: Tur; metin: string }[]>([]);
+  const logIdRef = useRef(0);
+  const [log, setLog] = useState<typeof logRef.current>([]);
+  const kaydet = (tur: Tur, metin: string) => {
+    logRef.current = [{ id: ++logIdRef.current, tur, metin }, ...logRef.current].slice(0, 80);
+  };
+  const hataRef = useRef<Record<string, number>>({});
+  const hata = (ne: string, e: unknown) => {
+    const m = e instanceof Error ? e.message : String(e);
+    const k = `${ne} yazılamadı — ${m}`;
+    hataRef.current[k] = (hataRef.current[k] ?? 0) + 1;
+  };
+  const hatalariBas = () => {
+    const birikmis = hataRef.current;
+    hataRef.current = {};
+    for (const [k, n] of Object.entries(birikmis)) kaydet("hata", n > 1 ? `${k} (×${n})` : k);
+  };
 
   /** Quiz slaytında bitiş anı (ms) — süre bittiyse/başlamadıysa null. */
   const quizDeadline = (slide: Slide): number | null => {
@@ -137,12 +170,21 @@ export default function SimPage() {
     for (const b of botsRef.current) {
       if (votedRef.current.has(b.voterId)) continue;
       votedRef.current.add(b.voterId);
-      fireResponse(id, slide, b.voterId, sidRef.current).catch(() => {});
+      fireResponse(
+        id,
+        slide,
+        b.voterId,
+        sidRef.current,
+        needsPending(slide, flagsRef.current.textModeration)
+      ).catch((e) => hata("oy", e));
       fired++;
     }
     voteQueueRef.current = [];
     countRef.current.votes += fired;
     setStats((s) => ({ ...s, votes: countRef.current.votes }));
+    kaydet("bilgi", `${fired} bot hemen oyladı — ${slide.question || slide.type}`);
+    hatalariBas();
+    setLog([...logRef.current]);
   }, [id]);
 
   // Slaytın GÜNCEL halini her snapshot'ta taşı: quizStartedAt sunum sırasında
@@ -162,20 +204,6 @@ export default function SimPage() {
   const bump = (k: keyof typeof countRef.current, by = 1) => {
     countRef.current[k] += by;
     wpsRef.current.acc += by;
-  };
-
-  // İŞLEM AKIŞI — "ne oluyor?" sorusunun cevabı. Sayaçlar kaç olduğunu söyler,
-  // akış NE olduğunu. Ref'te biriktirilip saniyede bir ekrana basılır: her olayda
-  // render etmek saniyede yüzlerce render demek olurdu.
-  //
-  // TEPKİLER BİLEREK YAZILMAZ: saniyede onlarca gelir, akışı boğar ve okunacak
-  // bir şey bırakmaz (kullanıcı kararı: "boşyere bin tane emoji gerek yok").
-  // Sayıları üstteki sayaçta zaten görünüyor.
-  const logRef = useRef<{ id: number; tur: "oy" | "soru" | "mesaj" | "bilgi"; metin: string }[]>([]);
-  const logIdRef = useRef(0);
-  const [log, setLog] = useState<typeof logRef.current>([]);
-  const kaydet = (tur: "oy" | "soru" | "mesaj" | "bilgi", metin: string) => {
-    logRef.current = [{ id: ++logIdRef.current, tur, metin }, ...logRef.current].slice(0, 80);
   };
 
   // Ana döngü
@@ -203,7 +231,7 @@ export default function SimPage() {
         Math.floor(rExpected) + (Math.random() < rExpected % 1 ? 1 : 0)
       );
       for (let i = 0; i < rc; i++) {
-        fireReaction(tid).catch(() => {});
+        fireReaction(tid).catch((e) => hata("tepki", e));
         bump("reactions");
       }
 
@@ -231,7 +259,13 @@ export default function SimPage() {
               if (votedRef.current.has(v.bot.voterId)) continue;
               votedRef.current.add(v.bot.voterId);
               if (v.willVote) {
-                fireResponse(tid, slide, v.bot.voterId, sidRef.current).catch(() => {});
+                fireResponse(
+                  tid,
+                  slide,
+                  v.bot.voterId,
+                  sidRef.current,
+                  needsPending(slide, flagsRef.current.textModeration)
+                ).catch((e) => hata("oy", e));
                 bump("votes");
                 kaydet("oy", `${v.bot.nickname} oy verdi — ${slide.question || slide.type}`);
               }
@@ -248,7 +282,7 @@ export default function SimPage() {
         const soran = questioners[Math.floor(Math.random() * questioners.length)];
         fireQuestion(tid, soran.voterId)
           .then((t) => kaydet("soru", `${soran.nickname}: ${t}`))
-          .catch(() => {});
+          .catch((e) => hata("soru", e));
         bump("questions");
       }
       const ids = questionIdsRef.current;
@@ -257,7 +291,9 @@ export default function SimPage() {
         let un = Math.floor(upExpected) + (Math.random() < upExpected % 1 ? 1 : 0);
         un = Math.min(6, un);
         for (let i = 0; i < un; i++) {
-          upvoteQuestion(tid, ids[Math.floor(Math.random() * ids.length)], 0).catch(() => {});
+          upvoteQuestion(tid, ids[Math.floor(Math.random() * ids.length)], 0).catch((e) =>
+            hata("beğeni", e)
+          );
         }
       }
 
@@ -270,7 +306,7 @@ export default function SimPage() {
           const yazan = chatters[Math.floor(Math.random() * chatters.length)];
           fireMessage(tid, yazan)
             .then((t) => kaydet("mesaj", `${yazan.nickname}: ${t}`))
-            .catch(() => {});
+            .catch((e) => hata("mesaj", e));
           bump("messages");
         }
       }
@@ -285,6 +321,7 @@ export default function SimPage() {
       w.acc = 0;
       w.last = now;
       setStats({ ...countRef.current, wps });
+      hatalariBas();
       setLog([...logRef.current]);
     }, 1000);
 
@@ -311,6 +348,14 @@ export default function SimPage() {
         setLog([...logRef.current]);
         if (i + size < bots.length) await sleep((windowMs / chunks) * (0.5 + Math.random()));
       }
+      // Katılan bot HAREKET ETMELİ. Ayrı bir "Başlat" adımı beklemek, botlar
+      // eklenmiş ama motor kapalıyken "hiçbir şey olmuyor" görüntüsü veriyordu
+      // (tepki/oy gelmiyor sanılıyor). Motor kendiliğinden açılır; Durdur durur.
+      setRunning((r) => {
+        if (!r) kaydet("bilgi", "Prova başladı — botlar kendiliğinden hareket ediyor.");
+        return true;
+      });
+      setLog([...logRef.current]);
     } finally {
       setBusy(false);
     }
@@ -448,7 +493,19 @@ export default function SimPage() {
 
         {/* Canlı sayaçlar */}
         <div className="card p-5">
-          <p className="eyebrow mb-3">Canlı</p>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <p className="eyebrow">Canlı</p>
+            {/* Motorun açık olup olmadığı TEK bakışta belli olsun: kapalıyken
+                "botlar çalışmıyor" ile "bot yok" ayırt edilemiyordu. */}
+            <span
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-2.5 py-1 ${
+                running ? "bg-[#1baf7a]/12 text-[#0f7a55]" : "bg-paper text-muted"
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${running ? "bg-[#1baf7a] animate-pulse" : "bg-muted/50"}`} />
+              {running ? "Çalışıyor" : "Durdu"}
+            </span>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
             <Stat label="yazma/sn" value={stats.wps} highlight />
             <Stat label="tepki" value={stats.reactions} />
@@ -463,7 +520,7 @@ export default function SimPage() {
           <div className="mt-5">
             <div className="flex items-baseline justify-between gap-2 mb-2">
               <p className="eyebrow">İşlem akışı</p>
-              <p className="text-muted text-[11px]">tepkiler yazılmaz — sayaçta</p>
+              <p className="text-muted text-[11px]">tepkiler yazılmaz — sayaçta · hatalar yazılır</p>
             </div>
             {log.length === 0 ? (
               <p className="text-muted text-sm py-3">Henüz işlem yok.</p>
@@ -473,13 +530,15 @@ export default function SimPage() {
                   <p key={o.id} className="px-3 py-1.5 text-xs flex items-start gap-2">
                     <span
                       className={`shrink-0 font-bold ${
-                        o.tur === "oy"
-                          ? "text-accent"
-                          : o.tur === "soru"
-                            ? "text-[#8a6100]"
-                            : o.tur === "mesaj"
-                              ? "text-[#0f7a55]"
-                              : "text-muted"
+                        o.tur === "hata"
+                          ? "text-brand"
+                          : o.tur === "oy"
+                            ? "text-accent"
+                            : o.tur === "soru"
+                              ? "text-[#8a6100]"
+                              : o.tur === "mesaj"
+                                ? "text-[#0f7a55]"
+                                : "text-muted"
                       }`}
                     >
                       {o.tur === "bilgi" ? "·" : o.tur}

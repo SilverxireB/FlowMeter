@@ -144,11 +144,17 @@ export function fireReaction(presentationId: string): Promise<unknown> {
   });
 }
 
+/**
+ * Oy yazar. `pending` = açık metin moderasyonu AÇIK (bkz. responses.ts): o zaman
+ * cevap 'pending' ile gider — kurallar gerçek izleyiciden de bunu ister, yoksa
+ * open-ended/word-cloud yazımı SESSİZCE reddedilir.
+ */
 export function fireResponse(
   presentationId: string,
   slide: Slide,
   voterId: string,
-  sessionId?: string
+  sessionId?: string,
+  pending?: boolean
 ) {
   let value: ReturnType<typeof randomVoteValue>;
   try {
@@ -159,8 +165,19 @@ export function fireResponse(
   if (value === undefined || value === null) value = 0;
   return addDoc(
     collection(db(), "presentations", presentationId, "slides", slide.id, "responses"),
-    { voterId, value, createdAt: serverTimestamp(), ...(sessionId ? { sessionId } : {}) }
+    {
+      voterId,
+      value,
+      createdAt: serverTimestamp(),
+      ...(sessionId ? { sessionId } : {}),
+      ...(pending ? { status: "pending" } : {}),
+    }
   );
+}
+
+/** Bu slaytta cevap moderasyondan geçiyor mu? (açık metin + moderasyon açık) */
+export function needsPending(slide: Slide, textModeration?: boolean): boolean {
+  return !!textModeration && (slide.type === "open-ended" || slide.type === "word-cloud");
 }
 
 /** Yazılan metni GERİ DÖNDÜRÜR: prova ekranındaki işlem akışı ne yazıldığını gösterebilsin. */
