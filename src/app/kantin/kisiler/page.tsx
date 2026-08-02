@@ -9,9 +9,11 @@
  */
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { izleKisiler, rolAta, yasakla, yasakli } from "@/lib/kantin/api";
+import { izleKisiler, kantinHata, rolAta, yasakla, yasakli } from "@/lib/kantin/api";
 import { useKantin } from "@/lib/kantin/oturum";
 import { KantinKisi, KantinRol } from "@/lib/kantin/types";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const ROL_ETIKET: Record<KantinRol, string> = {
   admin: "Yönetici",
@@ -24,14 +26,16 @@ export default function KantinKisilerPage() {
   const router = useRouter();
   const [liste, setListe] = useState<KantinKisi[]>([]);
   const [ara, setAra] = useState("");
+  const { show, toast } = useToast();
+  const { confirm, dialog } = useConfirm();
 
   useEffect(() => {
     if (hazir && !user) router.replace("/kantin/giris");
   }, [hazir, user, router]);
   useEffect(() => {
     if (rol !== "admin") return;
-    return izleKisiler(setListe);
-  }, [rol]);
+    return izleKisiler(setListe, (e) => show(kantinHata(e), "error"));
+  }, [rol, show]);
 
   if (!hazir || !user) return <Bekle />;
   if (rol !== "admin") {
@@ -50,6 +54,8 @@ export default function KantinKisilerPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+      {toast}
+      {dialog}
       <h1 className="font-display text-2xl font-semibold">Kişiler</h1>
       <p className="text-muted text-sm mb-4">{liste.length} kayıt</p>
 
@@ -81,7 +87,11 @@ export default function KantinKisilerPage() {
             <div className="flex gap-2 mt-3 flex-wrap items-center">
               <select
                 value={k.rol}
-                onChange={(e) => void rolAta(k.id, e.target.value as KantinRol, k.kantinId)}
+                onChange={(e) =>
+                  void rolAta(k.id, e.target.value as KantinRol, k.kantinId)
+                    .then(() => show("Rol güncellendi"))
+                    .catch((x) => show(kantinHata(x), "error"))
+                }
                 className="input-base !py-1.5 text-xs !w-auto"
               >
                 <option value="personel">Personel</option>
@@ -91,7 +101,11 @@ export default function KantinKisilerPage() {
               {k.rol === "kantinci" && (
                 <select
                   value={k.kantinId ?? ""}
-                  onChange={(e) => void rolAta(k.id, "kantinci", e.target.value)}
+                  onChange={(e) =>
+                    void rolAta(k.id, "kantinci", e.target.value)
+                      .then(() => show("Kantin atandı"))
+                      .catch((x) => show(kantinHata(x), "error"))
+                  }
                   className="input-base !py-1.5 text-xs !w-auto"
                 >
                   <option value="">Kantin seç…</option>
@@ -103,11 +117,34 @@ export default function KantinKisilerPage() {
                 </select>
               )}
               {yasakli(k) ? (
-                <button onClick={() => void yasakla(k.id, 0)} className="btn-ghost !py-1.5 !px-3 text-xs">
+                <button
+                  onClick={() =>
+                    void yasakla(k.id, 0)
+                      .then(() => show("Yasak kaldırıldı"))
+                      .catch((x) => show(kantinHata(x), "error"))
+                  }
+                  className="btn-ghost !py-1.5 !px-3 text-xs"
+                >
                   Yasağı kaldır
                 </button>
               ) : (
-                <button onClick={() => void yasakla(k.id, 3)} className="btn-ghost !py-1.5 !px-3 text-xs !text-brand !border-brand/40">
+                <button
+                  onClick={() =>
+                    confirm(
+                      {
+                        title: "3 gün yasak",
+                        message: `${k.ad} 3 gün sipariş veremeyecek.`,
+                        confirmLabel: "Yasakla",
+                        danger: true,
+                      },
+                      () =>
+                        void yasakla(k.id, 3)
+                          .then(() => show("Yasak kondu"))
+                          .catch((x) => show(kantinHata(x), "error"))
+                    )
+                  }
+                  className="btn-ghost !py-1.5 !px-3 text-xs !text-brand !border-brand/40"
+                >
                   3 gün yasakla
                 </button>
               )}

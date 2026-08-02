@@ -21,6 +21,7 @@
 export type IconName =
   // eylem
   | "plus"
+  | "minus"
   | "pencil"
   | "trash"
   | "copy"
@@ -100,6 +101,7 @@ const FILLED: Partial<Record<IconName, true>> = { play: true, stop: true, grip: 
 const PATHS: Record<IconName, React.ReactNode> = {
   // ── eylem ──────────────────────────────────────────────────────────────
   plus: <path d="M12 5v14M5 12h14" />,
+  minus: <path d="M5 12h14" />,
   pencil: (
     <>
       <path d="M16 3.5 20.5 8 9 19.5l-5 1.5 1.5-5L16 3.5Z" />

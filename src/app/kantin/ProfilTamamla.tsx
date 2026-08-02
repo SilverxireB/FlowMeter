@@ -13,7 +13,7 @@ import { useState } from "react";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { kDb } from "@/lib/kantin/firebase";
 import { useKantin } from "@/lib/kantin/oturum";
-import { cikisYap } from "@/lib/kantin/api";
+import { cikisYap, kantinHata } from "@/lib/kantin/api";
 
 export default function ProfilTamamla() {
   const { user } = useKantin();
@@ -40,7 +40,7 @@ export default function ProfilTamamla() {
         createdAt: serverTimestamp(),
       });
     } catch (e2) {
-      setHata(e2 instanceof Error ? e2.message : "Kaydedilemedi.");
+      setHata(kantinHata(e2));
     } finally {
       setBusy(false);
     }

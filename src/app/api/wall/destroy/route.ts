@@ -7,6 +7,7 @@
  *  2. (walls|videowalls)/{wallId}.ownerId == uid kontrolü (Firestore REST; herkese okunur)
  *  3. Cloudinary destroy çağrısı imzalanıp yapılır
  * mode: yok=tek dosya (FlowWall) · "wall"=walls/{id}/ toplu · "sign"=flowsign/{id}/ toplu
+ * · "kantin"=kantin/{id}/ toplu (iç kullanım uygulaması; yetki kantinUsers rolünden)
  *
  * Env (Vercel, server-side): CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
  * (+ mevcut NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -43,7 +44,8 @@ export async function POST(req: Request) {
   const wallMode = body.mode === "wall"; // FlowWall: tüm duvarı topluca temizle (prefix)
   const signMode = body.mode === "sign"; // FlowSign: videowall medyasını topluca temizle
   const guestMode = body.mode === "guest"; // misafir KENDİ medyasını siler (voterId == uid)
-  const bulk = wallMode || signMode;
+  const kantinMode = body.mode === "kantin"; // Kantin: ürün görsellerini topluca temizle
+  const bulk = wallMode || signMode || kantinMode;
   let resourceType = body.resourceType === "video" ? "video" : "image";
   if (!wallId || !idToken || (!bulk && !guestMode && !cloudinaryId) || (guestMode && !body.mediaId)) {
     return NextResponse.json({ ok: false, error: "missing-params" }, { status: 400 });
@@ -77,6 +79,18 @@ export async function POST(req: Request) {
     cloudinaryId = f.cloudinaryId?.stringValue;
     resourceType = f.type?.stringValue === "video" ? "video" : "image";
     if (!cloudinaryId) return NextResponse.json({ ok: true, skipped: true });
+  } else if (kantinMode) {
+    // Kantin ayrı bir dünya: sahiplik yerine ROL. Yönetici ya da o kantinin
+    // görevlisi silebilir (Firestore kurallarındaki kGorevli ile aynı kapı).
+    const kisiRes = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/kantinUsers/${uid}`
+    );
+    const kf = kisiRes.ok ? ((await kisiRes.json())?.fields ?? {}) : {};
+    const rol = kf?.rol?.stringValue ?? "";
+    const kantinId = kf?.kantinId?.stringValue ?? "";
+    const eposta = account?.email ?? "";
+    const yetkili = eposta === "doganbaharozu@gmail.com" || rol === "admin" || (rol === "kantinci" && kantinId === wallId);
+    if (!yetkili) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   } else {
     const ownerCollection = signMode ? "videowalls" : "walls";
     const wallRes = await fetch(
@@ -101,7 +115,7 @@ export async function POST(req: Request) {
   // (duvar silinince yetim Cloudinary dosyası kalmasın → depolama sızıntısı biter)
   // FlowWall: walls/{id}/ · FlowSign: flowsign/{id}/
   if (bulk) {
-    const prefix = signMode ? `flowsign/${wallId}` : `walls/${wallId}`;
+    const prefix = signMode ? `flowsign/${wallId}` : kantinMode ? `kantin/${wallId}` : `walls/${wallId}`;
     const auth = "Basic " + Buffer.from(`${KEY}:${SECRET}`).toString("base64");
     const purged: Record<string, number> = {};
     // image ve video ayrı resource_type → her biri için prefix sil

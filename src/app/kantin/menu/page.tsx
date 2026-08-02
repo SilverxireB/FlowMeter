@@ -3,31 +3,36 @@
 /**
  * MENÜ + SİPARİŞ — personelin ana ekranı.
  *
- * Tasarım kararı: mola 10 dakika. Ekran "katalog" değil, iki dokunuşluk bir
- * sipariş. Kararlar buradan çıktı:
- *  - FOTOĞRAF: molada kimse okumaz, bakar. Görseli olan ürün kartı büyük,
- *    olmayan sade kalır (kantin fotoğraf yüklemek zorunda değil).
- *  - KATEGORİ ŞERİDİ yalnız 1'den fazla kategori varsa görünür; tek kategorili
- *    küçük bir kantinde boş bir filtre satırı gürültüden başka bir şey değil.
- *  - SEPET altta sabit bir çubuk: sayfayı kaydırırken kaybolmaz, "kaç şey
- *    seçtim, ne zaman hazır" hep göz önünde.
- *  - Verilen söz (tahmini süre) İYİMSER DEĞİL — tutmayan süre ürünü ilk günde
- *    çöpe atar (bkz. beklemeDk).
+ * Mola 10 dakika. Ekran "katalog" değil, iki dokunuşluk bir sipariş:
+ *  - YİNE AYNISI: fabrika kantininde sipariş neredeyse her gün aynıdır. Son
+ *    siparişi tek dokunuşla tekrarlamak, bu üründe kazanılacak en büyük zaman.
+ *  - FOTOĞRAF: molada kimse okumaz, bakar.
+ *  - KATEGORİ/ARAMA yalnız gerektiğinde görünür; küçük menüde boş bir filtre
+ *    satırı gürültüden başka bir şey değil.
+ *  - SEPET altta sabit; "Gönder" ayrı düğme — sepeti açmadan da gönderilir.
+ *  - Verilen süre İYİMSER DEĞİL (bkz. beklemeDk) — tutmayan söz ürünü bitirir.
+ *
+ * KUYRUK BİLGİSİ TEK BELGEDEN gelir (`gunler/{gun}`): eskiden günün TÜM
+ * siparişleri dinleniyordu; hem herkes herkesin ne yediğini görüyordu hem de
+ * her yeni siparişte her telefona okuma faturalanıyordu.
  */
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   beklemeDk,
+  bugunTukendi,
   gunKey,
-  izleGunSiparisleri,
+  izleBugunOzet,
   izleMenu,
-  satilanAdet,
+  kantinHata,
+  siparisAcikMi,
   siparisVer,
+  sonrakiAcilis,
   yasakli,
 } from "@/lib/kantin/api";
 import { useKantin } from "@/lib/kantin/oturum";
-import { ACIK_DURUMLAR, MenuUrun, Siparis, SiparisSatir } from "@/lib/kantin/types";
+import { GunOzet, MenuUrun, Siparis, SiparisSatir } from "@/lib/kantin/types";
 import { cldThumb } from "@/lib/cloudinary";
 import { Icon } from "@/components/Icon";
 import { SkelBox } from "@/components/Skeleton";
@@ -35,16 +40,20 @@ import { useToast } from "@/components/Toast";
 import BosDurum from "@/components/kantin/BosDurum";
 
 export default function KantinMenuPage() {
-  const { user, kisi, hazir, seciliKantin, seciliId, kantinler } = useKantin();
+  const { user, kisi, hazir, seciliKantin, seciliId, kantinler, acikSiparisler, siparislerim } = useKantin();
   const router = useRouter();
   const { show, toast } = useToast();
   const [menu, setMenu] = useState<MenuUrun[] | null>(null);
-  const [bugun, setBugun] = useState<Siparis[]>([]);
+  const [ozet, setOzet] = useState<GunOzet | null>(null);
   const [sepet, setSepet] = useState<Record<string, number>>({});
   const [kategori, setKategori] = useState("");
+  const [arama, setArama] = useState("");
   const [not, setNot] = useState("");
   const [sepetAcik, setSepetAcik] = useState(false);
   const [busy, setBusy] = useState(false);
+  // CLAUDE.md kuralı: kayıt açan aksiyonda kilit REF ile — state kilidi iki hızlı
+  // dokunuşta yarışı kaybediyor.
+  const kilitRef = useRef(false);
 
   useEffect(() => {
     if (hazir && !user) router.replace("/kantin/giris");
@@ -57,24 +66,29 @@ export default function KantinMenuPage() {
   }, [seciliId]);
   useEffect(() => {
     if (!seciliId) return;
-    return izleGunSiparisleri(seciliId, gunKey(), setBugun);
+    return izleBugunOzet(seciliId, setOzet);
   }, [seciliId]);
   // Kantin değişince sepet sıfırlanır: başka kantinin ürünü sepette kalamaz.
   useEffect(() => {
     setSepet({});
     setKategori("");
+    setArama("");
   }, [seciliId]);
 
-  const acikSiparisim = bugun.filter((s) => s.uid === user?.uid && ACIK_DURUMLAR.includes(s.durum));
-  const kuyruk = bugun.filter((s) => s.durum === "yeni" || s.durum === "hazirlaniyor").length;
+  const kuyruk = ozet?.acik ?? 0;
   const tahmin = seciliKantin ? beklemeDk(seciliKantin, kuyruk) : 0;
 
   const aktifMenu = useMemo(() => (menu ?? []).filter((u) => u.aktif), [menu]);
-  const kategoriler = useMemo(() => {
-    const set = new Set(aktifMenu.map((u) => u.kategori?.trim()).filter(Boolean) as string[]);
-    return [...set];
-  }, [aktifMenu]);
-  const gosterilen = kategori ? aktifMenu.filter((u) => u.kategori?.trim() === kategori) : aktifMenu;
+  const kategoriler = useMemo(
+    () => [...new Set(aktifMenu.map((u) => u.kategori?.trim()).filter(Boolean) as string[])],
+    [aktifMenu]
+  );
+  const q = arama.trim().toLowerCase();
+  const gosterilen = aktifMenu.filter(
+    (u) =>
+      (!kategori || u.kategori?.trim() === kategori) &&
+      (!q || `${u.ad} ${u.aciklama ?? ""}`.toLowerCase().includes(q))
+  );
 
   const satirlar: SiparisSatir[] = useMemo(
     () =>
@@ -84,45 +98,63 @@ export default function KantinMenuPage() {
     [sepet, menu]
   );
   const toplamAdet = satirlar.reduce((a, s) => a + s.adet, 0);
-  const toplamTutar = satirlar.reduce(
-    (a, s) => a + (((menu ?? []).find((u) => u.id === s.urunId)?.fiyat ?? 0) * s.adet),
-    0
-  );
-
-  const kalanStok = (u: MenuUrun): number | null =>
-    u.gunlukStok == null ? null : Math.max(0, u.gunlukStok - satilanAdet(bugun, u.id));
+  const tutar = (l: SiparisSatir[]) =>
+    l.reduce((a, s) => a + ((menu ?? []).find((u) => u.id === s.urunId)?.fiyat ?? 0) * s.adet, 0);
 
   const yasak = yasakli(kisi);
   const limit = seciliKantin?.kisiBasiLimit ?? 1;
-  const limitDoldu = acikSiparisim.length >= limit;
-  const kapali = !seciliKantin?.acik;
-  const engel = yasak || limitDoldu || kapali;
+  const limitDoldu = acikSiparisler.length >= limit;
+  const acikMi = siparisAcikMi(seciliKantin);
+  const engel = yasak || limitDoldu || !acikMi;
+  const engelSebep = yasak
+    ? "Siparişin geçici olarak kapalı."
+    : limitDoldu
+      ? "Zaten açık bir siparişin var."
+      : !acikMi
+        ? "Kantin şu an sipariş almıyor."
+        : "";
 
-  const ekle = (u: MenuUrun, delta: number) => {
-    setSepet((s) => {
-      const yeni = Math.max(0, (s[u.id] ?? 0) + delta);
-      const kalan = kalanStok(u);
-      return { ...s, [u.id]: kalan == null ? Math.min(10, yeni) : Math.min(10, kalan, yeni) };
-    });
-  };
+  // Bugün kaçıncı sipariş — belge kimliğindeki sıra (sunucu tavanı 5).
+  const bugunSayim = siparislerim.filter((s) => s.gun === gunKey()).length;
 
-  const gonder = async () => {
-    if (!kisi || !seciliKantin || !satirlar.length || busy) return;
+  const ekle = (u: MenuUrun, delta: number) =>
+    setSepet((s) => ({ ...s, [u.id]: Math.max(0, Math.min(10, (s[u.id] ?? 0) + delta)) }));
+
+  const gonder = async (gonderilecek: SiparisSatir[], gonderNot?: string) => {
+    if (!kisi || !seciliKantin || !gonderilecek.length) return;
+    if (kilitRef.current) return;
+    kilitRef.current = true;
     setBusy(true);
     show("Sipariş gönderiliyor…", "busy");
     try {
-      await siparisVer(seciliId, kisi, satirlar, not);
+      await siparisVer(seciliId, kisi, gonderilecek, gonderNot, bugunSayim + 1);
       setSepet({});
       setNot("");
       setSepetAcik(false);
       show("Siparişin alındı");
       router.push("/kantin/siparisim");
     } catch (e) {
-      show(e instanceof Error ? e.message : "Sipariş verilemedi.", "error");
+      show(kantinHata(e), "error");
     } finally {
+      kilitRef.current = false;
       setBusy(false);
     }
   };
+
+  /** Son tamamlanmış/hazır sipariş — "yine aynısı" kısayolunun kaynağı. */
+  const sonSiparis: Siparis | null = useMemo(
+    () => siparislerim.find((s) => s.durum === "alindi" || s.durum === "hazir") ?? null,
+    [siparislerim]
+  );
+  const tekrarSatirlar = useMemo(() => {
+    if (!sonSiparis || !menu) return [];
+    // Menüden düşmüş/tükenmiş ürünü sessizce taşıma — kişi tezgâhta öğrenmesin.
+    return sonSiparis.satirlar.filter((x) => {
+      const u = menu.find((m) => m.id === x.urunId);
+      return !!u && u.aktif && !bugunTukendi(u);
+    });
+  }, [sonSiparis, menu]);
+  const tekrarEksik = !!sonSiparis && tekrarSatirlar.length !== sonSiparis.satirlar.length;
 
   if (!hazir || !user) return <Bekle />;
 
@@ -132,17 +164,22 @@ export default function KantinMenuPage() {
         <BosDurum
           ikon="shield"
           baslik="Henüz kantin tanımlı değil"
-          metin={kantinler.length === 0 ? "Yönetici Ayarlar'dan kantin açınca burada görünecek." : "Üstteki listeden bir kantin seç."}
+          metin={
+            kantinler.length === 0
+              ? "Yönetici Ayarlar'dan kantin açınca burada görünecek."
+              : "Üstteki listeden bir kantin seç."
+          }
         />
       </Sayfa>
     );
   }
 
+  const acilis = sonrakiAcilis(seciliKantin);
+
   return (
     <Sayfa>
       {toast}
 
-      {/* Başlık + durum: "şu an ne kadar bekletir" tek bakışta. */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <h1 className="font-display text-2xl font-semibold truncate">{seciliKantin.ad}</h1>
@@ -150,11 +187,11 @@ export default function KantinMenuPage() {
         </div>
         <span
           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
-            kapali ? "bg-brand-soft text-brand" : "bg-[#1baf7a]/12 text-[#0f7a55]"
+            !acikMi ? "bg-brand-soft text-brand" : "bg-[#1baf7a]/12 text-[#0f7a55]"
           }`}
         >
-          <Icon name={kapali ? "lock" : "timer"} size={13} />
-          {kapali ? "Sipariş kapalı" : `~${tahmin} dk`}
+          <Icon name={!acikMi ? "lock" : "timer"} size={13} />
+          {!acikMi ? (acilis ? `${acilis}'te açılıyor` : "Sipariş kapalı") : `~${tahmin} dk`}
         </span>
       </div>
 
@@ -177,9 +214,37 @@ export default function KantinMenuPage() {
           }
         />
       )}
-      {!yasak && !limitDoldu && kapali && <Uyari tur="hata" metin="Kantin şu an sipariş almıyor." />}
+      {!yasak && !limitDoldu && !acikMi && (
+        <Uyari
+          tur="hata"
+          metin={acilis ? `Kantin şu an kapalı — ${acilis}'te açılıyor.` : "Kantin şu an sipariş almıyor."}
+        />
+      )}
 
-      {/* Kategori şeridi — yalnız gerçekten birden fazla kategori varsa. */}
+      {/* YİNE AYNISI — tek dokunuşluk tekrar sipariş */}
+      {!engel && tekrarSatirlar.length > 0 && toplamAdet === 0 && (
+        <div className="card p-4 mt-4 flex items-center gap-3">
+          <span className="w-10 h-10 rounded-full bg-accent-soft text-accent grid place-items-center shrink-0">
+            <Icon name="refresh" size={17} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-sm">Yine aynısı</p>
+            <p className="text-muted text-xs truncate">
+              {tekrarSatirlar.map((x) => `${x.adet}× ${x.ad}`).join(", ")}
+              {tutar(tekrarSatirlar) > 0 ? ` · ${tutar(tekrarSatirlar)} ₺` : ""}
+            </p>
+            {tekrarEksik && <p className="text-[#8a6100] text-[11px] mt-0.5">Bugün olmayan ürünler çıkarıldı.</p>}
+          </div>
+          <button
+            onClick={() => void gonder(tekrarSatirlar, sonSiparis?.not)}
+            disabled={busy}
+            className="btn-primary !py-2 !px-4 text-sm shrink-0"
+          >
+            Gönder
+          </button>
+        </div>
+      )}
+
       {kategoriler.length > 1 && (
         <div className="flex gap-1.5 overflow-x-auto mt-4 -mx-4 px-4 sm:mx-0 sm:px-0">
           <Cip aktif={kategori === ""} onClick={() => setKategori("")}>
@@ -193,24 +258,33 @@ export default function KantinMenuPage() {
         </div>
       )}
 
-      {/* Menü */}
-      <div className="grid gap-3 mt-4 sm:grid-cols-2" style={{ paddingBottom: toplamAdet ? 96 : 0 }}>
+      {aktifMenu.length > 10 && (
+        <input
+          value={arama}
+          onChange={(e) => setArama(e.target.value)}
+          placeholder="Menüde ara"
+          className="input-base !py-2 text-sm mt-3"
+        />
+      )}
+
+      <div className="grid gap-3 mt-4 sm:grid-cols-2" style={{ paddingBottom: toplamAdet ? 104 : 0 }}>
         {menu === null && [0, 1, 2, 3].map((i) => <SkelBox key={i} className="h-24" />)}
         {menu !== null && gosterilen.length === 0 && (
           <div className="sm:col-span-2">
-            <BosDurum ikon="list" baslik="Bugün menüde ürün yok" metin="Kantin görevlisi ürün ekleyince burada görünür." />
+            <BosDurum
+              ikon="list"
+              baslik={q || kategori ? "Eşleşen ürün yok" : "Bugün menüde ürün yok"}
+              metin={q || kategori ? "Aramayı değiştir." : "Kantin görevlisi ürün ekleyince burada görünür."}
+            />
           </div>
         )}
         {gosterilen.map((u) => {
-          const kalan = kalanStok(u);
-          const tukendi = kalan === 0;
+          const tukendi = bugunTukendi(u);
           const adet = sepet[u.id] ?? 0;
           return (
             <div
               key={u.id}
-              className={`card overflow-hidden flex ${tukendi ? "opacity-55" : ""} ${
-                adet > 0 ? "ring-2 ring-accent/40" : ""
-              }`}
+              className={`card overflow-hidden flex ${tukendi ? "opacity-55" : ""} ${adet > 0 ? "ring-2 ring-accent/40" : ""}`}
             >
               {u.gorselUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -227,11 +301,7 @@ export default function KantinMenuPage() {
                   {u.aciklama && <p className="text-muted text-xs mt-0.5 line-clamp-2">{u.aciklama}</p>}
                   <p className="text-muted text-xs mt-1 flex items-center gap-1.5 flex-wrap">
                     {!!u.fiyat && <span className="font-semibold text-ink">{u.fiyat} ₺</span>}
-                    {kalan != null && (
-                      <span className={tukendi ? "text-brand font-semibold" : kalan <= 3 ? "text-[#8a6100] font-semibold" : ""}>
-                        {tukendi ? "tükendi" : `${kalan} kaldı`}
-                      </span>
-                    )}
+                    {tukendi && <span className="text-brand font-semibold">bugünlük bitti</span>}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -240,9 +310,9 @@ export default function KantinMenuPage() {
                       <button
                         onClick={() => ekle(u, -1)}
                         aria-label={`${u.ad} azalt`}
-                        className="w-10 h-10 rounded-full border border-line grid place-items-center transform-gpu active:scale-95 transition-transform"
+                        className="w-11 h-11 rounded-full border border-line grid place-items-center transform-gpu active:scale-95 transition-transform"
                       >
-                        <Icon name="close" size={14} />
+                        <Icon name="minus" size={16} />
                       </button>
                       <span className="w-6 text-center tabular-nums font-bold">{adet}</span>
                     </>
@@ -251,7 +321,7 @@ export default function KantinMenuPage() {
                     onClick={() => ekle(u, 1)}
                     disabled={tukendi || engel}
                     aria-label={`${u.ad} ekle`}
-                    className={`w-10 h-10 rounded-full grid place-items-center disabled:opacity-30 transform-gpu active:scale-95 transition-transform ${
+                    className={`w-11 h-11 rounded-full grid place-items-center disabled:opacity-30 transform-gpu active:scale-95 transition-transform ${
                       adet > 0 ? "bg-accent text-white" : "border border-line"
                     }`}
                   >
@@ -264,38 +334,54 @@ export default function KantinMenuPage() {
         })}
       </div>
 
-      {/* Sepet çubuğu — sayfa kaydırılırken kaybolmaz. */}
       {toplamAdet > 0 && (
         <>
-          <div className="fixed inset-x-0 bottom-0 z-40 p-3 pointer-events-none">
-            <div className="max-w-3xl mx-auto pointer-events-auto">
+          <div
+            className="fixed inset-x-0 bottom-0 z-40 p-3 pointer-events-none"
+            style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+          >
+            <div className="max-w-3xl mx-auto pointer-events-auto flex gap-2">
               <button
                 onClick={() => setSepetAcik(true)}
-                className="w-full card shadow-lg p-3 flex items-center gap-3 text-left transform-gpu active:scale-[0.99] transition-transform"
+                className="card shadow-lg p-3 flex items-center gap-3 text-left flex-1 min-w-0 transform-gpu active:scale-[0.99] transition-transform"
               >
                 <span className="w-10 h-10 rounded-full bg-accent text-white grid place-items-center font-bold tabular-nums shrink-0">
                   {toplamAdet}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-semibold text-sm">Siparişi tamamla</span>
+                  <span className="block font-semibold text-sm">Sepeti gör</span>
                   <span className="block text-muted text-xs">
-                    ~{tahmin} dk{toplamTutar > 0 ? ` · ${toplamTutar} ₺` : ""}
+                    ~{tahmin} dk{tutar(satirlar) > 0 ? ` · ${tutar(satirlar)} ₺` : ""}
                   </span>
                 </span>
-                <Icon name="up" size={16} />
+              </button>
+              <button
+                onClick={() => void gonder(satirlar, not)}
+                disabled={busy || engel}
+                className="btn-primary !py-3 !px-6 text-sm shadow-lg shrink-0"
+              >
+                {busy ? "…" : "Gönder"}
               </button>
             </div>
           </div>
 
           {sepetAcik && (
-            <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-6" onClick={() => setSepetAcik(false)}>
+            <div
+              className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-6"
+              onClick={() => setSepetAcik(false)}
+            >
               <div
                 className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 animate-pop max-h-[85vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
+                style={{ paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
               >
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <p className="font-display text-xl font-semibold">Siparişin</p>
-                  <button onClick={() => setSepetAcik(false)} aria-label="Kapat" className="w-9 h-9 rounded-full border border-line grid place-items-center">
+                  <button
+                    onClick={() => setSepetAcik(false)}
+                    aria-label="Kapat"
+                    className="w-11 h-11 rounded-full border border-line grid place-items-center"
+                  >
                     <Icon name="close" size={14} />
                   </button>
                 </div>
@@ -311,17 +397,17 @@ export default function KantinMenuPage() {
                           <button
                             onClick={() => u && ekle(u, -1)}
                             aria-label="azalt"
-                            className="w-9 h-9 rounded-full border border-line grid place-items-center"
+                            className="w-11 h-11 rounded-full border border-line grid place-items-center"
                           >
-                            <Icon name="close" size={13} />
+                            <Icon name="minus" size={15} />
                           </button>
                           <span className="w-5 text-center tabular-nums font-semibold">{s.adet}</span>
                           <button
                             onClick={() => u && ekle(u, 1)}
                             aria-label="artır"
-                            className="w-9 h-9 rounded-full border border-line grid place-items-center"
+                            className="w-11 h-11 rounded-full border border-line grid place-items-center"
                           >
-                            <Icon name="plus" size={14} />
+                            <Icon name="plus" size={15} />
                           </button>
                         </span>
                       </div>
@@ -338,9 +424,19 @@ export default function KantinMenuPage() {
                 />
                 <p className="text-muted text-xs mt-2">
                   Tahmini hazır: <b>~{tahmin} dk</b>
-                  {toplamTutar > 0 && <> · ödeme tezgâhta: <b>{toplamTutar} ₺</b></>}
+                  {tutar(satirlar) > 0 && (
+                    <>
+                      {" "}
+                      · ödeme tezgâhta: <b>{tutar(satirlar)} ₺</b>
+                    </>
+                  )}
                 </p>
-                <button onClick={() => void gonder()} disabled={busy || engel} className="btn-primary w-full !py-3 text-sm mt-3">
+                {engel && <p className="text-brand text-xs mt-1.5 font-semibold">{engelSebep}</p>}
+                <button
+                  onClick={() => void gonder(satirlar, not)}
+                  disabled={busy || engel}
+                  className="btn-primary w-full !py-3 text-sm mt-3"
+                >
                   {busy ? "Gönderiliyor…" : "Siparişi gönder"}
                 </button>
               </div>

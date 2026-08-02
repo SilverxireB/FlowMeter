@@ -6,19 +6,12 @@
  * model baştan çok kantinli).
  */
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import {
-  izleMenu,
-  kantinAc,
-  kantinGuncelle,
-  kantinSil,
-  urunEkle,
-  urunGuncelle,
-  urunSil,
-} from "@/lib/kantin/api";
+import { useEffect, useRef, useState } from "react";
+import { izleMenu, kantinAc, kantinGuncelle, kantinHata, kantinSil, urunEkle } from "@/lib/kantin/api";
 import { useKantin } from "@/lib/kantin/oturum";
-import { MenuUrun } from "@/lib/kantin/types";
+import { Kantin, MenuUrun } from "@/lib/kantin/types";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { Icon } from "@/components/Icon";
 import { useToast } from "@/components/Toast";
 import UrunSatiri from "@/components/kantin/UrunSatiri";
 
@@ -50,15 +43,45 @@ export default function KantinAyarlarPage() {
     );
   }
 
+  // CLAUDE.md kuralı: kayıt açan aksiyonda kilit REF ile — iki hızlı dokunuş
+  // aynı ürünü/kantini iki kez açıyordu.
+  const urunKilit = useRef(false);
+  const kantinKilit = useRef(false);
+
   const urunEkleGonder = async () => {
-    if (!yeniAd.trim() || !seciliId) return;
-    await urunEkle(seciliId, {
-      ad: yeniAd.trim().slice(0, 60),
-      aktif: true,
-      sira: (menu[menu.length - 1]?.sira ?? 0) + 1,
-    });
-    setYeniAd("");
+    if (!yeniAd.trim() || !seciliId || urunKilit.current) return;
+    urunKilit.current = true;
+    try {
+      await urunEkle(seciliId, {
+        ad: yeniAd.trim().slice(0, 60),
+        aktif: true,
+        sira: (menu[menu.length - 1]?.sira ?? 0) + 1,
+      });
+      setYeniAd("");
+    } catch (e) {
+      show(kantinHata(e), "error");
+    } finally {
+      urunKilit.current = false;
+    }
   };
+
+  const kantinAcGonder = async () => {
+    if (!yeniKantin.trim() || kantinKilit.current) return;
+    kantinKilit.current = true;
+    try {
+      await kantinAc(yeniKantin, yeniYer);
+      setYeniKantin("");
+      setYeniYer("");
+      show("Kantin açıldı");
+    } catch (e) {
+      show(kantinHata(e), "error");
+    } finally {
+      kantinKilit.current = false;
+    }
+  };
+
+  const yaz = (patch: Partial<Kantin>) =>
+    kantinGuncelle(seciliId, patch).catch((e) => show(kantinHata(e), "error"));
 
   return (
     <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
@@ -73,12 +96,12 @@ export default function KantinAyarlarPage() {
             <Alan
               etiket="Kantin adı"
               deger={seciliKantin.ad}
-              onKaydet={(v) => kantinGuncelle(seciliId, { ad: v.slice(0, 60) })}
+              onKaydet={(v) => void yaz({ ad: v.slice(0, 60) })}
             />
             <Alan
               etiket="Yeri"
               deger={seciliKantin.yer ?? ""}
-              onKaydet={(v) => kantinGuncelle(seciliId, { yer: v.slice(0, 80) })}
+              onKaydet={(v) => void yaz({ yer: v.slice(0, 80) })}
             />
             <Sayi
               etiket="Aynı anda hazırlanabilir"
@@ -86,23 +109,24 @@ export default function KantinAyarlarPage() {
               deger={seciliKantin.kapasite ?? 4}
               min={1}
               max={50}
-              onKaydet={(v) => kantinGuncelle(seciliId, { kapasite: v })}
+              onKaydet={(v) => void yaz({ kapasite: v })}
             />
             <Sayi
               etiket="Hazırlık süresi (dk)"
               deger={seciliKantin.hazirlikDk ?? 3}
               min={1}
               max={60}
-              onKaydet={(v) => kantinGuncelle(seciliId, { hazirlikDk: v })}
+              onKaydet={(v) => void yaz({ hazirlikDk: v })}
             />
             <Sayi
               etiket="Kişi başı açık sipariş"
               deger={seciliKantin.kisiBasiLimit ?? 1}
               min={1}
               max={5}
-              onKaydet={(v) => kantinGuncelle(seciliId, { kisiBasiLimit: v })}
+              onKaydet={(v) => void yaz({ kisiBasiLimit: v })}
             />
           </div>
+          <Saatler kantin={seciliKantin} onKaydet={(v) => void yaz({ saatler: v })} />
         </div>
       )}
 
@@ -139,16 +163,7 @@ export default function KantinAyarlarPage() {
           <div className="flex gap-2 flex-wrap">
             <input value={yeniKantin} onChange={(e) => setYeniKantin(e.target.value)} placeholder="Kantin adı" className="input-base !py-2 text-sm flex-1 min-w-[8rem]" />
             <input value={yeniYer} onChange={(e) => setYeniYer(e.target.value)} placeholder="Yeri" className="input-base !py-2 text-sm flex-1 min-w-[8rem]" />
-            <button
-              onClick={() => {
-                if (!yeniKantin.trim()) return;
-                void kantinAc(yeniKantin, yeniYer).then(() => {
-                  setYeniKantin("");
-                  setYeniYer("");
-                });
-              }}
-              className="btn-primary !py-2 !px-4 text-sm shrink-0"
-            >
+            <button onClick={() => void kantinAcGonder()} className="btn-primary !py-2 !px-4 text-sm shrink-0">
               Kantin aç
             </button>
           </div>
@@ -162,7 +177,13 @@ export default function KantinAyarlarPage() {
                     confirmLabel: "Sil",
                     danger: true,
                   },
-                  () => void kantinSil(seciliId)
+                  () =>
+                    void user
+                      ?.getIdToken()
+                      .catch(() => undefined)
+                      .then((t) => kantinSil(seciliId, t ?? undefined))
+                      .then(() => show("Kantin silindi"))
+                      .catch((e) => show(kantinHata(e), "error"))
                 )
               }
               className="btn-ghost !py-2 !px-4 text-sm mt-3 !text-brand !border-brand/40"
@@ -221,4 +242,60 @@ function Sayi({
 
 function Bekle() {
   return <main className="min-h-screen grid place-items-center bg-wash text-muted animate-pulse">Yükleniyor…</main>;
+}
+
+/**
+ * Çalışma pencereleri. Kantinci akşam kapatmayı unutunca gece vardiyası boşuna
+ * sipariş veriyordu; saat penceresi bu sessiz arızayı kapatır. Boş bırakılırsa
+ * eskisi gibi yalnız elle açılıp kapanır.
+ */
+function Saatler({ kantin, onKaydet }: { kantin: Kantin; onKaydet: (v: { bas: string; bit: string }[]) => void }) {
+  const mevcut = kantin.saatler ?? [];
+  const [liste, setListe] = useState<{ bas: string; bit: string }[]>(mevcut);
+  useEffect(() => setListe(kantin.saatler ?? []), [kantin.id, kantin.saatler]);
+
+  const kaydet = (v: { bas: string; bit: string }[]) => {
+    setListe(v);
+    onKaydet(v.filter((x) => x.bas && x.bit));
+  };
+
+  return (
+    <div className="mt-4 border-t border-line pt-4">
+      <p className="text-muted text-xs mb-2">
+        Çalışma saatleri — <b>boşsa</b> hep açık (yalnız elle kapatılır).
+      </p>
+      <div className="flex flex-col gap-2">
+        {liste.map((p, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input
+              type="time"
+              value={p.bas}
+              onChange={(e) => kaydet(liste.map((x, j) => (j === i ? { ...x, bas: e.target.value } : x)))}
+              className="input-base !py-2 text-sm !w-auto"
+            />
+            <span className="text-muted text-sm">–</span>
+            <input
+              type="time"
+              value={p.bit}
+              onChange={(e) => kaydet(liste.map((x, j) => (j === i ? { ...x, bit: e.target.value } : x)))}
+              className="input-base !py-2 text-sm !w-auto"
+            />
+            <button
+              onClick={() => kaydet(liste.filter((_, j) => j !== i))}
+              aria-label="Kaldır"
+              className="w-10 h-10 rounded-full border border-line grid place-items-center text-muted shrink-0"
+            >
+              <Icon name="close" size={13} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={() => kaydet([...liste, { bas: "08:00", bit: "17:00" }])}
+        className="btn-ghost !py-1.5 !px-3 text-xs mt-2"
+      >
+        <Icon name="plus" size={12} /> Saat aralığı ekle
+      </button>
+    </div>
+  );
 }

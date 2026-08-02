@@ -41,6 +41,12 @@ export interface Kantin {
   hazirlikDk: number;
   /** Kişi başına aynı anda açık sipariş sayısı. */
   kisiBasiLimit: number;
+  /**
+   * Çalışma pencereleri ("HH:MM"). Boşsa hep açık (yalnız elle kapatılır).
+   * Kantinci akşam kapatmayı unutunca gece vardiyası boşuna sipariş veriyordu;
+   * saat penceresi bu sessiz arızayı kapatır.
+   */
+  saatler?: { bas: string; bit: string }[];
   createdAt: Timestamp | null;
   updatedAt?: Timestamp | null;
 }
@@ -57,8 +63,13 @@ export interface MenuUrun {
   fiyat?: number;
   kategori?: string;
   aktif: boolean;
-  /** Günlük stok (boş = sınırsız). Bugünkü satış sayılıp düşülür. */
+  /** Günlük stok (boş = sınırsız). Satışı TEZGÂH sayar, o da `tukendiGun` yazar. */
   gunlukStok?: number;
+  /**
+   * "Bugünlük bitti" işareti (yyyy-mm-dd). Ertesi gün kendiliğinden kalkar —
+   * kantincinin sabah tek tek geri açması gerekmesin.
+   */
+  tukendiGun?: string;
   sira: number;
 }
 
@@ -92,6 +103,14 @@ export interface Siparis {
   not?: string;
   createdAt: Timestamp | null;
   updatedAt?: Timestamp | null;
+}
+
+/** Günlük özet — kuyruk tahmini için TEK belge (kantin/{id}/gunler/{yyyy-mm-dd}). */
+export interface GunOzet {
+  id: string;
+  toplam?: number;
+  /** Hâlâ işlem gören sipariş sayısı (yeni + hazırlanıyor + hazır). */
+  acik?: number;
 }
 
 /** Kişinin işini bitirmemiş (hâlâ kantinde işlem gören) siparişleri. */
