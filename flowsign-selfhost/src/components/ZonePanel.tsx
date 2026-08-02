@@ -379,8 +379,11 @@ export default function ZonePanel({
             size={72}
             center={<span className="text-[11px] font-bold tabular-nums text-ink">%{queue.pct}</span>}
           />
+          {/* %100'de bir süre daha bekliyordu: baytlar gitti ama sunucu hâlâ
+              işliyor (küçük görsellerde bu bekleme yüklemenin kendisinden uzun).
+              Yüzdeyi kısmak yerine adı konuyor — kullanıcı neyi beklediğini bilsin. */}
           <p className="text-muted text-xs tabular-nums">
-            Yükleniyor… {queue.done + 1}/{queue.total}
+            {queue.pct >= 100 ? "İşleniyor…" : "Yükleniyor…"} {queue.done + 1}/{queue.total}
           </p>
         </div>
       )}

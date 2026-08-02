@@ -9,7 +9,7 @@
  */
 import { useRef, useState } from "react";
 import { cldFit } from "@/lib/cloudinary";
-import { CellBox, contentZonesIn, layoutColsOf, layoutRowsOf, mergeCells, zoneCells, ZONE_BG_DEFAULT } from "@/lib/videowalls";
+import { CellBox, contentZonesIn, layoutColsOf, layoutRowsOf, mergeCells, zoneCells, ZONE_BG_DEFAULT, snapBoxToZones } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 /** Video ilk-kare posteri (kırpmasız). Cloudinary değilse "" → 🎬 yer tutucuya düşer
@@ -121,7 +121,9 @@ export default function LayoutEditor({
       onSelect(owner.get(`${d.anchor.c},${d.anchor.r}`)?.id ?? null);
       return;
     }
-    const box = boxOf(d.anchor, d.hover);
+    // Kutu, dokundugu alanlari TAMAMEN kapsayacak sekilde buyutulur: kismi
+    // kesisme kalmayinca birlestirme artik hicbir alani parcalamaz.
+    const box = snapBoxToZones(vw.zones ?? [], cols, rows, boxOf(d.anchor, d.hover));
     const doMerge = () => {
       onZones(mergeCells(vw.zones ?? [], cols, rows, box));
       onSelect(null);
@@ -146,7 +148,8 @@ export default function LayoutEditor({
     });
   };
 
-  const selBox = drag ? boxOf(drag.anchor, drag.hover) : null;
+  // Onizleme de kilitli kutuyu gosterir — ne birlesecegi surukleerken gorunur.
+  const selBox = drag ? snapBoxToZones(vw.zones ?? [], cols, rows, boxOf(drag.anchor, drag.hover)) : null;
   const aspect = vw.width / vw.height;
 
   return (

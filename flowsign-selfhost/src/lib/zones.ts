@@ -107,6 +107,35 @@ function overlaps(a: CellBox, b: CellBox): boolean {
 }
 
 /**
+ * Sürükleme kutusunu TAM ALAN SINIRLARINA genişlet.
+ *
+ * Sürükle-birleştir, kutunun kestiği alanın dışında kalan kısmını tek tek
+ * hücrelere parçalıyordu (mergeCells → leftovers): kullanıcı birleştirmek
+ * isterken farkında olmadan BÖLME yapıyor, o alanların içeriği siliniyordu.
+ * Kullanıcı kararı: "birleştirme sürükle-bırakla olsun, bölme yalnız alanın
+ * kendi panelinden". Bu yüzden kutu, dokunduğu her alanı TAMAMEN içine alacak
+ * şekilde büyütülür — kısmi kesişme kalmaz, dolayısıyla parçalanma da olmaz.
+ *
+ * Büyüme yeni alanlara değebileceği için sabit noktaya kadar tekrarlanır.
+ */
+export function snapBoxToZones(zones: Zone[], cols: number, rows: number, box: CellBox): CellBox {
+  const b: CellBox = { ...box };
+  for (let guard = 0; guard < 12; guard++) {
+    let grew = false;
+    for (const z of zones) {
+      const cb = zoneCells(z, cols, rows);
+      if (!overlaps(cb, b)) continue;
+      if (cb.c0 < b.c0) { b.c0 = cb.c0; grew = true; }
+      if (cb.c1 > b.c1) { b.c1 = cb.c1; grew = true; }
+      if (cb.r0 < b.r0) { b.r0 = cb.r0; grew = true; }
+      if (cb.r1 > b.r1) { b.r1 = cb.r1; grew = true; }
+    }
+    if (!grew) break;
+  }
+  return b;
+}
+
+/**
  * Kutuyla kesişen İÇERİKLİ alanlar, büyükten küçüğe. [0] = birleşmede içeriğini
  * devralacak "bağışçı" alan (LayoutEditor onay mesajı da aynı sırayı kullanır).
  */
