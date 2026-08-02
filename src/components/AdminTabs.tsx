@@ -8,6 +8,7 @@ const TABS = [
   { href: "/admin", label: "Kullanıcılar" },
   { href: "/admin/sign", label: "Sign yetkileri" },
   { href: "/admin/stats", label: "İstatistikler" },
+  { href: "/admin/prova", label: "Prova & sağlık" },
 ] as const;
 
 export default function AdminTabs() {
