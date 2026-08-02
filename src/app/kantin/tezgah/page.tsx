@@ -15,7 +15,7 @@ import { useKantin } from "@/lib/kantin/oturum";
 import { Siparis, SiparisDurum } from "@/lib/kantin/types";
 
 export default function TezgahPage() {
-  const { user, kisi, hazir, seciliId, seciliKantin } = useKantin();
+  const { user, rol, hazir, seciliId, seciliKantin } = useKantin();
   const router = useRouter();
   const [liste, setListe] = useState<Siparis[]>([]);
 
@@ -29,7 +29,7 @@ export default function TezgahPage() {
   }, [seciliId]);
 
   if (!hazir || !user) return <Bekle />;
-  if (kisi && kisi.rol === "personel") {
+  if (rol === "personel") {
     return (
       <main className="max-w-3xl mx-auto px-4 py-16 text-center">
         <p className="text-xl font-bold mb-1">Yetki yok</p>

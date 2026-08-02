@@ -21,7 +21,7 @@ import { MenuUrun } from "@/lib/kantin/types";
 import { useConfirm } from "@/components/ConfirmDialog";
 
 export default function KantinAyarlarPage() {
-  const { user, kisi, hazir, seciliId, seciliKantin } = useKantin();
+  const { user, rol, hazir, seciliId, seciliKantin } = useKantin();
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
   const [menu, setMenu] = useState<MenuUrun[]>([]);
@@ -38,7 +38,6 @@ export default function KantinAyarlarPage() {
   }, [seciliId]);
 
   if (!hazir || !user) return <Bekle />;
-  const rol = kisi?.rol ?? "personel";
   if (rol === "personel") {
     return (
       <main className="max-w-3xl mx-auto px-4 py-16 text-center">

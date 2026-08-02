@@ -26,6 +26,7 @@ import {
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
@@ -65,6 +66,18 @@ export async function kayitOl(ad: string, sicil: string, email: string, sifre: s
     rol: "personel",
     createdAt: serverTimestamp(),
   });
+}
+
+/**
+ * Şifre belirleme/sıfırlama postası.
+ *
+ * İki işe birden yarar: (1) şifresini unutan personel, (2) e-postası bu Firebase
+ * projesinde ZATEN kayıtlı olan ama şifresi olmayan hesaplar. E-posta havuzu
+ * proje genelinde ortaktır — Google ile açılmış bir hesap "zaten kayıtlı" der
+ * ama şifresi yoktur; bu posta o hesaba şifre EKLER, sonra kantine girer.
+ */
+export async function sifreSifirla(email: string): Promise<void> {
+  await sendPasswordResetEmail(kAuth(), email.trim());
 }
 
 export async function cikisYap(): Promise<void> {

@@ -9,7 +9,7 @@
  */
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { girisYap, kayitOl } from "@/lib/kantin/api";
+import { girisYap, kayitOl, sifreSifirla } from "@/lib/kantin/api";
 import { kantinYapilandirildi } from "@/lib/kantin/firebase";
 import { useKantin } from "@/lib/kantin/oturum";
 
@@ -22,6 +22,7 @@ export default function KantinGirisPage() {
   const [email, setEmail] = useState("");
   const [sifre, setSifre] = useState("");
   const [hata, setHata] = useState("");
+  const [bilgi, setBilgi] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export default function KantinGirisPage() {
     e.preventDefault();
     if (busy) return;
     setHata("");
+    setBilgi("");
     setBusy(true);
     try {
       if (mod === "giris") await girisYap(email, sifre);
@@ -78,20 +80,40 @@ export default function KantinGirisPage() {
         <input value={sifre} onChange={(e) => setSifre(e.target.value)} placeholder="Şifre" type="password" required minLength={6} className="input-base !py-2 text-sm" autoComplete={mod === "giris" ? "current-password" : "new-password"} />
 
         {hata && <p className="text-brand text-sm">{hata}</p>}
+        {bilgi && <p className="text-[#0f7a55] text-sm">{bilgi}</p>}
 
         <button type="submit" disabled={busy} className="btn-primary !py-2.5 text-sm">
           {busy ? "Bekle…" : mod === "giris" ? "Giriş yap" : "Hesap aç"}
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMod((m) => (m === "giris" ? "kayit" : "giris"));
-            setHata("");
-          }}
-          className="text-muted text-xs hover:text-ink"
-        >
-          {mod === "giris" ? "Hesabın yok mu? Hesap aç" : "Zaten hesabın var mı? Giriş yap"}
-        </button>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              setMod((m) => (m === "giris" ? "kayit" : "giris"));
+              setHata("");
+              setBilgi("");
+            }}
+            className="text-muted text-xs hover:text-ink"
+          >
+            {mod === "giris" ? "Hesabın yok mu? Hesap aç" : "Zaten hesabın var mı? Giriş yap"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!email.trim()) {
+                setHata("Önce e-postanı yaz.");
+                return;
+              }
+              setHata("");
+              void sifreSifirla(email)
+                .then(() => setBilgi("Şifre belirleme bağlantısı e-postana gönderildi."))
+                .catch((e2) => setHata(cevir(e2)));
+            }}
+            className="text-muted text-xs hover:text-ink"
+          >
+            Şifremi unuttum
+          </button>
+        </div>
       </form>
     </main>
   );
@@ -102,7 +124,8 @@ function cevir(e: unknown): string {
   const kod = (e as { code?: string })?.code ?? "";
   if (kod.includes("invalid-credential") || kod.includes("wrong-password") || kod.includes("user-not-found"))
     return "E-posta ya da şifre hatalı.";
-  if (kod.includes("email-already-in-use")) return "Bu e-posta zaten kayıtlı — giriş yap.";
+  if (kod.includes("email-already-in-use"))
+    return "Bu e-posta zaten kayıtlı. Giriş yap; şifren yoksa \u201eŞifremi unuttum\u201d ile belirle.";
   if (kod.includes("weak-password")) return "Şifre en az 6 karakter olmalı.";
   if (kod.includes("invalid-email")) return "E-posta adresi geçersiz.";
   if (kod.includes("operation-not-allowed"))

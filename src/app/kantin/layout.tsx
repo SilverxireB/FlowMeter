@@ -10,6 +10,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cikisYap } from "@/lib/kantin/api";
 import { KantinOturum, useKantin } from "@/lib/kantin/oturum";
+import ProfilTamamla from "./ProfilTamamla";
 
 export default function KantinLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,11 +21,10 @@ export default function KantinLayout({ children }: { children: React.ReactNode }
 }
 
 function Kabuk({ children }: { children: React.ReactNode }) {
-  const { user, kisi, kantinler, seciliId, secKantin } = useKantin();
+  const { user, kisi, kisiYok, rol, kantinler, seciliId, secKantin } = useKantin();
   const path = usePathname();
   const router = useRouter();
 
-  const rol = kisi?.rol ?? "personel";
   const yonetici = rol === "admin" || rol === "kantinci";
   // Sekmeler ROLE göre: personel yalnız menü + kendi siparişini görür.
   const sekmeler = [
@@ -36,6 +36,8 @@ function Kabuk({ children }: { children: React.ReactNode }) {
   ];
 
   if (!user) return <>{children}</>;
+  // Hesabı var ama kişi kaydı yok → önce ad/sicil (bkz. ProfilTamamla).
+  if (kisiYok) return <ProfilTamamla />;
 
   return (
     <div className="min-h-screen bg-wash">

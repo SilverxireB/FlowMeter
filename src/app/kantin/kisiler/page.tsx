@@ -20,7 +20,7 @@ const ROL_ETIKET: Record<KantinRol, string> = {
 };
 
 export default function KantinKisilerPage() {
-  const { user, kisi, hazir, kantinler } = useKantin();
+  const { user, rol, hazir, kantinler } = useKantin();
   const router = useRouter();
   const [liste, setListe] = useState<KantinKisi[]>([]);
   const [ara, setAra] = useState("");
@@ -29,12 +29,12 @@ export default function KantinKisilerPage() {
     if (hazir && !user) router.replace("/kantin/giris");
   }, [hazir, user, router]);
   useEffect(() => {
-    if (kisi?.rol !== "admin") return;
+    if (rol !== "admin") return;
     return izleKisiler(setListe);
-  }, [kisi?.rol]);
+  }, [rol]);
 
   if (!hazir || !user) return <Bekle />;
-  if (kisi && kisi.rol !== "admin") {
+  if (rol !== "admin") {
     return (
       <main className="max-w-3xl mx-auto px-4 py-16 text-center">
         <p className="text-xl font-bold mb-1">Yetki yok</p>

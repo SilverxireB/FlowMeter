@@ -7,15 +7,19 @@
  */
 import { User } from "firebase/auth";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { izleKantinler, izleKisi, izleOturum } from "./api";
+import { KANTIN_ADMIN_EMAIL, izleKantinler, izleKisi, izleOturum } from "./api";
 import { kantinYapilandirildi } from "./firebase";
-import { Kantin, KantinKisi } from "./types";
+import { Kantin, KantinKisi, KantinRol } from "./types";
 
 const SECILI = "kantin.secili";
 
 interface Deger {
   user: User | null;
   kisi: KantinKisi | null;
+  /** Kişi kaydı okundu ama YOK — profilini tamamlaması gerekiyor. */
+  kisiYok: boolean;
+  /** Etkin rol. Bootstrap yönetici e-postası kayıt beklemez (kurallar da öyle). */
+  rol: KantinRol;
   kantinler: Kantin[];
   /** null = henüz belli değil (ekranı bekletmek için) */
   hazir: boolean;
@@ -29,6 +33,7 @@ const Ctx = createContext<Deger | null>(null);
 export function KantinOturum({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [kisi, setKisi] = useState<KantinKisi | null>(null);
+  const [kisiHazir, setKisiHazir] = useState(false);
   const [kantinler, setKantinler] = useState<Kantin[]>([]);
   const [hazir, setHazir] = useState(false);
   const [seciliId, setSeciliId] = useState("");
@@ -48,13 +53,20 @@ export function KantinOturum({ children }: { children: React.ReactNode }) {
         ilk = false;
         setHazir(true);
       }
-      if (!u) setKisi(null);
+      if (!u) {
+        setKisi(null);
+        setKisiHazir(false);
+      }
     });
   }, []);
 
   useEffect(() => {
     if (!user) return;
-    return izleKisi(user.uid, setKisi);
+    setKisiHazir(false);
+    return izleKisi(user.uid, (k) => {
+      setKisi(k);
+      setKisiHazir(true);
+    });
   }, [user]);
 
   useEffect(() => {
@@ -81,6 +93,8 @@ export function KantinOturum({ children }: { children: React.ReactNode }) {
     () => ({
       user,
       kisi,
+      kisiYok: !!user && kisiHazir && !kisi,
+      rol: user?.email === KANTIN_ADMIN_EMAIL ? "admin" : (kisi?.rol ?? "personel"),
       kantinler,
       hazir,
       seciliId,
@@ -92,7 +106,7 @@ export function KantinOturum({ children }: { children: React.ReactNode }) {
       },
       seciliKantin: kantinler.find((k) => k.id === seciliId) ?? null,
     }),
-    [user, kisi, kantinler, hazir, seciliId]
+    [user, kisi, kisiHazir, kantinler, hazir, seciliId]
   );
 
   return <Ctx.Provider value={deger}>{children}</Ctx.Provider>;
