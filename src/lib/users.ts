@@ -21,8 +21,16 @@ import { UserRecord } from "./types";
 /** Bootstrap yönetici — rules'ta da aynı e-posta hardcode'ludur. */
 export const ADMIN_EMAIL = "doganbaharozu@gmail.com";
 
-/** Girişte kayıt düş/güncelle (role alanına DOKUNMAZ — rules zaten engeller). */
+/**
+ * Girişte kayıt düş/güncelle (role alanına DOKUNMAZ — rules zaten engeller).
+ *
+ * ANONİM oturum kaydedilmez: duvar yükleme sayfası misafire sessizce anonim
+ * oturum açıyor. Bir hata yüzünden o kimlik Google oturumunun üstüne yazınca
+ * panele anonim olarak girilmiş ve yönetici listesine e-postasız, adsız hayalet
+ * kayıtlar düşmüştü. Kimlik katmanı artık anonimi süzüyor; burası ikinci kapı.
+ */
 export async function upsertUserRecord(user: User): Promise<void> {
+  if (user.isAnonymous) return;
   const ref = doc(db(), "users", user.uid);
   const existing = await getDoc(ref);
   const data: Record<string, unknown> = {
@@ -61,6 +69,12 @@ export async function setUserRole(uid: string, role: "admin" | "user"): Promise<
 export async function setCanCreateSign(uid: string, canCreate: boolean): Promise<void> {
   await updateDoc(doc(db(), "users", uid), { canCreateSign: canCreate });
 }
+
+/**
+ * E-postası olmayan kayıtlar — anonim oturumdan kalma hayaletler.
+ * Gerçek kullanıcının e-postası hep vardır (Google ile girilir).
+ */
+export const isGhostRecord = (u: UserRecord): boolean => !u.email;
 
 /** Kullanıcı KAYDINI siler (Auth hesabını değil — tekrar girişte kayıt yeniden oluşur). */
 export async function deleteUserRecord(uid: string): Promise<void> {

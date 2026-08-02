@@ -18,6 +18,7 @@ import {
   deleteUserRecord,
   getUserRecord,
   isAdminUser,
+  isGhostRecord,
   listUsers,
   setUserRole,
 } from "@/lib/users";
@@ -99,6 +100,26 @@ export default function AdminPage() {
     );
   }
 
+  // E-postasız kayıtlar GERÇEK KULLANICI DEĞİL: duvar yükleme sayfasının açtığı
+  // anonim oturumlar, düzeltilen bir hata yüzünden panele girip kayıt düşmüştü.
+  // Listede kullanıcı gibi durmaları kafa karıştırıyordu; ayrı gösterilip tek
+  // tuşla temizlenirler (sessizce gizlemek, çöpü sonsuza kadar orada bırakırdı).
+  const gercek = users.filter((u) => !isGhostRecord(u));
+  const hayalet = users.filter(isGhostRecord);
+
+  async function hayaletleriSil() {
+    setBusy("hayalet");
+    setErr(null);
+    try {
+      for (const u of hayalet) await deleteUserRecord(u.id);
+      refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Silinemedi.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const fmt = (t?: { toDate?: () => Date } | null) =>
     t?.toDate ? t.toDate().toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
 
@@ -120,12 +141,40 @@ export default function AdminPage() {
       <section className="max-w-3xl mx-auto px-4 py-8">
         <AdminTabs />
         <h1 className="font-display text-3xl font-semibold tracking-tight">Kullanıcılar</h1>
-        <p className="text-muted text-sm mb-6 tabular-nums">{users.length} kayıt · son görülene göre</p>
+        <p className="text-muted text-sm mb-6 tabular-nums">{gercek.length} kayıt · son görülene göre</p>
 
         {err && <div className="mb-4 rounded-2xl bg-brand-soft text-brand px-4 py-3 text-sm font-semibold">{err}</div>}
 
+        {hayalet.length > 0 && (
+          <div className="card p-4 mb-4 flex items-center gap-3 flex-wrap border-[#eda100]/40 bg-[#eda100]/[0.06]">
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm">{hayalet.length} boş kayıt</p>
+              <p className="text-muted text-xs">
+                Anonim oturumdan kalma — gerçek kullanıcı değil, e-postaları yok. Silmek güvenli.
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                confirm(
+                  {
+                    title: "Boş kayıtları sil",
+                    message: `${hayalet.length} kayıt silinecek. Bunlar anonim oturumlardan kalma; kimsenin hesabına dokunulmaz.`,
+                    confirmLabel: "Sil",
+                    danger: true,
+                  },
+                  () => void hayaletleriSil()
+                )
+              }
+              disabled={busy === "hayalet"}
+              className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-line text-brand hover:bg-brand-soft/40 cursor-pointer inline-flex items-center justify-center gap-1 shrink-0"
+            >
+              <Icon name="trash" size={13} /> Temizle
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col gap-2.5">
-          {users.map((u) => {
+          {gercek.map((u) => {
             const isBootstrap = u.email === ADMIN_EMAIL;
             const isSelf = u.id === user?.uid;
             const admin = isBootstrap || u.role === "admin";
@@ -194,7 +243,7 @@ export default function AdminPage() {
               </div>
             );
           })}
-          {users.length === 0 && (
+          {gercek.length === 0 && (
             <p className="text-muted text-center py-12">
               Henüz kayıt yok. Kullanıcılar giriş yaptıkça burada listelenir.
             </p>
