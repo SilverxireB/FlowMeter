@@ -242,7 +242,11 @@ function MeterScene() {
                 tamamında (kapsayıcıda fs-pop) — avatarlar tek tek belirince
                 görünen üçlü, sonrakilerin baştan kapladığı yerin solunda
                 kalıyordu. Tek tek kalan yalnız ÖLÇEK dalgası (fs-wave). */}
-            <div className="fs-pop flex items-center gap-1 sm:gap-1.5" style={{ animationDelay: "0.3s" }}>
+            {/* "+38" AKIŞ DIŞI: satırın içindeyken genişliğe katılıyor ve ortalama
+                onu da sayıyordu — avatarlar üstteki sayının soluna kaymış
+                duruyordu (asıl "sola dayalı" şikâyeti buydu). Mutlak konumla
+                avatarlar sayının tam altında ortalanır, +38 yanlarına düşer. */}
+            <div className="fs-pop relative flex items-center gap-1 sm:gap-1.5" style={{ animationDelay: "0.3s" }}>
               {["🦊", "🐼", "🦁", "🐨", "🐸"].map((a, i) => (
                 <span
                   key={i}
@@ -252,7 +256,9 @@ function MeterScene() {
                   {a}
                 </span>
               ))}
-              <span className="text-[10px] text-white/60 font-semibold ml-1">+38</span>
+              <span className="absolute left-full top-1/2 -translate-y-1/2 ml-1.5 text-[10px] text-white/60 font-semibold">
+                +38
+              </span>
             </div>
           </div>
         </Vignette>
@@ -424,10 +430,25 @@ function SignScene() {
             <img src={EVENT(6)} alt="" className="absolute inset-0 w-full h-full object-cover" />
             <span className="absolute top-1 right-1.5 rounded bg-black/40 px-1.5 py-0.5 text-[9px] font-bold tabular-nums">12:45</span>
           </div>
-          <div className="flex flex-col gap-1.5 w-20 sm:w-24">
-            <span className="fs-pop rounded-md bg-white/10 px-2 py-1 text-[9px] text-white/75 font-semibold" style={{ animationDelay: "4.15s" }}>🖼 Menü.png</span>
-            <span className="fs-pop rounded-md bg-white/10 px-2 py-1 text-[9px] text-white/75 font-semibold" style={{ animationDelay: "4.35s" }}>🎞 Tanıtım.mp4</span>
-            <span className="fs-pop rounded-md bg-white/10 px-2 py-1 text-[9px] text-white/75 font-semibold" style={{ animationDelay: "4.55s" }}>⏰ 09:00–18:00</span>
+          {/* Saat aralığı dar telefonda ikinci satıra sarıyor, hap diğer ikisinden
+              uzun ve yamuk duruyordu → nowrap + biraz geniş sütun. Simgeler de
+              emojiden SVG'ye alındı: 🖼/🎞 renksiz (metin sunumlu) çiziliyor,
+              yanındaki ⏰ renkli — üç hap üç ayrı dilde konuşuyordu. */}
+          <div className="flex flex-col gap-1.5 w-24 sm:w-28">
+            {[
+              { icon: "image", label: "Menü.png", delay: "4.15s" },
+              { icon: "film", label: "Tanıtım.mp4", delay: "4.35s" },
+              { icon: "clock", label: "09:00–18:00", delay: "4.55s" },
+            ].map((c) => (
+              <span
+                key={c.label}
+                className="fs-pop flex items-center gap-1 rounded-md bg-white/10 px-1.5 py-1 text-[9px] text-white/75 font-semibold whitespace-nowrap"
+                style={{ animationDelay: c.delay }}
+              >
+                <Icon name={c.icon as "image"} size={10} className="opacity-70" />
+                {c.label}
+              </span>
+            ))}
           </div>
         </div>
       </Vignette>
