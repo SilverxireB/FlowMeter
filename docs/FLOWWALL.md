@@ -398,8 +398,8 @@ Not: FlowWall kendi giriş kapısına sahip olur (kendi landing / dashboard böl
    + canlı `WallPreview` önizleme. `wall.theme{}` owner-write (rules değişmedi).
 2. ✅ **Yazdırılabilir QR kartı** (YAPILDI — Gemini): `WallQrCard.tsx` — temaya
    göre renklenen A6 Canvas PNG ("📸 Anını paylaş" + QR + kod), kokpitte
-   "🖨 QR Kartı indir". *Not: kağıda basılan URL sabit (`flowmetermanisa.vercel.app`);
-   QR'ın kendisi dinamik origin — domain değişirse yalnız yazı güncellenmeli.*
+   "🖨 QR Kartı indir". *Karta basılan adres de QR da o anki origin'den gelir —
+   alan adı değişince kart kendiliğinden doğru adresi yazar.*
 3. **Duvar yaşam döngüsü** (SIRADAKİ): kapat (yükleme durdur, perde "teşekkürler"),
    yeni oturum (sessionId rotasyonu; FlowMeter'daki desen aynen).
 4. **Cloudinary toplu temizlik**: duvar/oturum silinince delete_by_prefix

@@ -5,7 +5,7 @@ Bu dosya, Gemini tarafından projeye eklenen "Dalga 1" ve "Dalga 1.5" özellikle
 ## Eklenen Yeni Dosyalar
 1. **`src/components/WallQrCard.tsx`**
    - **Amaç:** Masalara koymak için yazdırılabilir, şık bir QR kod kartı oluşturur (Canvas API ile).
-   - **Detay:** Barkodu, katılım kodunu ve alt kısmında statik olarak `https://flowmetermanisa.vercel.app/wall` URL'sini barındırır.
+   - **Detay:** Barkodu, katılım kodunu ve alt kısmında sitenin o anki adresini barındırır.
 2. **`src/components/Snowflakes.tsx`**
    - **Amaç:** Yılbaşı teması seçildiğinde perde ekranında süzülen CSS tabanlı, yormayan kar tanesi efekti oluşturur. Yalnızca istemci tarafında (`use client`) çalışır.
 

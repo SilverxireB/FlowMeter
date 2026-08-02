@@ -16,7 +16,7 @@ import {
  * isteklerini firebaseapp.com'a proxyler. Yani hangi alan adından açılırsak
  * açalım, yardımcı O alan adında da çalışır.
  *
- * NEDEN ENV'DEN ALINMIYOR: alan adı değişince (flowmetermanisa → studiomanisa)
+ * NEDEN ENV'DEN ALINMIYOR: alan adı değişince
  * env eskide kalıyordu; giriş penceresi ESKİ alan adının yardımcısına gidip
  * yeni alan adındaki sayfaya geri dönemiyor, Google ekranında asılı kalıyordu.
  * Kaynağı adresin kendisi yapmak bu hatayı imkânsız kılıyor.

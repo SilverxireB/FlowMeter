@@ -40,6 +40,14 @@ export default function LandingPage() {
   // "Açılıyor…"a döner ve tekrar dokunuşları yutar.
   const [going, setGoing] = useState<null | "panel" | "last">(null);
 
+  // Panel, çip EKRANA GELDİĞİ anda hazırlanır (dokunulunca değil). Asıl şikâyet
+  // geri bildirim eksikliği değildi: dokunuşla açılış arasındaki bekleme panelin
+  // o an indirilmesinden geliyordu. Oturum bilindiği anda rota önceden çekilir,
+  // dokunuş anında gidilecek her şey hazır olur.
+  useEffect(() => {
+    if (user) router.prefetch("/dashboard");
+  }, [user, router]);
+
   useEffect(() => {
     setLast(getLastPresentation());
   }, []);
@@ -90,7 +98,9 @@ export default function LandingPage() {
             href="/dashboard"
             onClick={() => setGoing("panel")}
             aria-busy={going === "panel"}
-            className={`chip !py-1.5 text-accent font-semibold hover:border-accent shrink-0 ${
+            // Dokunma hedefi telefonda en az 44px: çip 30px yüksekliğindeydi,
+            // ıskalanan dokunuşlar da "tıklanmıyor" hissini besliyordu.
+            className={`chip !py-1.5 min-h-[44px] px-4 text-accent font-semibold hover:border-accent shrink-0 ${
               going === "panel" ? "pointer-events-none border-accent/40" : ""
             }`}
           >
