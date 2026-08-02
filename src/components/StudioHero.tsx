@@ -212,9 +212,9 @@ function SceneFrame({
       <div className="fs-in-right relative w-[60%] max-w-[400px] h-36 sm:h-40 shrink min-w-0">
         {children}
       </div>
-      {/* Tepki emojileri KARTIN DIŞINDA: pencerenin içindeyken kartın sağ
-          kenarına oturup içeriğin üstüne biniyor, köşede kırpılıyorlardı.
-          Artık kartın altındaki boşluktan yükseliyorlar. */}
+      {/* Tepki emojileri KARTIN DIŞINDA, sağ alt köşede: pencerenin içindeyken
+          kartın sağ kenarına oturup içeriğe biniyorlardı; sola alınca da marka
+          logosu/adıyla çakıştılar. Kartın altındaki serbest bantta kalırlar. */}
       {floats}
     </div>
   );
@@ -228,9 +228,9 @@ function MeterScene() {
       accent="#2094f3"
       floats={
         <>
-          <span className="fs-float pointer-events-none absolute left-6 bottom-1 text-lg" style={{ animationDelay: "0s" }}>❤️</span>
-          <span className="fs-float pointer-events-none absolute left-16 bottom-0 text-base" style={{ animationDelay: "1.2s" }}>🎉</span>
-          <span className="fs-float pointer-events-none absolute left-11 bottom-2 text-base" style={{ animationDelay: "2.3s" }}>👍</span>
+          <span className="fs-float pointer-events-none absolute right-4 bottom-1 text-base leading-none" style={{ animationDelay: "0s" }}>❤️</span>
+          <span className="fs-float pointer-events-none absolute right-12 bottom-1 text-sm leading-none" style={{ animationDelay: "1.2s" }}>🎉</span>
+          <span className="fs-float pointer-events-none absolute right-20 bottom-1 text-sm leading-none" style={{ animationDelay: "2.3s" }}>👍</span>
         </>
       }
     >
@@ -341,9 +341,9 @@ function WallScene() {
       accent="#f0913a"
       floats={
         <>
-          <span className="fs-float pointer-events-none absolute left-6 bottom-1 text-lg" style={{ animationDelay: ".4s" }}>❤️</span>
-          <span className="fs-float pointer-events-none absolute left-16 bottom-0 text-base" style={{ animationDelay: "1.6s" }}>✨</span>
-          <span className="fs-float pointer-events-none absolute left-11 bottom-2 text-base" style={{ animationDelay: "2.7s" }}>📸</span>
+          <span className="fs-float pointer-events-none absolute right-4 bottom-1 text-base leading-none" style={{ animationDelay: ".4s" }}>❤️</span>
+          <span className="fs-float pointer-events-none absolute right-12 bottom-1 text-sm leading-none" style={{ animationDelay: "1.6s" }}>✨</span>
+          <span className="fs-float pointer-events-none absolute right-20 bottom-1 text-sm leading-none" style={{ animationDelay: "2.7s" }}>📸</span>
         </>
       }
     >
@@ -921,14 +921,19 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
           opacity: 0;
           animation: fs-float 3.6s ease-out infinite;
         }
-        /* Yükseliş, kartın ALTINDAKİ serbest banda sığar (~34px) ve tam kartın
-           kenarına varırken söner. Eskiden 84px çıkıp kartın sağ kenarına
-           biniyor, orada kırpılıyordu. */
+        /* SAĞ ALT KÖŞE: kartın altındaki serbest bant ~32px (masaüstünde 40px).
+           Yükseliş o banda sığacak kadar kısa; emoji karta değmeden söner.
+           leading-none şart: emoji satır kutusu yazı boyundan ~%55 uzun,
+           kutu banda sığmayınca emoji dururken bile karta giriyordu.
+           Giriş 2px'ten başlar: daha aşağıdan başlayınca banner'ın alt
+           kenarından taşıp kırpılıyordu (banner overflow-hidden).
+           Hareket azalınca cansız kalmasın diye giriş "pop"u belirginleşti. */
         @keyframes fs-float {
-          0% { opacity: 0; transform: translateY(6px) scale(0.8); }
-          18% { opacity: 1; }
-          65% { opacity: 0.85; }
-          100% { opacity: 0; transform: translateY(-34px) scale(1.05); }
+          0% { opacity: 0; transform: translateY(2px) scale(0.7); }
+          22% { opacity: 1; transform: translateY(0) scale(1.12); }
+          34% { transform: translateY(-2px) scale(1); }
+          65% { opacity: 0.9; }
+          100% { opacity: 0; transform: translateY(-10px) scale(1.06); }
         }
 
         .fs-blob {
