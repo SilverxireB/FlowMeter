@@ -154,7 +154,7 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   markalama (A5-A8). Park: Sign ses/90°; Pulse e-posta eşiği;
   Meter kalanları `docs/ROADMAP.md`.
 
-## Kantin (Flow Studio'ya AİT DEĞİL — kenarda, kaldırılabilir)
+## Kantin (Flow Studio'ya AİT DEĞİL — kenarda, kaldırılabilir) · `docs/KANTIN.md`
 
 İç kullanım için sipariş uygulaması: `/kantin…` + `src/lib/kantin/` + kurallardaki
 KANTİN bloğu. KURAL: Studio koduna DOKUNMAZ, Studio da buna bağ kurmaz; hub'da,
@@ -171,4 +171,15 @@ bloğu silinir, Studio'nun tek satırı etkilenmez.
 - Çok kantinli baştan (`kantin/{id}`); bugün iki, yarın daha fazla.
 - Bekleme tahmini iyimser DEĞİL (`beklemeDk`): mola 10 dk, tutmayan süre ürünü
   ilk günde bitirir.
+- Sipariş kimliği DETERMİNİSTİK `{uid}_{gun}_{1..5}`: çift dokunuş ikinci kayıt
+  açamaz, kişi başı GÜNLÜK tavan sunucuda (kurallar kimliği doğrular).
+- Kuyruk sayacı AYRI belgede (`gunler/{gun}`); siparişleri yalnız sahibi+görevli
+  okur (eskiden herkes herkesin ne yediğini görüyordu + kota felaketiydi).
+- Stok otoritesi TEZGÂHTA (`tukendiGun`, yalnız o gün geçerli): herkesin yazdığı
+  sayaç tek satırla menüyü kilitleyen saldırı yüzeyi olurdu.
+- Gece yarısı gün döner (`izleBugunSiparisleri/izleBugunOzet`) — vardiyalı
+  fabrikada tezgâh/pano 00:00'dan sonra SESSİZCE kör kalıyordu.
+- Uyarı KABUKTA (`oturum.tsx`): sayfa değişince susmaz; Wake Lock + bildirim +
+  ses/titreşim + 3 dk'da bir en fazla 3 hatırlatma. Sunucu push'u YOK (VAPID
+  anahtarı + gönderen kimliği gelince eklenir — denenmemiş push yolu yazılmaz).
 - Hedef: gerektiğinde İÇ AĞA kurulacak (Sign self-host deseni).
