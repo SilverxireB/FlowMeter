@@ -222,20 +222,29 @@ Ortak ilke: **prova gerçek yazma yolunu kullanır, kurallar hiç gevşetilmez**
 yoksa denenen şey ürün olmaz. Yazım hataları YUTULMAZ, işlem akışına düşer
 (kural reddi ile "hiç denenmedi" ekranda ayırt edilebilsin diye).
 
-- **Sağlık** (`lib/health.ts`): canlı ortamın AYARLARINI tek tek dener (anonim
-  giriş açık mı, Cloudinary değişkenleri, auth domain…). Bu ürünün en pahalı
-  arızaları koddan değil ayardan çıktı ve hepsi sessizdi. Anonim deneme ayrı bir
+- **Sağlık** (`lib/health.ts` → `KONTROLLER`): canlı ortamın AYARLARINI dener
+  (anonim giriş açık mı, Cloudinary, auth domain, yetkili alan adları, veritabanı
+  turu + cihaz saati). Bu ürünün en pahalı arızaları koddan değil ayardan çıktı
+  ve hepsi sessizdi. Panel AÇILIR KAPANIR kutulardan oluşur: bir kutuyu açmak
+  yalnız o kontrolü tetikler (hepsini her ziyarette koşturmak boşuna anonim giriş
+  denemesi + Cloudinary isteği + yazım demekti). Anonim deneme ayrı bir
   bağlantıda yapılır, açılan hesap hemen silinir — oturum bozulmaz.
 - **Sunum** (`/admin/prova/[id]` + `lib/sim.ts`): N bot + personalar (hevesli /
   meraklı / sohbetçi / aktif / sessiz), insanca oranlar + "an" dalgalı tepkiler;
   yoğunluk ×0–3. Botlar eklenince motor kendiliğinden başlar. Açık metin
   moderasyonu açıkken cevap `status:'pending'` gider (gerçek izleyici yolu).
   Temizle = newSession (silmez, taze kapsam).
-- **Duvar** (`/admin/prova/duvar/[code]`): örnek 10 foto + 10 video CİHAZDA
-  üretilir (canvas + MediaRecorder, 4'erli parti) ve misafirle aynı yoldan,
-  aynı klasöre yüklenir. Dış link kullanılamaz: rules medya `url`'inin gerçek
-  Cloudinary adresi olmasını şart koşar (şekil kontrolü duvar sahibine de
-  uygulanır) — eski sürüm picsum linkleri yazdığı için 20/20 reddediliyordu.
+- **Duvar** (`/admin/prova/duvar/[code]` + `lib/simWall.ts`): etkinliğin TAMAMI —
+  N misafir; tepki yağmuru (dalgalı), beğeni, dilek, galeri gezme; çekiliş kaydı
+  ve yarışma oyu Yönet'ten açıldığı anda KENDİLİĞİNDEN devreye girer. Misafir
+  yazımları gerçek yoldan gider ama tek-telefon yardımcıları atlanır (hız freni,
+  localStorage işaretleri, tek `getVoterId`) — onlarla 20 ayrı misafir taklit
+  edilemez. Medya: örnek 10 foto + 10 video CİHAZDA üretilir (canvas +
+  MediaRecorder, 4'erli parti) ve misafirle aynı yoldan, aynı klasöre yüklenir.
+  Dış link kullanılamaz: rules medya `url`'inin gerçek Cloudinary adresi olmasını
+  şart koşar (şekil kontrolü duvar sahibine de uygulanır) — eski sürüm picsum
+  linkleri yazdığı için 20/20 reddediliyordu. Tek-seferlik yazımlar (kayıt/oy)
+  reddedilirse en fazla 3 kez denenir; kapı gerçekten kapalıysa hata yağmuru olmaz.
 - **Nabız** (`/admin/prova/nabiz/[id]` + `lib/simPulse.ts`): anonim oy + yorum,
   kiosk/QR karışımı. Memnuniyet dağılımı yüksek uca yığılır (düz rastgele skoru
   hep ~%50 gösterip pano eşiklerini anlamsız kılıyordu). "Geçmiş 7 gün üret" =
@@ -245,9 +254,14 @@ yoksa denenen şey ürün olmaz. Yazım hataları YUTULMAZ, işlem akışına d�
   2×2 yerleşim, dört öğe türü (görsel/metin/saat/URL) ve biri BİLEREK takvim
   dışı. Perdede o öğe görünüyorsa `itemInWindow` kapısı bozuk demektir.
 
+Hub (`/admin/prova`) her ürün için KENDİ içeriğini listeler (kod ezberlemek
+yerine seçmek); ayrıca "başkasının sunumu/duvarı" için katılım kodu kapısı durur
+— canlı bir etkinlikte sorun ararken elde kimlik değil kod olur.
+
 **KALDIRMAK:** `src/app/admin/prova/` klasörünü + `src/lib/sim.ts`,
-`src/lib/simPulse.ts`, `src/lib/health.ts`, `src/lib/useAdminGate.ts` dosyalarını
-sil, `/admin` sekmelerinden bağlantıyı ve bu bölümü çıkar.
+`src/lib/simWall.ts`, `src/lib/simPulse.ts`, `src/lib/health.ts`,
+`src/lib/useAdminGate.ts` dosyalarını sil, `/admin` sekmelerinden bağlantıyı ve
+bu bölümü çıkar.
 
 ## Faz 3.8 — Mobil düzeltmeler + PWA ✅
 

@@ -30,6 +30,7 @@ import {
   upvoteQuestion,
 } from "@/lib/sim";
 import { Slide } from "@/lib/types";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const TICK_MS = 250;
 const VOTE_WINDOW = 7000;
@@ -40,6 +41,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export default function SimPage() {
   const { id: rawId } = useParams<{ id: string }>();
   const authed = useAdminGate();
+  const { confirm, dialog } = useConfirm();
 
   // 6 haneli kod da kabul et: koddan sunum id'sini çöz. undefined=çözülüyor, null=yok.
   const [pid, setPid] = useState<string | null | undefined>(undefined);
@@ -372,8 +374,7 @@ export default function SimPage() {
     }
   }, [id, n]);
 
-  const clearAll = useCallback(async () => {
-    if (!confirm("Yeni oturum (taze kapsam) başlatılsın mı? Silme yapılmaz; eski veri saklı kalır, ekran sıfırdan başlar.")) return;
+  const yeniOturum = useCallback(async () => {
     setRunning(false);
     setBusy(true);
     try {
@@ -391,6 +392,19 @@ export default function SimPage() {
       setBusy(false);
     }
   }, [id]);
+
+  // Onay penceresi ÇEKİRDEK bileşenle (native confirm kurumsal/kiosk Chrome
+  // profillerinde bastırılabiliyor — kullanıcı "bastım ama olmadı" diyor).
+  const clearAll = useCallback(() => {
+    confirm(
+      {
+        title: "Yeni oturum başlatılsın mı?",
+        message: "Silme yapılmaz; eski veri saklı kalır, ekran sıfırdan başlar.",
+        confirmLabel: "Başlat",
+      },
+      () => void yeniOturum()
+    );
+  }, [confirm, yeniOturum]);
 
   if (authed === null) return <main className="min-h-screen grid place-items-center bg-wash text-muted animate-pulse">Yükleniyor…</main>;
   if (!authed) {
@@ -424,6 +438,7 @@ export default function SimPage() {
 
   return (
     <main className="min-h-screen bg-wash p-4 sm:p-8">
+      {dialog}
       <div className="max-w-2xl mx-auto flex flex-col gap-5">
         <div className="flex items-center justify-between">
           <div>

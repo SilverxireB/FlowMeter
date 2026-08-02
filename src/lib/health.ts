@@ -32,6 +32,21 @@ export interface Kontrol {
   ipucu?: string;
 }
 
+/**
+ * Kontroller TEK TEK çalıştırılabilir: panel açılır kapanır kutulardan oluşur,
+ * bir kutuyu açmak yalnız o kontrolü tetikler. Hepsini birden koşturmak her
+ * açılışta anonim giriş denemesi + Cloudinary isteği + Firestore yazımı demekti;
+ * çoğu zaman kullanıcının merak ettiği tek bir başlık oluyor.
+ */
+export interface KontrolTanim {
+  id: string;
+  baslik: string;
+  /** Bu kontrol NEYİ doğruluyor — kutu açılınca görünen tek cümle. */
+  ozet: string;
+  /** Bir tanım birden fazla sonuç üretebilir (ör. veritabanı + cihaz saati). */
+  calistir: (uid?: string) => Promise<Kontrol[]>;
+}
+
 const cfg = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -99,13 +114,11 @@ async function anonimDene(): Promise<{ sonuc: "acik" | "kapali" | "bilinmiyor"; 
   }
 }
 
-/** Tüm kontroller. `uid` verilirse Firestore gidiş-dönüşü ve saat farkı da ölçülür. */
-export async function saglikTara(uid?: string): Promise<Kontrol[]> {
-  const out: Kontrol[] = [];
-  const host = typeof window !== "undefined" ? window.location.hostname : "";
+// ── Kontroller ───────────────────────────────────────────────────────────────
+// Her biri bağımsız çalışır; hiçbiri oturumu bozmaz, hiçbiri çöp bırakmaz.
 
-  // 1 — Temel yapılandırma
-  out.push(
+async function kontrolCfg(): Promise<Kontrol[]> {
+  return [
     isFirebaseConfigured()
       ? { id: "cfg", baslik: "Firebase yapılandırması", durum: "ok", detay: `Proje: ${cfg.projectId}` }
       : {
@@ -114,24 +127,27 @@ export async function saglikTara(uid?: string): Promise<Kontrol[]> {
           durum: "hata",
           detay: "NEXT_PUBLIC_FIREBASE_* değerleri eksik.",
           ipucu: "Vercel > Settings > Environment Variables altına ekle ve yeniden yayınla.",
-        }
-  );
+        },
+  ];
+}
 
+async function kontrolDomain(): Promise<Kontrol[]> {
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
   const ayar = await projeAyari();
-
-  // 2 — Bu adres Google girişi için yetkili mi? (giriş sessizce takılmasının
-  //     bir numaralı sebebi; alan adı değişince listeye eklemek unutuluyor)
   if (!ayar?.authorizedDomains) {
-    out.push({
-      id: "domain",
-      baslik: "Yetkili alan adları",
-      durum: "bilinmiyor",
-      detay: "Liste okunamadı (ağ engeli ya da anahtar kısıtı olabilir).",
-    });
-  } else {
-    const liste = ayar.authorizedDomains;
-    const uygun = liste.includes(host);
-    out.push({
+    return [
+      {
+        id: "domain",
+        baslik: "Yetkili alan adları",
+        durum: "bilinmiyor",
+        detay: "Liste okunamadı (ağ engeli ya da anahtar kısıtı olabilir).",
+      },
+    ];
+  }
+  const liste = ayar.authorizedDomains;
+  const uygun = liste.includes(host);
+  return [
+    {
       id: "domain",
       baslik: "Yetkili alan adları",
       durum: uygun ? "ok" : "hata",
@@ -139,102 +155,175 @@ export async function saglikTara(uid?: string): Promise<Kontrol[]> {
       ipucu: uygun
         ? undefined
         : "Firebase Console > Authentication > Settings > Yetkili alan adları'na bu adresi ekle.",
-    });
-  }
+    },
+  ];
+}
 
-  // 3 — Girişin geri döneceği adres. Kendi alan adımızı kullanmak, Google
-  //     Cloud'da AYRI bir kayıt daha ister; eksikse "redirect_uri_mismatch".
+async function kontrolAuthDomain(): Promise<Kontrol[]> {
   const authDomain = (auth().app.options as { authDomain?: string }).authDomain ?? "";
   const kendiAlan = !!authDomain && !authDomain.endsWith(".firebaseapp.com");
-  out.push({
-    id: "authdomain",
-    baslik: "Giriş dönüş adresi",
-    durum: kendiAlan ? "uyari" : "ok",
-    detay: authDomain || "tanımsız",
-    ipucu: kendiAlan
-      ? `Kendi alan adı kullanılıyor: Google Cloud > Credentials > Web OAuth istemcisi > Authorized redirect URIs listesinde https://${authDomain}/__/auth/handler OLMALI. Yoksa giriş "redirect_uri_mismatch" verir.`
-      : undefined,
-  });
-
-  // 4 — Anonim giriş: FlowWall misafirinin kendi medyasını silebilmesi buna bağlı
-  const anon = await anonimDene();
-  out.push({
-    id: "anon",
-    baslik: "Anonim giriş (FlowWall misafiri)",
-    durum: anon.sonuc === "acik" ? "ok" : anon.sonuc === "kapali" ? "uyari" : "bilinmiyor",
-    detay:
-      anon.sonuc === "acik"
-        ? "Açık."
-        : anon.sonuc === "kapali"
-          ? "Kapalı."
-          : `Denenemedi (${anon.hata}) — sağlayıcıya ulaşılamadı, kapalı olduğu anlamına gelmez.`,
-    ipucu:
-      anon.sonuc === "kapali"
-        ? "Kapalıyken duvar çalışır ama misafir KENDİ yüklediğini silemez. Firebase Console > Authentication > Sign-in method > Anonymous."
+  return [
+    {
+      id: "authdomain",
+      baslik: "Giriş dönüş adresi",
+      durum: kendiAlan ? "uyari" : "ok",
+      detay: authDomain || "tanımsız",
+      ipucu: kendiAlan
+        ? `Kendi alan adı kullanılıyor: Google Cloud > Credentials > Web OAuth istemcisi > Authorized redirect URIs listesinde https://${authDomain}/__/auth/handler OLMALI. Yoksa giriş "redirect_uri_mismatch" verir.`
         : undefined,
-  });
+    },
+  ];
+}
 
-  // 5 — Firestore gidiş-dönüşü + SAAT FARKI. Sign'ın saat/gün takvimi CİHAZIN
-  //     saatine bakar; cihaz saati kayarsa içerik yanlış saatte döner.
-  if (uid) {
-    try {
-      const ref = doc(db(), "users", uid);
-      const t0 = Date.now();
-      await setDoc(ref, { lastSeenAt: serverTimestamp() }, { merge: true });
-      const snap = await getDoc(ref);
-      const gidisDonus = Date.now() - t0;
-      const sunucu = (snap.data()?.lastSeenAt as { toMillis?: () => number } | undefined)?.toMillis?.();
-      out.push({
+async function kontrolAnonim(): Promise<Kontrol[]> {
+  const anon = await anonimDene();
+  return [
+    {
+      id: "anon",
+      baslik: "Anonim giriş (FlowWall misafiri)",
+      durum: anon.sonuc === "acik" ? "ok" : anon.sonuc === "kapali" ? "uyari" : "bilinmiyor",
+      detay:
+        anon.sonuc === "acik"
+          ? "Açık."
+          : anon.sonuc === "kapali"
+            ? "Kapalı."
+            : `Denenemedi (${anon.hata}) — sağlayıcıya ulaşılamadı, kapalı olduğu anlamına gelmez.`,
+      ipucu:
+        anon.sonuc === "kapali"
+          ? "Kapalıyken duvar çalışır ama misafir KENDİ yüklediğini silemez. Firebase Console > Authentication > Sign-in method > Anonymous."
+          : undefined,
+    },
+  ];
+}
+
+async function kontrolFirestore(uid?: string): Promise<Kontrol[]> {
+  if (!uid) {
+    return [
+      {
         id: "firestore",
         baslik: "Veritabanı yazma/okuma",
-        durum: "ok",
-        detay: `Gidiş-dönüş ${gidisDonus} ms.`,
-      });
-      if (sunucu) {
-        const fark = Math.abs(Date.now() - sunucu);
-        out.push({
-          id: "saat",
-          baslik: "Cihaz saati",
-          durum: fark < 60_000 ? "ok" : fark < 300_000 ? "uyari" : "hata",
-          detay: `Sunucudan farkı ${Math.round(fark / 1000)} sn.`,
-          ipucu:
-            fark < 60_000
-              ? undefined
-              : "FlowSign'ın saat/gün takvimi CİHAZIN saatine bakar — kayma varsa içerik yanlış saatte döner. Perdeyi çalıştıran cihazın saatini otomatiğe al.",
-        });
-      }
-    } catch (e) {
+        durum: "bilinmiyor",
+        detay: "Oturum açık değil — kendi kaydına yazılamadı.",
+      },
+    ];
+  }
+  try {
+    const ref = doc(db(), "users", uid);
+    const t0 = Date.now();
+    await setDoc(ref, { lastSeenAt: serverTimestamp() }, { merge: true });
+    const snap = await getDoc(ref);
+    const gidisDonus = Date.now() - t0;
+    const sunucu = (snap.data()?.lastSeenAt as { toMillis?: () => number } | undefined)?.toMillis?.();
+    const out: Kontrol[] = [
+      { id: "firestore", baslik: "Veritabanı yazma/okuma", durum: "ok", detay: `Gidiş-dönüş ${gidisDonus} ms.` },
+    ];
+    if (sunucu) {
+      const fark = Math.abs(Date.now() - sunucu);
       out.push({
+        id: "saat",
+        baslik: "Cihaz saati",
+        durum: fark < 60_000 ? "ok" : fark < 300_000 ? "uyari" : "hata",
+        detay: `Sunucudan farkı ${Math.round(fark / 1000)} sn.`,
+        ipucu:
+          fark < 60_000
+            ? undefined
+            : "FlowSign'ın saat/gün takvimi CİHAZIN saatine bakar — kayma varsa içerik yanlış saatte döner. Perdeyi çalıştıran cihazın saatini otomatiğe al.",
+      });
+    }
+    return out;
+  } catch (e) {
+    return [
+      {
         id: "firestore",
         baslik: "Veritabanı yazma/okuma",
         durum: "hata",
         detay: e instanceof Error ? e.message : "Yazılamadı.",
         ipucu: "Kurallar (firestore.rules) konsola yapıştırılmış mı, kontrol et.",
-      });
-    }
+      },
+    ];
   }
+}
 
-  // 6 — Cloudinary: FlowWall medyası ve FlowSign içeriği buna bağlı
+async function kontrolCloudinary(): Promise<Kontrol[]> {
   const cs = cloudinaryStatus();
   if (!cs.cloud || !cs.preset) {
-    out.push({
-      id: "cloudinary",
-      baslik: "Medya deposu (Cloudinary)",
-      durum: "hata",
-      detay: `${cs.cloud ? "" : "cloud adı eksik. "}${cs.preset ? "" : "upload preset eksik."}`,
-      ipucu: "Eksikken foto/video yüklenemez (URL/metin içerik çalışır).",
-    });
-  } else {
-    const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME as string;
-    const ulasti = await cloudinaryUlasilir(cloud);
-    out.push({
+    return [
+      {
+        id: "cloudinary",
+        baslik: "Medya deposu (Cloudinary)",
+        durum: "hata",
+        detay: `${cs.cloud ? "" : "cloud adı eksik. "}${cs.preset ? "" : "upload preset eksik."}`,
+        ipucu: "Eksikken foto/video yüklenemez (URL/metin içerik çalışır).",
+      },
+    ];
+  }
+  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME as string;
+  const ulasti = await cloudinaryUlasilir(cloud);
+  return [
+    {
       id: "cloudinary",
       baslik: "Medya deposu (Cloudinary)",
       durum: ulasti ? "ok" : "uyari",
       detay: ulasti ? `${cloud} erişilebilir.` : `${cloud} yanıt vermedi.`,
       ipucu: ulasti ? undefined : "Cloud adı yanlış olabilir ya da ağ engelliyor olabilir.",
-    });
-  }
+    },
+  ];
+}
 
+/** Panelin sırası: en sık arızalanan (ve en sessiz) başlıklar üstte. */
+export const KONTROLLER: KontrolTanim[] = [
+  {
+    id: "cfg",
+    baslik: "Firebase yapılandırması",
+    ozet: "Yayına giren pakette Firebase değişkenleri var mı — yoksa hiçbir şey kaydedilmez.",
+    calistir: kontrolCfg,
+  },
+  {
+    id: "domain",
+    baslik: "Yetkili alan adları",
+    ozet: "Bu adres Google girişi için yetkili mi. Alan adı değişince listeye eklemek unutulur, giriş sessizce takılır.",
+    calistir: kontrolDomain,
+  },
+  {
+    id: "authdomain",
+    baslik: "Giriş dönüş adresi",
+    ozet: "Girişin geri döneceği adres. Kendi alan adımız Google Cloud'da ayrı bir kayıt daha ister.",
+    calistir: kontrolAuthDomain,
+  },
+  {
+    id: "anon",
+    baslik: "Anonim giriş (FlowWall misafiri)",
+    ozet: "Misafirin KENDİ yüklediğini silebilmesi buna bağlı. Deneme ayrı bağlantıda yapılır, açılan hesap hemen silinir.",
+    calistir: kontrolAnonim,
+  },
+  {
+    id: "firestore",
+    baslik: "Veritabanı + cihaz saati",
+    ozet: "Gerçek bir yazma/okuma turu; aynı turda cihaz saatinin sunucudan sapması da ölçülür (Sign takvimi cihaz saatine bakar).",
+    calistir: kontrolFirestore,
+  },
+  {
+    id: "cloudinary",
+    baslik: "Medya deposu (Cloudinary)",
+    ozet: "FlowWall medyası ve FlowSign içeriği buna bağlı; ayarlar var mı ve depo yanıt veriyor mu.",
+    calistir: kontrolCloudinary,
+  },
+];
+
+/** Tüm kontroller. `uid` verilirse Firestore gidiş-dönüşü ve saat farkı da ölçülür. */
+export async function saglikTara(uid?: string): Promise<Kontrol[]> {
+  const out: Kontrol[] = [];
+  for (const t of KONTROLLER) {
+    try {
+      out.push(...(await t.calistir(uid)));
+    } catch (e) {
+      out.push({
+        id: t.id,
+        baslik: t.baslik,
+        durum: "bilinmiyor",
+        detay: e instanceof Error ? e.message : "Kontrol çalıştırılamadı.",
+      });
+    }
+  }
   return out;
 }
