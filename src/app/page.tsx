@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import CodeInput from "@/components/CodeInput";
 import Logo from "@/components/Logo";
-import { useAuthUser } from "@/lib/hooks";
+import { SESSION_HINT, useAuthUser } from "@/lib/hooks";
 import { getLastPresentation, LastPresentation } from "@/lib/participants";
 import { resolveCode } from "@/lib/walls";
 
@@ -33,20 +33,36 @@ export default function LandingPage() {
   const [last, setLast] = useState<LastPresentation | null>(null);
   // Sahip cihazında (Google oturumu açık) panele kestirme; katılımcı hiç
   // giriş yapmadığından bu çipi asla görmez. PWA'da adres çubuğu yok → tek yol bu.
-  const { user } = useAuthUser();
+  const { user, loading: authLoading } = useAuthUser();
+  const authResolved = !authLoading;
   // Panel AĞIR bir sayfa (tüm ürünler + oturum kontrolü): telefonda dokunuşla
   // açılışı arasında saniyeler geçiyor ve ekranda HİÇBİR belirti olmuyordu —
   // kullanıcı "tıklanmıyor" sanıp üst üste basıyordu. Dokunur dokunmaz çip
   // "Açılıyor…"a döner ve tekrar dokunuşları yutar.
   const [going, setGoing] = useState<null | "panel" | "last">(null);
 
-  // Panel, çip EKRANA GELDİĞİ anda hazırlanır (dokunulunca değil). Asıl şikâyet
-  // geri bildirim eksikliği değildi: dokunuşla açılış arasındaki bekleme panelin
-  // o an indirilmesinden geliyordu. Oturum bilindiği anda rota önceden çekilir,
-  // dokunuş anında gidilecek her şey hazır olur.
+  // ÇİP GEÇ BELİRİYORDU: Firebase oturumu çözülene kadar ekranda yoktu.
+  // Kullanıcı tam belirdiği anda basınca dokunuş henüz orada olmayan bir şeye
+  // gidiyor, "almıyor" gibi görünüyordu; 1-2 sn sonra ya da geri gelindiğinde
+  // (sayfa önbellekten) çip zaten yerinde olduğu için sorunsuz açılıyordu.
+  //
+  // Çözüm: bu cihazda daha önce oturum açıldıysa çip, Firebase beklenmeden —
+  // sayfa canlanır canlanmaz — çizilir. Sunucu çıktısında olmaz (aksi hâlde
+  // hidrasyon uyuşmazlığı olurdu), effect ile gelir. Yetki kararı değişmedi:
+  // gerçek oturum yoksa çip kaybolur, panel de kendi kapısını uygular.
+  const [ipucu, setIpucu] = useState(false);
   useEffect(() => {
-    if (user) router.prefetch("/dashboard");
-  }, [user, router]);
+    try {
+      setIpucu(window.localStorage.getItem(SESSION_HINT) === "1");
+    } catch {}
+  }, []);
+  const showPanel = !!user || (ipucu && !authResolved);
+
+  // Panel, çip EKRANA GELDİĞİ anda hazırlanır (dokunulunca değil): dokunuşla
+  // açılış arasındaki bekleme panelin o an indirilmesinden geliyordu.
+  useEffect(() => {
+    if (showPanel) router.prefetch("/dashboard");
+  }, [showPanel, router]);
 
   useEffect(() => {
     setLast(getLastPresentation());
@@ -93,7 +109,7 @@ export default function LandingPage() {
       {/* Salt katılımcı yüzeyi: giriş linki YOK; yalnız oturumu AÇIK sahibe çip. */}
       <header className="relative z-10 px-6 py-5 flex items-center justify-between gap-3">
         <Logo variant="studio" />
-        {user && (
+        {showPanel && (
           <Link
             href="/dashboard"
             onClick={() => setGoing("panel")}

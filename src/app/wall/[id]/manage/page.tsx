@@ -526,37 +526,6 @@ export default function WallManage() {
           )}
         </div>
 
-        {/* Yaşam döngüsü — kapat / aç / yeni oturum */}
-        {wall && (
-          <div className="card p-5">
-            <p className="eyebrow mb-3">Yaşam döngüsü</p>
-            <div className="flex flex-wrap items-center gap-3">
-              {wall.closed ? (
-                <button onClick={() => reopenWall(id).catch(console.error)} className="btn-ghost !py-2 text-sm"><Icon name="play" size={13} /> Duvarı yeniden aç</button>
-              ) : (
-                <button
-                  onClick={() => setConfirmReq({ title: "Duvarı kapat", message: 'Yükleme durur, perdede "🎉 Teşekkürler" görünür. Yeniden açabilir ya da yeni oturum başlatabilirsin.', confirmLabel: "Kapat", action: () => closeWall(id).catch(() => setZipMsg("Duvar kapatılamadı — tekrar dene.")) })}
-                  className="btn-ghost !py-2 text-sm"
-                >
-                  <Icon name="stop" size={15} /> Duvarı kapat
-                </button>
-              )}
-              <button
-                onClick={() => setConfirmReq({ title: "Yeni oturum", message: "Şu anki anılar perdeden ve kokpitten kalkar (SİLİNMEZ — arşivde kalır); duvar ikinci grup için temizlenir.", confirmLabel: "Yeni oturum başlat", action: () => newWallSession(id).catch(() => setZipMsg("Yeni oturum başlatılamadı — tekrar dene.")) })}
-                className="btn-primary !py-2 text-sm"
-              >
-                <Icon name="refresh" size={15} /> Yeni oturum
-              </button>
-              <span className="text-xs text-muted">
-                {wall.closed ? "Kapalı — yükleme durdu." : "Açık — misafirler yükleyebilir."}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Anı Filmi — highlight video üretimi */}
-        {wall && <WallFilm wall={wall} media={allMedia} wishes={wishes} />}
-
         {/* İçerik izinleri — etkinlik başına video / dilek aç-kapa */}
         <div className="card p-5">
           <p className="eyebrow mb-3">İçerik izinleri & sınırlar</p>
@@ -638,102 +607,6 @@ export default function WallManage() {
               <input ref={frameRef} type="file" accept="image/png" className="hidden" onChange={onFramePick} />
               <span className="text-muted text-xs basis-full">Logolu/temalı şeffaf PNG; bundan sonra yüklenen her fotoğrafın üstüne işlenir — indirilen kare de markalı olur.</span>
             </div>
-          </div>
-        </div>
-
-        {/* Tema seçici */}
-        <div className="card p-5 flex flex-col md:flex-row gap-6 items-start">
-          <div className="flex-1 min-w-0">
-            <p className="eyebrow mb-3">Perde teması</p>
-            <div className="flex flex-wrap gap-2.5 mb-4">
-              {WALL_THEME_PRESETS.map((p) => {
-                const active = (wall?.theme?.preset ?? "gece") === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => {
-                      const nextTheme: { preset: string; bgImage?: string } = { preset: p.id };
-                      if (wall?.theme?.bgImage) nextTheme.bgImage = wall.theme.bgImage;
-                      setWallTheme(id, nextTheme).catch(console.error);
-                    }}
-                    className={`relative rounded-xl overflow-hidden border-2 transition-all ${
-                      active ? "border-accent ring-2 ring-accent-soft scale-105" : "border-line hover:border-muted"
-                    }`}
-                    style={{ width: 88, height: 56 }}
-                    title={p.name}
-                  >
-                    <div className="absolute inset-0" style={{ background: p.bg }} />
-                    <span className={`relative z-10 text-[11px] font-bold ${
-                      p.dark ? "text-white/90" : "text-ink/80"
-                    }`}>
-                      {p.name}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            {/* Arka plan görseli */}
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-3 flex-wrap">
-                <label className="btn-ghost !py-2 !px-4 text-sm cursor-pointer">
-                  <Icon name="image" size={15} /> Arka plan görseli
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const f = e.target.files?.[0];
-                      if (!f) return;
-                      try {
-                        const dataUri = await compressImage(f, 1600, 0.7);
-                        await setWallTheme(id, { preset: wall?.theme?.preset ?? "gece", bgImage: dataUri });
-                      } catch {
-                        // sıkıştırma hatası — sessiz
-                      }
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-                {wall?.theme?.bgImage && (
-                  <button
-                    onClick={() => setWallTheme(id, { preset: wall?.theme?.preset ?? "gece" }).catch(console.error)}
-                    className="btn-ghost !py-2 !px-4 text-sm !text-brand !border-brand"
-                  >
-                    <Icon name="close" size={14} /> Görseli kaldır
-                  </button>
-                )}
-              </div>
-              {wall?.theme?.bgImage && (
-                <span className="text-muted text-xs">Görsel yüklendi — perdede koyu katman ile görünür.</span>
-              )}
-            </div>
-
-            {/* Ambient efekt (temadan bağımsız) */}
-            <div className="mt-5">
-              <p className="text-sm font-semibold mb-2">Efekt</p>
-              <div className="flex flex-wrap gap-2">
-                {WALL_EFFECTS.map((e) => {
-                  const active = wallEffectOf(wall) === e.id;
-                  return (
-                    <button
-                      key={e.id}
-                      onClick={() => setWallEffect(id, e.id).catch(console.error)}
-                      className={`!py-1.5 !px-3 text-xs rounded-full font-semibold border ${
-                        active ? "border-accent bg-accent-soft/50 text-accent" : "border-line text-muted hover:text-ink"
-                      }`}
-                    >
-                      {e.icon} {e.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-          
-          {/* Önizleme */}
-          <div className="w-full md:w-64 shrink-0">
-            <p className="eyebrow mb-3">Perde önizlemesi</p>
-            <WallPreview wall={wall} />
           </div>
         </div>
 
@@ -849,11 +722,259 @@ export default function WallManage() {
           </label>
         </div>
 
+        {/* Tema seçici */}
+        <div className="card p-5 flex flex-col md:flex-row gap-6 items-start">
+          <div className="flex-1 min-w-0">
+            <p className="eyebrow mb-3">Perde teması</p>
+            <div className="flex flex-wrap gap-2.5 mb-4">
+              {WALL_THEME_PRESETS.map((p) => {
+                const active = (wall?.theme?.preset ?? "gece") === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      const nextTheme: { preset: string; bgImage?: string } = { preset: p.id };
+                      if (wall?.theme?.bgImage) nextTheme.bgImage = wall.theme.bgImage;
+                      setWallTheme(id, nextTheme).catch(console.error);
+                    }}
+                    className={`relative rounded-xl overflow-hidden border-2 transition-all ${
+                      active ? "border-accent ring-2 ring-accent-soft scale-105" : "border-line hover:border-muted"
+                    }`}
+                    style={{ width: 88, height: 56 }}
+                    title={p.name}
+                  >
+                    <div className="absolute inset-0" style={{ background: p.bg }} />
+                    <span className={`relative z-10 text-[11px] font-bold ${
+                      p.dark ? "text-white/90" : "text-ink/80"
+                    }`}>
+                      {p.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Arka plan görseli */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="btn-ghost !py-2 !px-4 text-sm cursor-pointer">
+                  <Icon name="image" size={15} /> Arka plan görseli
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      try {
+                        const dataUri = await compressImage(f, 1600, 0.7);
+                        await setWallTheme(id, { preset: wall?.theme?.preset ?? "gece", bgImage: dataUri });
+                      } catch {
+                        // sıkıştırma hatası — sessiz
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                {wall?.theme?.bgImage && (
+                  <button
+                    onClick={() => setWallTheme(id, { preset: wall?.theme?.preset ?? "gece" }).catch(console.error)}
+                    className="btn-ghost !py-2 !px-4 text-sm !text-brand !border-brand"
+                  >
+                    <Icon name="close" size={14} /> Görseli kaldır
+                  </button>
+                )}
+              </div>
+              {wall?.theme?.bgImage && (
+                <span className="text-muted text-xs">Görsel yüklendi — perdede koyu katman ile görünür.</span>
+              )}
+            </div>
+
+            {/* Ambient efekt (temadan bağımsız) */}
+            <div className="mt-5">
+              <p className="text-sm font-semibold mb-2">Efekt</p>
+              <div className="flex flex-wrap gap-2">
+                {WALL_EFFECTS.map((e) => {
+                  const active = wallEffectOf(wall) === e.id;
+                  return (
+                    <button
+                      key={e.id}
+                      onClick={() => setWallEffect(id, e.id).catch(console.error)}
+                      className={`!py-1.5 !px-3 text-xs rounded-full font-semibold border ${
+                        active ? "border-accent bg-accent-soft/50 text-accent" : "border-line text-muted hover:text-ink"
+                      }`}
+                    >
+                      {e.icon} {e.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          
+          {/* Önizleme */}
+          <div className="w-full md:w-64 shrink-0">
+            <p className="eyebrow mb-3">Perde önizlemesi</p>
+            <WallPreview wall={wall} />
+          </div>
+        </div>
+
+        {/* Anı Filmi — highlight video üretimi */}
+        {wall && <WallFilm wall={wall} media={allMedia} wishes={wishes} />}
+
+        {/* Yaşam döngüsü — kapat / aç / yeni oturum */}
+        {wall && (
+          <div className="card p-5">
+            <p className="eyebrow mb-3">Yaşam döngüsü</p>
+            <div className="flex flex-wrap items-center gap-3">
+              {wall.closed ? (
+                <button onClick={() => reopenWall(id).catch(console.error)} className="btn-ghost !py-2 text-sm"><Icon name="play" size={13} /> Duvarı yeniden aç</button>
+              ) : (
+                <button
+                  onClick={() => setConfirmReq({ title: "Duvarı kapat", message: 'Yükleme durur, perdede "🎉 Teşekkürler" görünür. Yeniden açabilir ya da yeni oturum başlatabilirsin.', confirmLabel: "Kapat", action: () => closeWall(id).catch(() => setZipMsg("Duvar kapatılamadı — tekrar dene.")) })}
+                  className="btn-ghost !py-2 text-sm"
+                >
+                  <Icon name="stop" size={15} /> Duvarı kapat
+                </button>
+              )}
+              <button
+                onClick={() => setConfirmReq({ title: "Yeni oturum", message: "Şu anki anılar perdeden ve kokpitten kalkar (SİLİNMEZ — arşivde kalır); duvar ikinci grup için temizlenir.", confirmLabel: "Yeni oturum başlat", action: () => newWallSession(id).catch(() => setZipMsg("Yeni oturum başlatılamadı — tekrar dene.")) })}
+                className="btn-primary !py-2 text-sm"
+              >
+                <Icon name="refresh" size={15} /> Yeni oturum
+              </button>
+              <span className="text-xs text-muted">
+                {wall.closed ? "Kapalı — yükleme durdu." : "Açık — misafirler yükleyebilir."}
+              </span>
+            </div>
+          </div>
+        )}
+
           </>
         )}
 
         {tab === "moderasyon" && (
           <>
+        {/* Onay bekleyenler */}
+        {wall.moderation && (
+          <section>
+            <p className="eyebrow mb-3">Onay bekleyen ({pending.length})</p>
+            {pending.length === 0 ? (
+              <p className="text-muted text-sm">Bekleyen medya yok.</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 [&>*]:min-w-0">
+                {pending.map((m) => (
+                  <MediaCard key={m.id} m={m}>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 btn-accent !py-1.5 text-xs"><Icon name="check" size={13} /> Onayla</button>
+                      <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" aria-label="Reddet"><Icon name="close" size={13} /></button>
+                    </div>
+                  </MediaCard>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Dilek moderasyonu */}
+        {(pendingWishes.length > 0 || approvedWishes.length > 0) && (
+          <div className="card p-5">
+            <p className="eyebrow mb-1 flex items-center gap-1.5"><Icon name="mail" size={13} /> Dilekler</p>
+            <p className="text-muted text-xs mb-3">
+              {wall.moderation ? "Moderasyon açık — dilekler onaydan sonra perdeye düşer." : "Moderasyon kapalı — dilekler direkt perdede."}
+            </p>
+
+            {pendingWishes.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-semibold mb-2">Onay bekleyen ({pendingWishes.length})</p>
+                <div className="flex flex-col gap-2">
+                  {pendingWishes.map((w) => (
+                    <div key={w.id} className="rounded-xl border border-line p-3 flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm">{w.text}</p>
+                        {w.nickname && <p className="text-muted text-xs">— {w.nickname}</p>}
+                      </div>
+                      <button onClick={() => setWishStatus(id, w.id, "approved").catch(console.error)} className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-accent text-accent hover:bg-accent-soft/50 shrink-0 inline-flex items-center gap-1"><Icon name="check" size={13} /> Onayla</button>
+                      <button onClick={() => setWishStatus(id, w.id, "rejected").catch(console.error)} className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-line text-brand shrink-0" aria-label="Reddet"><Icon name="close" size={13} /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {approvedWishes.length > 0 && (
+              <div>
+                <p className="text-muted text-xs mb-2">Perdede ({approvedWishes.length})</p>
+                <div className="flex flex-col gap-1.5">
+                  {approvedWishes.map((w) => (
+                    <div key={w.id} className="flex items-center gap-2 text-sm">
+                      <span className="flex-1 min-w-0 truncate inline-flex items-center gap-1.5"><Icon name="mail" size={13} className="opacity-60" /> {w.text}{w.nickname ? ` — ${w.nickname}` : ""}</span>
+                      <button onClick={() => deleteWish(id, w.id).catch(console.error)} className="text-muted hover:text-brand text-xs shrink-0" aria-label="Sil"><Icon name="trash" size={14} /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Perdedeki medya */}
+        <section>
+          <p className="eyebrow mb-3">Perdede ({approved.length})</p>
+          {approved.length === 0 ? (
+            <p className="text-muted text-sm">Henüz onaylı medya yok.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 [&>*]:min-w-0">
+              {approved.map((m) => (
+                <MediaCard key={m.id} m={m}>
+                  {/* Dar mobil kartta 3'lü sıra taşmasın: ikonlar sabit-dar, orta buton esner */}
+                  <div className="flex items-center gap-1 min-w-0">
+                    <button
+                      onClick={() => setWallPinned(id, wall.pinnedMediaId === m.id ? null : m.id).catch(console.error)}
+                      className={`shrink-0 w-8 h-8 grid place-items-center rounded-full border text-sm ${wall.pinnedMediaId === m.id ? "border-accent text-accent bg-accent-soft/40" : "border-line text-muted hover:text-ink"}`}
+                      title={wall.pinnedMediaId === m.id ? "Sabitlemeyi kaldır — perde normale döner" : "Perdede sabitle — kaldırana dek büyük durur"}
+                      aria-label="Perdede sabitle"
+                    >
+                      <Icon name="pin" size={15} />
+                    </button>
+                    <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="flex-1 min-w-0 btn-ghost !py-1.5 !px-1 text-xs truncate">Kaldır</button>
+                    <button
+                      onClick={() => setConfirmReq({ title: "Kalıcı silme", message: "Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?", confirmLabel: "Kalıcı sil", danger: true, action: () => hardDelete(m) })}
+                      className="shrink-0 w-8 h-8 grid place-items-center rounded-full border border-brand/40 text-brand text-sm"
+                      title="Kalıcı sil (Cloudinary dahil)"
+                      aria-label="Kalıcı sil"
+                    >
+                      <Icon name="trash" size={15} />
+                    </button>
+                  </div>
+                </MediaCard>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Kaldırılanlar (geri alınabilir) */}
+        {rejected.length > 0 && (
+          <section>
+            <p className="eyebrow mb-3 text-muted">Kaldırılanlar ({rejected.length})</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 [&>*]:min-w-0">
+              {rejected.map((m) => (
+                <MediaCard key={m.id} m={m}>
+                  <div className="flex items-center gap-1 min-w-0">
+                    <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 min-w-0 btn-accent !py-1.5 !px-1 text-xs truncate"><Icon name="undo" size={13} /> Geri al</button>
+                    <button
+                      onClick={() => setConfirmReq({ title: "Kalıcı silme", message: "Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?", confirmLabel: "Kalıcı sil", danger: true, action: () => hardDelete(m) })}
+                      className="shrink-0 w-8 h-8 grid place-items-center rounded-full border border-brand/40 text-brand text-sm"
+                      title="Kalıcı sil (Cloudinary dahil)"
+                      aria-label="Kalıcı sil"
+                    >
+                      <Icon name="trash" size={15} />
+                    </button>
+                  </div>
+                </MediaCard>
+              ))}
+            </div>
+          </section>
+        )}
         {/* Canlı anons */}
         {(() => {
           const annUntil = wall.announcement?.until?.toMillis?.() ?? 0;
@@ -909,6 +1030,26 @@ export default function WallManage() {
             </details>
           );
         })()}
+
+        {/* Sunucu kendi medyasını ekler (moderasyondan bağımsız kokpit) */}
+        <div className="card p-4 flex items-center gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm">Kendi fotoğraf/videonu ekle</p>
+            <p className="text-muted text-xs">
+              {wall.moderation ? "Moderasyon açık — eklediğin de onaya düşer, aşağıdan onayla." : "Direkt perdeye eklenir."}
+            </p>
+          </div>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading || !isCloudinaryConfigured()}
+            className="btn-primary !py-2 !px-4 text-sm shrink-0"
+          >
+            {uploading ? `Yükleniyor… ${upPct}%` : "＋ Medya ekle"}
+          </button>
+          <input ref={fileRef} type="file" accept="image/*,video/*" onChange={ownerUpload} className="hidden" />
+          {!isCloudinaryConfigured() && <p className="text-brand text-xs w-full">Cloudinary yapılandırılmadı.</p>}
+          {upErr && <p className="text-brand text-xs w-full">{upErr}</p>}
+        </div>
 
         {/* Foto yarışması */}
         <details className="card p-5">
@@ -1064,147 +1205,6 @@ export default function WallManage() {
           </details>
         )}
 
-        {/* Dilek moderasyonu */}
-        {(pendingWishes.length > 0 || approvedWishes.length > 0) && (
-          <div className="card p-5">
-            <p className="eyebrow mb-1 flex items-center gap-1.5"><Icon name="mail" size={13} /> Dilekler</p>
-            <p className="text-muted text-xs mb-3">
-              {wall.moderation ? "Moderasyon açık — dilekler onaydan sonra perdeye düşer." : "Moderasyon kapalı — dilekler direkt perdede."}
-            </p>
-
-            {pendingWishes.length > 0 && (
-              <div className="mb-4">
-                <p className="text-sm font-semibold mb-2">Onay bekleyen ({pendingWishes.length})</p>
-                <div className="flex flex-col gap-2">
-                  {pendingWishes.map((w) => (
-                    <div key={w.id} className="rounded-xl border border-line p-3 flex items-center gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm">{w.text}</p>
-                        {w.nickname && <p className="text-muted text-xs">— {w.nickname}</p>}
-                      </div>
-                      <button onClick={() => setWishStatus(id, w.id, "approved").catch(console.error)} className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-accent text-accent hover:bg-accent-soft/50 shrink-0 inline-flex items-center gap-1"><Icon name="check" size={13} /> Onayla</button>
-                      <button onClick={() => setWishStatus(id, w.id, "rejected").catch(console.error)} className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-line text-brand shrink-0" aria-label="Reddet"><Icon name="close" size={13} /></button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {approvedWishes.length > 0 && (
-              <div>
-                <p className="text-muted text-xs mb-2">Perdede ({approvedWishes.length})</p>
-                <div className="flex flex-col gap-1.5">
-                  {approvedWishes.map((w) => (
-                    <div key={w.id} className="flex items-center gap-2 text-sm">
-                      <span className="flex-1 min-w-0 truncate inline-flex items-center gap-1.5"><Icon name="mail" size={13} className="opacity-60" /> {w.text}{w.nickname ? ` — ${w.nickname}` : ""}</span>
-                      <button onClick={() => deleteWish(id, w.id).catch(console.error)} className="text-muted hover:text-brand text-xs shrink-0" aria-label="Sil"><Icon name="trash" size={14} /></button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Sunucu kendi medyasını ekler (moderasyondan bağımsız kokpit) */}
-        <div className="card p-4 flex items-center gap-3 flex-wrap">
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm">Kendi fotoğraf/videonu ekle</p>
-            <p className="text-muted text-xs">
-              {wall.moderation ? "Moderasyon açık — eklediğin de onaya düşer, aşağıdan onayla." : "Direkt perdeye eklenir."}
-            </p>
-          </div>
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading || !isCloudinaryConfigured()}
-            className="btn-primary !py-2 !px-4 text-sm shrink-0"
-          >
-            {uploading ? `Yükleniyor… ${upPct}%` : "＋ Medya ekle"}
-          </button>
-          <input ref={fileRef} type="file" accept="image/*,video/*" onChange={ownerUpload} className="hidden" />
-          {!isCloudinaryConfigured() && <p className="text-brand text-xs w-full">Cloudinary yapılandırılmadı.</p>}
-          {upErr && <p className="text-brand text-xs w-full">{upErr}</p>}
-        </div>
-
-        {/* Onay bekleyenler */}
-        {wall.moderation && (
-          <section>
-            <p className="eyebrow mb-3">Onay bekleyen ({pending.length})</p>
-            {pending.length === 0 ? (
-              <p className="text-muted text-sm">Bekleyen medya yok.</p>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 [&>*]:min-w-0">
-                {pending.map((m) => (
-                  <MediaCard key={m.id} m={m}>
-                    <div className="flex gap-1.5">
-                      <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 btn-accent !py-1.5 text-xs"><Icon name="check" size={13} /> Onayla</button>
-                      <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="btn-ghost !py-1.5 !px-2.5 text-xs !border-brand !text-brand" aria-label="Reddet"><Icon name="close" size={13} /></button>
-                    </div>
-                  </MediaCard>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Perdedeki medya */}
-        <section>
-          <p className="eyebrow mb-3">Perdede ({approved.length})</p>
-          {approved.length === 0 ? (
-            <p className="text-muted text-sm">Henüz onaylı medya yok.</p>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 [&>*]:min-w-0">
-              {approved.map((m) => (
-                <MediaCard key={m.id} m={m}>
-                  {/* Dar mobil kartta 3'lü sıra taşmasın: ikonlar sabit-dar, orta buton esner */}
-                  <div className="flex items-center gap-1 min-w-0">
-                    <button
-                      onClick={() => setWallPinned(id, wall.pinnedMediaId === m.id ? null : m.id).catch(console.error)}
-                      className={`shrink-0 w-8 h-8 grid place-items-center rounded-full border text-sm ${wall.pinnedMediaId === m.id ? "border-accent text-accent bg-accent-soft/40" : "border-line text-muted hover:text-ink"}`}
-                      title={wall.pinnedMediaId === m.id ? "Sabitlemeyi kaldır — perde normale döner" : "Perdede sabitle — kaldırana dek büyük durur"}
-                      aria-label="Perdede sabitle"
-                    >
-                      <Icon name="pin" size={15} />
-                    </button>
-                    <button onClick={() => setMediaStatus(id, m.id, "rejected")} className="flex-1 min-w-0 btn-ghost !py-1.5 !px-1 text-xs truncate">Kaldır</button>
-                    <button
-                      onClick={() => setConfirmReq({ title: "Kalıcı silme", message: "Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?", confirmLabel: "Kalıcı sil", danger: true, action: () => hardDelete(m) })}
-                      className="shrink-0 w-8 h-8 grid place-items-center rounded-full border border-brand/40 text-brand text-sm"
-                      title="Kalıcı sil (Cloudinary dahil)"
-                      aria-label="Kalıcı sil"
-                    >
-                      <Icon name="trash" size={15} />
-                    </button>
-                  </div>
-                </MediaCard>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Kaldırılanlar (geri alınabilir) */}
-        {rejected.length > 0 && (
-          <section>
-            <p className="eyebrow mb-3 text-muted">Kaldırılanlar ({rejected.length})</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 [&>*]:min-w-0">
-              {rejected.map((m) => (
-                <MediaCard key={m.id} m={m}>
-                  <div className="flex items-center gap-1 min-w-0">
-                    <button onClick={() => setMediaStatus(id, m.id, "approved")} className="flex-1 min-w-0 btn-accent !py-1.5 !px-1 text-xs truncate"><Icon name="undo" size={13} /> Geri al</button>
-                    <button
-                      onClick={() => setConfirmReq({ title: "Kalıcı silme", message: "Bu medya Cloudinary'den ve duvardan KALICI olarak silinsin mi?", confirmLabel: "Kalıcı sil", danger: true, action: () => hardDelete(m) })}
-                      className="shrink-0 w-8 h-8 grid place-items-center rounded-full border border-brand/40 text-brand text-sm"
-                      title="Kalıcı sil (Cloudinary dahil)"
-                      aria-label="Kalıcı sil"
-                    >
-                      <Icon name="trash" size={15} />
-                    </button>
-                  </div>
-                </MediaCard>
-              ))}
-            </div>
-          </section>
-        )}
           </>
         )}
       </div>

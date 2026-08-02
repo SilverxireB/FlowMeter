@@ -7,6 +7,13 @@ import { auth, db, isFirebaseConfigured } from "./firebase";
 import { AudienceQuestion, ChatMessage, ContestVote, Participant, Presentation, ResponseDoc, Slide, Wall, WallMedia, WallWish } from "./types";
 import { watchWall, watchWallMedia, watchWallWishes, watchContestVotes } from "./walls";
 
+/**
+ * Bu cihazda daha önce oturum açıldı mı — YALNIZCA ipucu, yetki değil.
+ * Karşılama sayfası buna bakarak "Panelim" çipini Firebase oturumu çözülmeden
+ * çizer; gerçek karar yine onAuthStateChanged'e ait.
+ */
+export const SESSION_HINT = "flow.session";
+
 /** Presenter oturumu. loading=true iken yönlendirme yapma. */
 export function useAuthUser() {
   const [user, setUser] = useState<User | null>(null);
@@ -24,8 +31,15 @@ export function useAuthUser() {
       // gibi davranıyor ama hiçbir içerik görünmüyordu — "Panelim" çipi
       // misafire çıkıyor, tıklayınca bomboş panele düşürüyordu. Anonim kimliğe
       // ihtiyaç duyan TEK yer /u/[id]; orası zaten doğrudan dinliyor.
-      setUser(u?.isAnonymous ? null : u);
+      const gercek = u?.isAnonymous ? null : u;
+      setUser(gercek);
       setLoading(false);
+      // Bu cihazda oturum AÇIK MI izi: karşılama sayfası "Panelim" çipini
+      // Firebase'i beklemeden çizebilsin diye (bkz. SESSION_HINT).
+      try {
+        if (gercek) window.localStorage.setItem(SESSION_HINT, "1");
+        else window.localStorage.removeItem(SESSION_HINT);
+      } catch {}
     });
   }, []);
 
