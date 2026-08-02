@@ -65,6 +65,11 @@ export async function setUserRole(uid: string, role: "admin" | "user"): Promise<
   await updateDoc(doc(db(), "users", uid), { role });
 }
 
+/** Erişimi kapat/aç. Kayıt silinmez — kişi geri döndüğünde tek tıkla açılır. */
+export async function setUserBlocked(uid: string, blocked: boolean): Promise<void> {
+  await updateDoc(doc(db(), "users", uid), { blocked });
+}
+
 /** FlowSign: kişi yeni ekran açabilir mi? (yönetici → "Sign yetkileri" sayfası) */
 export async function setCanCreateSign(uid: string, canCreate: boolean): Promise<void> {
   await updateDoc(doc(db(), "users", uid), { canCreateSign: canCreate });

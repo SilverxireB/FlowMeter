@@ -89,6 +89,10 @@ export interface UserRecord {
   /** FlowSign: yeni ekran açabilir mi? Yoksa AÇABİLİR sayılır — yönetici
    *  "Sign yetkileri" sayfasından tiki kaldırarak kapatır (kapatma açık kayıttır). */
   canCreateSign?: boolean;
+  /** Erişimi kapatılmış kişi: kokpite giremez (ayrılan personel).
+   *  Kapı İSTEMCİDE — kuralları her yazımda ekstra okuma yapmaya zorlamamak
+   *  için bilerek böyle; içerik silme yetkisiyle karıştırılmamalı. */
+  blocked?: boolean;
   createdAt?: Timestamp | null;
   lastSeenAt?: Timestamp | null;
 }

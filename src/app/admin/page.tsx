@@ -20,8 +20,13 @@ import {
   isAdminUser,
   isGhostRecord,
   listUsers,
+  setUserBlocked,
   setUserRole,
 } from "@/lib/users";
+import { listPresentations } from "@/lib/presentations";
+import { listWalls } from "@/lib/walls";
+import { listVideowalls } from "@/lib/videowalls";
+import { listPulses } from "@/lib/pulses";
 import { UserRecord } from "@/lib/types";
 
 export default function AdminPage() {
@@ -68,6 +73,40 @@ export default function AdminPage() {
       refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Rol değiştirilemedi.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // İçerik özeti İSTENİNCE yüklenir: her kullanıcı için dört sorgu demek,
+  // listeyi açar açmaz hepsini çekmek gereksiz okuma olurdu.
+  const [icerik, setIcerik] = useState<Record<string, { sunum: number; duvar: number; ekran: number; nokta: number }>>({});
+  const [icerikBusy, setIcerikBusy] = useState<string | null>(null);
+  async function icerikSay(uid: string) {
+    setIcerikBusy(uid);
+    try {
+      const [a, b, c, d] = await Promise.all([
+        listPresentations(uid),
+        listWalls(uid),
+        listVideowalls(uid),
+        listPulses(uid),
+      ]);
+      setIcerik((m) => ({ ...m, [uid]: { sunum: a.length, duvar: b.length, ekran: c.length, nokta: d.length } }));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "İçerik sayılamadı.");
+    } finally {
+      setIcerikBusy(null);
+    }
+  }
+
+  async function engelle(u: UserRecord, kapat: boolean) {
+    setBusy(u.id);
+    setErr(null);
+    try {
+      await setUserBlocked(u.id, kapat);
+      refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Değiştirilemedi.");
     } finally {
       setBusy(null);
     }
@@ -179,7 +218,7 @@ export default function AdminPage() {
             const isSelf = u.id === user?.uid;
             const admin = isBootstrap || u.role === "admin";
             return (
-              <div key={u.id} className="card p-4 flex items-center gap-3.5">
+              <div key={u.id} className={`card p-4 flex items-center gap-3.5 flex-wrap ${u.blocked ? "opacity-70 border-[#eda100]/50" : ""}`}>
                 {u.photoURL ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={u.photoURL} alt="" className="w-11 h-11 rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
@@ -193,11 +232,27 @@ export default function AdminPage() {
                     {u.displayName || "—"}
                     {admin && <span className="ml-2 chip !py-0 text-xs text-accent"><Icon name="shield" size={12} /> yönetici</span>}
                     {isSelf && <span className="ml-1.5 text-muted text-xs">(sen)</span>}
+                    {u.blocked && <span className="ml-2 chip !py-0 text-xs text-[#8a6100] border-[#eda100]/50"><Icon name="lock" size={12} /> kapalı</span>}
                   </p>
                   <p className="text-muted text-sm truncate">{u.email}</p>
                   <p className="text-muted text-xs mt-0.5">
                     Kayıt: {fmt(u.createdAt)} · Son görülme: {fmt(u.lastSeenAt)}
                   </p>
+                  {/* İçerik özeti: "bu kişiyi kapatırsam/silersem arkada ne kalıyor?"
+                      sorusunun cevabı. İstenince yüklenir (kişi başına dört sorgu). */}
+                  {icerik[u.id] ? (
+                    <p className="text-muted text-xs mt-1 tabular-nums">
+                      {icerik[u.id].sunum} sunum · {icerik[u.id].duvar} duvar · {icerik[u.id].ekran} ekran · {icerik[u.id].nokta} nokta
+                    </p>
+                  ) : (
+                    <button
+                      onClick={() => void icerikSay(u.id)}
+                      disabled={icerikBusy === u.id}
+                      className="text-accent text-xs mt-1 font-semibold hover:underline cursor-pointer"
+                    >
+                      {icerikBusy === u.id ? "Sayılıyor…" : "İçeriğini göster"}
+                    </button>
+                  )}
                 </div>
                 <div className="flex gap-1.5 shrink-0 flex-col sm:flex-row">
                   {!isBootstrap && (
@@ -218,6 +273,26 @@ export default function AdminPage() {
                       }`}
                     >
                       {admin ? "Yöneticiliği kaldır" : <><Icon name="shield" size={13} /> Yönetici yap</>}
+                    </button>
+                  )}
+                  {!isBootstrap && !isSelf && (
+                    <button
+                      onClick={() =>
+                        confirm(
+                          {
+                            title: u.blocked ? "Erişimi aç" : "Erişimi kapat",
+                            message: u.blocked
+                              ? `${u.email} kokpite tekrar girebilecek.`
+                              : `${u.email} kokpite giremeyecek. İçerikleri DURUR; perde/izleyici linkleri çalışmaya devam eder.`,
+                            confirmLabel: u.blocked ? "Aç" : "Kapat",
+                          },
+                          () => void engelle(u, !u.blocked)
+                        )
+                      }
+                      disabled={busy === u.id}
+                      className="!py-1.5 !px-3 text-xs rounded-full font-semibold border border-line text-muted hover:text-ink hover:border-ink/30 cursor-pointer inline-flex items-center justify-center gap-1"
+                    >
+                      <Icon name={u.blocked ? "eye" : "lock"} size={13} /> {u.blocked ? "Erişimi aç" : "Erişimi kapat"}
                     </button>
                   )}
                   {!isBootstrap && !isSelf && (
@@ -250,12 +325,7 @@ export default function AdminPage() {
           )}
         </div>
 
-        <p className="text-muted text-xs mt-6 max-w-prose">
-          Not: “Sil” yalnızca kullanıcı kaydını kaldırır — Google hesabına ve
-          içeriklerine (sunum/duvar) dokunmaz; kullanıcı tekrar giriş yaparsa
-          kayıt yeniden oluşur. Kapsamlı yönetim (içerik silme, engelleme)
-          sonraki sürümde.
-        </p>
+
       </section>
 
       {dialog}

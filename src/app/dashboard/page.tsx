@@ -235,12 +235,18 @@ export default function DashboardPage() {
   }, [refresh]);
 
   // Kullanıcı kayıt defteri: girişte kayıt düş + yönetici mi öğren (/admin linki)
+  // + ERİŞİMİ KAPATILMIŞ MI. Kaydı zaten burada okuduğumuz için engel kontrolü
+  // ekstra okuma getirmez (kotaya dokunmaz).
   const [isAdmin, setIsAdmin] = useState(false);
+  const [blocked, setBlocked] = useState(false);
   useEffect(() => {
     if (!user) return;
     upsertUserRecord(user).catch(() => {});
     getUserRecord(user.uid)
-      .then((r) => setIsAdmin(isAdminUser(user, r)))
+      .then((r) => {
+        setIsAdmin(isAdminUser(user, r));
+        setBlocked(!!r?.blocked);
+      })
       .catch(() => setIsAdmin(isAdminUser(user, null)));
   }, [user]);
 
@@ -357,6 +363,25 @@ export default function DashboardPage() {
     if (name === null) return;
     await setPresentationFolder(p.id, name.trim());
     refresh();
+  }
+
+  if (blocked) {
+    return (
+      <main className="min-h-screen grid place-items-center bg-wash px-6 text-center">
+        <div className="max-w-sm">
+          <p className="text-xl font-bold mb-1">Erişimin kapatıldı</p>
+          <p className="text-muted text-sm mb-6">
+            Bu hesabın kokpit erişimi yönetici tarafından kapatıldı. İçeriklerin duruyor.
+          </p>
+          <button
+            onClick={() => signOut(auth()).then(() => router.replace("/login"))}
+            className="btn-ghost"
+          >
+            Çıkış yap
+          </button>
+        </div>
+      </main>
+    );
   }
 
   if (loading || !user) {
