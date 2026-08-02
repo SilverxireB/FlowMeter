@@ -71,7 +71,9 @@ export default function SimPage() {
 
   // Runner refs
   const botsRef = useRef<Bot[]>([]);
-  const questionIdsRef = useRef<string[]>([]);
+  // Soruların GÜNCEL beğeni sayısı da tutulur: rules beğeniyi "eski + 1" olarak
+  // doğrular, sabit 0'dan +1 yazmak ilk beğeniden sonrasını hep reddettiriyordu.
+  const questionIdsRef = useRef<{ id: string; upvotes: number }[]>([]);
   const slideRef = useRef<Slide | null>(null);
   const voteQueueRef = useRef<{ bot: Bot; dueAt: number; willVote: boolean }[]>([]);
   const votedRef = useRef<Set<string>>(new Set()); // bu slaytta oyu işlenen botlar
@@ -87,7 +89,9 @@ export default function SimPage() {
     cfgRef.current = { reactionMul, qnaMul, chatOn };
   }, [reactionMul, qnaMul, chatOn]);
   useEffect(() => {
-    questionIdsRef.current = questions.filter((q) => !q.hidden).map((q) => q.id);
+    questionIdsRef.current = questions
+      .filter((q) => !q.hidden)
+      .map((q) => ({ id: q.id, upvotes: q.upvotes ?? 0 }));
   }, [questions]);
   useEffect(() => {
     sidRef.current = presentation?.sessionId;
@@ -290,15 +294,17 @@ export default function SimPage() {
           .catch((e) => hata("soru", e));
         bump("questions");
       }
-      const ids = questionIdsRef.current;
-      if (ids.length) {
+      const sorular = questionIdsRef.current;
+      if (sorular.length) {
         const upExpected = questioners.length * dt * 0.4 * cfg.qnaMul;
         let un = Math.floor(upExpected) + (Math.random() < upExpected % 1 ? 1 : 0);
         un = Math.min(6, un);
         for (let i = 0; i < un; i++) {
-          upvoteQuestion(tid, ids[Math.floor(Math.random() * ids.length)], 0).catch((e) =>
-            hata("beğeni", e)
-          );
+          const q = sorular[Math.floor(Math.random() * sorular.length)];
+          // Yerel sayacı da artır: snapshot gelene kadar aynı soruya ikinci
+          // beğeni gelirse eski değerle yazıp reddedilmesin.
+          const yeni = ++q.upvotes;
+          upvoteQuestion(tid, q.id, yeni - 1).catch((e) => hata("beğeni", e));
         }
       }
 
