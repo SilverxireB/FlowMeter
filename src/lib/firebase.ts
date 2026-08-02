@@ -8,9 +8,41 @@ import {
   persistentMultipleTabManager,
 } from "firebase/firestore";
 
+/**
+ * authDomain SİTENİN KENDİ ALAN ADIDIR — env'den değil, tarayıcıdan alınır.
+ *
+ * Bu proje Firebase'in "auth yardımcısını kendi alan adından servis et"
+ * mimarisini kullanıyor: `next.config.mjs` içindeki rewrite `/__/auth/*`
+ * isteklerini firebaseapp.com'a proxyler. Yani hangi alan adından açılırsak
+ * açalım, yardımcı O alan adında da çalışır.
+ *
+ * NEDEN ENV'DEN ALINMIYOR: alan adı değişince (flowmetermanisa → studiomanisa)
+ * env eskide kalıyordu; giriş penceresi ESKİ alan adının yardımcısına gidip
+ * yeni alan adındaki sayfaya geri dönemiyor, Google ekranında asılı kalıyordu.
+ * Kaynağı adresin kendisi yapmak bu hatayı imkânsız kılıyor.
+ *
+ * Env değeri sunucu tarafı için yedek olarak durur (tarayıcı yokken).
+ * NOT: kullanılan alan adı Firebase Console > Authentication > Settings >
+ * "Yetkili alan adları" listesinde OLMALI; değilse giriş reddedilir (bu durum
+ * artık /login'de okunabilir bir mesajla görünür).
+ */
+function resolveAuthDomain(): string | undefined {
+  const env = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+  if (typeof window === "undefined") return env;
+  const host = window.location.hostname;
+  // Yerel geliştirmede KULLANILMAZ: Firebase yardımcı adresini
+  // `https://<authDomain>/__/auth/handler` diye kurar; "localhost" verilirse
+  // port düşer ve https'e gider → dev sunucusunda çalışmaz. Orada env değeri
+  // (firebaseapp.com) doğru olanı.
+  if (host === "localhost" || host === "127.0.0.1" || host.endsWith(".local")) return env;
+  return host;
+}
+
+const authDomain = resolveAuthDomain();
+
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  authDomain,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
