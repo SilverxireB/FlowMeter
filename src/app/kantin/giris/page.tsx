@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { girisYap, kayitOl, sifreSifirla } from "@/lib/kantin/api";
 import { kantinYapilandirildi } from "@/lib/kantin/firebase";
 import { useKantin } from "@/lib/kantin/oturum";
+import KantinHero from "@/components/kantin/KantinHero";
 
 export default function KantinGirisPage() {
   const { user, hazir } = useKantin();
@@ -58,10 +59,11 @@ export default function KantinGirisPage() {
   }
 
   return (
-    <main className="min-h-screen grid place-items-center bg-wash p-6">
-      <form onSubmit={gonder} className="card p-6 w-full max-w-sm flex flex-col gap-3">
+    <main className="min-h-screen bg-wash p-4 sm:p-6 flex items-center justify-center">
+      <div className="w-full max-w-sm flex flex-col gap-4">
+        <KantinHero />
+        <form onSubmit={gonder} className="card p-6 flex flex-col gap-3">
         <div>
-          <p className="eyebrow text-accent">Kantin</p>
           <h1 className="font-display text-2xl font-semibold">
             {mod === "giris" ? "Giriş yap" : "Hesap aç"}
           </h1>
@@ -114,7 +116,8 @@ export default function KantinGirisPage() {
             Şifremi unuttum
           </button>
         </div>
-      </form>
+        </form>
+      </div>
     </main>
   );
 }
