@@ -107,6 +107,7 @@ export default function UploadPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [sending, setSending] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [sent, setSent] = useState({ foto: 0, video: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   // Sayfa içi kamera: uygulama değiştirmeden çek — Android düşük RAM'de kamera
@@ -216,8 +217,20 @@ export default function UploadPage() {
     const name = nickname.trim().slice(0, 30);
     if (name) storeIdentity(name, getStoredAvatarSeed() ?? "Luna");
     setSending(true);
+    // Sonuç SAYAÇLA tutulur, listeden okunarak değil: döngü bittiğinde son
+    // öğenin "done" güncellemesi henüz React'e işlenmemiş oluyordu (async
+    // içindeki setState'ler toplu uygulanıyor) → "hepsi bitti mi" kontrolü
+    // yanlış cevap veriyor, bitiş ekranı hiç açılmıyordu. Kullanıcı ekranda
+    // sönük bir "Gönder (0)" butonuyla kalıyordu.
+    let foto = 0;
+    let video = 0;
+    let hata = 0;
     for (const it of itemsRef.current) {
-      if (it.status === "done") continue;
+      if (it.status === "done") {
+        if (it.isVideo) video++;
+        else foto++;
+        continue;
+      }
       patch(it.id, { status: "uploading", pct: 0, error: undefined });
       try {
         // Cloudinary adımı daha önce bittiyse tekrarlanmaz (retry = yalnız kayıt)
@@ -251,7 +264,10 @@ export default function UploadPage() {
           )
         );
         patch(it.id, { status: "done", pct: 100 });
+        if (it.isVideo) video++;
+        else foto++;
       } catch (e) {
+        hata++;
         patch(it.id, {
           status: "error",
           error: e instanceof Error ? e.message : "Yükleme başarısız — tekrar dene.",
@@ -259,11 +275,20 @@ export default function UploadPage() {
       }
     }
     setSending(false);
-    if (itemsRef.current.every((i) => i.status === "done")) {
+    if (hata === 0 && foto + video > 0) {
       itemsRef.current.forEach((i) => URL.revokeObjectURL(i.url));
       setItems([]);
+      setSent({ foto, video });
       setFinished(true);
     }
+  }
+
+  /** "10 fotoğraf" / "2 video" / "10 fotoğraf ve 2 video" */
+  function sentLabel(s: { foto: number; video: number }): string {
+    const p = [];
+    if (s.foto) p.push(`${s.foto} fotoğraf`);
+    if (s.video) p.push(`${s.video} video`);
+    return p.join(" ve ");
   }
 
   const pendingCount = items.filter((i) => i.status !== "done").length;
@@ -360,12 +385,16 @@ export default function UploadPage() {
         ) : finished ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             <div className="text-6xl mb-4" aria-hidden>{wall?.moderation ? "🛡" : "🎉"}</div>
-            <h1 className="text-2xl font-bold mb-2">{wall?.moderation ? "Onaya gönderildi" : "Duvarda!"}</h1>
+            {/* KAÇ ADET gittiği yazılır: "gönderildi" tek başına, 10 fotoğrafın
+                hepsi gitti mi diye merak bırakıyordu. */}
+            <h1 className="text-2xl font-bold mb-2">{sentLabel(sent)} gönderildi</h1>
             <p className="text-white/65 mb-8">
-              {wall?.moderation ? "Moderatör onayladığında perdede görünecek." : "Anıların birazdan perdede akmaya başlıyor."}
+              {wall?.moderation
+                ? "Moderatör onayı bekleniyor — onaylanınca perdede görünecek."
+                : "Anıların birazdan perdede akmaya başlıyor."}
             </p>
             <button onClick={() => inputRef.current?.click()} className="py-3.5 px-7 rounded-2xl bg-white text-[#070c22] font-semibold">
-              Daha fazla ekle
+              {videoOn ? "Yeni fotoğraf / video ekle" : "Yeni fotoğraf ekle"}
             </button>
           </div>
         ) : (
