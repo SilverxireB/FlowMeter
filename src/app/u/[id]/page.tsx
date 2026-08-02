@@ -98,8 +98,22 @@ export default function UploadPage() {
     let unsub: (() => void) | undefined;
     try {
       const a = auth();
-      unsub = onAuthStateChanged(a, (u) => setMyId(u?.uid ?? getVoterId()));
-      if (!a.currentUser) signInAnonymously(a).catch(() => {});
+      let ilk = true;
+      unsub = onAuthStateChanged(a, (u) => {
+        setMyId(u?.uid ?? getVoterId());
+        // Anonim oturum YALNIZCA gerçekten oturum yoksa açılır ve bu karar
+        // gözlemcinin İLK cevabına bakılarak verilir.
+        //
+        // Eskiden `if (!a.currentUser)` yazıyordu: kalıcı oturum asenkron geri
+        // yüklendiği için sayfa açılır açılmaz currentUser HEP null görünüyor,
+        // dolayısıyla anonim oturum her seferinde açılıyordu. Duvar sahibi kendi
+        // yükleme linkini açtığında Google oturumunun ÜSTÜNE yazılıyor, panele
+        // dönünce içerikleri (ownerId eşleşmediği için) yok görünüyordu.
+        if (ilk) {
+          ilk = false;
+          if (!u) signInAnonymously(a).catch(() => {});
+        }
+      });
     } catch {}
     return () => unsub?.();
   }, []);
