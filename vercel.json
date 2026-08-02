@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "claude/flowmeter-paket-3-kota-w3er37": false,
+      "claude/flowstudio-meter-wall-next-h4ny2u": false
+    }
+  }
+}
