@@ -6,7 +6,8 @@
  * alınır (eski eşikler kutlanmaz).
  */
 import { useEffect, useRef, useState } from "react";
-import Confetti from "@/components/Confetti";
+import WallEffectLayer from "@/components/wall/WallEffectLayer";
+import { WallEffect } from "@/lib/types";
 
 const MILESTONES = [10, 25, 50, 100, 150, 200, 300, 500, 750, 1000];
 
@@ -16,7 +17,16 @@ function highestUpTo(n: number): number {
   return r;
 }
 
-export default function WallMilestone({ count, enabled = true }: { count: number; enabled?: boolean }) {
+export default function WallMilestone({
+  count,
+  enabled = true,
+  effect = "none",
+}: {
+  count: number;
+  enabled?: boolean;
+  /** Duvarın seçili efekti — kutlama da onunla patlar (balon seçildiyse balon). */
+  effect?: WallEffect;
+}) {
   const celebrated = useRef<number | null>(null);
   const baselined = useRef(false);
   const [active, setActive] = useState<number | null>(null);
@@ -33,16 +43,26 @@ export default function WallMilestone({ count, enabled = true }: { count: number
     if (target !== null) {
       celebrated.current = target;
       setActive(target);
-      const t = window.setTimeout(() => setActive(null), 7000);
-      return () => window.clearTimeout(t);
     }
   }, [count, enabled]);
+
+  // Kapanma sayacı AYRI tutulur ve yalnız `active`e bağlıdır.
+  // Eskiden sayaç, count'a bağlı effect'in içindeydi: kutlama sürerken yeni bir
+  // fotoğraf gelince effect yeniden çalışıp cleanup ile sayacı İPTAL ediyor,
+  // yeni eşik olmadığı için de yenisini kurmuyordu → banner ve efekt ekranda
+  // KALICI oluyordu ("konfeti sürekli geliyor"). Ekran görüntüsünde başlık
+  // 65 anı derken 50. anı kutlaması hâlâ duruyordu.
+  useEffect(() => {
+    if (active === null) return;
+    const t = window.setTimeout(() => setActive(null), 7000);
+    return () => window.clearTimeout(t);
+  }, [active]);
 
   if (!enabled || active === null) return null;
 
   return (
     <>
-      <Confetti />
+      <WallEffectLayer effect={effect === "none" ? "confetti" : effect} />
       <div className="absolute inset-0 z-50 grid place-items-center pointer-events-none px-6">
         <div
           className="ww-mile-pop rounded-3xl px-10 py-7 text-center shadow-2xl border border-white/20"

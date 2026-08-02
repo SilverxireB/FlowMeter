@@ -18,7 +18,13 @@ export function useAuthUser() {
       return;
     }
     return onAuthStateChanged(auth(), (u) => {
-      setUser(u);
+      // ANONİM oturum "giriş yapmış kullanıcı" SAYILMAZ. Duvar yükleme sayfası
+      // misafire sessizce anonim oturum açıyor (kendi medyasını silebilsin
+      // diye); o kimlikle sahip yüzeyleri (panel, kokpitler, admin) girilmiş
+      // gibi davranıyor ama hiçbir içerik görünmüyordu — "Panelim" çipi
+      // misafire çıkıyor, tıklayınca bomboş panele düşürüyordu. Anonim kimliğe
+      // ihtiyaç duyan TEK yer /u/[id]; orası zaten doğrudan dinliyor.
+      setUser(u?.isAnonymous ? null : u);
       setLoading(false);
     });
   }, []);

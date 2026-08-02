@@ -242,7 +242,7 @@ export default function WallScreen() {
 
       {/* En sevilenler highlight turu (periyodik) + milestone kutlamaları */}
       {media.length > 0 && <WallTopLoved media={media} everySec={wall?.topLovedEverySec ?? 120} />}
-      <WallMilestone count={media.length} enabled={wall?.milestones !== false} />
+      <WallMilestone count={media.length} enabled={wall?.milestones !== false} effect={wallEffectOf(wall)} />
 
       {/* Foto yarışması (running: ilk 3 turu + rozet; ended: kazanan takeover) */}
       {typeof wallId === "string" && wall && <WallContest wallId={wallId} wall={wall} media={media} />}
