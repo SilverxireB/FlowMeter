@@ -164,6 +164,20 @@ export default function SimPage() {
     wpsRef.current.acc += by;
   };
 
+  // İŞLEM AKIŞI — "ne oluyor?" sorusunun cevabı. Sayaçlar kaç olduğunu söyler,
+  // akış NE olduğunu. Ref'te biriktirilip saniyede bir ekrana basılır: her olayda
+  // render etmek saniyede yüzlerce render demek olurdu.
+  //
+  // TEPKİLER BİLEREK YAZILMAZ: saniyede onlarca gelir, akışı boğar ve okunacak
+  // bir şey bırakmaz (kullanıcı kararı: "boşyere bin tane emoji gerek yok").
+  // Sayıları üstteki sayaçta zaten görünüyor.
+  const logRef = useRef<{ id: number; tur: "oy" | "soru" | "mesaj" | "bilgi"; metin: string }[]>([]);
+  const logIdRef = useRef(0);
+  const [log, setLog] = useState<typeof logRef.current>([]);
+  const kaydet = (tur: "oy" | "soru" | "mesaj" | "bilgi", metin: string) => {
+    logRef.current = [{ id: ++logIdRef.current, tur, metin }, ...logRef.current].slice(0, 80);
+  };
+
   // Ana döngü
   useEffect(() => {
     if (!running || !id) return;
@@ -219,6 +233,7 @@ export default function SimPage() {
               if (v.willVote) {
                 fireResponse(tid, slide, v.bot.voterId, sidRef.current).catch(() => {});
                 bump("votes");
+                kaydet("oy", `${v.bot.nickname} oy verdi — ${slide.question || slide.type}`);
               }
             }
           }
@@ -230,7 +245,10 @@ export default function SimPage() {
       let qn = Math.floor(qExpected) + (Math.random() < qExpected % 1 ? 1 : 0);
       qn = Math.min(6, qn);
       for (let i = 0; i < qn && questioners.length; i++) {
-        fireQuestion(tid, questioners[Math.floor(Math.random() * questioners.length)].voterId).catch(() => {});
+        const soran = questioners[Math.floor(Math.random() * questioners.length)];
+        fireQuestion(tid, soran.voterId)
+          .then((t) => kaydet("soru", `${soran.nickname}: ${t}`))
+          .catch(() => {});
         bump("questions");
       }
       const ids = questionIdsRef.current;
@@ -249,7 +267,10 @@ export default function SimPage() {
         let cn = Math.floor(cExpected) + (Math.random() < cExpected % 1 ? 1 : 0);
         cn = Math.min(6, cn);
         for (let i = 0; i < cn; i++) {
-          fireMessage(tid, chatters[Math.floor(Math.random() * chatters.length)]).catch(() => {});
+          const yazan = chatters[Math.floor(Math.random() * chatters.length)];
+          fireMessage(tid, yazan)
+            .then((t) => kaydet("mesaj", `${yazan.nickname}: ${t}`))
+            .catch(() => {});
           bump("messages");
         }
       }
@@ -264,6 +285,7 @@ export default function SimPage() {
       w.acc = 0;
       w.last = now;
       setStats({ ...countRef.current, wps });
+      setLog([...logRef.current]);
     }, 1000);
 
     return () => {
@@ -285,6 +307,8 @@ export default function SimPage() {
         await joinBots(id, slice, sidRef.current);
         botsRef.current = [...botsRef.current, ...slice];
         setJoined(botsRef.current.length);
+        kaydet("bilgi", `${slice.length} kişi katıldı (toplam ${botsRef.current.length})`);
+        setLog([...logRef.current]);
         if (i + size < bots.length) await sleep((windowMs / chunks) * (0.5 + Math.random()));
       }
     } finally {
@@ -303,6 +327,10 @@ export default function SimPage() {
       countRef.current = { reactions: 0, votes: 0, questions: 0, messages: 0 };
       setJoined(0);
       setStats({ reactions: 0, votes: 0, questions: 0, messages: 0, wps: 0 });
+      logRef.current = [];
+      setLog([]);
+      kaydet("bilgi", "Yeni oturum başladı — ekran sıfırdan.");
+      setLog([...logRef.current]);
     } finally {
       setBusy(false);
     }
@@ -427,6 +455,40 @@ export default function SimPage() {
             <Stat label="oy" value={stats.votes} />
             <Stat label="soru" value={stats.questions} />
             <Stat label="mesaj" value={stats.messages} />
+          </div>
+
+          {/* İŞLEM AKIŞI — sayaç kaç olduğunu söyler, akış NE olduğunu.
+              Tepkiler bilerek yok: saniyede onlarca gelip listeyi boğuyor,
+              okunacak bir şey bırakmıyordu. */}
+          <div className="mt-5">
+            <div className="flex items-baseline justify-between gap-2 mb-2">
+              <p className="eyebrow">İşlem akışı</p>
+              <p className="text-muted text-[11px]">tepkiler yazılmaz — sayaçta</p>
+            </div>
+            {log.length === 0 ? (
+              <p className="text-muted text-sm py-3">Henüz işlem yok.</p>
+            ) : (
+              <div className="max-h-64 overflow-y-auto rounded-2xl border border-line divide-y divide-line/70">
+                {log.map((o) => (
+                  <p key={o.id} className="px-3 py-1.5 text-xs flex items-start gap-2">
+                    <span
+                      className={`shrink-0 font-bold ${
+                        o.tur === "oy"
+                          ? "text-accent"
+                          : o.tur === "soru"
+                            ? "text-[#8a6100]"
+                            : o.tur === "mesaj"
+                              ? "text-[#0f7a55]"
+                              : "text-muted"
+                      }`}
+                    >
+                      {o.tur === "bilgi" ? "·" : o.tur}
+                    </span>
+                    <span className="min-w-0 break-words">{o.metin}</span>
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
           <p className="text-muted text-xs mt-4">
             Gerçek oturum gibi: <b>Present ↗</b>'i aç, botları ekle ve <b>Başlat</b>. Tepkiler dalga dalga,

@@ -163,13 +163,15 @@ export function fireResponse(
   );
 }
 
-export function fireQuestion(presentationId: string, voterId: string) {
+/** Yazılan metni GERİ DÖNDÜRÜR: prova ekranındaki işlem akışı ne yazıldığını gösterebilsin. */
+export function fireQuestion(presentationId: string, voterId: string): Promise<string> {
+  const text = pick(QUESTIONS);
   return addDoc(collection(db(), "presentations", presentationId, "questions"), {
-    text: pick(QUESTIONS),
+    text,
     voterId,
     upvotes: 0,
     createdAt: serverTimestamp(),
-  });
+  }).then(() => text);
 }
 
 export function upvoteQuestion(presentationId: string, questionId: string, current: number) {
@@ -178,13 +180,15 @@ export function upvoteQuestion(presentationId: string, questionId: string, curre
   });
 }
 
-export function fireMessage(presentationId: string, bot: Bot) {
+/** Yazılan metni GERİ DÖNDÜRÜR (bkz. fireQuestion). */
+export function fireMessage(presentationId: string, bot: Bot): Promise<string> {
+  const text = pick(CHAT);
   return addDoc(collection(db(), "presentations", presentationId, "messages"), {
-    text: pick(CHAT),
+    text,
     voterId: bot.voterId,
     nickname: bot.nickname,
     createdAt: serverTimestamp(),
-  });
+  }).then(() => text);
 }
 
 /** Slayt tipine göre gerçekçi rastgele oy değeri. */
