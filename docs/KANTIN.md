@@ -124,6 +124,15 @@ gönderilir.
 - Ürün görselleri Cloudinary `kantin/{kantinId}` klasöründe; kantin silinince
   `/api/wall/destroy` `mode:"kantin"` ön ek temizliğini yapar.
 
+## Kural sınavı
+
+`tests/kantin-rules.test.mjs` — **47 sınav**, gerçek Firestore emülatöründe.
+Kurallar konsola elle yapıştırıldığı için yanlış kural üretimde yalnız "sipariş
+verilemiyor" olarak görünür, sebebi hiçbir ekranda yazmaz. Takım sipariş açmayı,
+mahremiyeti, rol yükseltmeyi, günlük tavanı, kuyruk sayacını ve gün
+tutarlılığını sınar. Çalıştırma yönergesi dosyanın başında; depoya bağımlılık
+eklenmedi (geçici klasörde kurulur).
+
 ## Kurulum
 
 1. Firebase Console → Firestore → Rules: **KANTİN** bloğunu mevcut kuralların
