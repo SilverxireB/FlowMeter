@@ -25,11 +25,6 @@ export default function FlowSpinner({
   /** Halkanın ORTASINDA duran içerik (ör. yüzde). Dönmez — yalnız halka döner. */
   center?: React.ReactNode;
 }) {
-  // Ortada yazı varken İÇ yaylar çizilmez: "%100" iç halkanın boşluğuna
-  // sığmıyor, yayların üstüne biniyordu. Dış halka tek başına da Flow halkası
-  // olarak okunuyor ve ortası ferah kalıyor.
-  const arcs = center === undefined ? ARCS : ARCS.filter((a) => a.r === 20);
-
   const ring = (
     <svg
       width={size}
@@ -41,7 +36,7 @@ export default function FlowSpinner({
       aria-label={label}
     >
       <g fill="none" strokeLinecap="round" strokeWidth={5}>
-        {arcs.map((a, i) => (
+        {ARCS.map((a, i) => (
           <circle
             key={i}
             cx="24"

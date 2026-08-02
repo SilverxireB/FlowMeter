@@ -376,8 +376,8 @@ export default function ZonePanel({
       {queue && (
         <div className="mb-4 flex items-center gap-3">
           <FlowSpinner
-            size={56}
-            center={<span className="text-[12px] font-bold tabular-nums text-ink">%{queue.pct}</span>}
+            size={72}
+            center={<span className="text-[11px] font-bold tabular-nums text-ink">%{queue.pct}</span>}
           />
           <p className="text-muted text-xs tabular-nums">
             Yükleniyor… {queue.done + 1}/{queue.total}
