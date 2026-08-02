@@ -153,3 +153,22 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   3'teki Adım 1-4'ün ürün karşılığı). Kalan: lisans/ekran limiti, Docker,
   markalama (A5-A8). Park: Sign ses/90°; Pulse e-posta eşiği;
   Meter kalanları `docs/ROADMAP.md`.
+
+## Kantin (Flow Studio'ya AİT DEĞİL — kenarda, kaldırılabilir)
+
+İç kullanım için sipariş uygulaması: `/kantin…` + `src/lib/kantin/` + kurallardaki
+KANTİN bloğu. KURAL: Studio koduna DOKUNMAZ, Studio da buna bağ kurmaz; hub'da,
+landing'de, hiçbir yerde linki yoktur. "Kaldır" denince iki klasör + bir kural
+bloğu silinir, Studio'nun tek satırı etkilenmez.
+- **AYRI Firebase örneği** (`lib/kantin/firebase.ts`, app adı `kantin`): kantin
+  e-posta+şifre ile girer, Studio Google ile. Aynı `auth` paylaşılsaydı kantine
+  giren Studio'da da girmiş sayılırdı. Kalıcı önbellek bilerek kapalı (aynı
+  projede iki kalıcı önbellek çakışır; kantin zaten bina içi/çevrimiçi).
+- Roller: yönetici (her şey) · kantinci (yalnız kendi kantini) · personel (menü +
+  kendi siparişi). Rol/yasak yalnız yöneticide — kurallar da öyle diyor.
+- **ÖDEME YOK** (kullanıcı kararı): para hiç geçmez, fiyat sadece bilgi.
+  Sipariş NUMARASI da yok — kişi kimlikli, tezgâh ad+sicil görür.
+- Çok kantinli baştan (`kantin/{id}`); bugün iki, yarın daha fazla.
+- Bekleme tahmini iyimser DEĞİL (`beklemeDk`): mola 10 dk, tutmayan süre ürünü
+  ilk günde bitirir.
+- Hedef: gerektiğinde İÇ AĞA kurulacak (Sign self-host deseni).

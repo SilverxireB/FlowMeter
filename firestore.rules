@@ -455,5 +455,105 @@ service cloud.firestore {
         allow update, delete: if pulseOwner();
       }
     }
+    // ═══════════════════════════════════════════════════════════════════════
+    // KANTİN — Flow Studio'dan BAĞIMSIZ bölüm.
+    // Bu blok silinince kantin tamamen kalkar; yukarıdaki hiçbir kural
+    // etkilenmez. Yardımcı işlevler bilerek k- önekli: Studio'nun isAdmin()
+    // işleviyle bağ kurmamak için (bağ kurarsa "kaldır" tek hamle olmaz).
+    //
+    // Roller: yönetici (bootstrap e-posta ya da rol=admin) → her şey;
+    // kantinci → yalnız kendi kantini; personel → menü + kendi siparişi.
+    // Ödeme YOK: para bu modelde hiç geçmez, fiyat sadece bilgidir.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    function kKisi() {
+      return get(/databases/$(database)/documents/kantinUsers/$(request.auth.uid)).data;
+    }
+    function kGirisli() { return request.auth != null; }
+    function kAdmin() {
+      return kGirisli() && (
+        request.auth.token.email == 'doganbaharozu@gmail.com'
+        || kKisi().get('rol', 'personel') == 'admin'
+      );
+    }
+    function kGorevli(kantinId) {
+      return kGirisli() && (
+        kAdmin()
+        || (kKisi().get('rol', 'personel') == 'kantinci'
+            && kKisi().get('kantinId', '') == kantinId)
+      );
+    }
+    function kYasakli() {
+      return kKisi().get('yasakBitis', null) != null
+        && kKisi().yasakBitis > request.time;
+    }
+
+    // Kişi kaydı: kendi kaydını açar ama ROLÜNÜ SEÇEMEZ, kendine yasak
+    // koyamaz/kaldıramaz. Yükseltmeyi ve yasağı yalnız yönetici yapar.
+    match /kantinUsers/{uid} {
+      allow read: if kGirisli() && (request.auth.uid == uid || kAdmin());
+      allow create: if kGirisli() && request.auth.uid == uid
+        && request.resource.data.keys()
+             .hasOnly(['ad', 'sicil', 'email', 'rol', 'kantinId', 'yasakBitis', 'createdAt'])
+        && request.resource.data.rol == 'personel'
+        && !('yasakBitis' in request.resource.data)
+        && request.resource.data.ad is string && request.resource.data.ad.size() <= 60
+        && request.resource.data.sicil is string && request.resource.data.sicil.size() <= 20;
+      allow update: if kAdmin()
+        || (kGirisli() && request.auth.uid == uid
+            && request.resource.data.rol == resource.data.rol
+            && request.resource.data.get('kantinId', '') == resource.data.get('kantinId', '')
+            && request.resource.data.get('yasakBitis', null) == resource.data.get('yasakBitis', null));
+      allow delete: if kAdmin();
+    }
+
+    match /kantin/{kantinId} {
+      // Kantin bilgisi + menü giriş yapmış herkese açık (sipariş verebilmek için).
+      allow read: if kGirisli();
+      allow create, delete: if kAdmin();
+      allow update: if kGorevli(kantinId);
+
+      match /menu/{urunId} {
+        allow read: if kGirisli();
+        allow write: if kGorevli(kantinId);
+      }
+
+      match /siparisler/{siparisId} {
+        // Okuma giriş yapmış herkeste: kalan stok ve kuyruk tahmini bu listeden
+        // çıkar, tezgâh ekranı zaten adları gösteriyor. Daraltmak istenirse tek
+        // satır yeter: resource.data.uid == request.auth.uid || kGorevli(kantinId)
+        allow read: if kGirisli();
+
+        // Sipariş SUNUCUDA doğrulanır: kimlik kendi hesabından gelir, kantin
+        // açık olmalı, yasaklı kişi sipariş veremez, durum 'yeni' başlar.
+        allow create: if kGirisli()
+          && request.resource.data.keys().hasOnly(
+               ['uid', 'ad', 'sicil', 'satirlar', 'toplamAdet', 'durum', 'gun', 'not', 'createdAt', 'updatedAt'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.durum == 'yeni'
+          && request.resource.data.gun is string
+          && request.resource.data.gun.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && request.resource.data.satirlar is list
+          && request.resource.data.satirlar.size() >= 1
+          && request.resource.data.satirlar.size() <= 10
+          && request.resource.data.toplamAdet is int
+          && request.resource.data.toplamAdet >= 1
+          && request.resource.data.toplamAdet <= 20
+          && request.resource.data.get('not', '').size() <= 120
+          && get(/databases/$(database)/documents/kantin/$(kantinId)).data.get('acik', false) == true
+          && !kYasakli();
+
+        // Durum: görevli her duruma alır. Kişi YALNIZ kendi 'yeni' siparişinden
+        // vazgeçebilir — hazırlanmaya başlandıysa artık geç (malzeme gitti).
+        allow update: if kGorevli(kantinId)
+          || (kGirisli()
+              && resource.data.uid == request.auth.uid
+              && resource.data.durum == 'yeni'
+              && request.resource.data.durum == 'iptal'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['durum', 'updatedAt']));
+        allow delete: if kAdmin();
+      }
+    }
+
   }
 }
