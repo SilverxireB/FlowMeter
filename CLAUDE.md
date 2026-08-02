@@ -113,6 +113,12 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   soru tipine bağlar, days total tam +1; watchToday gece yarısı yeniden abone olur;
   kiosk çıkışı sol üst 5 dokunuş + PIN → yönetici menüsü (SON OY HATASI burada
   görünür — kiosk misafire hata göstermez ama teşhis kör kalmaz).
+- **Prova & sağlık `/admin/prova`:** dört ürünün test takımı (yönetici kapısı +
+  rules `isAdmin()`; eski `/dev/sim` gizli anahtarı silindi). İLKE: prova GERÇEK
+  yazma yolunu kullanır, kurallar gevşetilmez; yazım hataları yutulmaz, işlem
+  akışına düşer. Duvar/Tabela örnek medyayı CİHAZDA üretip Cloudinary'ye yükler
+  (rules dış link kabul etmez). Tabela provası kendi ekranını açar, var olan
+  tabelalara dokunmaz. Ayrıntı: `docs/ROADMAP.md`.
 - Küfür süzgeci `lib/profanity.ts` TÜM açık uçlu girişlerde (Meter sohbet/Q&A/
   cevaplar, Wall dilek+takma ad, Pulse yorum) — engellemez, yıldızlar.
 - Silme akışları sayfalı (`limit(450)` batch) + Cloudinary prefix temizliği.

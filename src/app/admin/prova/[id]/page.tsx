@@ -11,6 +11,7 @@
  * Amaç: N katılımcı + gerçekçi personalarla (hevesli, meraklı, sohbetçi,
  * aktif, sessiz) GERÇEK bir oturumu insanca oranlarda taklit etmek.
  */
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePresentation, useQuestions, useSlides } from "@/lib/hooks";
@@ -420,7 +421,8 @@ export default function SimPage() {
       <div className="max-w-2xl mx-auto flex flex-col gap-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="eyebrow text-accent">Gerçekçi oturum simülasyonu</p>
+            <Link href="/admin/prova" className="text-muted hover:text-ink text-sm">← Prova &amp; sağlık</Link>
+            <p className="eyebrow text-accent mt-1">Gerçekçi oturum simülasyonu</p>
             <h1 className="font-display text-2xl font-semibold">{presentation?.title ?? id}</h1>
             <p className="text-muted text-sm">
               Kod {presentation?.joinCode} · slayt {rawIndex < 0 ? "Katılım" : `${rawIndex + 1}/${slides.length}`}

@@ -213,15 +213,41 @@ profanity filtresi, i18n, Cloud Function temizlik, 100+ izleyici perf.
       ekranında onay bekler (✓ Onayla / ✕ Reddet / ↩ geri al; sadece sahip).
       Present'te "N soru onay bekliyor →" rozeti; izleyicide bilgi notu.
 
-## ⚠️ Geçici TEST aracı — Simülasyon (gerçekçi oturum)
+## Prova & sağlık — yönetici test takımı (`/admin/prova`)
 
-- `/dev/sim/[id]?k=<SIM_SECRET>` (src/app/dev/sim/ + src/lib/sim.ts). Gizli link,
-  hiçbir yerden linklenmez, gerçek izleyici gibi anonim yazar (rules değişmez).
-- N bot + personalar (hevesli / meraklı / sohbetçi / aktif / sessiz), insanca
-  oranlar (dakikada birkaç yazma) + "an" dalgalı tepkiler; yoğunluk ×0–3.
+Eskiden `/dev/sim/[id]?k=<SIM_SECRET>` gizli linkti; anahtar istemci paketinin
+içinde olduğu için kapı değil yavaşlatıcıydı. Artık gerçek yönetici kapısının
+arkasında (`useAdminGate` + rules `isAdmin()`), dört ürünün de provası var.
+Ortak ilke: **prova gerçek yazma yolunu kullanır, kurallar hiç gevşetilmez** —
+yoksa denenen şey ürün olmaz. Yazım hataları YUTULMAZ, işlem akışına düşer
+(kural reddi ile "hiç denenmedi" ekranda ayırt edilebilsin diye).
+
+- **Sağlık** (`lib/health.ts`): canlı ortamın AYARLARINI tek tek dener (anonim
+  giriş açık mı, Cloudinary değişkenleri, auth domain…). Bu ürünün en pahalı
+  arızaları koddan değil ayardan çıktı ve hepsi sessizdi. Anonim deneme ayrı bir
+  bağlantıda yapılır, açılan hesap hemen silinir — oturum bozulmaz.
+- **Sunum** (`/admin/prova/[id]` + `lib/sim.ts`): N bot + personalar (hevesli /
+  meraklı / sohbetçi / aktif / sessiz), insanca oranlar + "an" dalgalı tepkiler;
+  yoğunluk ×0–3. Botlar eklenince motor kendiliğinden başlar. Açık metin
+  moderasyonu açıkken cevap `status:'pending'` gider (gerçek izleyici yolu).
   Temizle = newSession (silmez, taze kapsam).
-- **KALDIRMAK:** `src/app/dev/` klasörünü + `src/lib/sim.ts`'i sil, ROADMAP'ten bu
-  bölümü çıkar. Başka hiçbir dosya etkilenmez (düzen bozulmaz).
+- **Duvar** (`/admin/prova/duvar/[code]`): örnek 10 foto + 10 video CİHAZDA
+  üretilir (canvas + MediaRecorder, 4'erli parti) ve misafirle aynı yoldan,
+  aynı klasöre yüklenir. Dış link kullanılamaz: rules medya `url`'inin gerçek
+  Cloudinary adresi olmasını şart koşar (şekil kontrolü duvar sahibine de
+  uygulanır) — eski sürüm picsum linkleri yazdığı için 20/20 reddediliyordu.
+- **Nabız** (`/admin/prova/nabiz/[id]` + `lib/simPulse.ts`): anonim oy + yorum,
+  kiosk/QR karışımı. Memnuniyet dağılımı yüksek uca yığılır (düz rastgele skoru
+  hep ~%50 gösterip pano eşiklerini anlamsız kılıyordu). "Geçmiş 7 gün üret" =
+  56 yazım, yalnız günlük özet (ham oy yazılmaz; skor zaten özetten okunur).
+- **Tabela** (`/admin/prova/tabela`): var olan ekranlara DOKUNMAZ — sahadaki
+  7/24 bir ekranın taslağını ezmek kabul edilemez. Kendi prova ekranını açar:
+  2×2 yerleşim, dört öğe türü (görsel/metin/saat/URL) ve biri BİLEREK takvim
+  dışı. Perdede o öğe görünüyorsa `itemInWindow` kapısı bozuk demektir.
+
+**KALDIRMAK:** `src/app/admin/prova/` klasörünü + `src/lib/sim.ts`,
+`src/lib/simPulse.ts`, `src/lib/health.ts`, `src/lib/useAdminGate.ts` dosyalarını
+sil, `/admin` sekmelerinden bağlantıyı ve bu bölümü çıkar.
 
 ## Faz 3.8 — Mobil düzeltmeler + PWA ✅
 

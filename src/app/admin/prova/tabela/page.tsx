@@ -242,7 +242,8 @@ export default function TabelaProvaPage() {
       {dialog}
       <div className="max-w-2xl mx-auto flex flex-col gap-5">
         <div>
-          <p className="eyebrow text-accent">FlowSign provası</p>
+          <Link href="/admin/prova" className="text-muted hover:text-ink text-sm">← Prova &amp; sağlık</Link>
+          <p className="eyebrow text-accent mt-1">FlowSign provası</p>
           <h1 className="font-display text-2xl font-semibold">Prova ekranı</h1>
           <p className="text-muted text-sm">
             Kendi prova ekranını açar; var olan tabelalara dokunmaz.

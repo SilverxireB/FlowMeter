@@ -265,7 +265,8 @@ export default function SeedWallPage() {
   return (
     <main className="min-h-screen bg-[#05091c] text-white grid place-items-center p-6">
       <div className="w-full max-w-md rounded-3xl bg-white/5 border border-white/12 p-7">
-        <p className="uppercase tracking-widest text-xs text-white/50 mb-1">FlowWall · prova</p>
+        <a href="/admin/prova" className="text-white/50 hover:text-white text-sm">← Prova &amp; sağlık</a>
+        <p className="uppercase tracking-widest text-xs text-white/50 mb-1 mt-2">FlowWall · prova</p>
         <h1 className="text-2xl font-bold mb-2">Örnek medya ekle</h1>
         {wallId === undefined ? (
           <p className="text-white/60">Çözülüyor…</p>

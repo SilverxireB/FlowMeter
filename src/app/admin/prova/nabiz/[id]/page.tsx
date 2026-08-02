@@ -166,7 +166,8 @@ export default function PulseProvaPage() {
       <div className="max-w-2xl mx-auto flex flex-col gap-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="eyebrow text-accent">FlowPulse provası</p>
+            <Link href="/admin/prova" className="text-muted hover:text-ink text-sm">← Prova &amp; sağlık</Link>
+            <p className="eyebrow text-accent mt-1">FlowPulse provası</p>
             <h1 className="font-display text-2xl font-semibold truncate">{pulse.title}</h1>
             <p className="text-muted text-sm">
               {pulse.question.text} · {pulse.question.type}
