@@ -107,25 +107,37 @@ export default function DashboardPage() {
   const [signs, setSigns] = useState<Videowall[]>([]);
   const [wallTitle, setWallTitle] = useState("");
 
+  // Liste OKUNAMAZSA sessiz kalınmaz: eskiden hata yutuluyordu ve ekran "hiç
+  // kayıt yok" ile birebir aynı görünüyordu — kullanıcı içeriğini kaybettiğini
+  // sanıyordu. Artık ayırt edilebilir bir uyarı çıkar.
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+  const yukle = useCallback(async <T,>(fn: () => Promise<T>, koy: (v: T) => void) => {
+    try {
+      koy(await fn());
+    } catch {
+      setLoadErr("Liste alınamadı — bağlantı ya da yetki sorunu olabilir. Sayfayı yenilemeyi dene.");
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
-    if (user) setItems(await listPresentations(user.uid));
-  }, [user]);
+    if (user) await yukle(() => listPresentations(user.uid), setItems);
+  }, [user, yukle]);
 
   const refreshWalls = useCallback(async () => {
-    if (user) setWalls(await listWalls(user.uid));
-  }, [user]);
+    if (user) await yukle(() => listWalls(user.uid), setWalls);
+  }, [user, yukle]);
 
   // Üç ürünün sayısı/son öğeleri hub'da görünür → hepsini yükle.
   useEffect(() => {
     refreshWalls();
   }, [refreshWalls]);
   useEffect(() => {
-    if (user) listVideowalls(user.uid).then(setSigns).catch(() => {});
-  }, [user]);
+    if (user) yukle(() => listVideowalls(user.uid), setSigns);
+  }, [user, yukle]);
   const [pulses, setPulses] = useState<Pulse[]>([]);
   useEffect(() => {
-    if (user) listPulses(user.uid).then(setPulses).catch(() => {});
-  }, [user]);
+    if (user) yukle(() => listPulses(user.uid), setPulses);
+  }, [user, yukle]);
 
   // Ürün seçimi URL'e yansır (paylaşılabilir link) VE geçmişe adım ekler:
   // hub'dan bir ürüne girmek gerçek bir adımdır — geri tuşu ürün kartlarına
@@ -396,6 +408,18 @@ export default function DashboardPage() {
           </button>
         </div>
       </header>
+
+      {/* Hangi hesapla girildiği MOBİLDE de görünsün: başlıkta e-posta çipi dar
+          ekranda gizli (taşma yapıyordu) ve "içeriklerim gitmiş" sanılan
+          durumların çoğu aslında başka bir Google hesabıyla girmekten
+          kaynaklanıyor. Başlığın dışında, tek satır — taşma riski yok. */}
+      <p className="sm:hidden px-4 pt-2 text-muted text-xs truncate">{user.email}</p>
+
+      {loadErr && (
+        <div className="max-w-4xl mx-auto px-4 pt-4">
+          <p className="rounded-2xl bg-brand-soft text-brand px-4 py-3 text-sm font-semibold">{loadErr}</p>
+        </div>
+      )}
 
       <section className="max-w-4xl mx-auto px-4 py-10">
         {product !== null && (
