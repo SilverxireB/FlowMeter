@@ -211,8 +211,11 @@ function SceneFrame({
       </div>
       <div className="fs-in-right relative w-[60%] max-w-[400px] h-36 sm:h-40 shrink min-w-0">
         {children}
-        {floats}
       </div>
+      {/* Tepki emojileri KARTIN DIŞINDA: pencerenin içindeyken kartın sağ
+          kenarına oturup içeriğin üstüne biniyor, köşede kırpılıyorlardı.
+          Artık kartın altındaki boşluktan yükseliyorlar. */}
+      {floats}
     </div>
   );
 }
@@ -225,9 +228,9 @@ function MeterScene() {
       accent="#2094f3"
       floats={
         <>
-          <span className="fs-float pointer-events-none absolute right-0 bottom-1 text-lg" style={{ animationDelay: "0s" }}>❤️</span>
-          <span className="fs-float pointer-events-none absolute right-8 bottom-0 text-base" style={{ animationDelay: "1.2s" }}>🎉</span>
-          <span className="fs-float pointer-events-none absolute right-3 bottom-3 text-base" style={{ animationDelay: "2.3s" }}>👍</span>
+          <span className="fs-float pointer-events-none absolute left-6 bottom-1 text-lg" style={{ animationDelay: "0s" }}>❤️</span>
+          <span className="fs-float pointer-events-none absolute left-16 bottom-0 text-base" style={{ animationDelay: "1.2s" }}>🎉</span>
+          <span className="fs-float pointer-events-none absolute left-11 bottom-2 text-base" style={{ animationDelay: "2.3s" }}>👍</span>
         </>
       }
     >
@@ -338,9 +341,9 @@ function WallScene() {
       accent="#f0913a"
       floats={
         <>
-          <span className="fs-float pointer-events-none absolute right-0 bottom-1 text-lg" style={{ animationDelay: ".4s" }}>❤️</span>
-          <span className="fs-float pointer-events-none absolute right-8 bottom-0 text-base" style={{ animationDelay: "1.6s" }}>✨</span>
-          <span className="fs-float pointer-events-none absolute right-3 bottom-3 text-base" style={{ animationDelay: "2.7s" }}>📸</span>
+          <span className="fs-float pointer-events-none absolute left-6 bottom-1 text-lg" style={{ animationDelay: ".4s" }}>❤️</span>
+          <span className="fs-float pointer-events-none absolute left-16 bottom-0 text-base" style={{ animationDelay: "1.6s" }}>✨</span>
+          <span className="fs-float pointer-events-none absolute left-11 bottom-2 text-base" style={{ animationDelay: "2.7s" }}>📸</span>
         </>
       }
     >
@@ -602,16 +605,48 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
     setRipples((rs) => [...rs.slice(-3), { x: e.clientX - r.left, y: e.clientY - r.top, id: Date.now() }]);
   }
 
+  // Görselleri turun BAŞINDA indir ve çöz. Eskiden her sahne kendi resmini
+  // kurulduğu karede istiyordu: geçiş anında ağ + kod çözme + maske rasterizesi
+  // üst üste biniyor, banner donuyordu (ölçüm: intro→METER geçişinde 250ms'lik
+  // tek kare). Önden çözülünce geçişte yalnız çizim kalır.
+  useEffect(() => {
+    if (compact) return;
+    const urls = [
+      ...TICKER.map((t) => t.o),
+      "/logo-o-studio-white.png",
+      ...[1, 2, 3, 4, 5, 6].map((n) => `/hero/event-${n}.jpg`),
+    ];
+    for (const u of urls) {
+      const im = new window.Image();
+      im.src = u;
+      im.decode?.().catch(() => {});
+    }
+  }, [compact]);
+
+  // TAKILMANIN KAYNAĞI (ölçüldü): efektler değil, sahnenin geçiş anında
+  // KURULMASI — ana iş parçacığında ~170ms stil hesabı + yerleşim. Çözüm:
+  // sıradaki sahne, geçişten 1.5sn ÖNCE görünmez ve dondurulmuş olarak kurulur.
+  // Geçişte yalnız "fs-warm" sınıfı düşer: animasyonlar donmuş oldukları yerden,
+  // yani 0'dan oynar. (Altı sahneyi birden kurup tutmayı da denedim — kararlı
+  // hâlde daha çok kare düşürdü, tek sahnelik ısıtma net üstün.)
+  const [warm, setWarm] = useState<Scene | null>(null);
+
   useEffect(() => {
     if (compact) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     // İlk yüklemede Studio sahnesi kısa (3sn); dönüşlerde 5sn durur
     const dur = scene === "studio" && tick === 0 ? 3000 : DURATION[scene];
+    const next = SCENES[(idx + 1) % SCENES.length];
+    setWarm(null);
+    const isit = window.setTimeout(() => setWarm(next), Math.max(0, dur - 1500));
     const t = window.setTimeout(() => {
       setIdx((i) => (i + 1) % SCENES.length);
       setTick((n) => n + 1);
     }, dur);
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(isit);
+      window.clearTimeout(t);
+    };
   }, [idx, scene, compact]);
 
   return (
@@ -644,15 +679,23 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
         </div>
       ) : (
         <>
-          {/* Aktif sahne (remount → giriş animasyonları her turda oynar) */}
-          <div key={scene} className="fs-scene absolute inset-0 z-10">
-            {scene === "studio" && <StudioScene />}
-            {scene === "intro" && <IntroScene />}
-            {scene === "meter" && <MeterScene />}
-            {scene === "wall" && <WallScene />}
-            {scene === "sign" && <SignScene />}
-            {scene === "pulse" && <PulseScene />}
-          </div>
+          {/* Aktif sahne + (varsa) ön ısıtılan sıradaki sahne. Anahtar sahne adı:
+              ısınan katman sırası gelince YENİDEN KURULMAZ, yalnız "fs-warm"
+              sınıfı düşer — animasyonları o an çözülüp baştan oynar. */}
+          {(warm && warm !== scene ? [scene, warm] : [scene]).map((s) => (
+            <div
+              key={s}
+              className={`fs-scene absolute inset-0 z-10 ${s === scene ? "" : "fs-warm"}`}
+              aria-hidden={s !== scene}
+            >
+              {s === "studio" && <StudioScene />}
+              {s === "intro" && <IntroScene />}
+              {s === "meter" && <MeterScene />}
+              {s === "wall" && <WallScene />}
+              {s === "sign" && <SignScene />}
+              {s === "pulse" && <PulseScene />}
+            </div>
+          ))}
         </>
       )}
 
@@ -667,9 +710,19 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
       ))}
 
       <style>{`
-        /* Sahne zemini hemen, marka bloğu logo-devir teslimini bekler */
-        .fs-scene { animation: fs-scene-in 0.5s ease-out both; }
+        /* Sahne zemini hemen, marka bloğu logo-devir teslimini bekler.
+           will-change: geçiş sırasında sahne KENDİ katmanına alınır — yoksa
+           soluklaşma her karede altındaki bulanık ışık bulutlarını da yeniden
+           çizdiriyor ve geçişte kare düşüyordu. */
+        .fs-scene { animation: fs-scene-in 0.5s ease-out both; will-change: opacity; }
         @keyframes fs-scene-in { from { opacity: 0; } }
+
+        /* Ön ısıtılan katman: yerleşimi ve stili HESAPLANIR (maliyet burada
+           ödenir), ama çizilmez ve animasyonları donar. Sırası gelince sınıf
+           düşer, her şey 0'dan oynar. display:none OLMAZ — yerleşim hesabı da
+           kaçar, ısıtmanın anlamı kalmazdı. */
+        .fs-warm { visibility: hidden; }
+        .fs-warm, .fs-warm * { animation-play-state: paused !important; }
 
         /* Uçan marka logosu: merkezde doğar (ölçülmüş --fsdx/--fsdy ofsetiyle),
            gerçek konumuna süzülür ve KALIR — hedef, logonun kendisi */
@@ -681,7 +734,7 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
         }
 
         /* Bulanıktan netleşme (focus-pull) — doğuşun kendisi */
-        .fs-mat { animation: fs-mat 1.15s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .fs-mat { animation: fs-mat 1.15s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: filter; }
         @keyframes fs-mat {
           0% { filter: blur(16px); }
           26%, 100% { filter: blur(0); }
@@ -694,6 +747,7 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
           background-repeat: no-repeat;
           background-position: 180% 0;
           animation: fs-glint 0.55s ease-in-out 0.45s;
+          will-change: background-position;
         }
         @keyframes fs-glint {
           from { background-position: 180% 0; }
@@ -780,14 +834,21 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
         @keyframes fs-poll { from { width: var(--wa); } to { width: var(--wb); } }
 
         /* Mini reklam turu: 4 pencere × 3.5sn = 14sn (sahne süresiyle senkron) */
+        /* Dört pencere de hep DOM'da (yalnız opaklıkları dönüyor). Her birinde
+           backdrop-blur var; görünmeyenler de blur katmanı kurduğu için sahne
+           kurulurken dört ayrı arka-plan bulanıklığı birden rasterize oluyor,
+           geçiş takılıyordu. visibility ile sırası gelmeyen pencere tamamen
+           devre dışı kalır — tarayıcı onun blur'unu hiç hesaplamaz. */
         .fs-vig {
           opacity: 0;
+          visibility: hidden;
           animation: fs-vig 14s linear infinite;
         }
         @keyframes fs-vig {
-          0% { opacity: 0; transform: translateY(10px); }
-          3%, 22% { opacity: 1; transform: translateY(0); }
-          25%, 100% { opacity: 0; transform: translateY(-8px); }
+          0% { opacity: 0; visibility: visible; transform: translateY(10px); }
+          3%, 22% { opacity: 1; visibility: visible; transform: translateY(0); }
+          25% { opacity: 0; visibility: visible; transform: translateY(-8px); }
+          25.01%, 100% { opacity: 0; visibility: hidden; transform: translateY(-8px); }
         }
 
         /* Pencere içi girişler: 14sn döngüye senkron — her turda yeniden oynar.
@@ -860,10 +921,14 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
           opacity: 0;
           animation: fs-float 3.6s ease-out infinite;
         }
+        /* Yükseliş, kartın ALTINDAKİ serbest banda sığar (~34px) ve tam kartın
+           kenarına varırken söner. Eskiden 84px çıkıp kartın sağ kenarına
+           biniyor, orada kırpılıyordu. */
         @keyframes fs-float {
-          0% { opacity: 0; transform: translateY(8px) scale(0.8); }
-          15% { opacity: 1; }
-          100% { opacity: 0; transform: translateY(-84px) scale(1.05); }
+          0% { opacity: 0; transform: translateY(6px) scale(0.8); }
+          18% { opacity: 1; }
+          65% { opacity: 0.85; }
+          100% { opacity: 0; transform: translateY(-34px) scale(1.05); }
         }
 
         .fs-blob {
