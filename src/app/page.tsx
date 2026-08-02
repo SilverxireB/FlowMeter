@@ -100,7 +100,17 @@ export default function LandingPage() {
             aria-busy={going === "panel"}
             // Dokunma hedefi telefonda en az 44px: çip 30px yüksekliğindeydi,
             // ıskalanan dokunuşlar da "tıklanmıyor" hissini besliyordu.
-            className={`chip !py-1.5 min-h-[44px] px-4 text-accent font-semibold hover:border-accent shrink-0 ${
+            //
+            // BASILMA TEPKİSİ (active): tepki eskiden yalnız click ile geliyordu;
+            // parmağın değdiği an ekranda hiçbir şey olmuyordu, dokunduğundan
+            // emin olamayıp tekrar basılıyordu. `chip` sınıfının — düğmelerin
+            // aksine — basılı hâli yok, o yüzden burada açıkça veriliyor.
+            // Parmak kayıp vazgeçilirse tarayıcı :active'i kendisi geri alır
+            // (JS ile yapılsa "Açılıyor…"da takılı kalırdı).
+            // touch-action: dokunmadan sonraki çift-dokunma gecikmesini kaldırır.
+            className={`chip !py-1.5 min-h-[44px] px-4 text-accent font-semibold hover:border-accent shrink-0
+              select-none [touch-action:manipulation] transform-gpu transition-transform duration-100
+              active:scale-[0.94] active:bg-accent-soft active:border-accent ${
               going === "panel" ? "pointer-events-none border-accent/40" : ""
             }`}
           >
@@ -139,7 +149,9 @@ export default function LandingPage() {
             href={`/p/${last.id}`}
             onClick={() => setGoing("last")}
             aria-busy={going === "last"}
-            className={`mt-7 group inline-flex items-center gap-2 bg-white border border-line rounded-full pl-2 pr-4 py-1.5 text-sm hover:border-accent transition-colors ${
+            className={`mt-7 group inline-flex items-center gap-2 bg-white border border-line rounded-full pl-2 pr-4 py-2.5 min-h-[44px] text-sm hover:border-accent
+              select-none [touch-action:manipulation] transform-gpu transition-transform duration-100
+              active:scale-[0.97] active:border-accent ${
               going === "last" ? "pointer-events-none border-accent/40" : ""
             }`}
           >
