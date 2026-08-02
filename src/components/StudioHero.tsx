@@ -711,7 +711,15 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
         />
       ))}
 
-      <style>{`
+      {/* dangerouslySetInnerHTML ŞART: metin çocuğu olarak verilince sunucu,
+          yorumlardaki kesme işaretini (0'dan) &#x27; diye kaçırıyor; <style>
+          ham metin etiketi olduğu için tarayıcı bunu geri çözmüyor ve istemci
+          metniyle uyuşmuyordu. React uyuşmazlıkta SUNUCUDAN GELEN TÜM SAYFAYI
+          atıp baştan çiziyordu (hidrasyon çöküyordu) — banner'ı taşıyan her
+          sayfa bundan etkileniyordu. */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         /* Sahne zemini hemen, marka bloğu logo-devir teslimini bekler.
            will-change: geçiş sırasında sahne KENDİ katmanına alınır — yoksa
            soluklaşma her karede altındaki bulanık ışık bulutlarını da yeniden
@@ -967,7 +975,9 @@ export default function StudioHero({ variant = "full" }: { variant?: "full" | "c
           .fs-shine { display: none; }
           .fs-float { opacity: 0; }
         }
-      `}</style>
+      `,
+        }}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { FirebaseError } from "firebase/app";
 import {
   getRedirectResult,
   GoogleAuthProvider,
@@ -7,9 +8,10 @@ import {
   signInWithRedirect,
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import StudioHero from "@/components/StudioHero";
 import { auth } from "@/lib/firebase";
+import { useAuthUser } from "@/lib/hooks";
 
 /** Kurulu PWA (standalone) veya iOS ana ekran modunda mıyız? */
 function isStandalone(): boolean {
@@ -21,45 +23,94 @@ function isStandalone(): boolean {
   );
 }
 
+/*
+ * NOT — neden hâlâ popup (kurulu PWA hariç):
+ * Telefonda popup ayrı bir SEKME olarak açılıyor, kullanıcı çoğu zaman
+ * farketmiyor; ilk sekme "Bağlanıyor…"da kalıyor. İlk çözüm dokunmatik her
+ * cihazda tam sayfa yönlendirmeye geçmekti — ama uygulama adresi (vercel.app)
+ * Firebase'in auth adresinden farklı olduğu için tarayıcılar o akışı üçüncü
+ * taraf depolama engeliyle bozabiliyor; popup bu kurulumda daha güvenilir.
+ * Bu yüzden akış korundu, ASILI KALMA giderildi: oturum nerede açılırsa açılsın
+ * (arka plandaki sekmede bile) aşağıdaki oturum takibi paneli açar, bekçi de
+ * butonu serbest bırakır.
+ */
+
+/** Firebase hata kodunu kullanıcıya anlatılabilir Türkçeye çevir. */
+function readableError(e: unknown): string {
+  const code = e instanceof FirebaseError ? e.code : "";
+  if (code === "auth/unauthorized-domain")
+    return "Bu adresten girişe izin verilmiyor. Alan adının Firebase'de yetkili adresler listesine eklenmesi gerekiyor.";
+  if (code === "auth/network-request-failed") return "İnternete ulaşılamadı. Bağlantını kontrol edip tekrar dene.";
+  if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request")
+    return "Giriş penceresi kapandı. Tekrar dene.";
+  if (code === "auth/operation-not-allowed") return "Google ile giriş bu projede kapalı.";
+  return e instanceof Error ? e.message : "Giriş başarısız.";
+}
+
 /** Sunucu girişi — sadece Google (izleyiciler hiç giriş yapmaz). */
 export default function LoginPage() {
   const router = useRouter();
+  const { user } = useAuthUser();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const bekci = useRef<number | null>(null);
 
-  // Redirect ile dönüşte oturumu tamamla (PWA akışı)
+  // Oturum zaten açıksa (ör. /dashboard buraya attıysa) panele geç
+  useEffect(() => {
+    if (user) router.replace("/dashboard");
+  }, [user, router]);
+
+  // Redirect ile dönüşte oturumu tamamla
   useEffect(() => {
     getRedirectResult(auth())
       .then((res) => {
         if (res?.user) router.push("/dashboard");
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Giriş başarısız."));
+      .catch((e) => setError(readableError(e)));
   }, [router]);
+
+  const durdur = () => {
+    if (bekci.current) {
+      window.clearTimeout(bekci.current);
+      bekci.current = null;
+    }
+  };
+  useEffect(() => () => { if (bekci.current) window.clearTimeout(bekci.current); }, []);
 
   async function signIn() {
     setBusy(true);
     setError(null);
+    // Bekçi: yönlendirme/popup bir yerde takılırsa buton sonsuza kadar
+    // "Bağlanıyor…" kalmasın — kullanıcı tekrar deneyebilsin.
+    durdur();
+    bekci.current = window.setTimeout(() => {
+      setBusy(false);
+      setError("Giriş tamamlanmadı. Tekrar dene.");
+    }, 25000);
+
     try {
       const provider = new GoogleAuthProvider();
-      // Kurulu uygulamada popup engellenir → tam sayfa redirect kullan
       if (isStandalone()) {
         await signInWithRedirect(auth(), provider);
-        return; // sayfa Google'a yönlenir; dönüşte yukarıdaki effect tamamlar
+        return; // sayfa Google'a gider; dönüşte yukarıdaki effect tamamlar
       }
       await signInWithPopup(auth(), provider);
+      durdur();
       router.push("/dashboard");
     } catch (e) {
-      // Popup başarısızsa (engellendi/kapatıldı) redirect'e düş
-      const msg = e instanceof Error ? e.message : "Giriş başarısız.";
-      if (/popup/i.test(msg)) {
+      const code = e instanceof FirebaseError ? e.code : "";
+      // Popup engellendiyse tam sayfa yönlendirmeye düş
+      if (/popup/i.test(code)) {
         try {
           await signInWithRedirect(auth(), new GoogleAuthProvider());
           return;
-        } catch {
-          /* aşağıda hata gösterilir */
+        } catch (e2) {
+          setError(readableError(e2));
         }
+      } else {
+        setError(readableError(e));
       }
-      setError(msg);
+      durdur();
       setBusy(false);
     }
   }
