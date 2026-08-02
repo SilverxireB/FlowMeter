@@ -29,8 +29,12 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null
         && request.resource.data.ownerId == request.auth.uid;
+      // Yönetici de yazabilir: ayrılan personelin içeriğini DEVRALIP (ownerId'yi
+      // kendine alıp) yönetebilsin/silebilsin diye. Devirden sonra alt
+      // koleksiyonların mevcut "sahip" kuralları kendiliğinden geçer — bu yüzden
+      // ~20 kural satırına dokunmak gerekmedi.
       allow update, delete: if request.auth != null
-        && resource.data.ownerId == request.auth.uid;
+        && (resource.data.ownerId == request.auth.uid || isAdmin());
 
       // Katılımcılar: izleyici kendi voterId dokümanını oluşturur/günceller
       // (nickname). Silme sadece sunum sahibinde ("yeni oturum" ile temizleme).
@@ -167,8 +171,12 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null
         && request.resource.data.ownerId == request.auth.uid;
+      // Yönetici de yazabilir: ayrılan personelin içeriğini DEVRALIP (ownerId'yi
+      // kendine alıp) yönetebilsin/silebilsin diye. Devirden sonra alt
+      // koleksiyonların mevcut "sahip" kuralları kendiliğinden geçer — bu yüzden
+      // ~20 kural satırına dokunmak gerekmedi.
       allow update, delete: if request.auth != null
-        && resource.data.ownerId == request.auth.uid;
+        && (resource.data.ownerId == request.auth.uid || isAdmin());
 
       // Medya: misafir (anonim) ekler; byte'lar Cloudinary'de, burada metadata.
       // Moderasyon açıkken status 'pending' olmak ZORUNDA (kendi kendini onaylayamaz).
@@ -387,8 +395,12 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null
         && request.resource.data.ownerId == request.auth.uid;
+      // Yönetici de yazabilir: ayrılan personelin içeriğini DEVRALIP (ownerId'yi
+      // kendine alıp) yönetebilsin/silebilsin diye. Devirden sonra alt
+      // koleksiyonların mevcut "sahip" kuralları kendiliğinden geçer — bu yüzden
+      // ~20 kural satırına dokunmak gerekmedi.
       allow update, delete: if request.auth != null
-        && resource.data.ownerId == request.auth.uid;
+        && (resource.data.ownerId == request.auth.uid || isAdmin());
 
       // Ham oylar: herkes ekler (anonim) ama değer SORU TİPİNE bağlı doğrulanır
       // (smiley 1–5, nps 0–10, yesno 0/1, choice < seçenek sayısı; tam sayı).

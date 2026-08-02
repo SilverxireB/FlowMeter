@@ -22,6 +22,8 @@ import {
   listUsers,
   setUserBlocked,
   setUserRole,
+  transferAllContent,
+  deleteAllContent,
 } from "@/lib/users";
 import { listPresentations } from "@/lib/presentations";
 import { listWalls } from "@/lib/walls";
@@ -96,6 +98,37 @@ export default function AdminPage() {
       setErr(e instanceof Error ? e.message : "İçerik sayılamadı.");
     } finally {
       setIcerikBusy(null);
+    }
+  }
+
+  async function devral(u: UserRecord) {
+    if (!user) return;
+    setBusy(u.id);
+    setErr(null);
+    try {
+      const n = await transferAllContent(u.id, user.uid);
+      setIcerik((m) => ({ ...m, [u.id]: { sunum: 0, duvar: 0, ekran: 0, nokta: 0 } }));
+      setErr(n ? `${n} içerik devralındı — artık senin panelinde.` : "Devralınacak içerik yok.");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Devralınamadı.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function icerigiSil(u: UserRecord) {
+    if (!user) return;
+    setBusy(u.id);
+    setErr(null);
+    try {
+      const idToken = await user.getIdToken().catch(() => undefined);
+      const n = await deleteAllContent(u.id, user.uid, idToken);
+      setIcerik((m) => ({ ...m, [u.id]: { sunum: 0, duvar: 0, ekran: 0, nokta: 0 } }));
+      setErr(n ? `${n} içerik silindi.` : "Silinecek içerik yok.");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Silinemedi.");
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -241,9 +274,48 @@ export default function AdminPage() {
                   {/* İçerik özeti: "bu kişiyi kapatırsam/silersem arkada ne kalıyor?"
                       sorusunun cevabı. İstenince yüklenir (kişi başına dört sorgu). */}
                   {icerik[u.id] ? (
-                    <p className="text-muted text-xs mt-1 tabular-nums">
-                      {icerik[u.id].sunum} sunum · {icerik[u.id].duvar} duvar · {icerik[u.id].ekran} ekran · {icerik[u.id].nokta} nokta
-                    </p>
+                    <div className="mt-1">
+                      <p className="text-muted text-xs tabular-nums">
+                        {icerik[u.id].sunum} sunum · {icerik[u.id].duvar} duvar · {icerik[u.id].ekran} ekran · {icerik[u.id].nokta} nokta
+                      </p>
+                      {!isSelf && icerik[u.id].sunum + icerik[u.id].duvar + icerik[u.id].nokta > 0 && (
+                        <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                          <button
+                            onClick={() =>
+                              confirm(
+                                {
+                                  title: "İçeriği devral",
+                                  message: `${u.email} kişisinin sunum, duvar ve nabız noktaları SANA geçer. Hiçbir şey silinmez; linkler ve kodlar aynı kalır.`,
+                                  confirmLabel: "Devral",
+                                },
+                                () => void devral(u)
+                              )
+                            }
+                            disabled={busy === u.id}
+                            className="!py-1 !px-2.5 text-[11px] rounded-full font-semibold border border-line text-muted hover:text-ink hover:border-ink/30 cursor-pointer"
+                          >
+                            Devral
+                          </button>
+                          <button
+                            onClick={() =>
+                              confirm(
+                                {
+                                  title: "Tüm içeriğini sil",
+                                  message: `${u.email} kişisinin sunum, duvar ve nabız noktaları KALICI olarak silinir (medya dosyaları dahil). Geri alınamaz.\nFlowSign ekranları buna dahil değil — onları "Sign yetkileri"nden yönet.`,
+                                  confirmLabel: "Sil",
+                                  danger: true,
+                                },
+                                () => void icerigiSil(u)
+                              )
+                            }
+                            disabled={busy === u.id}
+                            className="!py-1 !px-2.5 text-[11px] rounded-full font-semibold border border-line text-brand hover:bg-brand-soft/40 cursor-pointer"
+                          >
+                            Tüm içeriğini sil
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <button
                       onClick={() => void icerikSay(u.id)}

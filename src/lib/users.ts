@@ -16,6 +16,9 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { deletePresentation, listPresentations } from "./presentations";
+import { deleteWall, listWalls } from "./walls";
+import { deletePulse, listPulses } from "./pulses";
 import { UserRecord } from "./types";
 
 /** Bootstrap yönetici — rules'ta da aynı e-posta hardcode'ludur. */
@@ -80,6 +83,52 @@ export async function setCanCreateSign(uid: string, canCreate: boolean): Promise
  * Gerçek kullanıcının e-postası hep vardır (Google ile girilir).
  */
 export const isGhostRecord = (u: UserRecord): boolean => !u.email;
+
+/**
+ * Bir kişinin TÜM içeriğini devral — ownerId yöneticiye geçer.
+ *
+ * Neden devir: silme kuralları "sahip" bazlıydı, yönetici başkasının içeriğini
+ * silemiyordu. Yirmi kural satırına isAdmin() eklemek yerine yalnız üç yerde
+ * (presentations/walls/pulses doküman güncellemesi) yöneticiye izin verildi;
+ * devirden sonra alt koleksiyonların mevcut sahip kuralları kendiliğinden geçer
+ * ve var olan silme yolları hiç değişmeden çalışır.
+ *
+ * Devir tek başına da işe yarar: ayrılan kişinin duvarını yok etmeden sahiplen.
+ * FlowSign ayrı — orada yetki matrisi var, yönetici zaten tam yetkili.
+ */
+export async function transferAllContent(fromUid: string, toUid: string): Promise<number> {
+  const [decks, walls, pulses] = await Promise.all([
+    listPresentations(fromUid),
+    listWalls(fromUid),
+    listPulses(fromUid),
+  ]);
+  for (const d of decks) await updateDoc(doc(db(), "presentations", d.id), { ownerId: toUid });
+  for (const w of walls) await updateDoc(doc(db(), "walls", w.id), { ownerId: toUid });
+  for (const p of pulses) await updateDoc(doc(db(), "pulses", p.id), { ownerId: toUid });
+  return decks.length + walls.length + pulses.length;
+}
+
+/**
+ * Bir kişinin TÜM içeriğini sil. Önce devralınır (yukarıdaki gerekçe), sonra
+ * ürünlerin KENDİ silme yollarıyla silinir — alt koleksiyonlar, katılım kodu ve
+ * Cloudinary temizliği o yollarda zaten çözülmüş, burada tekrarlanmaz.
+ *
+ * Yarıda kalırsa içerik yöneticide kalır: yarım silinmiş kalıntıdan iyidir.
+ */
+export async function deleteAllContent(uid: string, adminUid: string, idToken?: string): Promise<number> {
+  // Kimlikler devirden ÖNCE alınır. Devirden sonra listelemek yöneticinin KENDİ
+  // içeriğini de kapsardı ve onları da silerdik.
+  const [decks, walls, pulses] = await Promise.all([
+    listPresentations(uid),
+    listWalls(uid),
+    listPulses(uid),
+  ]);
+  await transferAllContent(uid, adminUid);
+  for (const d of decks) await deletePresentation({ ...d, ownerId: adminUid });
+  for (const w of walls) await deleteWall({ ...w, ownerId: adminUid }, idToken);
+  for (const p of pulses) await deletePulse(p.id);
+  return decks.length + walls.length + pulses.length;
+}
 
 /** Kullanıcı KAYDINI siler (Auth hesabını değil — tekrar girişte kayıt yeniden oluşur). */
 export async function deleteUserRecord(uid: string): Promise<void> {
