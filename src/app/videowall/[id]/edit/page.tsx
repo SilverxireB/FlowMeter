@@ -344,31 +344,6 @@ export default function VideowallEditPage() {
           </div>
         )}
 
-        {/* Config */}
-        <div className="card p-5">
-          <p className="eyebrow mb-3">Duvar tanımı</p>
-          <div className="flex flex-wrap items-end gap-4 text-sm">
-            {/* Çözünürlük artık düzenlenebilir (oluşturmadaki yazım hatası duvarı silmeden düzeltilir) */}
-            <label className="flex flex-col gap-1">
-              <span className="text-muted text-xs">Genişlik (px)</span>
-              <input key={`w${vw.width}`} type="number" min={1} defaultValue={vw.width} onBlur={(e) => { const nw = Math.max(1, Math.round(Number(e.target.value) || 0)); if (nw && nw !== vw.width) updateVideowall(id, { width: nw }).catch(() => setSaveErr("Çözünürlük kaydedilemedi — tekrar dene.")); else e.target.value = String(vw.width); }} className={`w-24 ${inputCls}`} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-muted text-xs">Yükseklik (px)</span>
-              <input key={`h${vw.height}`} type="number" min={1} defaultValue={vw.height} onBlur={(e) => { const nh = Math.max(1, Math.round(Number(e.target.value) || 0)); if (nh && nh !== vw.height) updateVideowall(id, { height: nh }).catch(() => setSaveErr("Çözünürlük kaydedilemedi — tekrar dene.")); else e.target.value = String(vw.height); }} className={`w-24 ${inputCls}`} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-muted text-xs">Yan yana kaç ekran?</span>
-              <input key={`c${vw.cols}`} type="number" min={1} max={24} defaultValue={vw.cols} onBlur={(e) => { const c = clampScreens(Number(e.target.value)); if (c !== vw.cols) changeScreens(c, vw.rows); e.target.value = String(vw.cols); }} className={`w-24 ${inputCls}`} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-muted text-xs">Üst üste kaç ekran?</span>
-              <input key={`r${vw.rows}`} type="number" min={1} max={24} defaultValue={vw.rows} onBlur={(e) => { const rr = clampScreens(Number(e.target.value)); if (rr !== vw.rows) changeScreens(vw.cols, rr); e.target.value = String(vw.rows); }} className={`w-24 ${inputCls}`} />
-            </label>
-            <span className="text-muted text-xs pb-2 tabular-nums">{vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan</span>
-          </div>
-        </div>
-
         {/* GENİŞ EKRANDA İKİ SÜTUN (yalnız xl ve üstü).
             Sebep estetik değil, iş akışı: bölme ve kenar-çek denetimleri alan
             panelinin altında, tuval ise sayfanın üstündeydi — içeriği kalabalık
@@ -380,9 +355,36 @@ export default function VideowallEditPage() {
             küçük her ekranda BUGÜNKÜ yerleşim aynen kalır (telefon, tablet ve
             1280-1599 dizüstüler dahil); 1600+ ekranda tuval ~830-890px olur,
             yani kimse tuval boyutu kaybetmez. Sol sütun yapışkan: sayfa kayarken tuval yerinde kalır.
-            Alan seçili değilken tek sütuna döner (yarısı boş kalmasın). */}
+            Duvar tanımı da SOL SÜTUNDA: tam genişlikte tek sıra olunca dört küçük
+            girdi solda toplanıp sağında kocaman boşluk bırakıyordu; hem israf hem
+            de alttaki yerleşim kartıyla kenarları hizalanmıyordu. Duvar ölçüsü,
+            ekran sayısı ve yerleşim zaten aynı soruyu cevaplıyor. */}
         <div className="flex flex-col gap-6 min-[1600px]:grid min-[1600px]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] min-[1600px]:gap-6 min-[1600px]:items-start">
-        <div className="min-[1600px]:sticky min-[1600px]:top-4">
+        <div className="flex flex-col gap-6 min-[1600px]:sticky min-[1600px]:top-4">
+          {/* Config */}
+          <div className="card p-5">
+            <p className="eyebrow mb-3">Duvar tanımı</p>
+            <div className="flex flex-wrap items-end gap-4 text-sm">
+              {/* Çözünürlük artık düzenlenebilir (oluşturmadaki yazım hatası duvarı silmeden düzeltilir) */}
+              <label className="flex flex-col gap-1">
+                <span className="text-muted text-xs">Genişlik (px)</span>
+                <input key={`w${vw.width}`} type="number" min={1} defaultValue={vw.width} onBlur={(e) => { const nw = Math.max(1, Math.round(Number(e.target.value) || 0)); if (nw && nw !== vw.width) updateVideowall(id, { width: nw }).catch(() => setSaveErr("Çözünürlük kaydedilemedi — tekrar dene.")); else e.target.value = String(vw.width); }} className={`w-24 ${inputCls}`} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-muted text-xs">Yükseklik (px)</span>
+                <input key={`h${vw.height}`} type="number" min={1} defaultValue={vw.height} onBlur={(e) => { const nh = Math.max(1, Math.round(Number(e.target.value) || 0)); if (nh && nh !== vw.height) updateVideowall(id, { height: nh }).catch(() => setSaveErr("Çözünürlük kaydedilemedi — tekrar dene.")); else e.target.value = String(vw.height); }} className={`w-24 ${inputCls}`} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-muted text-xs">Yan yana kaç ekran?</span>
+                <input key={`c${vw.cols}`} type="number" min={1} max={24} defaultValue={vw.cols} onBlur={(e) => { const c = clampScreens(Number(e.target.value)); if (c !== vw.cols) changeScreens(c, vw.rows); e.target.value = String(vw.cols); }} className={`w-24 ${inputCls}`} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-muted text-xs">Üst üste kaç ekran?</span>
+                <input key={`r${vw.rows}`} type="number" min={1} max={24} defaultValue={vw.rows} onBlur={(e) => { const rr = clampScreens(Number(e.target.value)); if (rr !== vw.rows) changeScreens(vw.cols, rr); e.target.value = String(vw.rows); }} className={`w-24 ${inputCls}`} />
+              </label>
+              <span className="text-muted text-xs pb-2 tabular-nums">{vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan</span>
+            </div>
+          </div>
         {/* Yerleşim editörü */}
         <div className="card p-5">
           <div className="flex items-center justify-between gap-3 mb-3">

@@ -89,7 +89,11 @@ function GecisliKare({ item, gecis }: { item: ZoneItem; gecis: "fade" | "cut" | 
 }
 
 /**
- * Alanda 2+ içerik varsa önizleme YAVAŞÇA DÖNER (3 sn).
+ * Alanda 2+ içerik varsa önizleme YAVAŞÇA DÖNER (8 sn).
+ *
+ * 8 saniye: ilk deneme 3 sn'ydi ve tuvalde sürekli hareket rahatsız ediciydi
+ * (kullanıcı). 8, ürünün varsayılan gösterim süresiyle de aynı — önizlemenin
+ * temposu perdenin temposuna benziyor.
  *
  * İki işi birden yapıyor:
  *  1. Alanın birden fazla içeriği olduğu tek bakışta görünür (rozetteki sayıyı
@@ -123,7 +127,7 @@ function ZoneDoner({ items, sira, gecis }: { items: ZoneItem[]; sira: number; ge
     if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     let iv = 0;
     const bas = window.setTimeout(() => {
-      iv = window.setInterval(() => setI((n) => n + 1), 3000);
+      iv = window.setInterval(() => setI((n) => n + 1), 8000);
     }, (sira % 4) * 500);
     return () => {
       window.clearTimeout(bas);
