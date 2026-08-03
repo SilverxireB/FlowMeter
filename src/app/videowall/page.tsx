@@ -33,6 +33,7 @@ import {
   listAllVideowalls,
 } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
+import { loginYolu } from "@/lib/girisYolu";
 
 // DİKKAT: preset çözünürlükleri fiziksel gerçek — 3 dikey (portre) TV yan yana
 // 3×(1080×1920) = 3240×1920'dir (1920×3240 DEĞİL; o hata ilk izlenimi bozuyordu).
@@ -120,7 +121,7 @@ export default function VideowallListPage() {
   );
 
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
+    if (!loading && !user) router.replace(loginYolu());
   }, [loading, user, router]);
   useEffect(() => {
     refresh();

@@ -29,6 +29,7 @@ import { useAuthUser } from "@/lib/hooks";
 import { ADMIN_EMAIL, getUserRecord, isAdminUser, listUsers, setCanCreateSign } from "@/lib/users";
 import { clearSignGrant, listAllVideowalls, setSignGrant, signPerm } from "@/lib/videowalls";
 import { SignGrant, UserRecord, Videowall } from "@/lib/types";
+import { loginYolu } from "@/lib/girisYolu";
 
 const PERMS = [
   { key: "view", label: "Görüntüle", hint: "Listede görsün, editörü açsın" },
@@ -51,7 +52,7 @@ export default function AdminSignPage() {
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      router.replace("/login");
+      router.replace(loginYolu());
       return;
     }
     getUserRecord(user.uid)

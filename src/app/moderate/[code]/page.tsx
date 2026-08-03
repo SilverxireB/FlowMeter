@@ -18,6 +18,7 @@ import { deleteQuestion, setQuestionApproved } from "@/lib/questions";
 import { approveResponse, deleteResponse } from "@/lib/responses";
 import { ResponseDoc, Slide } from "@/lib/types";
 import { Icon } from "@/components/Icon";
+import { loginYolu } from "@/lib/girisYolu";
 
 /** Bir açık metin slaydının ONAY BEKLEYEN cevap kuyruğu (canlı). */
 function PendingAnswers({ pid, slide }: { pid: string; slide: Slide }) {
@@ -72,7 +73,7 @@ export default function ModeratePage() {
   const { slides } = useSlides(id || null);
 
   useEffect(() => {
-    if (!authLoading && !user) router.replace("/login");
+    if (!authLoading && !user) router.replace(loginYolu());
   }, [authLoading, user, router]);
 
   if (authLoading || pid === undefined || (pid && !presentation)) {

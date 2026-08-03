@@ -35,6 +35,7 @@ import { TEMPLATES, TEMPLATE_CATEGORIES } from "@/lib/templates";
 import { themeStyle } from "@/lib/themes";
 import { withTimeout } from "@/lib/withTimeout";
 import { Presentation, Pulse, Slide, SLIDE_TYPE_LABELS, Videowall, Wall } from "@/lib/types";
+import { loginYolu } from "@/lib/girisYolu";
 
 /** Kart önizlemesi — sunumun gerçek 1. slaytını render eder (yoksa başlık). */
 function CardThumb({ presentation, view }: { presentation: Presentation; view: "grid" | "list" }) {
@@ -234,7 +235,7 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
+    if (!loading && !user) router.replace(loginYolu());
   }, [loading, user, router]);
 
   useEffect(() => {
@@ -381,7 +382,7 @@ export default function DashboardPage() {
             Bu hesabın kokpit erişimi yönetici tarafından kapatıldı. İçeriklerin duruyor.
           </p>
           <button
-            onClick={() => signOut(auth()).then(() => router.replace("/login"))}
+            onClick={() => signOut(auth()).then(() => router.replace(loginYolu()))}
             className="btn-ghost"
           >
             Çıkış yap
@@ -432,7 +433,7 @@ export default function DashboardPage() {
             <span className="truncate min-w-0">{user.email}</span>
           </span>
           <button
-            onClick={() => signOut(auth()).then(() => router.replace("/login"))}
+            onClick={() => signOut(auth()).then(() => router.replace(loginYolu()))}
             className="chip !py-1.5 shrink-0 text-muted hover:text-ink hover:border-ink/30"
             title="Çıkış yap"
           >

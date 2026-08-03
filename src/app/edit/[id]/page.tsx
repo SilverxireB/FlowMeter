@@ -47,6 +47,7 @@ import {
   SLIDE_TYPE_LABELS,
   SlideType,
 } from "@/lib/types";
+import { loginYolu } from "@/lib/girisYolu";
 
 type SheetKind = "edit" | "add" | "more" | "interactivity" | "test" | null;
 
@@ -88,7 +89,7 @@ export default function EditPage() {
   }
 
   useEffect(() => {
-    if (!authLoading && !user) router.replace("/login");
+    if (!authLoading && !user) router.replace(loginYolu());
   }, [authLoading, user, router]);
 
   // Seçim yoksa veya seçili slayt silindiyse ilk slaytı seç

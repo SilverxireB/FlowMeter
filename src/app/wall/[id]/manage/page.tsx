@@ -27,6 +27,7 @@ import { WALL_THEME_PRESETS, wallThemeStyle } from "@/lib/themes";
 import { compressImage } from "@/lib/images";
 import { getVoterId } from "@/lib/responses";
 import { BASE_WALL_SCREEN_MODES, RaffleDraw, RaffleEntry, Wall, WallMedia, WALL_EFFECTS, WALL_SCREEN_MODES, wallEffectOf } from "@/lib/types";
+import { loginYolu } from "@/lib/girisYolu";
 
 const AUTO_INTERVALS = [20, 30, 45, 60, 90];
 const VIDEO_OPTS: [number, string][] = [[0, "Kapalı"], [15, "≤15 sn"], [30, "≤30 sn"], [60, "≤60 sn"]];
@@ -99,7 +100,7 @@ export default function WallManage() {
   };
 
   useEffect(() => {
-    if (!authLoading && !user) router.replace("/login");
+    if (!authLoading && !user) router.replace(loginYolu());
   }, [authLoading, user, router]);
 
   const pending = useMemo(() => allMedia.filter((m) => m.status === "pending"), [allMedia]);

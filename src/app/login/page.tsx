@@ -13,6 +13,7 @@ import FlowSpinner from "@/components/FlowSpinner";
 import StudioHero from "@/components/StudioHero";
 import { auth } from "@/lib/firebase";
 import { useAuthUser } from "@/lib/hooks";
+import { girisSonrasi } from "@/lib/girisYolu";
 
 /** Kurulu PWA (standalone) veya iOS ana ekran modunda mıyız? */
 function isStandalone(): boolean {
@@ -93,7 +94,7 @@ export default function LoginPage() {
   // Oturum zaten açıksa (ör. /dashboard buraya attıysa) panele geç — girişi
   // AÇIK olan birine "Google ile devam et" dayatmak yanlıştı.
   useEffect(() => {
-    if (user) router.replace("/dashboard");
+    if (user) router.replace(girisSonrasi());
   }, [user, router]);
 
   // Oturum daha okunurken buton aktif durmasın: kullanıcı gereksiz yere
@@ -104,7 +105,7 @@ export default function LoginPage() {
   useEffect(() => {
     getRedirectResult(auth())
       .then((res) => {
-        if (res?.user) router.push("/dashboard");
+        if (res?.user) router.replace(girisSonrasi());
       })
       .catch((e) => setError(readableError(e)));
   }, [router]);
@@ -147,7 +148,7 @@ export default function LoginPage() {
       }
       await signInWithPopup(auth(), provider);
       durdur();
-      router.push("/dashboard");
+      router.replace(girisSonrasi());
     } catch (e) {
       const code = e instanceof FirebaseError ? e.code : "";
       // Tam sayfa yönlendirmeye YALNIZ tarayıcı pencereyi ENGELLEDİYSE düşülür.

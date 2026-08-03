@@ -44,6 +44,7 @@ import { themeStyle } from "@/lib/themes";
 import { withTimeout } from "@/lib/withTimeout";
 import { SLIDE_TYPE_ICON_NAMES } from "@/lib/slideTypeIcons";
 import { INTERACTIVE_SLIDE_TYPES, SLIDE_TYPE_LABELS } from "@/lib/types";
+import { loginYolu } from "@/lib/girisYolu";
 
 /**
  * Sunum modu. index -1 = katılım ekranı (büyük QR + kod + gelen isimler),
@@ -97,7 +98,7 @@ export default function PresentPage() {
   }
 
   useEffect(() => {
-    if (!authLoading && !user) router.replace("/login");
+    if (!authLoading && !user) router.replace(loginYolu());
   }, [authLoading, user, router]);
 
   // Doküman uzun süre gelmezse "bağlantı kurulamıyor" ipucu göster

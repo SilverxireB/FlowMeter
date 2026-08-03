@@ -19,6 +19,7 @@ import { usePlayTarget } from "@/lib/usePlayTarget";
 import { createPulse, deletePulse, listPulses, percentOf, watchToday } from "@/lib/pulses";
 import { scoreColor, scoreEmoji } from "@/components/pulse/shared";
 import { Pulse, PulseDay, PulseQuestionType } from "@/lib/types";
+import { loginYolu } from "@/lib/girisYolu";
 
 const TYPES: { id: PulseQuestionType; label: string; hint: string }[] = [
   { id: "smiley", label: "😐 Yüz (1–5)", hint: "Klasik memnuniyet — yemekhane, servis, tuvalet" },
@@ -71,7 +72,7 @@ export default function PulseListPage() {
     if (user) setPulses(await listPulses(user.uid));
   }, [user]);
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
+    if (!loading && !user) router.replace(loginYolu());
   }, [loading, user, router]);
   useEffect(() => {
     refresh();

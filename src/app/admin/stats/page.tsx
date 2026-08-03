@@ -17,6 +17,7 @@ import { useAuthUser } from "@/lib/hooks";
 import { ADMIN_EMAIL, getUserRecord, isAdminUser, listUsers } from "@/lib/users";
 import { UserRecord } from "@/lib/types";
 import { Icon } from "@/components/Icon";
+import { loginYolu } from "@/lib/girisYolu";
 
 interface ContentDoc {
   id: string;
@@ -47,7 +48,7 @@ export default function AdminStatsPage() {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
+    if (!loading && !user) router.replace(loginYolu());
   }, [loading, user, router]);
 
   useEffect(() => {

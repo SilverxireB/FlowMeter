@@ -29,6 +29,7 @@ import { listSessions } from "@/lib/presentations";
 import { Icon } from "@/components/Icon";
 import { SLIDE_TYPE_ICON_NAMES } from "@/lib/slideTypeIcons";
 import { SessionRecord, SLIDE_TYPE_LABELS } from "@/lib/types";
+import { loginYolu } from "@/lib/girisYolu";
 
 /** Oturum kaydını "12 Tem 14:30–15:10" biçiminde etiketler. */
 function sessionLabel(s: SessionRecord, index: number): string {
@@ -63,7 +64,7 @@ export default function ResultsPage() {
   const sessionFilter = sessionSel === "all" ? undefined : sessionSel;
 
   useEffect(() => {
-    if (!authLoading && !user) router.replace("/login");
+    if (!authLoading && !user) router.replace(loginYolu());
   }, [authLoading, user, router]);
 
   useEffect(() => {

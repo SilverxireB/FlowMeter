@@ -14,6 +14,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { useAuthUser, usePresentation, useQuestions, useSlides } from "@/lib/hooks";
 import { endPresentation, resolveJoinCode, setCurrentSlide, setVotingClosed, startQuiz } from "@/lib/presentations";
 import { SLIDE_TYPE_LABELS } from "@/lib/types";
+import { loginYolu } from "@/lib/girisYolu";
 
 export default function RemotePage() {
   const { confirm, dialog } = useConfirm({ tone: "dark" });
@@ -37,7 +38,7 @@ export default function RemotePage() {
   const [qaOpen, setQaOpen] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !user) router.replace("/login");
+    if (!authLoading && !user) router.replace(loginYolu());
   }, [authLoading, user, router]);
 
   if (authLoading || pid === undefined || (pid && !presentation) || (pid && slidesLoading)) {

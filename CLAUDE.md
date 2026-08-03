@@ -194,6 +194,13 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   editörden açılır → `/edit/[id]`; `/results` iki yerden açılır → sunum listesi
   (`?p=decks`) + ayrıca "Editör" linki; kokpitler kendi listelerine; listeler
   hub'a; `/admin*` kardeştir (AdminTabs) → hepsi hub'a.
+- **Giriş kapısı hedefi taşır:** oturumsuz açılan sayfa `/login?next=<yol>`e
+  gider (`lib/girisYolu.ts` · `loginYolu()`), giriş sonrası oraya bırakılır
+  (`girisSonrasi()`). Eskiden 17 sayfa düz `/login`e atıyor, giriş de HUB'a
+  düşürüyordu: paylaşılan bağlantıyı açan kişi aradığı şeye hiç varamıyordu.
+  `next` YALNIZ tek eğik çizgiyle başlayan iç yollar (protokole-göreli `//site`
+  ve mutlak adres elenir — açık yönlendirme kapısı). Sınav:
+  `node tests/giris-yolu.test.mjs`.
 - **UI ortak bileşenleri:** `Icon` (tek ikon seti) · `ConfirmDialog`+`useConfirm`
   (native confirm YOK) · `CodeInput` (6 haneli kod, aydınlık/koyu) · `Skeleton`
   (kokpit yükleme iskeletleri; perde/kiosk'ta tek satır yazı doğru) ·

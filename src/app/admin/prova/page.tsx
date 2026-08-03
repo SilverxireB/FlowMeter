@@ -26,6 +26,7 @@ import { listPresentations } from "@/lib/presentations";
 import { listWalls } from "@/lib/walls";
 import { Presentation, Pulse, Wall } from "@/lib/types";
 import { usePlayTarget } from "@/lib/usePlayTarget";
+import { loginYolu } from "@/lib/girisYolu";
 
 const RENK: Record<Kontrol["durum"], string> = {
   ok: "bg-[#1baf7a]/12 border-[#1baf7a]/35 text-[#0f7a55]",
@@ -84,7 +85,7 @@ export default function ProvaPage() {
   }, [allowed, user]);
 
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
+    if (!loading && !user) router.replace(loginYolu());
   }, [loading, user, router]);
 
   useEffect(() => {

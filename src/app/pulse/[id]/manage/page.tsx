@@ -29,6 +29,7 @@ import {
   watchToday,
 } from "@/lib/pulses";
 import { Pulse, PulseDay } from "@/lib/types";
+import { loginYolu } from "@/lib/girisYolu";
 
 const DAY_NAMES = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
 
@@ -99,7 +100,7 @@ export default function PulseManagePage() {
     refreshDays();
   }, [refreshDays, today?.total]);
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
+    if (!loading && !user) router.replace(loginYolu());
   }, [loading, user, router]);
 
   const type = pulse?.question.type ?? "smiley";

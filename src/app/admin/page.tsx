@@ -32,6 +32,7 @@ import { listWalls } from "@/lib/walls";
 import { listVideowalls } from "@/lib/videowalls";
 import { listPulses } from "@/lib/pulses";
 import { UserRecord } from "@/lib/types";
+import { loginYolu } from "@/lib/girisYolu";
 
 export default function AdminPage() {
   const { confirm, dialog } = useConfirm();
@@ -43,7 +44,7 @@ export default function AdminPage() {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
+    if (!loading && !user) router.replace(loginYolu());
   }, [loading, user, router]);
 
   // Yetki kontrolü: bootstrap e-posta veya users kaydında role=admin

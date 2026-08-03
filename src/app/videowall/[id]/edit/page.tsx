@@ -43,6 +43,7 @@ import {
 } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
 import { withTimeout } from "@/lib/withTimeout";
+import { loginYolu } from "@/lib/girisYolu";
 
 const inputCls = "input-base !py-2 !px-3 !rounded-lg";
 
@@ -141,7 +142,7 @@ export default function VideowallEditPage() {
     if (vw && !vw.slug && user && vw.ownerId === user.uid) ensureSlug(vw).catch(() => {});
   }, [vw, user]);
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
+    if (!loading && !user) router.replace(loginYolu());
   }, [loading, user, router]);
 
   const slug = vw ? vw.slug ?? slugify(vw.name) : "";
