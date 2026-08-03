@@ -27,6 +27,17 @@ function ago(ms: number): string {
   return `${Math.round(d / 86_400_000)} gün önce`;
 }
 
+/** Süre: "42 dk", "3 sa 20 dk", "6 gün 4 sa" (yayın süresi sütunu). */
+function sure(ms: number): string {
+  if (ms < 60_000) return "1 dk";
+  const dk = Math.floor(ms / 60_000);
+  if (dk < 60) return `${dk} dk`;
+  const sa = Math.floor(dk / 60);
+  if (sa < 24) return dk % 60 ? `${sa} sa ${dk % 60} dk` : `${sa} sa`;
+  const gun = Math.floor(sa / 24);
+  return sa % 24 ? `${gun} gün ${sa % 24} sa` : `${gun} gün`;
+}
+
 export default function ScreensCard({ id }: { id: string }) {
   const [screens, setScreens] = useState<ScreenBeat[]>([]);
   // "son görülme" etiketleri bayatlamasın diye 30sn'de bir yeniden çiz
@@ -59,6 +70,13 @@ export default function ScreensCard({ id }: { id: string }) {
           {screens.map((s) => {
             const seen = s.lastSeenAt?.toMillis() ?? 0;
             const isOnline = Date.now() - seen < ONLINE_MS;
+            const basladi = s.startedAt?.toMillis?.() ?? 0;
+            // Bu oturum: çevrimiçiyse ŞU ANA kadar, değilse son görüldüğü ana kadar.
+            const oturum = basladi ? Math.max(0, (isOnline ? Date.now() : seen) - basladi) : 0;
+            const toplam = s.totalMs ?? 0;
+            // Toplam yalnız oturumdan belirgin fazlaysa yazılır — ilk oturumda
+            // aynı sayıyı iki kez göstermenin anlamı yok.
+            const toplamGoster = toplam > oturum + 5 * 60_000;
             return (
               <li key={s.id} className="flex items-center gap-3 rounded-xl bg-paper border border-line px-3 py-2.5 text-sm">
                 <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOnline ? "bg-emerald-500" : "bg-line"}`} aria-hidden />
@@ -69,9 +87,21 @@ export default function ScreensCard({ id }: { id: string }) {
                   </p>
                   <p className="text-muted text-xs">
                     {isOnline ? "çevrimiçi" : seen ? `son görülme: ${ago(seen)}` : "hiç görülmedi"}
-                    {s.startedAt?.toMillis ? ` · açılış: ${ago(s.startedAt.toMillis())}` : ""}
                   </p>
                 </div>
+                {(oturum > 0 || toplamGoster) && (
+                  <div className="shrink-0 text-right leading-tight">
+                    {oturum > 0 && (
+                      <p className="font-semibold tabular-nums">
+                        {sure(oturum)}
+                        <span className="text-muted font-normal ml-1">{isOnline ? "yayında" : "sürdü"}</span>
+                      </p>
+                    )}
+                    {toplamGoster && (
+                      <p className="text-muted text-xs tabular-nums">toplam {sure(toplam)}</p>
+                    )}
+                  </div>
+                )}
                 {!isOnline && (
                   <button
                     onClick={() => deleteScreenBeat(id, s.id).catch(() => {})}

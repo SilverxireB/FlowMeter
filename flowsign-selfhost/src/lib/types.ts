@@ -48,6 +48,7 @@ export interface ScreenBeat {
   vhPx?: number;
   startedAt?: number | null; // ms
   lastSeenAt?: number | null; // ms
+  totalMs?: number; // bu cihazın TOPLAM yayın süresi (oturumlar boyunca birikir)
 }
 
 /** Yayındaki (kaydedilmiş) yerleşim anlık görüntüsü — perde BUNU oynatır. */

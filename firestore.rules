@@ -379,9 +379,11 @@ service cloud.firestore {
         }
         allow read: if true;
         allow create, update: if request.resource.data.keys()
-            .hasOnly(['ua', 'vwPx', 'vhPx', 'startedAt', 'lastSeenAt'])
+            .hasOnly(['ua', 'vwPx', 'vhPx', 'startedAt', 'lastSeenAt', 'totalMs'])
           && (!('ua' in request.resource.data)
-              || (request.resource.data.ua is string && request.resource.data.ua.size() <= 160));
+              || (request.resource.data.ua is string && request.resource.data.ua.size() <= 160))
+          && (!('totalMs' in request.resource.data)
+              || request.resource.data.totalMs is number);
         allow delete: if signAllows(wall(), 'edit');
       }
     }

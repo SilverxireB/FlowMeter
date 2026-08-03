@@ -503,6 +503,7 @@ export interface ScreenBeat {
   vhPx?: number;
   startedAt?: Timestamp | null; // bu sayfa oturumu ne zaman açıldı
   lastSeenAt?: Timestamp | null;
+  totalMs?: number; // bu cihazın TOPLAM yayın süresi (oturumlar boyunca birikir)
 }
 
 /** Yayındaki (kaydedilmiş) yerleşim anlık görüntüsü — perde BUNU oynatır. */

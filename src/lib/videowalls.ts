@@ -10,6 +10,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   onSnapshot,
   query,
   serverTimestamp,
@@ -642,8 +643,22 @@ export function getScreenId(): string {
   return id;
 }
 
-/** "Canlıyım" yaz (perde). includeStart: sayfa oturumu başlangıcında true. */
+/**
+ * "Canlıyım" yaz (perde). includeStart: sayfa oturumu başlangıcında true.
+ *
+ * Toplam yayın süresi: her nabızda İKİ NABIZ ARASI geçen süre eklenir. Ekran
+ * kapalıyken/uyurken nabız atmadığı için o boşluk kendiliğinden sayılmaz; yine
+ * de üst sınır konur (uyuyan sekme uyanınca dev bir fark ekleyip süreyi
+ * şişirmesin).
+ */
+const BEAT_MS = 2 * 60_000;
+let _sonNabiz = 0;
+
 export async function sendScreenBeat(vwId: string, includeStart = false): Promise<void> {
+  const simdi = Date.now();
+  const gecen = includeStart || !_sonNabiz ? 0 : Math.min(simdi - _sonNabiz, 3 * BEAT_MS);
+  _sonNabiz = simdi;
+
   const data: Record<string, unknown> = {
     ua: (typeof navigator !== "undefined" ? navigator.userAgent : "").slice(0, 140),
     vwPx: typeof window !== "undefined" ? window.innerWidth : 0,
@@ -651,7 +666,18 @@ export async function sendScreenBeat(vwId: string, includeStart = false): Promis
     lastSeenAt: serverTimestamp(),
   };
   if (includeStart) data.startedAt = serverTimestamp();
-  await setDoc(doc(db(), "videowalls", vwId, "screens", getScreenId()), data, { merge: true });
+
+  const ref = doc(db(), "videowalls", vwId, "screens", getScreenId());
+  if (gecen > 0) {
+    try {
+      await setDoc(ref, { ...data, totalMs: increment(gecen) }, { merge: true });
+      return;
+    } catch {
+      // Kurallar henüz `totalMs`i tanımıyorsa (konsola elle yapıştırılıyor)
+      // nabız hiç atmamış olmasın: alanı bırakıp yeniden dene.
+    }
+  }
+  await setDoc(ref, data, { merge: true });
 }
 
 /** Ekran kayıtlarını canlı izle (kokpit). */

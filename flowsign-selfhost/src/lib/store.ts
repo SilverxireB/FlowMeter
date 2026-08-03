@@ -225,13 +225,19 @@ export async function beat(wallId: string, screenId: string, data: Omit<ScreenBe
   const file = path.join(SCREENS_DIR, `${wallId}.json`);
   const map = (await readJson<ScreensFile>(file)) ?? {};
   const prev = map[screenId] ?? {};
+  // Toplam yayın süresi: İKİ NABIZ ARASI geçen süre eklenir (ekran kapalıyken
+  // nabız atmaz, o boşluk sayılmaz). Üst sınır, uyuyup uyanan sekmenin dev bir
+  // fark ekleyip süreyi şişirmesini engeller. Hesap SUNUCUDA — istemciye güven yok.
+  const simdi = Date.now();
+  const gecen = includeStart || !prev.lastSeenAt ? 0 : Math.min(simdi - prev.lastSeenAt, 6 * 60_000);
   map[screenId] = {
     ...prev,
     ua: data.ua,
     vwPx: data.vwPx,
     vhPx: data.vhPx,
-    lastSeenAt: Date.now(),
-    ...(includeStart ? { startedAt: Date.now() } : {}),
+    totalMs: (prev.totalMs ?? 0) + gecen,
+    lastSeenAt: simdi,
+    ...(includeStart ? { startedAt: simdi } : {}),
   };
   await writeJsonAtomic(file, map);
   emitWall(wallId);
