@@ -231,7 +231,9 @@ export const SIGN_REHBER: RehberBolum[] = [
           ]}
         />
         <p>
-          Sırası gelmeyen öğe <Dugme>şu an takvim dışı</Dugme> rozeti alır. Kaybolmadı — bugün, bu saatte dönmüyor.
+          Sırası gelmeyen öğe neden dönmediğini söyleyen bir rozet alır: <Dugme>şu an takvim dışı</Dugme> gün/saat
+          penceresi dışında (yarın yine döner), <Dugme>henüz başlamadı</Dugme> tarihi gelmemiş,
+          <Dugme>süresi doldu</Dugme> ise <b>ölü içerik</b> — silinebilir.
         </p>
 
         <Baslik>Geçiş ve zemin</Baslik>

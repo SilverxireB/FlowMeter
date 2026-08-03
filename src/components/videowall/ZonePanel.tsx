@@ -12,7 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName } from "@/components/Icon";
 import FlowSpinner from "@/components/FlowSpinner";
 import { cldFit, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
-import { icAgAdresi, itemInWindow, listAllVideowalls, ZONE_BG_DEFAULT } from "@/lib/videowalls";
+import { icAgAdresi, itemInWindow, itemTakvimDurumu, listAllVideowalls, ZONE_BG_DEFAULT } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 const iid = () => `it-${Math.random().toString(36).slice(2, 9)}`;
@@ -448,7 +448,8 @@ export default function ZonePanel({
       ) : (
         <ul className="flex flex-col gap-2">
           {zone.items.map((it, i) => {
-            const outOfWindow = !itemInWindow(it, now);
+            const takvim = itemTakvimDurumu(it, now);
+            const outOfWindow = takvim !== "icinde";
             return (
               <li
                 key={it.id}
@@ -527,7 +528,19 @@ export default function ZonePanel({
                       {it.kind === "url" && (it.zoom ?? 100) !== 100 && (
                         <span className="text-[10px] text-muted bg-white border border-line rounded px-1.5 py-0.5">🔍 %{it.zoom}</span>
                       )}
-                      {outOfWindow && <span className="text-[10px] text-ink/70 bg-line/60 rounded px-1.5 py-0.5">şu an takvim dışı</span>}
+                      {takvim !== "icinde" && (
+                        <span
+                          className={`text-[10px] rounded px-1.5 py-0.5 ${
+                            takvim === "doldu"
+                              ? "bg-[#eda100]/12 text-[#8a6100] font-bold"
+                              : takvim === "baslamadi"
+                                ? "bg-accent-soft text-accent-dark"
+                                : "text-ink/70 bg-line/60"
+                          }`}
+                        >
+                          {takvim === "doldu" ? "süresi doldu" : takvim === "baslamadi" ? "henüz başlamadı" : "şu an takvim dışı"}
+                        </span>
+                      )}
                       {it.kind === "screen" && screens !== null && !screens.some((v) => v.id === it.screenId) && (
                         <span className="text-[10px] font-bold text-brand bg-brand-soft rounded px-1.5 py-0.5">⚠ bağlı ekran bulunamadı</span>
                       )}

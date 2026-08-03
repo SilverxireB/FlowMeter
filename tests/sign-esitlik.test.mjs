@@ -41,6 +41,8 @@ const IZLER = [
   ["yayınlanmamış çipi", "src/app/videowall/page.tsx", "flowsign-selfhost/src/app/screens/page.tsx", "henüz yayınlanmamış"],
   ["yayın öncesi boş alan özeti", "src/app/videowall/[id]/edit/page.tsx", "flowsign-selfhost/src/app/screens/[id]/edit/page.tsx", "alan boş"],
   ["bağlı ekran kayıpsa uyarı", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "bağlı ekran bulunamadı"],
+  ["takvim durumu ayrımı", "src/lib/videowalls.ts", "flowsign-selfhost/src/lib/zones.ts", "itemTakvimDurumu"],
+  ["süresi doldu rozeti", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "süresi doldu"],
 ];
 
 const oku = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);

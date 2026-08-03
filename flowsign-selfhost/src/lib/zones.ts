@@ -25,6 +25,29 @@ export function itemInWindow(item: ZoneItem, now: Date): boolean {
   return hm >= from && hm <= to;
 }
 
+/**
+ * Öğe takvimde değilse NEDEN değil? Üçü de "şu an görünmüyor" ama üçü de
+ * farklı iş demek:
+ *  - `doldu`      → bitiş tarihi geçmiş. ÖLÜ içerik; temizlenmeli.
+ *  - `baslamadi`  → başlangıç tarihi gelmemiş. Bekleyen kampanya; dokunma.
+ *  - `disinda`    → gün/saat penceresi dışında. Yarın sabah yine dönecek.
+ *
+ * Eskiden üçü de aynı "şu an takvim dışı" rozetini alıyordu; yıllar boyu
+ * birikmiş afişleri ayıklarken hangisinin ölü olduğu belli olmuyordu.
+ *
+ * Tarih karşılaştırması `itemInWindow` ile AYNI kuralı kullanır — bitiş günü
+ * DAHİLDİR (toDate === bugün ise içerik hâlâ döner).
+ */
+export type TakvimDurumu = "icinde" | "doldu" | "baslamadi" | "disinda";
+
+export function itemTakvimDurumu(item: ZoneItem, now: Date): TakvimDurumu {
+  if (itemInWindow(item, now)) return "icinde";
+  const ymd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  if (item.toDate && ymd > item.toDate) return "doldu";
+  if (item.fromDate && ymd < item.fromDate) return "baslamadi";
+  return "disinda";
+}
+
 const zid = () => `z-${Math.random().toString(36).slice(2, 8)}`;
 
 /** İnsan-dostu URL parçası: "Giriş Holü" → "giris-holu" (Türkçe karakter map). */
