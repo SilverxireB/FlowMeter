@@ -117,8 +117,25 @@ export const clampScreens = (n: number) => Math.min(MAX_SCREENS_PER_AXIS, Math.m
  * fiziksel cols/rows yalnız editördeki çerçeve (bezel) çizgilerini ve perdedeki
  * "Ekranları tanı" numaralarını çizer.
  */
-export const layoutColsOf = (v: Pick<Videowall, "cols" | "layoutCols">) => clampScreens(v.layoutCols ?? v.cols);
-export const layoutRowsOf = (v: Pick<Videowall, "rows" | "layoutRows">) => clampScreens(v.layoutRows ?? v.rows);
+/**
+ * YERLEŞİM ızgarası üst sınırı — fiziksel ekran sınırından AYRI ve daha yüksek.
+ *
+ * Neden ayrı: bölme ızgarayı KATLIYOR (3 ekranlık duvarda iki bölme 36'ya
+ * çıkarabiliyor), oysa yerleşim ızgarası yalnızca iki tam sayı — tarayıcıyı
+ * yoran şey alan sayısı, ızgaranın büyüklüğü değil.
+ *
+ * Eskiden okuma `clampScreens` (24) ile kırpılıyor, `splitZoneInto` 96'ya kadar
+ * izin veriyor, `saveLayout` da kırpmadan yazıyordu. Sonuç: 24'ü aşan yerleşim
+ * diske DOĞRU yazılıyor ama geri okunurken küçülüyor; `zoneCells` alanları
+ * yanlış ızgarada hücreye çeviriyor ve kullanıcının hiç dokunmadığı alanlar
+ * kendiliğinden kayıyor/boyut değiştiriyordu ("yerleşimler bir değişik").
+ * Üç yer artık TEK sayıya bakıyor.
+ */
+export const MAX_LAYOUT_AXIS = 96;
+export const clampLayout = (n: number) => Math.min(MAX_LAYOUT_AXIS, Math.max(1, Math.round(n) || 1));
+
+export const layoutColsOf = (v: Pick<Videowall, "cols" | "layoutCols">) => clampLayout(v.layoutCols ?? v.cols);
+export const layoutRowsOf = (v: Pick<Videowall, "rows" | "layoutRows">) => clampLayout(v.layoutRows ?? v.rows);
 /** Kullanıcı yerleşimi elle ayarladı mı? (ayarladıysa fiziksel değişikliği yerleşimi bozmaz) */
 export const hasCustomLayout = (v: Pick<Videowall, "layoutCols" | "layoutRows">) =>
   v.layoutCols != null || v.layoutRows != null;
@@ -226,7 +243,7 @@ export interface SplitResult {
 const gcd2 = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd2(b, a % b));
 
 /** Izgarayı en sade hâline indir (tüm sınırların EBOB'u kadar küçült). */
-function normalizeGrid(zones: Zone[], cols: number, rows: number): SplitResult {
+export function normalizeGrid(zones: Zone[], cols: number, rows: number): SplitResult {
   const boxes = zones.map((z) => zoneCells(z, cols, rows));
   let gx = cols;
   let gy = rows;
@@ -271,7 +288,7 @@ export function splitZoneInto(
   if (pc === 1 && pr === 1) return null;
   const nc = cols * pc;
   const nr = rows * pr;
-  if (nc > MAX_SCREENS_PER_AXIS * 4 || nr > MAX_SCREENS_PER_AXIS * 4) return null;
+  if (nc > MAX_LAYOUT_AXIS || nr > MAX_LAYOUT_AXIS) return null;
 
   const scaled = (b: CellBox): CellBox => ({
     c0: b.c0 * pc,
@@ -623,8 +640,9 @@ export async function setScreenGrid(id: string, cols: number, rows: number): Pro
  *  (ikisi ayrı yazılırsa arada perde/kokpit tutarsız kare görebilir). */
 export async function saveLayout(id: string, r: SplitResult): Promise<void> {
   await updateDoc(doc(db(), "videowalls", id), {
-    layoutCols: r.cols,
-    layoutRows: r.rows,
+    // Yazarken de kırp: diskteki sayı ile okunan sayı ASLA ayrışmasın.
+    layoutCols: clampLayout(r.cols),
+    layoutRows: clampLayout(r.rows),
     zones: stripUndefined(r.zones),
     updatedAt: serverTimestamp(),
   });

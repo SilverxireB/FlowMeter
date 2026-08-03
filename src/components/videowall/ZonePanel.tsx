@@ -64,7 +64,7 @@ export default function ZonePanel({
   index: number;
   onZones: (zones: Zone[]) => void;
   /** Bu alanı `parts` parçaya böl (h = yan yana, v = alt alta). */
-  onSplit: (parcaC: number, parcaR: number) => void;
+  onSplit: (parcaC: number, parcaR: number, zonesOverride?: Zone[]) => void;
   onClose: () => void;
 }) {
   const [queue, setQueue] = useState<{ done: number; total: number; pct: number } | null>(null);
@@ -250,12 +250,18 @@ export default function ZonePanel({
     const p: Partial<Zone> = {};
     if (bekGecis) p.transition = bekGecis;
     if (bekZemin) p.bg = bekZemin;
-    if (Object.keys(p).length) patch(p);
     const b = bekBolme;
+    // TEK YAZIM. Eskiden önce patch() sonra onSplit() çağrılıyordu ve İKİSİ DE
+    // aynı render'ın (bayat) vw.zones'unu okuyordu: bölme, hemen öncesinde
+    // yazılan zemin/geçişi komple eziyordu. Kullanıcı "rengi seçtim, böldüm,
+    // renk gitti" diyordu — üstelik panel kapandığı için doğrulayamıyordu bile.
+    // Artık yama ÖNCE bellekte uygulanıp bölmeye o liste veriliyor.
+    const yeni = Object.keys(p).length
+      ? (vw.zones ?? []).map((z) => (z.id === zone.id ? { ...z, ...p } : z))
+      : (vw.zones ?? []);
     ayarlariAt();
-    // Bölme EN SON: ızgarayı ve alan listesini değiştirdiği için önce
-    // yazılacakların yazılması gerekiyor, yoksa patch eski listeye uygulanır.
-    if (b.h || b.v) onSplit(b.h ?? 1, b.v ?? 1);
+    if (b.h || b.v) onSplit(b.h ?? 1, b.v ?? 1, yeni);
+    else if (Object.keys(p).length) onZones(yeni);
   };
 
   const allOutOfWindow = zone.items.length > 0 && zone.items.every((it) => !itemInWindow(it, now));

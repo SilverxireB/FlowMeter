@@ -1,3 +1,4 @@
+import { clampLayout } from "@/lib/zones";
 "use client";
 
 /**
@@ -124,7 +125,8 @@ export async function setScreenGrid(id: string, cols: number, rows: number): Pro
 
 /** Alan bölme sonucu: yerleşim ızgarası + alanlar TEK yazımda gider. */
 export async function saveLayout(id: string, r: SplitResult): Promise<void> {
-  await updateWall(id, { layoutCols: r.cols, layoutRows: r.rows, zones: r.zones });
+  // Yazarken de kırp: diskteki sayı ile okunan sayı ASLA ayrışmasın.
+  await updateWall(id, { layoutCols: clampLayout(r.cols), layoutRows: clampLayout(r.rows), zones: r.zones });
 }
 
 export async function duplicateWall(id: string): Promise<void> {

@@ -66,6 +66,7 @@ export default function ScreenEditPage() {
   const [confirmBox, setConfirmBox] = useState<Confirm | null>(null);
   // Tek adım Geri Al: her yerleşim/içerik yazımından önceki taslak anlık görüntüsü.
   const [undoZones, setUndoZones] = useState<Videowall["zones"] | null>(null);
+  const [undoGrid, setUndoGrid] = useState<{ cols: number; rows: number } | null>(null);
 
   useEffect(() => watchWall(id, setVw), [id]);
   useEffect(() => setOrigin(window.location.origin), []);
@@ -174,13 +175,21 @@ export default function ScreenEditPage() {
   // Taslak yazımları: hata SESSİZ geçmez. Her yazımdan önce anlık görüntü → tek adım Geri Al.
   const saveZones = (zones: Videowall["zones"]) => {
     setUndoZones(vw.zones ?? []);
+    setUndoGrid({ cols: layoutColsOf(vw), rows: layoutRowsOf(vw) });
     setSaveErr(null);
     updateZones(id, zones).catch(() => setSaveErr("Değişiklik kaydedilemedi — bağlantını kontrol edip tekrar dene."));
   };
   const undoLayout = () => {
     if (!undoZones) return;
-    updateZones(id, undoZones).catch(() => setSaveErr("Geri alınamadı — tekrar dene."));
+    // Izgara da geri sarılır. Eskiden yalnız alanlar geri alınıyordu; bölmeyle
+    // birlikte yazılan layoutCols/layoutRows şişmiş kalıyordu, yani "geri
+    // aldım" dedikten sonra bile ızgara büyümüş oluyordu.
+    const geri = undoGrid
+      ? saveLayout(id, { zones: undoZones, cols: undoGrid.cols, rows: undoGrid.rows })
+      : updateZones(id, undoZones);
+    geri.catch(() => setSaveErr("Geri alınamadı — tekrar dene."));
     setUndoZones(null);
+    setUndoGrid(null);
     setSelectedId(null);
   };
 
@@ -326,7 +335,12 @@ export default function ScreenEditPage() {
               </button>
             )}
           </div>
-          <LayoutEditor vw={vw} selectedId={selectedId} onSelect={setSelectedId} onZones={saveZones} onConfirm={setConfirmBox} />
+          <LayoutEditor vw={vw} selectedId={selectedId} onSelect={setSelectedId} onZones={saveZones} onLayout={(r) => {
+              setUndoZones(vw.zones ?? []);
+              setUndoGrid({ cols: layoutColsOf(vw), rows: layoutRowsOf(vw) });
+              setSaveErr(null);
+              saveLayout(id, r).catch(() => setSaveErr("Değişiklik kaydedilemedi — bağlantını kontrol edip tekrar dene."));
+            }} onConfirm={setConfirmBox} />
 
           {/* Oynatma modu — YERLEŞİMİN ALTINDA (kullanıcı isteği): içeriğin nasıl
               aktığı yerleşimle birlikte düşünülür, duvar tanımıyla değil.
@@ -376,14 +390,15 @@ export default function ScreenEditPage() {
             zone={selected}
             index={selectedIndex}
             onZones={saveZones}
-            onSplit={(parcaC, parcaR) => {
+            onSplit={(parcaC, parcaR, zonesOverride) => {
               const doSplit = () => {
-                const next = splitZoneInto(vw.zones ?? [], layoutColsOf(vw), layoutRowsOf(vw), selected.id, parcaC, parcaR);
+                const next = splitZoneInto(zonesOverride ?? vw.zones ?? [], layoutColsOf(vw), layoutRowsOf(vw), selected.id, parcaC, parcaR);
                 if (!next) {
                   setSaveErr("Bu alan daha fazla bölünemez — önce birkaç parçayı birleştir.");
                   return;
                 }
                 setUndoZones(vw.zones ?? []);
+                setUndoGrid({ cols: layoutColsOf(vw), rows: layoutRowsOf(vw) });
                 setSaveErr(null);
                 saveLayout(id, next).catch(() => setSaveErr("Bölme kaydedilemedi — tekrar dene."));
                 setSelectedId(null);

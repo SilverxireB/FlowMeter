@@ -9,7 +9,7 @@
  */
 import { useRef, useState } from "react";
 import { cldFit } from "@/lib/cloudinary";
-import { CellBox, contentZonesIn, layoutColsOf, layoutRowsOf, mergeCells, zoneCells, ZONE_BG_DEFAULT, snapBoxToZones } from "@/lib/videowalls";
+import { CellBox, contentZonesIn, layoutColsOf, layoutRowsOf, mergeCells, normalizeGrid, zoneCells, ZONE_BG_DEFAULT, snapBoxToZones } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 /** Video ilk-kare posteri (kırpmasız). Cloudinary değilse "" → 🎬 yer tutucuya düşer
@@ -74,12 +74,15 @@ export default function LayoutEditor({
   selectedId,
   onSelect,
   onZones,
+  onLayout,
   onConfirm,
 }: {
   vw: Videowall;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onZones: (zones: Zone[]) => void;
+  /** Birleştirme ızgarayı da sadeleştirir — ızgara + alanlar TEK yazımda. */
+  onLayout?: (r: { zones: Zone[]; cols: number; rows: number }) => void;
   /** Markalı onay penceresi (edit sayfası sağlar) — native confirm yerine. */
   onConfirm: (c: { title: string; message: string; confirmLabel?: string; danger?: boolean; run: () => void }) => void;
 }) {
@@ -125,7 +128,15 @@ export default function LayoutEditor({
     // kesisme kalmayinca birlestirme artik hicbir alani parcalamaz.
     const box = snapBoxToZones(vw.zones ?? [], cols, rows, boxOf(d.anchor, d.hover));
     const doMerge = () => {
-      onZones(mergeCells(vw.zones ?? [], cols, rows, box));
+      // Birleştirmeden SONRA ızgara sadeleştirilir. Eskiden yalnız alanlar
+      // yazılıyor, layoutCols/layoutRows olduğu gibi kalıyordu: bölme ızgarayı
+      // katlıyor ama hiçbir şey küçültmüyordu (tek yönlü mandal). Bu yüzden
+      // "önce birkaç parçayı birleştir" tavsiyesi de işe yaramıyordu — kullanıcı
+      // ne kadar birleştirse aynı duvara tosluyordu.
+      const birlesmis = mergeCells(vw.zones ?? [], cols, rows, box);
+      const sade = normalizeGrid(birlesmis, cols, rows);
+      if (onLayout && sade) onLayout(sade);
+      else onZones(birlesmis);
       onSelect(null);
     };
     // İçerikli alanlar etkileniyorsa ONAY sor — yanlışlıkla birleştirme faciası yok.
@@ -170,9 +181,12 @@ export default function LayoutEditor({
             <div
               key={z.id}
               className={`absolute overflow-hidden grid place-items-center text-center px-1 ${
-                sel ? "ring-2 ring-[#6366f1] z-10" : "border border-[#6366f1]/40"
-              } ${z.items.length ? "" : "bg-[#6366f1]/5"}`}
-              style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%` }}
+                sel ? "ring-2 ring-accent z-10" : "border border-accent/40"
+              } ${z.items.length ? "" : "bg-accent/5"}`}
+              /* Alan zemini önizlemede de görünür: kullanıcı renk seçiyor ama
+                 editörde hiçbir şey değişmiyordu (perde ve liste minyatürü
+                 z.bg'yi çiziyor, yalnız burası çizmiyordu). */
+              style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%`, background: z.bg ?? undefined }}
             >
               <ZonePreview item={z.items[0]} />
               <span className="relative z-[1] text-white text-[11px] font-semibold leading-tight pointer-events-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
@@ -194,7 +208,7 @@ export default function LayoutEditor({
         {/* Sürükleme seçim kutusu */}
         {selBox && (
           <div
-            className="absolute z-[25] bg-[#6366f1]/20 border-2 border-[#6366f1] pointer-events-none"
+            className="absolute z-[25] bg-accent/20 border-2 border-accent pointer-events-none"
             style={{
               left: `${(selBox.c0 / cols) * 100}%`,
               top: `${(selBox.r0 / rows) * 100}%`,
