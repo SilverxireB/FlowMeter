@@ -32,7 +32,7 @@ export default function RemotePage() {
   const id = pid ?? "";
 
   const { presentation } = usePresentation(id || null);
-  const { slides } = useSlides(id || null);
+  const { slides, loading: slidesLoading } = useSlides(id || null);
   const questions = useQuestions(id || null);
   const [qaOpen, setQaOpen] = useState(false);
 
@@ -40,7 +40,7 @@ export default function RemotePage() {
     if (!authLoading && !user) router.replace("/login");
   }, [authLoading, user, router]);
 
-  if (authLoading || pid === undefined || (pid && !presentation)) {
+  if (authLoading || pid === undefined || (pid && !presentation) || (pid && slidesLoading)) {
     return <main className="min-h-screen grid place-items-center bg-[#101014] text-white/60 animate-pulse">Yükleniyor…</main>;
   }
   if (pid === null || !presentation) {
@@ -51,7 +51,9 @@ export default function RemotePage() {
   }
 
   const idx = presentation.currentSlideIndex ?? -1;
-  const cur = idx >= 0 ? slides[Math.min(idx, slides.length - 1)] : undefined;
+  const cur = idx >= 0 && slides.length > 0 ? slides[Math.min(idx, slides.length - 1)] : undefined;
+  // Slayt yoksa (boş sunum) kumanda yine çalışır — QR ekranı gösterilir.
+  const qrEkrani = !cur;
 
   /** Sıradaki/önceki GÖSTERİLEBİLİR slayt (atlananlar geçilir); -1 = QR ekranı. */
   const step = (dir: 1 | -1): number | null => {
@@ -83,16 +85,16 @@ export default function RemotePage() {
         {/* Şu anki slayt */}
         <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
           <p className="text-[11px] uppercase tracking-[0.14em] text-white/40 font-bold mb-1">
-            {idx < 0 ? "Katılım (QR) ekranı" : `Slayt ${idx + 1} / ${slides.length} · ${SLIDE_TYPE_LABELS[cur!.type] ?? cur!.type}`}
+            {qrEkrani ? "Katılım (QR) ekranı" : `Slayt ${idx + 1} / ${slides.length} · ${SLIDE_TYPE_LABELS[cur.type] ?? cur.type}`}
           </p>
-          <p className="font-display text-lg font-semibold leading-snug">{idx < 0 ? `Kod: ${presentation.joinCode}` : cur!.question}</p>
+          <p className="font-display text-lg font-semibold leading-snug">{qrEkrani ? `Kod: ${presentation.joinCode}` : cur.question}</p>
           {cur?.settings?.notes && (
             <div className="mt-3 rounded-xl bg-amber-400/10 border border-amber-400/25 px-3 py-2.5">
               <p className="text-amber-200/90 text-sm whitespace-pre-wrap">🗒 {cur.settings.notes}</p>
             </div>
           )}
           {isQuizCur && !quizStarted && (
-            <button onClick={() => startQuiz(id, cur!.id)} className="mt-3 w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white py-3 font-bold">
+            <button onClick={() => cur && startQuiz(id, cur.id)} className="mt-3 w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white py-3 font-bold">
               ▶ Yarışmayı başlat
             </button>
           )}

@@ -159,7 +159,7 @@ export default function EditPage() {
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-full mt-2 z-40 card !rounded-2xl p-2 w-56 flex flex-col animate-pop">
+              <div className="absolute right-0 top-full mt-2 z-40 card !rounded-2xl p-2 w-56 flex flex-col animate-pop max-h-[70vh] overflow-y-auto overscroll-contain">
                 <Link href={`/present/${id}`} className="rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper">
                   Önizle / Sun
                 </Link>
