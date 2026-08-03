@@ -16,6 +16,7 @@ import { useKantin } from "@/lib/kantin/oturum";
 import { Siparis } from "@/lib/kantin/types";
 import { calDing, ekraniUyanikTut } from "@/lib/kantin/bildirim";
 import ScreenClose from "@/components/ScreenClose";
+import { YetkiKapisiKoyu, kapiDurumu } from "@/components/kantin/YetkiKapisi";
 
 export default function KantinPanoPage() {
   // useSearchParams Suspense sınırı ister (Next 14 önizleme derlemesi):
@@ -28,7 +29,7 @@ export default function KantinPanoPage() {
 }
 
 function Pano() {
-  const { user, hazir, seciliId, kantinler } = useKantin();
+  const { user, rol, rolHazir, hazir, seciliId, kantinler } = useKantin();
   const router = useRouter();
   // TV'de tek URL sabitlenebilsin: ?kantin=<id> seçimi ezer. Yoksa panoda
   // yanlış kantinin siparişleri görünebilirdi ve düzeltmenin yolu yoktu
@@ -37,6 +38,7 @@ function Pano() {
   const kantinId = sorgu.get("kantin") || seciliId;
   const seciliKantin = kantinler.find((k) => k.id === kantinId) ?? null;
   const [liste, setListe] = useState<Siparis[] | null>(null);
+  const [hataVar, setHataVar] = useState(false);
   const [saat, setSaat] = useState("");
   const oncekiHazirRef = useRef<Set<string>>(new Set());
   const ilkRef = useRef(true);
@@ -49,7 +51,9 @@ function Pano() {
     if (!kantinId) return;
     setListe(null);
     ilkRef.current = true;
-    return izleBugunSiparisleri(kantinId, (s) => {
+    return izleBugunSiparisleri(
+      kantinId,
+      (s) => {
       const hazirlar = new Set(s.filter((x) => x.durum === "hazir").map((x) => x.id));
       // İlk yüklemede ton ÇALMAZ: ekran açıldığında birikmiş hazırlar için
       // arka arkaya ötmek gürültüden başka bir şey değil.
@@ -59,10 +63,14 @@ function Pano() {
           break;
         }
       }
-      ilkRef.current = false;
-      oncekiHazirRef.current = hazirlar;
-      setListe(s);
-    });
+        ilkRef.current = false;
+        oncekiHazirRef.current = hazirlar;
+        setListe(s);
+      },
+      // Hata YUTULMAZ: eskiden okuma reddedilince ekran sonsuza kadar
+      // "Bağlanıyor…" yazıyordu — TV'de kimse sebebini göremiyordu.
+      () => setHataVar(true)
+    );
   }, [kantinId]);
 
   useEffect(() => {
@@ -85,6 +93,19 @@ function Pano() {
     () => (liste ?? []).filter((s) => s.durum === "hazirlaniyor" || s.durum === "yeni"),
     [liste]
   );
+
+  // Pano bir GÖREVLİ ekranı: personel hesabıyla açılırsa kurallar okumayı
+  // reddediyor. Eskiden koruma hiç yoktu — ekran siyah kalıp sonsuza kadar
+  // "Bağlanıyor…" yazıyordu. (Kapı TÜM kancalardan SONRA: kanca sırası
+  // koşula bağlanamaz.)
+  const kapi = kapiDurumu({
+    hazir,
+    user,
+    rolHazir,
+    yetkili: rol !== "personel" && !hataVar,
+    seciliId: kantinId,
+  });
+  if (kapi !== "acik") return <YetkiKapisiKoyu durum={kapi} />;
 
   return (
     <main className="fixed inset-0 bg-[#0b1020] text-white [color-scheme:dark] overflow-hidden flex flex-col">

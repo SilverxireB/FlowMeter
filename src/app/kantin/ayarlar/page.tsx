@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { izleMenu, kantinAc, kantinGuncelle, kantinHata, kantinSil, urunEkle } from "@/lib/kantin/api";
 import { useKantin } from "@/lib/kantin/oturum";
+import { YetkiKapisi, kapiDurumu } from "@/components/kantin/YetkiKapisi";
 import { Kantin, MenuUrun } from "@/lib/kantin/types";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { Icon } from "@/components/Icon";
@@ -16,7 +17,7 @@ import { useToast } from "@/components/Toast";
 import UrunSatiri from "@/components/kantin/UrunSatiri";
 
 export default function KantinAyarlarPage() {
-  const { user, rol, hazir, seciliId, seciliKantin } = useKantin();
+  const { user, rol, rolHazir, hazir, seciliId, seciliKantin } = useKantin();
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
   const { show, toast } = useToast();
@@ -33,15 +34,8 @@ export default function KantinAyarlarPage() {
     return izleMenu(seciliId, setMenu);
   }, [seciliId]);
 
-  if (!hazir || !user) return <Bekle />;
-  if (rol === "personel") {
-    return (
-      <main className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <p className="text-xl font-bold mb-1">Yetki yok</p>
-        <p className="text-muted">Ayarlar kantin görevlileri içindir.</p>
-      </main>
-    );
-  }
+  const kapi = kapiDurumu({ hazir, user, rolHazir, yetkili: rol !== "personel", seciliId, kantinGerekli: false });
+  if (kapi !== "acik") return <YetkiKapisi durum={kapi} />;
 
   // CLAUDE.md kuralı: kayıt açan aksiyonda kilit REF ile — iki hızlı dokunuş
   // aynı ürünü/kantini iki kez açıyordu.
@@ -87,7 +81,20 @@ export default function KantinAyarlarPage() {
     <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
       {dialog}
       {toast}
-      <h1 className="font-display text-2xl font-semibold mb-4">Ayarlar</h1>
+      <h1 className="font-display text-2xl font-semibold">Ayarlar</h1>
+      {/* Hangi kantini düzenlediğin başlıkta yazsın: kantin tek taneyse üstteki
+          seçici hiç çizilmiyor ve bu bilgi ekranda hiçbir yerde geçmiyordu —
+          "Kantini sil" de bu gizli seçime bağlı. */}
+      <p className="text-muted text-sm mb-4">{seciliKantin ? seciliKantin.ad : "Henüz kantin yok"}</p>
+
+      {/* Kantin yokken menü kartı ÇİZİLMEZ: "Ekle" düğmesi boş kantin kimliğine
+          yazmaya çalışıp Firestore'un ham yol hatasını ekrana basıyordu. */}
+      {!seciliKantin && (
+        <div className="card p-5 mb-5">
+          <p className="font-semibold">Önce bir kantin aç</p>
+          <p className="text-muted text-sm mt-0.5">Menü, tezgâh ve raporlar kantin açılınca çalışır.</p>
+        </div>
+      )}
 
       {seciliKantin && (
         <div className="card p-5">
@@ -130,6 +137,7 @@ export default function KantinAyarlarPage() {
         </div>
       )}
 
+      {seciliKantin && (
       <div className="card p-5 mt-5">
         <p className="eyebrow mb-3">Menü</p>
         <div className="flex gap-2 mb-4">
@@ -154,8 +162,9 @@ export default function KantinAyarlarPage() {
             ))}
           </div>
         )}
-        <p className="text-muted text-xs mt-3">Görsele dokunup fotoğraf yükleyebilirsin. Fiyat yalnız bilgidir — ödeme tezgâhta; stok boşsa sınırsız.</p>
+        <p className="text-muted text-xs mt-3">Fiyat yalnız bilgidir — ödeme tezgâhta.</p>
       </div>
+      )}
 
       {rol === "admin" && (
         <div className="card p-5 mt-5">
@@ -163,7 +172,7 @@ export default function KantinAyarlarPage() {
           <div className="flex gap-2 flex-wrap">
             <input value={yeniKantin} onChange={(e) => setYeniKantin(e.target.value)} placeholder="Kantin adı" className="input-base !py-2 text-sm flex-1 min-w-[8rem]" />
             <input value={yeniYer} onChange={(e) => setYeniYer(e.target.value)} placeholder="Yeri" className="input-base !py-2 text-sm flex-1 min-w-[8rem]" />
-            <button onClick={() => void kantinAcGonder()} className="btn-primary !py-2 !px-4 text-sm shrink-0">
+            <button onClick={() => void kantinAcGonder()} disabled={!yeniKantin.trim()} className="btn-primary !py-2 !px-4 text-sm shrink-0">
               Kantin aç
             </button>
           </div>

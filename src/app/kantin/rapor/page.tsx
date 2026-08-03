@@ -11,8 +11,9 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { gunKey, siparisAraligi, yasakla } from "@/lib/kantin/api";
+import { gunKey, kantinHata, siparisAraligi, yasakla } from "@/lib/kantin/api";
 import { useKantin } from "@/lib/kantin/oturum";
+import { YetkiKapisi, kapiDurumu } from "@/components/kantin/YetkiKapisi";
 import { Siparis } from "@/lib/kantin/types";
 import { Icon } from "@/components/Icon";
 import { SkelBox } from "@/components/Skeleton";
@@ -33,28 +34,37 @@ function gunOnce(n: number): string {
 }
 
 export default function KantinRaporPage() {
-  const { user, rol, hazir, seciliId, seciliKantin } = useKantin();
+  const { user, rol, rolHazir, hazir, seciliId, seciliKantin } = useKantin();
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
   const { show, toast } = useToast();
   const [aralik, setAralik] = useState<(typeof ARALIKLAR)[number]["id"]>("bugun");
   const [veri, setVeri] = useState<Siparis[] | null>(null);
+  // Okuma REDDEDİLDİĞİNDE boş listeye düşmek ekrana "bu aralıkta sipariş yok"
+  // dedirtiyordu — yani yanlış kantine bakan görevliye "hiç sipariş gelmemiş"
+  // diye yalan söylüyordu. Hata ayrı bir durum.
+  const [hataVar, setHataVar] = useState(false);
 
   useEffect(() => {
     if (hazir && !user) router.replace("/kantin/giris");
   }, [hazir, user, router]);
 
   const yukle = useCallback(async () => {
-    if (!seciliId) return;
+    // Rol kapısının ARKASINDA: personel bu sayfaya URL ile girince hem
+    // "yetkin yok" hem de reddedilen okumadan gelen kırmızı bildirim çıkıyordu
+    // — iki farklı hikâye, ikisi de yarım.
+    if (!seciliId || rol === "personel") return;
     setVeri(null);
+    setHataVar(false);
     const g = ARALIKLAR.find((a) => a.id === aralik)!.gun;
     try {
       setVeri(await siparisAraligi(seciliId, gunOnce(g - 1), gunKey()));
     } catch (e) {
-      show(e instanceof Error ? e.message : "Rapor okunamadı.", "error");
+      show(kantinHata(e), "error");
+      setHataVar(true);
       setVeri([]);
     }
-  }, [seciliId, aralik, show]);
+  }, [seciliId, aralik, rol, show]);
 
   useEffect(() => {
     void yukle();
@@ -101,15 +111,8 @@ export default function KantinRaporPage() {
     return [...m.values()].sort((a, b) => b.adet - a.adet);
   }, [veri]);
 
-  if (!hazir || !user) return <Bekle />;
-  if (rol === "personel") {
-    return (
-      <main className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <p className="text-xl font-bold mb-1">Yetki yok</p>
-        <p className="text-muted">Raporlar kantin görevlileri içindir.</p>
-      </main>
-    );
-  }
+  const kapi = kapiDurumu({ hazir, user, rolHazir, yetkili: rol !== "personel", seciliId, kantinGerekli: true });
+  if (kapi !== "acik") return <YetkiKapisi durum={kapi} />;
 
   const enCok = Math.max(1, ...urunler.map((u) => u[1]));
   const enYogunSaat = Math.max(1, ...saatler);
@@ -218,7 +221,7 @@ export default function KantinRaporPage() {
                             () =>
                               void yasakla(k.uid, 3)
                                 .then(() => show("Yasak kondu"))
-                                .catch((e) => show(e.message, "error"))
+                                .catch((e) => show(kantinHata(e), "error"))
                           )
                         }
                         className="btn-ghost !py-1 !px-2.5 text-[11px] !text-brand !border-brand/40 shrink-0"

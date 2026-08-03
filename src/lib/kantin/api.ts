@@ -24,6 +24,7 @@ import {
   deleteDoc,
   deleteField,
   doc,
+  documentId,
   getDoc,
   getDocs,
   increment,
@@ -66,6 +67,15 @@ export const KANTIN_ADMIN_EMAIL = "doganbaharozu@gmail.com";
 
 /** Kişi başına GÜNLÜK sipariş tavanı — kurallarda da aynı sayı (belge kimliği). */
 export const GUNLUK_TAVAN = 5;
+
+/**
+ * Tek siparişin sınırları — kurallardaki sayıların AYNISI
+ * (`satirlar.size() <= 10`, `toplamAdet <= 20`). Burada durmalarının sebebi:
+ * arayüz bunları göstermezse sunucu sessizce reddediyor ve kullanıcı yanlış
+ * sebebi okuyor.
+ */
+export const SIPARIS_MAKS_SATIR = 10;
+export const SIPARIS_MAKS_ADET = 20;
 
 export function gunKey(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -426,7 +436,26 @@ export function izleSiparislerim(
 ): () => void {
   const basKey = gunOnce(6);
   return onSnapshot(
-    query(collection(kDb(), "kantin", kantinId, "siparisler"), where("uid", "==", uid), limit(60)),
+    // BELGE KİMLİĞİ ARALIĞI ile daralt. Eskiden `where(uid ==)` + limit(60)
+    // vardı ve Firestore belge kimliğine göre ARTAN keser; kimlik
+    // `{uid}_{gun}_{n}` olduğu için bu "en eski gün önce" demek. Çok sipariş
+    // veren biri ~12 günü aşınca pencereye BUGÜN hiç girmiyordu: geçmiş yanlış
+    // görünüyor, günlük sıra 0 sanılıp var olan belgeye yazılmaya çalışılıyor,
+    // sipariş sessizce reddediliyordu.
+    //
+    // Neden `where('gun','>=')` DEĞİL: `uid` eşitliği + `gun` aralığı iki ayrı
+    // alan demek, Firestore bileşik index ister — bu üründe index dosyası yok
+    // ve eksik index sorguyu tümden düşürür. Kimlik aralığı tek alan (__name__)
+    // üstünde çalışır, index istemez ve uid önekini de zaten kapsar.
+    query(
+      collection(kDb(), "kantin", kantinId, "siparisler"),
+      where(documentId(), ">=", `${uid}_${basKey}`),
+      // Üst sınırdaki \uf8ff şart: düz `${gun}_` bugünün `${gun}_1` belgesinden
+      // KISA olduğu için sözlük sırasında ondan küçük kalır ve BUGÜNÜ dışarıda
+      // bırakırdı — düzeltmeye çalıştığımız hatanın aynısını üretirdi.
+      where(documentId(), "<=", `${uid}_${gunKey()}_`),
+      limit(60)
+    ),
     (snap) => {
       const liste = snap.docs
         .map((d) => ({ id: d.id, ...d.data() }) as Siparis)
@@ -552,7 +581,10 @@ export function satilanAdet(siparisler: Siparis[], urunId: string): number {
 
 /** Kantin şu an sipariş alıyor mu? (elle kapatma + çalışma saatleri birlikte) */
 export function siparisAcikMi(k: Kantin | null | undefined, simdi = new Date()): boolean {
-  if (!k || k.acik === false) return false;
+  // `acik` alanı YOKSA kapalı sayılır — kurallar da öyle diyor
+  // (`get('acik', false) == true`). Tersi olduğunda arayüz "açık" gösterip
+  // her sipariş denemesi sunucuda reddediliyordu.
+  if (!k || k.acik !== true) return false;
   const pencere = (k.saatler ?? []).filter((s) => s.bas && s.bit);
   if (!pencere.length) return true;
   const hm = `${String(simdi.getHours()).padStart(2, "0")}:${String(simdi.getMinutes()).padStart(2, "0")}`;

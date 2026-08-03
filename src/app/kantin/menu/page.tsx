@@ -30,6 +30,9 @@ import {
   siparisVer,
   sonrakiAcilis,
   yasakli,
+  GUNLUK_TAVAN,
+  SIPARIS_MAKS_ADET,
+  SIPARIS_MAKS_SATIR,
 } from "@/lib/kantin/api";
 import { useKantin } from "@/lib/kantin/oturum";
 import { GunOzet, MenuUrun, Siparis, SiparisSatir } from "@/lib/kantin/types";
@@ -40,7 +43,10 @@ import { useToast } from "@/components/Toast";
 import BosDurum from "@/components/kantin/BosDurum";
 
 export default function KantinMenuPage() {
-  const { user, kisi, hazir, seciliKantin, seciliId, kantinler, acikSiparisler, siparislerim } = useKantin();
+  const { user, kisi, rol, hazir, seciliKantin, seciliId, kantinler, acikSiparisler, siparislerim } = useKantin();
+  // Alt gezinme çubuğu YALNIZ personelde çizilir (bkz. Kabuk) — sepet çubuğunun
+  // ne kadar yukarı kalkacağı buna bağlı.
+  const altCubukVar = rol === "personel";
   const router = useRouter();
   const { show, toast } = useToast();
   const [menu, setMenu] = useState<MenuUrun[] | null>(null);
@@ -105,17 +111,31 @@ export default function KantinMenuPage() {
   const limit = seciliKantin?.kisiBasiLimit ?? 1;
   const limitDoldu = acikSiparisler.length >= limit;
   const acikMi = siparisAcikMi(seciliKantin);
-  const engel = yasak || limitDoldu || !acikMi;
+
+  // Bugün kaçıncı sipariş — belge kimliğindeki sıra (sunucu tavanı 5).
+  const bugunSayim = siparislerim.filter((s) => s.gun === gunKey()).length;
+
+  // Sunucu tavanları arayüzde de GÖRÜNÜR olmalı. Eskiden yalnız kurallar
+  // biliyordu: ekibe çay ısmarlayan kişi 22 adet seçiyor, "Gönder" etkin
+  // duruyor, dokununca "kantin kapanmış ya da hakkın dolmuş olabilir" diyordu —
+  // kantin açıktı, hakkı da dolmamıştı. Yanlış sebep, çaresiz kullanıcı.
+  const gunlukDoldu = bugunSayim >= GUNLUK_TAVAN;
+  const cokAdet = toplamAdet > SIPARIS_MAKS_ADET;
+  const cokCesit = satirlar.length > SIPARIS_MAKS_SATIR;
+  const engel = yasak || limitDoldu || !acikMi || gunlukDoldu || cokAdet || cokCesit;
   const engelSebep = yasak
     ? "Siparişin geçici olarak kapalı."
     : limitDoldu
       ? "Zaten açık bir siparişin var."
       : !acikMi
         ? "Kantin şu an sipariş almıyor."
-        : "";
-
-  // Bugün kaçıncı sipariş — belge kimliğindeki sıra (sunucu tavanı 5).
-  const bugunSayim = siparislerim.filter((s) => s.gun === gunKey()).length;
+        : gunlukDoldu
+          ? `Bugünlük sipariş hakkın doldu (${GUNLUK_TAVAN}).`
+          : cokAdet
+            ? `Tek siparişte en fazla ${SIPARIS_MAKS_ADET} adet.`
+            : cokCesit
+              ? `Tek siparişte en fazla ${SIPARIS_MAKS_SATIR} farklı ürün.`
+              : "";
 
   const ekle = (u: MenuUrun, delta: number) =>
     setSepet((s) => ({ ...s, [u.id]: Math.max(0, Math.min(10, (s[u.id] ?? 0) + delta)) }));
@@ -180,19 +200,21 @@ export default function KantinMenuPage() {
     <Sayfa>
       {toast}
 
-      <div className="flex items-start justify-between gap-3 flex-wrap">
+      {/* Ekrandan istenen TEK sayı bekleme süresi — eskiden 12px bir rozetti,
+          kantin adı ise 24px başlıktı. Molası 10 dakika olan kişi için doğru
+          hiyerarşi bunun tersi: kantin adı üst bilgi, süre başlık. */}
+      <div className="flex items-end justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <h1 className="font-display text-2xl font-semibold truncate">{seciliKantin.ad}</h1>
-          {seciliKantin.yer && <p className="text-muted text-sm">{seciliKantin.yer}</p>}
+          <p className="text-muted text-sm truncate">
+            {seciliKantin.ad}
+            {seciliKantin.yer && <span className="text-muted/70"> · {seciliKantin.yer}</span>}
+          </p>
+          <h1 className="font-display text-3xl font-semibold leading-tight flex items-center gap-2">
+            <Icon name={!acikMi ? "lock" : "timer"} size={22} className={!acikMi ? "text-brand" : "text-[#0f7a55]"} />
+            {!acikMi ? (acilis ? `${acilis}'te açılıyor` : "Şu an kapalı") : `~${tahmin} dk`}
+          </h1>
+          {acikMi && <p className="text-muted text-sm">şu anki tahmini bekleme</p>}
         </div>
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
-            !acikMi ? "bg-brand-soft text-brand" : "bg-[#1baf7a]/12 text-[#0f7a55]"
-          }`}
-        >
-          <Icon name={!acikMi ? "lock" : "timer"} size={13} />
-          {!acikMi ? (acilis ? `${acilis}'te açılıyor` : "Sipariş kapalı") : `~${tahmin} dk`}
-        </span>
       </div>
 
       {yasak && (
@@ -267,7 +289,7 @@ export default function KantinMenuPage() {
         />
       )}
 
-      <div className="grid gap-3 mt-4 sm:grid-cols-2" style={{ paddingBottom: toplamAdet ? 104 : 0 }}>
+      <div className="grid gap-3 mt-4 sm:grid-cols-2" style={{ paddingBottom: toplamAdet ? "5.5rem" : 0 }}>
         {menu === null && [0, 1, 2, 3].map((i) => <SkelBox key={i} className="h-24" />)}
         {menu !== null && gosterilen.length === 0 && (
           <div className="sm:col-span-2">
@@ -336,9 +358,14 @@ export default function KantinMenuPage() {
 
       {toplamAdet > 0 && (
         <>
+          {/* Sepet çubuğu alt gezinme çubuğunun ÜSTÜNDE durur. Eskiden ikisi de
+              `bottom-0` idi: sepete tek ürün eklendiği anda Menü/Siparişim
+              gezinmesi tamamen örtülüyordu — siparişi göndermeden başka sekmeye
+              geçmenin yolu kalmıyordu. (Alt çubuk yalnız personelde çizilir,
+              yönetici/görevlide üst şerit var; o yüzden ofset role bağlı.) */}
           <div
-            className="fixed inset-x-0 bottom-0 z-40 p-3 pointer-events-none"
-            style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+            className="fixed inset-x-0 z-40 p-3 pointer-events-none"
+            style={{ bottom: altCubukVar ? "calc(3.5rem + env(safe-area-inset-bottom))" : 0, paddingBottom: altCubukVar ? "0.75rem" : "calc(0.75rem + env(safe-area-inset-bottom))" }}
           >
             <div className="max-w-3xl mx-auto pointer-events-auto flex gap-2">
               <button

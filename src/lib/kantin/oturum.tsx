@@ -31,6 +31,14 @@ interface Deger {
   kisiYok: boolean;
   /** Etkin rol. Bootstrap yönetici e-postası kayıt beklemez (kurallar da öyle). */
   rol: KantinRol;
+  /**
+   * Rol GERÇEKTEN okundu mu? Kişi kaydı gelene kadar `rol` "personel"e düşüyor;
+   * yetki ekranları bunu beklemezse kantinci her sayfa yenilemesinde önce
+   * "Yetki yok" görüyordu (kalıcı önbellek bilerek kapalı, yani her açılış bir
+   * ağ gidiş-dönüşü). Yanlış "yetkin yok" mesajı, doğru olanın da inandırıcı-
+   * lığını bitiriyor.
+   */
+  rolHazir: boolean;
   kantinler: Kantin[];
   hazir: boolean;
   seciliId: string;
@@ -106,9 +114,15 @@ export function KantinOturum({ children }: { children: React.ReactNode }) {
 
   // Seçili kantin: kantinci ise KENDİ kantini (seçim hakkı yok), diğerleri
   // hatırlanan/ilk kantin.
+  //
+  // Kantinci'ye kantin ATANMAMIŞSA listenin ilkine düşmek en kötü hataydı:
+  // kişinin yetkisi olmayan bir kantine kilitleniyor, kurallar her okumayı
+  // reddediyor, ekranlar sonsuza kadar iskelet gösteriyordu — üstelik kantinci'de
+  // seçici gizli olduğu için düzeltmenin yolu da yoktu. Boş kalsın: ekranlar
+  // "kantin atanmamış" diyebilsin.
   useEffect(() => {
-    if (kisi?.rol === "kantinci" && kisi.kantinId) {
-      setSeciliId(kisi.kantinId);
+    if (kisi?.rol === "kantinci") {
+      setSeciliId(kisi.kantinId ?? "");
       return;
     }
     setSeciliId((s) => {
@@ -181,6 +195,8 @@ export function KantinOturum({ children }: { children: React.ReactNode }) {
       kisi,
       kisiYok: !!user && kisiHazir && !kisi,
       rol: user?.email === KANTIN_ADMIN_EMAIL ? "admin" : (kisi?.rol ?? "personel"),
+      // Bootstrap yönetici kayıt beklemez — rolü e-postasından belli.
+      rolHazir: user?.email === KANTIN_ADMIN_EMAIL || kisiHazir,
       kantinler,
       hazir,
       seciliId,

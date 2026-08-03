@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { izleKisiler, kantinHata, rolAta, yasakla, yasakli } from "@/lib/kantin/api";
 import { useKantin } from "@/lib/kantin/oturum";
+import { YetkiKapisi, kapiDurumu } from "@/components/kantin/YetkiKapisi";
 import { KantinKisi, KantinRol } from "@/lib/kantin/types";
 import { useToast } from "@/components/Toast";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -22,7 +23,7 @@ const ROL_ETIKET: Record<KantinRol, string> = {
 };
 
 export default function KantinKisilerPage() {
-  const { user, rol, hazir, kantinler } = useKantin();
+  const { user, rol, rolHazir, hazir, kantinler } = useKantin();
   const router = useRouter();
   const [liste, setListe] = useState<KantinKisi[]>([]);
   const [ara, setAra] = useState("");
@@ -37,15 +38,8 @@ export default function KantinKisilerPage() {
     return izleKisiler(setListe, (e) => show(kantinHata(e), "error"));
   }, [rol, show]);
 
-  if (!hazir || !user) return <Bekle />;
-  if (rol !== "admin") {
-    return (
-      <main className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <p className="text-xl font-bold mb-1">Yetki yok</p>
-        <p className="text-muted">Bu sayfa yalnız yöneticiye açık.</p>
-      </main>
-    );
-  }
+  const kapi = kapiDurumu({ hazir, user, rolHazir, yetkili: rol === "admin", kantinGerekli: false });
+  if (kapi !== "acik") return <YetkiKapisi durum={kapi} />;
 
   const q = ara.trim().toLowerCase();
   const suzulmus = q

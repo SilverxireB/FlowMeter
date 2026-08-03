@@ -28,6 +28,7 @@ import {
   urunTukendi,
 } from "@/lib/kantin/api";
 import { useKantin } from "@/lib/kantin/oturum";
+import { YetkiKapisi, kapiDurumu } from "@/components/kantin/YetkiKapisi";
 import { MenuUrun, Siparis, SiparisDurum } from "@/lib/kantin/types";
 import { calDing, ekraniUyanikTut } from "@/lib/kantin/bildirim";
 import { Icon } from "@/components/Icon";
@@ -38,7 +39,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 const SES_ANAHTAR = "kantin.tezgahSes";
 
 export default function TezgahPage() {
-  const { user, rol, hazir, seciliId, seciliKantin } = useKantin();
+  const { user, rol, rolHazir, hazir, seciliId, seciliKantin } = useKantin();
   const router = useRouter();
   const { show, toast } = useToast();
   const { confirm, dialog } = useConfirm();
@@ -68,7 +69,9 @@ export default function TezgahPage() {
   }, []);
 
   useEffect(() => {
-    if (!seciliId) return;
+    // Rol kapısının ARKASINDA (bkz. rapor): yetkisiz kişiye hem "yetkin yok"
+    // hem reddedilen okumanın kırmızı bildirimi çıkıyordu.
+    if (!seciliId || rol === "personel") return;
     setListe(null);
     ilkRef.current = true;
     return izleBugunSiparisleri(
@@ -90,7 +93,7 @@ export default function TezgahPage() {
       },
       (e) => show(kantinHata(e), "error")
     );
-  }, [seciliId, show]);
+  }, [seciliId, rol, show]);
 
   useEffect(() => {
     if (!seciliId) return;
@@ -153,15 +156,8 @@ export default function TezgahPage() {
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [yeni, hazirlaniyor]);
 
-  if (!hazir || !user) return <Bekle />;
-  if (rol === "personel") {
-    return (
-      <main className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <p className="text-xl font-bold mb-1">Yetki yok</p>
-        <p className="text-muted">Bu ekran kantin görevlileri içindir.</p>
-      </main>
-    );
-  }
+  const kapi = kapiDurumu({ hazir, user, rolHazir, yetkili: rol !== "personel", seciliId, kantinGerekli: true });
+  if (kapi !== "acik") return <YetkiKapisi durum={kapi} />;
 
   const acikMi = siparisAcikMi(seciliKantin);
 
