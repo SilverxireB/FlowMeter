@@ -28,21 +28,36 @@ function ClockView({ item }: { item: ZoneItem }) {
   }, []);
   return (
     <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-4 text-center" style={{ background: item.bg ?? "#0d102f", color: item.color ?? "#fff" }}>
-      <div className="font-display font-bold tabular-nums leading-none" style={{ fontSize: "clamp(28px, 9cqw, 200px)" }}>
+      <div className="font-display font-bold tabular-nums leading-none" style={{ fontSize: "clamp(28px, min(18cqw, 40cqh), 240px)" }}>
         {t.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
       </div>
-      <div className="font-display opacity-80" style={{ fontSize: "clamp(12px, 2.4cqw, 44px)" }}>
+      <div className="font-display opacity-80" style={{ fontSize: "clamp(12px, min(5cqw, 11cqh), 48px)" }}>
         {t.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" })}
       </div>
     </div>
   );
 }
 
+/**
+ * Metin ne kadar uzunsa punto o kadar küçülür.
+ *
+ * Yalnız alan ölçüsüne bakmak yetmiyor: "HoşGeldiniz" sığan puntoda
+ * "HoşGeldiniz Değerli Misafirlerimiz" üç satıra sarıp alanın DİKEYİNİ taşıyor
+ * ve alt kısmı kırpılıyordu. Katsayılar uzunluğa göre kademeleniyor; ölçü yine
+ * alana bağlı (cqw/cqh), yani hem dar hem alçak alanlarda doğru kalıyor.
+ */
+function yaziOlcu(metin: string, taban: [number, number], enBuyuk: number): string {
+  const n = metin.length;
+  const k = n <= 12 ? 1 : n <= 24 ? 0.68 : n <= 40 ? 0.5 : n <= 70 ? 0.38 : 0.28;
+  const [w, h] = taban;
+  return `clamp(14px, min(${(w * k).toFixed(2)}cqw, ${(h * k).toFixed(2)}cqh), ${enBuyuk}px)`;
+}
+
 function TextView({ item }: { item: ZoneItem }) {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center px-[6%]" style={{ background: item.bg ?? "#312e81", color: item.color ?? "#fff" }}>
-      {item.title && <div className="font-display font-bold leading-tight max-w-full" style={{ fontSize: "clamp(24px, 6cqw, 130px)", overflowWrap: "anywhere" }}>{item.title}</div>}
-      {item.text && <div className="font-display opacity-90 leading-snug whitespace-pre-wrap max-w-full" style={{ fontSize: "clamp(14px, 2.6cqw, 52px)", overflowWrap: "anywhere" }}>{item.text}</div>}
+      {item.title && <div className="font-display font-bold leading-tight max-w-full" style={{ fontSize: yaziOlcu(item.title ?? "", [12, 32], 160), overflowWrap: "anywhere" }}>{item.title}</div>}
+      {item.text && <div className="font-display opacity-90 leading-snug whitespace-pre-wrap max-w-full" style={{ fontSize: yaziOlcu(item.text ?? "", [5, 14], 60), overflowWrap: "anywhere" }}>{item.text}</div>}
     </div>
   );
 }
@@ -323,7 +338,10 @@ function ZonePlayer({
          Eskiden `vw` kullaniliyordu, yani EKRANIN TAMAMINA gore: ucte bir
          genislikteki bir alanda yazi uc kat buyuk cikiyor ve saga sola
          tasip kesiliyordu (kullanici ekran goruntusu). Tek alanli duvarda
-         cqw ile vw ayni sonucu verir, yani eski davranis bozulmuyor. */
+         cqw ile vw ayni sonucu verir. Olcu HEM genislige HEM yukseklige
+         bagli (min(...cqw, ...cqh)): yalniz genislige baglayinca genis ama
+         alcak alanlarda yazi gereksiz kuculuyordu (kullanici: "cok kucuk"),
+         yalniz yukseklige baglayinca dar alanlarda tasiyordu. */
       style={{ left: `${zone.x * 100}%`, top: `${zone.y * 100}%`, width: `${zone.w * 100}%`, height: `${zone.h * 100}%`, background: zone.bg ?? ZONE_BG_DEFAULT, containerType: "size" }}
     >
       {layers.length === 0 ? (
