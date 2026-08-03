@@ -8,6 +8,7 @@
  * video minyatürü 🎬 yer tutucudur.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { watchWall } from "@/lib/client";
 import { CellBox, contentZonesIn, itemInWindow, layoutColsOf, layoutRowsOf, mergeCells, normalizeGrid, zoneCells, ZONE_BG_DEFAULT, snapBoxToZones } from "@/lib/zones";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
@@ -15,16 +16,87 @@ import { Videowall, Zone, ZoneItem } from "@/lib/types";
  * Alan önizleme arka planı — ilk öğenin gerçek gösterimi (perde ile birebir:
  * içerik alana STRETCH edilir → editörde ne görüyorsan duvarda o).
  */
-function ZonePreview({ item }: { item?: ZoneItem }) {
+/**
+ * Bağlı ekranın editördeki minyatürü — o ekranın YAYINI, kendi alanlarıyla.
+ *
+ * `WallThumb` yeniden kullanılmadı: o, liste kartı estetiği için en-boy oranını
+ * 1.6–2.2'ye sıkıştırıyor; burada minyatür ALANIN kendi şekline uymalı, yoksa
+ * editörde gördüğün oran perdedekiyle tutmaz.
+ *
+ * Yalnız `live` çizilir — perde de öyle yapıyor (delege edilen kişinin
+ * yayınlamadığı taslağı senin tuvaline düşürmeyiz).
+ */
+function GomuluOnizleme({ screenId }: { screenId: string }) {
+  const [vw, setVw] = useState<Videowall | null>(null);
+  useEffect(() => watchWall(screenId, setVw), [screenId]);
+  const stage = vw?.live ?? null;
+  if (!stage?.zones?.length)
+    return (
+      <div className="absolute inset-0 grid place-items-center bg-black/40 text-white/45 text-[10px] text-center px-1 leading-tight">
+        <span className="truncate max-w-full">{vw ? "henüz yayınlanmamış" : "bağlı ekran"}</span>
+      </div>
+    );
+  return (
+    <div className="absolute inset-0">
+      {stage.zones.map((z) => (
+        <div
+          key={z.id}
+          className="absolute overflow-hidden"
+          style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%`, background: z.bg ?? ZONE_BG_DEFAULT }}
+        >
+          <ZonePreview item={z.items?.[0]} ic />
+        </div>
+      ))}
+    </div>
+  );
+}
+function ZonePreview({ item, ic = false }: { item?: ZoneItem; ic?: boolean }) {
   if (!item) return null;
+  if (item.kind === "screen")
+    // Bağlı ekran: minyatürü GERÇEKTEN çizilir — eskiden bu içerik URL öğesi
+    // olarak eklendiği için editörde canlı görünüyordu; statik bir etikete
+    // düşürmek geriye gidiş olurdu. `ic` bayrağı bir kat sonra durur: gömülü
+    // ekranın içindeki gömülü ekran yeniden çizilmez (sonsuz iniş yok).
+    return item.screenId && !ic ? (
+      <GomuluOnizleme screenId={item.screenId} />
+    ) : (
+      <div className="absolute inset-0 grid place-items-center bg-black/40 text-white/70 text-[10px] text-center px-1 leading-tight">
+        <span className="truncate max-w-full">▣ {item.name || "bağlı ekran"}</span>
+      </div>
+    );
   if (item.kind === "image" && item.src)
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={item.src} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: "fill" }} />;
   if (item.kind === "video" && item.src) {
     return <div className="absolute inset-0 grid place-items-center bg-black/40 text-lg">🎬</div>;
   }
-  if (item.kind === "text") return <div className="absolute inset-0" style={{ background: item.bg ?? "#312e81" }} />;
-  if (item.kind === "clock") return <div className="absolute inset-0 grid place-items-center text-lg" style={{ background: item.bg ?? "#0d102f" }}>🕐</div>;
+  // METİN ve SAAT: eskiden yalnız RENKLİ BİR DİKDÖRTGEN çiziliyordu (saat için
+  // 🕐 emojisi). Kullanıcı haklı olarak "yerleşimde görünmüyor" dedi: alanda ne
+  // yazdığını görmeden tasarım yapılamıyor, üstelik liste kartındaki minyatür
+  // (WallThumb) metnin başlığını ZATEN gösteriyordu — iki yüzey ayrışmıştı.
+  // Artık ikisi de gerçek içeriğini gösterir; boyut alana göre (cqmin).
+  if (item.kind === "text")
+    return (
+      <div
+        className="absolute inset-0 grid place-items-center px-1 text-center"
+        style={{ background: item.bg ?? "#312e81", color: item.color ?? "#ffffff", containerType: "size" }}
+      >
+        <span className="font-bold leading-tight line-clamp-3" style={{ fontSize: "min(11cqw, 22cqh)" }}>
+          {item.title || item.text || "Metin"}
+        </span>
+      </div>
+    );
+  if (item.kind === "clock")
+    return (
+      <div
+        className="absolute inset-0 grid place-items-center"
+        style={{ background: item.bg ?? "#0d102f", color: item.color ?? "#ffffff", containerType: "size" }}
+      >
+        <span className="font-bold tabular-nums leading-none" style={{ fontSize: "min(20cqw, 34cqh)" }}>
+          {new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+        </span>
+      </div>
+    );
   if (item.kind === "url") {
     // Gerçek sayfanın minyatürü (4× sanal pencere → 0.25 ölçek; salt-görüntü).
     // Site iframe'i reddederse (X-Frame-Options) boş kalır → alttaki 🔗 görünür.

@@ -1,5 +1,6 @@
-import { clampLayout } from "@/lib/zones";
 "use client";
+
+import { clampLayout } from "@/lib/zones";
 
 /**
  * FlowSign self-host — İSTEMCİ veri katmanı. Online sürümdeki `videowalls.ts`
