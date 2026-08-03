@@ -1,5 +1,9 @@
 # FlowSign — Yerel Sunucu (Self-Host) Sürümü
 
+> **Kurum içi sürüme (.NET + SQL + LDAP) taşıyacaksanız:** önce
+> [`DEVIR-NOTU.md`](./DEVIR-NOTU.md) — veri modeli, API sözleşmesi, dosya
+> deposu, kimlik devri, dokunulmayacaklar listesi ve efor tahmini.
+
 Video-wall / dijital tabela sistemi. **Tamamen yerel çalışır:** internet,
 Firebase, Cloudinary veya başka hiçbir dış servis GEREKMEZ. Veriler diskte
 JSON dosyası, medya diskte dosya olarak durur; ekranlar iç ağdaki sunucuya
