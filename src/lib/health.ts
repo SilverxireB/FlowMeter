@@ -209,6 +209,47 @@ async function kontrolAuthDomain(): Promise<Kontrol[]> {
   ];
 }
 
+/**
+ * OTURUM JETONU — Firebase kimlik jetonu ~1 saat yaşar ve tazelenmesi ayrı bir
+ * Google adresine (securetoken.googleapis.com) gider.
+ *
+ * Neden ayrı bir kontrol: o adres kapalıysa ilk saat HER ŞEY çalışır, sonra
+ * bütün okumalar "Missing or insufficient permissions" ile düşer — çünkü istek
+ * kimliksiz gider. Ekranda bu, "yetkim mi kalktı?" gibi görünür; oysa kural da
+ * rol de yerindedir. Fabrika PC'sinde tam olarak bu yaşandı: sayfa açıkken,
+ * hiçbir şey değişmeden, çalışırken bozuldu.
+ *
+ * Zorla tazeleme (`getIdToken(true)`) bu yolu doğrudan sınar.
+ */
+async function kontrolJeton(): Promise<Kontrol[]> {
+  const u = auth().currentUser;
+  if (!u) {
+    return [{ id: "jeton", baslik: "Oturum jetonu", durum: "bilinmiyor", detay: "Giriş yapılmamış." }];
+  }
+  try {
+    await u.getIdToken(true);
+    return [
+      {
+        id: "jeton",
+        baslik: "Oturum jetonu",
+        durum: "ok",
+        detay: "Tazelenebiliyor — oturum saatler sonra da geçerli kalır.",
+      },
+    ];
+  } catch (e) {
+    return [
+      {
+        id: "jeton",
+        baslik: "Oturum jetonu",
+        durum: "hata",
+        detay: `Tazelenemedi (${e instanceof Error ? e.message : "bilinmeyen"}).`,
+        ipucu:
+          "Jeton ~1 saatte bir yenilenir; yenilenemezse okumalar 'yetkiniz yok' diye reddedilir (kural değil, kimlik sorunu). Ağın securetoken.googleapis.com ve identitytoolkit.googleapis.com adreslerine izin vermesi gerekiyor.",
+      },
+    ];
+  }
+}
+
 async function kontrolAnonim(): Promise<Kontrol[]> {
   const anon = await anonimDene();
   return [
@@ -323,6 +364,12 @@ export const KONTROLLER: KontrolTanim[] = [
     baslik: "Giriş dönüş adresi",
     ozet: "Girişin geri döneceği adres. Kendi alan adımız Google Cloud'da ayrı bir kayıt daha ister.",
     calistir: kontrolAuthDomain,
+  },
+  {
+    id: "jeton",
+    baslik: "Oturum jetonu",
+    ozet: "Kimlik jetonu ~1 saatte bir yenilenir. Yenilenemezse her okuma 'yetkiniz yok' diye reddedilir.",
+    calistir: kontrolJeton,
   },
   {
     id: "anon",
