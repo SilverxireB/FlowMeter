@@ -242,6 +242,7 @@ export default function LayoutEditor({
 
   // Onizleme de kilitli kutuyu gosterir — ne birlesecegi surukleerken gorunur.
   const selBox = drag ? snapBoxToZones(vw.zones ?? [], cols, rows, boxOf(drag.anchor, drag.hover)) : null;
+  const seciliAlan = (vw.zones ?? []).find((z) => z.id === selectedId) ?? null;
   const aspect = vw.width / vw.height;
 
   return (
@@ -270,48 +271,6 @@ export default function LayoutEditor({
               style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%`, background: z.bg ?? undefined }}
             >
               <ZoneDoner items={z.items} sira={i} gecis={z.transition ?? "fade"} />
-              {/* KENAR TUTAMAKLARI — yalnız seçili alanda ve yalnız duvarın DIŞ
-                  kenarı olmayan yönlerde. Bölme yalnız eşit parça verdiği için
-                  70/30 gibi bir yerleşim başka türlü kurulamıyordu. */}
-              {sel && onResize && (
-                <>
-                  {([
-                    { e: "l", göster: z.x > 0.001, cls: "left-0 top-0 h-full w-2 cursor-col-resize" },
-                    { e: "r", göster: z.x + z.w < 0.999, cls: "right-0 top-0 h-full w-2 cursor-col-resize" },
-                    { e: "t", göster: z.y > 0.001, cls: "top-0 left-0 w-full h-2 cursor-row-resize" },
-                    { e: "b", göster: z.y + z.h < 0.999, cls: "bottom-0 left-0 w-full h-2 cursor-row-resize" },
-                  ] as const)
-                    .filter((h) => h.göster)
-                    .map((h) => (
-                      <span
-                        key={h.e}
-                        role="separator"
-                        aria-label="Kenarı çek"
-                        className={`absolute z-[30] ${h.cls} bg-accent/0 hover:bg-accent/40 touch-none`}
-                        onPointerDown={(ev) => {
-                          // Tuvalin birleştirme sürüklemesi TETİKLENMESİN.
-                          ev.stopPropagation();
-                          ev.preventDefault();
-                          (ev.target as HTMLElement).setPointerCapture(ev.pointerId);
-                          setCek({ zoneId: z.id, edge: h.e, oran: h.e === "l" ? z.x : h.e === "r" ? z.x + z.w : h.e === "t" ? z.y : z.y + z.h });
-                        }}
-                        onPointerMove={(ev) => {
-                          if (!cek || cek.zoneId !== z.id || cek.edge !== h.e) return;
-                          const r = gridRef.current?.getBoundingClientRect();
-                          if (!r) return;
-                          const dikey = h.e === "l" || h.e === "r";
-                          const o = dikey ? (ev.clientX - r.left) / r.width : (ev.clientY - r.top) / r.height;
-                          setCek({ ...cek, oran: Math.max(0.02, Math.min(0.98, o)) });
-                        }}
-                        onPointerUp={() => {
-                          if (cek && cek.zoneId === z.id && cek.edge === h.e) onResize(cek.zoneId, cek.edge, cek.oran);
-                          setCek(null);
-                        }}
-                        onPointerCancel={() => setCek(null)}
-                      />
-                    ))}
-                </>
-              )}
               <span className="relative z-[1] text-white text-[11px] font-semibold leading-tight pointer-events-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                 {z.name || `Alan ${i + 1}`}
                 {z.items.length > 0 && <span className="block text-white/70 font-normal">{z.items.length} içerik</span>}
@@ -319,6 +278,62 @@ export default function LayoutEditor({
             </div>
           );
         })}
+
+        {/* KENAR TUTAMAKLARI — TUVAL SEVİYESİNDE, alanın içinde DEĞİL.
+            İlk deneme tutamakları alanın içine koymuştu: alanda `overflow-hidden`
+            olduğu için 8px'lik şerit tamamen içeride kalıyor, saydam duruyor ve
+            yalnız üzerine tam gelince beliriyordu — kullanıcı "hiç çıkmıyor"
+            dedi, haklıydı. Burada sınırın ÜSTÜNE binebiliyor, kırpılmıyor ve
+            seçili alanda GÖRÜNÜR bir tutamak çiziliyor. */}
+        {seciliAlan && onResize &&
+          ([
+            { e: "l", göster: seciliAlan.x > 0.001, dikey: true, konum: { left: `${seciliAlan.x * 100}%`, top: `${seciliAlan.y * 100}%`, height: `${seciliAlan.h * 100}%` } },
+            { e: "r", göster: seciliAlan.x + seciliAlan.w < 0.999, dikey: true, konum: { left: `${(seciliAlan.x + seciliAlan.w) * 100}%`, top: `${seciliAlan.y * 100}%`, height: `${seciliAlan.h * 100}%` } },
+            { e: "t", göster: seciliAlan.y > 0.001, dikey: false, konum: { top: `${seciliAlan.y * 100}%`, left: `${seciliAlan.x * 100}%`, width: `${seciliAlan.w * 100}%` } },
+            { e: "b", göster: seciliAlan.y + seciliAlan.h < 0.999, dikey: false, konum: { top: `${(seciliAlan.y + seciliAlan.h) * 100}%`, left: `${seciliAlan.x * 100}%`, width: `${seciliAlan.w * 100}%` } },
+          ] as const)
+            .filter((h) => h.göster)
+            .map((h) => (
+              <span
+                key={h.e}
+                role="separator"
+                aria-label="Kenarı çek"
+                title="Kenarı çekerek oranı değiştir"
+                className={`absolute z-[35] grid place-items-center touch-none ${
+                  h.dikey ? "w-4 -translate-x-1/2 cursor-col-resize" : "h-4 -translate-y-1/2 cursor-row-resize"
+                }`}
+                style={h.konum}
+                onPointerDown={(ev) => {
+                  ev.stopPropagation(); // tuvalin birleştirme sürüklemesi tetiklenmesin
+                  ev.preventDefault();
+                  (ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId);
+                  setCek({
+                    zoneId: seciliAlan.id,
+                    edge: h.e,
+                    oran: h.e === "l" ? seciliAlan.x : h.e === "r" ? seciliAlan.x + seciliAlan.w : h.e === "t" ? seciliAlan.y : seciliAlan.y + seciliAlan.h,
+                  });
+                }}
+                onPointerMove={(ev) => {
+                  if (!cek || cek.edge !== h.e) return;
+                  const r = gridRef.current?.getBoundingClientRect();
+                  if (!r) return;
+                  const o = h.dikey ? (ev.clientX - r.left) / r.width : (ev.clientY - r.top) / r.height;
+                  setCek({ ...cek, oran: Math.max(0.02, Math.min(0.98, o)) });
+                }}
+                onPointerUp={() => {
+                  if (cek && cek.edge === h.e) onResize(cek.zoneId, cek.edge, cek.oran);
+                  setCek(null);
+                }}
+                onPointerCancel={() => setCek(null)}
+              >
+                {/* Görünür tutamak: seçili alanın kenarında duran kısa çubuk. */}
+                <span
+                  className={`rounded-full bg-accent ring-2 ring-white/70 pointer-events-none ${
+                    h.dikey ? "w-1.5 h-10" : "h-1.5 w-10"
+                  }`}
+                />
+              </span>
+            ))}
 
         {/* Çekme kılavuzu — bırakınca uygulanacak sınır */}
         {cek && (
