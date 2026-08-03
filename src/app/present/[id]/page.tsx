@@ -487,7 +487,9 @@ export default function PresentPage() {
                 { title: "Sunumu bitir", message: "Cevaplar kaydedilir; izleyiciler bekleme ekranına döner.", confirmLabel: "Bitir" },
                 async () => {
                   await endPresentation(id);
-                  router.push(`/dashboard`);
+                  // Perdeye EDİTÖRDEN gelindi ("Sun"/"Önizle") — bitirince oraya
+                  // dönülür, hub'a değil. Sonuçlar zaten editörün menüsünde.
+                  router.push(`/edit/${id}`);
                 }
               )
             }
