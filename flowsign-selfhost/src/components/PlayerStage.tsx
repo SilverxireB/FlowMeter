@@ -21,6 +21,22 @@ type Transition = "fade" | "cut" | "slide";
 const safeSrc = (src?: string) => (src && (/^https?:\/\//i.test(src) || /^\/(?!\/)/.test(src)) ? src : undefined);
 
 /**
+ * BOŞ ALAN YÜZÜ — içeriği olmayan (ya da tamamı takvim dışı) alan.
+ *
+ * Eskiden düz "FlowSign" yazısıydı; ürünün kendi işareti dururken duvarda
+ * yazıyla marka anlatmanın anlamı yok. Soluk bırakılıyor: boş alan bir HATA
+ * değil, henüz doldurulmamış bir yer — dikkat çekmemeli.
+ */
+function BosAlan() {
+  return (
+    <div className="w-full h-full grid place-items-center select-none" aria-hidden>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo-sign-white.png" alt="" className="max-w-[38%] max-h-[38%] w-auto h-auto opacity-[0.13]" />
+    </div>
+  );
+}
+
+/**
  * GÖMÜLÜ EKRAN — bir alana bağlanan başka bir ekran (yetki devri).
  *
  * NEDEN IFRAME DEĞİL: gömülü ekran eskiden `/flowsign/[slug]` adresiyle URL
@@ -70,7 +86,7 @@ function GomuluEkran({ hedef, box, zincir }: { hedef: { id?: string; slug?: stri
   // taslağa düşme kuralı burada BİLEREK geçerli değil.
   const stage = vw?.live ?? null;
   if (!stage?.zones?.length)
-    return <div className="w-full h-full grid place-items-center text-white/15 text-sm select-none">FlowSign</div>;
+    return <BosAlan />;
   return (
     <div className="absolute inset-0">
       {stage.zones.map((z) => (
@@ -422,7 +438,7 @@ function ZonePlayer({
       style={{ left: `${zone.x * 100}%`, top: `${zone.y * 100}%`, width: `${zone.w * 100}%`, height: `${zone.h * 100}%`, background: zone.bg ?? ZONE_BG_DEFAULT, containerType: "size" }}
     >
       {layers.length === 0 ? (
-        <div className="w-full h-full grid place-items-center text-white/15 text-sm select-none">FlowSign</div>
+        <BosAlan />
       ) : (
         layers.map((l, i) => {
           const top = i === layers.length - 1;

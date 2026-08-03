@@ -79,12 +79,17 @@ export default function ZonePanel({
   // Ekran seçici: bu alana bağlanacak BAŞKA ekran (yetki devri).
   const [screenPick, setScreenPick] = useState(false);
   const [screens, setScreens] = useState<Videowall[] | null>(null);
+  // Liste iki sebeple yüklenir: (1) seçici açıldığında, (2) alanda ZATEN bağlı
+  // ekran varsa — çünkü o öğenin adını TAZE göstermek ve hedef silinmişse
+  // uyarmak gerekiyor. Eskiden ad, bağlandığı andaki hâliyle donuyordu ve
+  // hedef silinince alan sessizce boşalıyor, editörde hiçbir iz kalmıyordu.
+  const ekranOgesiVar = zone.items.some((it) => it.kind === "screen");
   useEffect(() => {
-    if (!screenPick || screens) return;
+    if ((!screenPick && !ekranOgesiVar) || screens) return;
     listAllVideowalls()
       .then((l) => setScreens(l.filter((v) => v.id !== vw.id)))  // kendini bağlayamaz
       .catch(() => setScreens([]));
-  }, [screenPick, screens, vw.id]);
+  }, [screenPick, ekranOgesiVar, screens, vw.id]);
   const [libFilter, setLibFilter] = useState<"all" | "image" | "video">("all");
   const [urlForm, setUrlForm] = useState<{ src: string; name: string } | null>(null);
   const [replacingId, setReplacingId] = useState<string | null>(null);
@@ -479,8 +484,8 @@ export default function ZonePanel({
                   </span>
                   {/* ▲▼ — dokunmatikte HTML5 sürükleme çalışmaz; tek dokunuşla sırala */}
                   <span className="shrink-0 flex flex-col">
-                    <button onClick={() => reorder(i, i - 1)} disabled={i === 0} className="w-7 h-5 grid place-items-center text-muted hover:text-ink disabled:opacity-20" aria-label="Yukarı taşı"><Icon name="up" size={13} /></button>
-                    <button onClick={() => reorder(i, i + 1)} disabled={i === zone.items.length - 1} className="w-7 h-5 grid place-items-center text-muted hover:text-ink disabled:opacity-20" aria-label="Aşağı taşı"><Icon name="down" size={13} /></button>
+                    <button onClick={() => reorder(i, i - 1)} disabled={i === 0} className="w-9 h-7 grid place-items-center text-muted hover:text-ink disabled:opacity-20" aria-label="Yukarı taşı"><Icon name="up" size={13} /></button>
+                    <button onClick={() => reorder(i, i + 1)} disabled={i === zone.items.length - 1} className="w-9 h-7 grid place-items-center text-muted hover:text-ink disabled:opacity-20" aria-label="Aşağı taşı"><Icon name="down" size={13} /></button>
                   </span>
                   {/* SIRA NUMARASI — bu bir oynatma listesi ve asıl bilgi sıra:
                       "önce 3 sn görsel, sonra 9 sn video". Eskiden sırayı yalnız
@@ -494,9 +499,20 @@ export default function ZonePanel({
                       daralamadığı için dar telefonda kutudan TAŞIP sağdaki düğmelerin
                       ALTINA giriyordu (rozet yarım görünüyordu). */}
                   <div className="flex-1 min-w-0 overflow-hidden">
-                    <p className="text-sm font-semibold truncate" title={it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : it.name || it.src}>
-                      {it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : it.name || it.src}
-                    </p>
+                    {(() => {
+                      // Bağlı ekranın adı, o ekranın GÜNCEL adıdır — bağlandığı
+                      // andaki değil. Delege edilen kişi ekranını yeniden
+                      // adlandırdığında burada eski ad kalmasın (bağ kimliğe
+                      // kurulu, kopmuyor; yanıltan yalnız etiketti).
+                      const taze = it.kind === "screen" ? screens?.find((v) => v.id === it.screenId)?.name : undefined;
+                      const baslik =
+                        it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : taze ?? it.name ?? it.src;
+                      return (
+                        <p className="text-sm font-semibold truncate" title={baslik}>
+                          {baslik}
+                        </p>
+                      );
+                    })()}
                     <span className="flex items-center gap-1.5 mt-0.5 flex-wrap min-w-0">
                       <span className="text-[10px] uppercase tracking-wider text-accent-dark bg-accent-soft rounded px-1.5 py-0.5">{KIND_LABEL[it.kind]}</span>
                       {/* Kompakt özet: ayrıntılar ⚙ ile açılır */}
@@ -512,6 +528,9 @@ export default function ZonePanel({
                         <span className="text-[10px] text-muted bg-white border border-line rounded px-1.5 py-0.5">🔍 %{it.zoom}</span>
                       )}
                       {outOfWindow && <span className="text-[10px] text-ink/70 bg-line/60 rounded px-1.5 py-0.5">şu an takvim dışı</span>}
+                      {it.kind === "screen" && screens !== null && !screens.some((v) => v.id === it.screenId) && (
+                        <span className="text-[10px] font-bold text-brand bg-brand-soft rounded px-1.5 py-0.5">⚠ bağlı ekran bulunamadı</span>
+                      )}
                     </span>
                   </div>
                   <button

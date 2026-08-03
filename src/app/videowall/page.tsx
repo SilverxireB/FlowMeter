@@ -237,18 +237,27 @@ export default function VideowallListPage() {
           <p className="text-muted text-[11px] mt-0.5 tabular-nums">
             {v.width}×{v.height} · {v.cols}×{v.rows} · {v.zones?.length ?? 0} alan
           </p>
+          {/* HİÇ YAYINLANMAMIŞ ekran: TV'de hiçbir şey görünmez ve sebebi
+              hiçbir yerde yazmıyordu. "Ekranı astım, boş" şikâyetinin
+              cevabı burası. Gömülü ekranla daha da önemli oldu: delege
+              edilen kişi yayınlamadıysa senin duvarında o alan boş kalır. */}
+          {!v.live && (
+            <span className="mt-1 inline-flex items-center gap-1 rounded-md bg-[#eda100]/12 text-[#8a6100] px-1.5 py-0.5 text-[10px] font-bold">
+              henüz yayınlanmamış
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1 mt-auto">
           <Link href={`/videowall/${v.id}/edit`} className="flex-1 text-center rounded-lg bg-paper border border-line px-2 py-1.5 text-xs font-semibold hover:border-muted">
             {canEdit ? "Düzenle" : "Aç"}
           </Link>
           {/* "Yayınla" değil — editördeki Kaydet & Yayınla ile karışıyordu */}
-          <a href={playHref(v)} target={playTarget} title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
+          <a href={playHref(v)} target={playTarget} title="Ekranı aç" aria-label="Ekranı aç" className="shrink-0 w-9 h-9 grid place-items-center rounded-lg bg-accent hover:bg-accent-dark text-white">
             <Icon name="play" size={12} />
           </a>
           {canCopy && (
             <>
-              <button onClick={() => duplicate(v)} disabled={busy} className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-paper disabled:opacity-30" title="Kopyala" aria-label="Kopyala">
+              <button onClick={() => duplicate(v)} disabled={busy} className="shrink-0 w-9 h-9 grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-paper disabled:opacity-30" title="Kopyala" aria-label="Kopyala">
                 <Icon name="copy" size={13} />
               </button>
             </>
@@ -262,7 +271,7 @@ export default function VideowallListPage() {
                     () => remove(v)
                   )
                 }
-                className="shrink-0 w-7 h-7 grid place-items-center rounded-lg text-muted hover:text-brand hover:bg-brand-soft/50"
+                className="shrink-0 w-9 h-9 grid place-items-center rounded-lg text-muted hover:text-brand hover:bg-brand-soft/50"
                 title="Sil"
                 aria-label="Sil"
               >

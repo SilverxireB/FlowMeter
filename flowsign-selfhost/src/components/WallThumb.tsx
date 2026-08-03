@@ -46,21 +46,36 @@ function ItemFace({ item }: { item?: ZoneItem }) {
 
 export default function WallThumb({ vw }: { vw: Videowall }) {
   const stage = vw.live ?? vw;
-  // Alt sınır 1.6: dikey (portre) duvar bile kartı boyuna uzatmasın — kart kompakt.
-  const ar = Math.min(2.2, Math.max(1.6, stage.width / Math.max(1, stage.height)));
   const zones = stage.zones ?? [];
+  // KART SABİT ORANDA, DUVAR İÇİNE SIĞDIRILIR.
+  //
+  // Eskiden duvarın oranı 1.6–2.2 arasına SIKIŞTIRILIYOR ve kartı o oranda
+  // dolduruyordu: 1080×1920 bir totem kartta YATAY çiziliyordu ve içindeki
+  // alanlar tamamen yanlış oranlarda görünüyordu — dikey tabela kuran kişi
+  // kendi tasarımını tanıyamıyordu. Sign'ın kendi işareti dikey totem;
+  // ürünün bu kullanımı yalan söyleyemez.
+  //
+  // Çözüm: kart ızgarada aynı boyda kalsın diye DIŞ kutu sabit orandadır,
+  // duvar İÇİNE gerçek oranıyla sığdırılır (letterbox). Yatay duvarlarda
+  // görüntü pratikte eskisiyle aynı; dikey duvarlarda artık doğru.
+  const ar = stage.width / Math.max(1, stage.height);
   return (
-    <div className="relative w-full bg-black overflow-hidden" style={{ aspectRatio: `${ar}` }}>
-      {zones.map((z) => (
-        <div
-          key={z.id}
-          className="absolute overflow-hidden border border-white/15"
-          style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%`, background: z.bg ?? ZONE_BG_DEFAULT }}
-        >
-          <ItemFace item={z.items?.[0]} />
-        </div>
-      ))}
-      {zones.length === 0 && <div className="absolute inset-0 grid place-items-center text-white/20 text-xs">FlowSign</div>}
+    <div className="relative w-full bg-black overflow-hidden grid place-items-center" style={{ aspectRatio: "1.6" }}>
+      <div className="relative" style={{ aspectRatio: `${ar}`, maxWidth: "100%", maxHeight: "100%", width: ar >= 1.6 ? "100%" : "auto", height: ar >= 1.6 ? "auto" : "100%" }}>
+        {zones.map((z) => (
+          <div
+            key={z.id}
+            className="absolute overflow-hidden border border-white/15"
+            style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%`, background: z.bg ?? ZONE_BG_DEFAULT }}
+          >
+            <ItemFace item={z.items?.[0]} />
+          </div>
+        ))}
+      </div>
+      {zones.length === 0 && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src="/logo-sign-white.png" alt="" aria-hidden className="absolute max-w-[30%] max-h-[30%] opacity-20" />
+      )}
     </div>
   );
 }

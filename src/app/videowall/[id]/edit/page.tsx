@@ -169,6 +169,8 @@ export default function VideowallEditPage() {
     window.setTimeout(() => setToast(null), 3500);
   };
 
+  const ogeSayisi = useMemo(() => (vw?.zones ?? []).reduce((t, z) => t + (z.items?.length ?? 0), 0), [vw]);
+  const bosAlan = useMemo(() => (vw?.zones ?? []).filter((z) => (z.items?.length ?? 0) === 0).length, [vw]);
   const selected = useMemo(() => (vw?.zones ?? []).find((z) => z.id === selectedId) ?? null, [vw, selectedId]);
   const selectedIndex = useMemo(() => (vw?.zones ?? []).findIndex((z) => z.id === selectedId), [vw, selectedId]);
 
@@ -468,8 +470,15 @@ export default function VideowallEditPage() {
                 <span className="text-muted text-xs">Üst üste kaç ekran?</span>
                 <input type="number" min={1} max={24} value={tanim.rows} onChange={(e) => setTanim({ ...tanim, rows: e.target.value })} className={`w-24 ${inputCls}`} />
               </label>
+              {/* YAYIN ÖNCESİ ÖZET. Dört alanlı bir ekranda ikisi boşken
+                  yayınlarsan fabrika duvarında iki boş kutu döner; panel
+                  yalnızca SEÇİLİ alanı uyarıyordu. Boş alan sayısı burada,
+                  Yayınla düğmesinin göz hizasında duruyor. */}
               <span className="text-muted text-xs pb-2 tabular-nums">
-                {vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan
+                {vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan · {ogeSayisi} öğe
+                {bosAlan > 0 && (
+                  <b className="text-[#8a6100] font-bold"> · {bosAlan} alan boş</b>
+                )}
               </span>
               {tanimDegisti && (
                 <span className="flex items-center gap-2 pb-1">

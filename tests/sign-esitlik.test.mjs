@@ -36,6 +36,11 @@ const IZLER = [
   ["rehber yapı taşları", "src/components/RehberParcalari.tsx", "flowsign-selfhost/src/components/RehberParcalari.tsx", "export function Dugme"],
   ["rehberde Ekran türü", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "başkasına yönettirmenin yolu"],
   ["yazdırma düzeni", "src/styles/globals.css", "flowsign-selfhost/src/styles/globals.css", "rehber-yazdir"],
+  ["boş alanda logo (yazı değil)", "src/components/videowall/PlayerStage.tsx", "flowsign-selfhost/src/components/PlayerStage.tsx", "function BosAlan"],
+  ["dikey duvar kartta doğru oranda", "src/components/videowall/WallThumb.tsx", "flowsign-selfhost/src/components/WallThumb.tsx", 'aspectRatio: "1.6"'],
+  ["yayınlanmamış çipi", "src/app/videowall/page.tsx", "flowsign-selfhost/src/app/screens/page.tsx", "henüz yayınlanmamış"],
+  ["yayın öncesi boş alan özeti", "src/app/videowall/[id]/edit/page.tsx", "flowsign-selfhost/src/app/screens/[id]/edit/page.tsx", "alan boş"],
+  ["bağlı ekran kayıpsa uyarı", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "bağlı ekran bulunamadı"],
 ];
 
 const oku = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);
