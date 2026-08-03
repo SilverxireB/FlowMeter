@@ -75,5 +75,24 @@ for (const [graf, bekle, aciklama] of senaryolar) {
   console.log(`${gecti ? "✓" : "✗"} ${aciklama} → derinlik ${d}`);
 }
 
+
+// ── KAYNAK BEKÇİSİ ────────────────────────────────────────────────────────────
+// Yazarken şu hataya düştüm: `zincir` DİZİSİ useEffect bağımlılık listesindeydi.
+// Dizi her render'da yeniden üretildiği için Firestore aboneliği her render'da
+// kopup yeniden kuruluyordu — iç alanda saniyede bir tik atan bir saat bile
+// abonelik fırtınası çıkarıyordu. 7/24 ekranda bu sessizce kota yakar.
+// İki dosyada da çözüm aynı: bağımlılıkta METİN anahtar (`zincirKey`) durur.
+for (const dosya of ["src/components/videowall/PlayerStage.tsx", "flowsign-selfhost/src/components/PlayerStage.tsx"]) {
+  const metin = fs.readFileSync(dosya, "utf8");
+  const govde = metin.slice(metin.indexOf("function GomuluEkran("));
+  const kesit = govde.slice(0, govde.indexOf("\n}\n"));
+  const bagimliliklar = [...kesit.matchAll(/\}, \[([^\]]*)\]\);/g)].map((m) => m[1]);
+  const diziBagimliligi = bagimliliklar.some((b) => /(^|[\s,])zincir([\s,]|$)/.test(b));
+  const metinAnahtar = bagimliliklar.some((b) => b.includes("zincirKey"));
+  const ok = !diziBagimliligi && metinAnahtar;
+  if (!ok) hata++;
+  console.log(`${ok ? "✓" : "✗"} ${dosya.split("/").slice(-2).join("/")}: abonelik bağımlılığı metin anahtarda (dizi değil)`);
+}
+
 console.log(hata ? `\n${hata} SINAV BAŞARISIZ` : "\nhepsi geçti");
 process.exit(hata ? 1 : 0);

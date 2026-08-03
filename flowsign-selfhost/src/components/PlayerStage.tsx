@@ -42,12 +42,20 @@ const safeSrc = (src?: string) => (src && (/^https?:\/\//i.test(src) || /^\/(?!\
 function GomuluEkran({ hedef, box, zincir }: { hedef: { id?: string; slug?: string }; box: { w: number; h: number }; zincir: string[] }) {
   const [vw, setVw] = useState<Videowall | null | undefined>(undefined);
   const anahtar = hedef.id ?? `slug:${hedef.slug}`;
+  // ZİNCİR KİMLİĞİ METİN OLARAK: dizi her render'da yeniden üretilir, bu yüzden
+  // bağımlılık listesine DİZİYİ koymak aboneliği her render'da kopartıp yeniden
+  // kurardı (7/24 ekranda saniyede bir tik atan bir saat bile bunu tetikler).
+  const zincirKey = zincir.join("|");
   const dongu = zincir.includes(anahtar) || (vw?.id ? zincir.includes(vw.id) : false);
   useEffect(() => {
-    if (zincir.includes(anahtar)) return;
+    if (zincirKey.split("|").includes(anahtar)) return;
     if (hedef.id) return watchWall(hedef.id, setVw);
     if (hedef.slug) return watchWallByKey(hedef.slug, setVw);
-  }, [hedef.id, hedef.slug, anahtar, zincir]);
+  }, [hedef.id, hedef.slug, anahtar, zincirKey]);
+
+  // Alt zincir de KİMLİĞİ sabit kalsın: yeni dizi = alt ağacın tamamı yeniden
+  // render + alt aboneliklerin yeniden kurulması.
+  const altZincir = useMemo(() => [...zincir, anahtar, vw?.id ?? ""], [zincirKey, anahtar, vw?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (dongu)
     return (
@@ -55,13 +63,18 @@ function GomuluEkran({ hedef, box, zincir }: { hedef: { id?: string; slug?: stri
         Bu ekran kendini içeriyor
       </div>
     );
-  const stage = vw?.live ?? vw ?? null;
+  // YALNIZ YAYIN — taslağa DÜŞÜLMEZ. Gömme bir yetki devri: bağlı ekranı
+  // başkası yönetiyor ve denemeleri senin duvarına düşmemeli. Henüz hiç
+  // yayınlanmamışsa alan sessizce boş kalır (seçici bunu zaten "henüz
+  // yayınlanmamış" diye yazıyor). En dıştaki perdenin eski duvarlar için
+  // taslağa düşme kuralı burada BİLEREK geçerli değil.
+  const stage = vw?.live ?? null;
   if (!stage?.zones?.length)
     return <div className="w-full h-full grid place-items-center text-white/15 text-sm select-none">FlowSign</div>;
   return (
     <div className="absolute inset-0">
       {stage.zones.map((z) => (
-        <ZonePlayer key={z.id} zone={z} stageW={box.w} stageH={box.h} manual={false} zincir={[...zincir, anahtar, vw?.id ?? ""]} />
+        <ZonePlayer key={z.id} zone={z} stageW={box.w} stageH={box.h} manual={false} zincir={altZincir} />
       ))}
     </div>
   );
