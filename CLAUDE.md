@@ -64,6 +64,10 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   `redirect_uri_mismatch`. Eski `.firebaseapp.com` kaydı geri dönüş için duruyor
   (ayrıntı `lib/firebase.ts`). İç ağ izin listesi: site + `*.googleapis.com` +
   `res/api.cloudinary.com`.
+  **Jeton tuzağı:** kimlik jetonu ~1 saatte bir `securetoken.googleapis.com`
+  üstünden yenilenir; o adres kapalıysa ilk saat her şey ÇALIŞIR, sonra tüm
+  okumalar `permission-denied` verir (kural değil, kimlik sorunu). Teşhis:
+  `/admin/prova` → "Oturum jetonu".
 - **FlowSign:** editör TASLAK (`zones`), perde YAYIN (`live`); birleştir/böl içerik
   korur + onay sorar; slug ad değişince YENİLENİR (slugHistory eski linkleri taşır);
   iframe sandbox + http(s) doğrulama; Wake Lock + offline persistence

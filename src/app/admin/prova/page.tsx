@@ -157,7 +157,7 @@ export default function ProvaPage() {
       <header className="bg-white/80 backdrop-blur border-b border-line px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <Link href="/dashboard" className="text-muted hover:text-ink shrink-0 text-lg" aria-label="Panele dön">←</Link>
-          <Logo size="sm" />
+          <Logo size="sm" variant="studio" />
           <span className="eyebrow hidden sm:inline">Yönetici paneli</span>
         </div>
       </header>
