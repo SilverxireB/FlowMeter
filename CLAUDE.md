@@ -189,6 +189,11 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   `replaceState` → geri tuşu hub'ı atlayıp karşılamaya düşüyordu), `popstate`
   senkronlar. Tam ekran yüzeylerde `ScreenClose` (dokunmatik + geçmiş varsa +
   gömülü değilse); Pulse kiosk hariç (çıkış bilerek PIN'li).
+- **Geri tuşu HEDEFİ (kural):** `←` sayfanın GELDİĞİ yere döner, hub'a değil.
+  Ölçüt: sayfaya nereden giriliyorsa üstü orasıdır — `/moderate` ve `/remote`
+  editörden açılır → `/edit/[id]`; `/results` iki yerden açılır → sunum listesi
+  (`?p=decks`) + ayrıca "Editör" linki; kokpitler kendi listelerine; listeler
+  hub'a; `/admin*` kardeştir (AdminTabs) → hepsi hub'a.
 - **UI ortak bileşenleri:** `Icon` (tek ikon seti) · `ConfirmDialog`+`useConfirm`
   (native confirm YOK) · `CodeInput` (6 haneli kod, aydınlık/koyu) · `Skeleton`
   (kokpit yükleme iskeletleri; perde/kiosk'ta tek satır yazı doğru) ·

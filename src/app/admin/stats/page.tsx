@@ -174,7 +174,7 @@ export default function AdminStatsPage() {
     <main className="min-h-screen bg-wash">
       <header className="bg-white/80 backdrop-blur border-b border-line px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <Link href="/admin" className="text-muted hover:text-ink shrink-0 text-lg" aria-label="Yönetici paneline dön">←</Link>
+          <Link href="/dashboard" className="text-muted hover:text-ink shrink-0 text-lg" aria-label="Panele dön">←</Link>
           <Logo size="sm" variant="studio" />
           <span className="eyebrow hidden sm:inline">İstatistikler</span>
         </div>

@@ -263,7 +263,10 @@ export default function ResultsPage() {
     <main className="min-h-screen flex flex-col bg-wash">
       <header className="bg-white/80 backdrop-blur border-b border-line px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <Link href="/dashboard" className="text-muted hover:text-ink shrink-0 text-lg">←</Link>
+          {/* Buraya hem editör menüsünden hem panel kartından gelinir; geri tuşu
+              SUNUM LİSTESİNE düşer (hub'ın köküne değil), editöre dönüş için
+              sağda ayrı link var. */}
+          <Link href="/dashboard?p=decks" className="text-muted hover:text-ink shrink-0 text-lg" aria-label="Sunumlara dön">←</Link>
           <span className="shrink-0">
             <Logo size="sm" />
           </span>
@@ -271,6 +274,9 @@ export default function ResultsPage() {
           <span className="eyebrow shrink-0 hidden md:inline">Sonuçlar</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <Link href={`/edit/${id}`} className="text-sm font-semibold text-muted hover:text-ink hidden sm:inline">
+            Editör
+          </Link>
           <select
             value={sessionSel}
             onChange={(e) => setSessionSel(e.target.value)}

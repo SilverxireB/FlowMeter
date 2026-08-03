@@ -113,7 +113,9 @@ export default function ModeratePage() {
     <main className="min-h-screen bg-wash">
       <header className="bg-white/80 backdrop-blur border-b border-line px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <Link href="/dashboard" className="text-muted hover:text-ink shrink-0 text-lg">←</Link>
+          {/* Buraya editörün menüsünden geliniyor — geri tuşu HUB'a değil oraya
+              dönmeli. Panele çıkmak isteyen zaten editörden bir tık uzakta. */}
+          <Link href={`/edit/${id}`} className="text-muted hover:text-ink shrink-0 text-lg" aria-label="Editöre dön">←</Link>
           <span className="shrink-0"><Logo size="sm" /></span>
           <span className="font-display font-semibold truncate min-w-0">{presentation.title}</span>
           <span className="eyebrow shrink-0 hidden md:inline">Q&A Moderasyon</span>
