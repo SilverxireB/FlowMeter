@@ -57,7 +57,10 @@ image=süre, video=bitince, url=iframe+süre. Geçişte crossfade. 7/24 için ö
 
 ## Layout editörü (en zor UI)
 Model: her zone = `{x,y,w,h}` (0–1 oran) + **grid snap** (cols×rows'a hizalar).
-Böl (yatay/dikey) / birleştir (komşu seç) / sürükle-taşı / kenar-çek yeniden boyut.
+Böl (yatay+dikey, tek hamlede pc×pr) / birleştir (komşu seç, sürükleyerek) /
+**kenar-çek** yeniden boyut (seçili alanın kenarındaki tutamak; iki komşunun
+paylaştığı sınırı kaydırır — sınır düz bir çizgi değilse dokunmaz).
+Alan TAŞIMA yok: sürükleme birleştirir, taşımaz.
 Başlangıç: cols×rows tam ızgara; kullanıcı böler/birleştirir.
 
 ## Yetkilendirme / liste — YAPILDI

@@ -33,6 +33,7 @@ import {
   setScreenGrid,
   setPlayMode,
   slugify,
+  resizeZoneEdge,
   splitZoneInto,
   updateVideowall,
   updateZones,
@@ -367,7 +368,19 @@ export default function VideowallEditPage() {
               </button>
             )}
           </div>
-          <LayoutEditor vw={vw} selectedId={selectedId} onSelect={setSelectedId} onZones={saveZones} onLayout={(r) => {
+          <LayoutEditor vw={vw} selectedId={selectedId} onSelect={setSelectedId} onZones={saveZones} onResize={(zoneId, edge, oran) => {
+              const r = resizeZoneEdge(vw.zones ?? [], layoutColsOf(vw), layoutRowsOf(vw), zoneId, edge, oran);
+              if (!r) {
+                // Sessizce yutma: kenar çekilemediyse sebebi söylenmeli, yoksa
+                // kullanıcı "tutmuyor" deyip uğraşmayı bırakıyor.
+                setSaveErr("Bu kenar çekilemedi — sınır komşu alanlarla düz bir çizgi oluşturmuyor.");
+                return;
+              }
+              setUndoZones(vw.zones ?? []);
+              setUndoGrid({ cols: layoutColsOf(vw), rows: layoutRowsOf(vw) });
+              setSaveErr(null);
+              saveLayout(id, r).catch(() => setSaveErr("Değişiklik kaydedilemedi — bağlantını kontrol edip tekrar dene."));
+            }} onLayout={(r) => {
               setUndoZones(vw.zones ?? []);
               setUndoGrid({ cols: layoutColsOf(vw), rows: layoutRowsOf(vw) });
               setSaveErr(null);

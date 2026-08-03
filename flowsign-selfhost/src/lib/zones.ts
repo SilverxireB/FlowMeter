@@ -225,6 +225,106 @@ export function normalizeGrid(zones: Zone[], cols: number, rows: number): SplitR
   return { zones: nz, cols: nc, rows: nr };
 }
 
+/**
+ * KENAR ÇEKME — iki komşu alanın PAYLAŞTIĞI sınırı kaydırır.
+ *
+ * Neden gerekiyordu: editörde alanlar yalnız EŞİT parçalara bölünebiliyordu
+ * (2/3/4), sürükleme ise taşımıyor birleştiriyordu. 70/30 gibi bir yerleşim
+ * doğrudan kurulamıyor, "4'e böl, 3'ünü birleştir" gibi dolambaçlı yol
+ * gerekiyordu. (docs/VIDEOWALL.md bunu zaten vaat ediyordu; kod yapmıyordu.)
+ *
+ * ÇÖZÜNÜRLÜK: hücre ızgarası kaba olduğunda (3 sütun = %33'lük adımlar) çekme
+ * işe yaramaz. Bu yüzden çekmeden önce ilgili eksen, en az ~24 adım verecek
+ * kadar ÖLÇEKLENİR — bölmenin yaptığı işin aynısı. Sonda `normalizeGrid` EBOB
+ * ile sadeleştirdiği için ızgara şişmiş kalmaz.
+ *
+ * GÜVENLİK: sınır "temiz" değilse (bir alan sınırın üstüne BİNİYORSA) işlem
+ * yapılmaz, `null` döner. Yarısı kayan bir yerleşim üretmektense hiç
+ * kıpırdamamak doğrusu — kullanıcı ne olduğunu anlamayacağı bir bozulmayla
+ * baş başa kalmasın.
+ */
+export function resizeZoneEdge(
+  zones: Zone[],
+  cols: number,
+  rows: number,
+  zoneId: string,
+  edge: "l" | "r" | "t" | "b",
+  oran: number
+): SplitResult | null {
+  const dikey = edge === "l" || edge === "r"; // dikey sınır = sütun kaydırılır
+  const eksen = dikey ? cols : rows;
+  // En az ~24 adım: 3 sütunlu duvarda %33'lük sıçrama çekmeyi işe yaramaz kılar.
+  const k = Math.max(1, Math.ceil(24 / eksen));
+  const nc = dikey ? cols * k : cols;
+  const nr = dikey ? rows : rows * k;
+  if (nc > MAX_LAYOUT_AXIS || nr > MAX_LAYOUT_AXIS) return null;
+
+  const kutular = new Map<string, CellBox>();
+  for (const z of zones) {
+    const b = zoneCells(z, cols, rows);
+    kutular.set(
+      z.id,
+      dikey
+        ? { c0: b.c0 * k, c1: (b.c1 + 1) * k - 1, r0: b.r0, r1: b.r1 }
+        : { c0: b.c0, c1: b.c1, r0: b.r0 * k, r1: (b.r1 + 1) * k - 1 }
+    );
+  }
+  const hedefKutu = kutular.get(zoneId);
+  if (!hedefKutu) return null;
+
+  // Sınır çizgisi: kaydırılacak hücre indeksi (sol/üst tarafın bittiği yer + 1)
+  const sinir = dikey
+    ? edge === "r" ? hedefKutu.c1 + 1 : hedefKutu.c0
+    : edge === "b" ? hedefKutu.r1 + 1 : hedefKutu.r0;
+  const uzunluk = dikey ? nc : nr;
+  if (sinir <= 0 || sinir >= uzunluk) return null; // duvarın dış kenarı çekilemez
+
+  const dilimBas = (b: CellBox) => (dikey ? b.c0 : b.r0);
+  const dilimSon = (b: CellBox) => (dikey ? b.c1 : b.r1);
+  const diklemeKesisir = (a: CellBox, b: CellBox) =>
+    dikey ? a.r0 <= b.r1 && b.r0 <= a.r1 : a.c0 <= b.c1 && b.c0 <= a.c1;
+
+  // Sınırın iki yakasındaki alan kümeleri — kapanış alınana kadar genişletilir.
+  const once = new Set<string>();
+  const sonra = new Set<string>();
+  (dilimSon(hedefKutu) === sinir - 1 ? once : sonra).add(zoneId);
+  for (let tur = 0; tur < zones.length + 2; tur++) {
+    const oncekiBoy = once.size + sonra.size;
+    for (const z of zones) {
+      const b = kutular.get(z.id)!;
+      const komsuVar = (kume: Set<string>) =>
+        [...kume].some((id) => diklemeKesisir(b, kutular.get(id)!));
+      if (dilimSon(b) === sinir - 1 && komsuVar(sonra)) once.add(z.id);
+      if (dilimBas(b) === sinir && komsuVar(once)) sonra.add(z.id);
+    }
+    if (once.size + sonra.size === oncekiBoy) break;
+  }
+  if (!sonra.size || !once.size) return null; // tek yaka: kaydıracak sınır yok
+
+  // TEMİZLİK: sınıra BİNEN bir alan varsa dokunma.
+  for (const z of zones) {
+    const b = kutular.get(z.id)!;
+    const biniyor = dilimBas(b) < sinir && dilimSon(b) >= sinir;
+    if (!biniyor) continue;
+    const ilgili = [...once, ...sonra].some((id) => diklemeKesisir(b, kutular.get(id)!));
+    if (ilgili) return null;
+  }
+
+  const yeniSinir = Math.max(1, Math.min(uzunluk - 1, Math.round(oran * uzunluk)));
+  if (yeniSinir === sinir) return null;
+  // Hiçbir alan sıfır/negatif genişliğe düşmesin.
+  for (const id of once) if (yeniSinir - 1 < dilimBas(kutular.get(id)!)) return null;
+  for (const id of sonra) if (yeniSinir > dilimSon(kutular.get(id)!)) return null;
+
+  const cikti: Zone[] = zones.map((z) => {
+    const b = { ...kutular.get(z.id)! };
+    if (once.has(z.id)) dikey ? (b.c1 = yeniSinir - 1) : (b.r1 = yeniSinir - 1);
+    if (sonra.has(z.id)) dikey ? (b.c0 = yeniSinir) : (b.r0 = yeniSinir);
+    return { ...z, ...rectFromCells(b, nc, nr) };
+  });
+  return normalizeGrid(cikti, nc, nr);
+}
+
 export function splitZoneInto(
   zones: Zone[],
   cols: number,

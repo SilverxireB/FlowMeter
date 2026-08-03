@@ -65,6 +65,7 @@ export default function LayoutEditor({
   onSelect,
   onZones,
   onLayout,
+  onResize,
   onConfirm,
 }: {
   vw: Videowall;
@@ -73,6 +74,8 @@ export default function LayoutEditor({
   onZones: (zones: Zone[]) => void;
   /** Birleştirme ızgarayı da sadeleştirir — ızgara + alanlar TEK yazımda. */
   onLayout?: (r: { zones: Zone[]; cols: number; rows: number }) => void;
+  /** Kenar çekme: iki komşunun paylaştığı sınırı oransal konuma taşı. */
+  onResize?: (zoneId: string, edge: "l" | "r" | "t" | "b", oran: number) => void;
   /** Markalı onay penceresi (edit sayfası sağlar) — native confirm yerine. */
   onConfirm: (c: { title: string; message: string; confirmLabel?: string; danger?: boolean; run: () => void }) => void;
 }) {
@@ -84,6 +87,9 @@ export default function LayoutEditor({
   const screenRows = vw.rows;
   const gridRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ anchor: Cell; hover: Cell } | null>(null);
+  // Kenar çekme: sürüklerken YALNIZ kılavuz çizgi oynar, yazım bırakınca
+  // yapılır — her fare hareketinde Firestore'a yazmak kotayı da ekranı da yorar.
+  const [cek, setCek] = useState<{ zoneId: string; edge: "l" | "r" | "t" | "b"; oran: number } | null>(null);
   const dragRef = useRef(drag);
   dragRef.current = drag;
 
@@ -179,6 +185,48 @@ export default function LayoutEditor({
               style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%`, background: z.bg ?? undefined }}
             >
               <ZonePreview item={z.items[0]} />
+              {/* KENAR TUTAMAKLARI — yalnız seçili alanda ve yalnız duvarın DIŞ
+                  kenarı olmayan yönlerde. Bölme yalnız eşit parça verdiği için
+                  70/30 gibi bir yerleşim başka türlü kurulamıyordu. */}
+              {sel && onResize && (
+                <>
+                  {([
+                    { e: "l", göster: z.x > 0.001, cls: "left-0 top-0 h-full w-2 cursor-col-resize" },
+                    { e: "r", göster: z.x + z.w < 0.999, cls: "right-0 top-0 h-full w-2 cursor-col-resize" },
+                    { e: "t", göster: z.y > 0.001, cls: "top-0 left-0 w-full h-2 cursor-row-resize" },
+                    { e: "b", göster: z.y + z.h < 0.999, cls: "bottom-0 left-0 w-full h-2 cursor-row-resize" },
+                  ] as const)
+                    .filter((h) => h.göster)
+                    .map((h) => (
+                      <span
+                        key={h.e}
+                        role="separator"
+                        aria-label="Kenarı çek"
+                        className={`absolute z-[30] ${h.cls} bg-accent/0 hover:bg-accent/40 touch-none`}
+                        onPointerDown={(ev) => {
+                          // Tuvalin birleştirme sürüklemesi TETİKLENMESİN.
+                          ev.stopPropagation();
+                          ev.preventDefault();
+                          (ev.target as HTMLElement).setPointerCapture(ev.pointerId);
+                          setCek({ zoneId: z.id, edge: h.e, oran: h.e === "l" ? z.x : h.e === "r" ? z.x + z.w : h.e === "t" ? z.y : z.y + z.h });
+                        }}
+                        onPointerMove={(ev) => {
+                          if (!cek || cek.zoneId !== z.id || cek.edge !== h.e) return;
+                          const r = gridRef.current?.getBoundingClientRect();
+                          if (!r) return;
+                          const dikey = h.e === "l" || h.e === "r";
+                          const o = dikey ? (ev.clientX - r.left) / r.width : (ev.clientY - r.top) / r.height;
+                          setCek({ ...cek, oran: Math.max(0.02, Math.min(0.98, o)) });
+                        }}
+                        onPointerUp={() => {
+                          if (cek && cek.zoneId === z.id && cek.edge === h.e) onResize(cek.zoneId, cek.edge, cek.oran);
+                          setCek(null);
+                        }}
+                        onPointerCancel={() => setCek(null)}
+                      />
+                    ))}
+                </>
+              )}
               <span className="relative z-[1] text-white text-[11px] font-semibold leading-tight pointer-events-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                 {z.name || `Alan ${i + 1}`}
                 {z.items.length > 0 && <span className="block text-white/70 font-normal">{z.items.length} içerik</span>}
@@ -186,6 +234,18 @@ export default function LayoutEditor({
             </div>
           );
         })}
+
+        {/* Çekme kılavuzu — bırakınca uygulanacak sınır */}
+        {cek && (
+          <div
+            className="absolute z-[28] bg-accent pointer-events-none"
+            style={
+              cek.edge === "l" || cek.edge === "r"
+                ? { left: `${cek.oran * 100}%`, top: 0, bottom: 0, width: 2 }
+                : { top: `${cek.oran * 100}%`, left: 0, right: 0, height: 2 }
+            }
+          />
+        )}
 
         {/* Fiziksel ekran (çerçeve/bezel) çizgileri — yerleşimden BAĞIMSIZ */}
         {Array.from({ length: screenCols - 1 }).map((_, i) => (
@@ -228,7 +288,7 @@ export default function LayoutEditor({
         />
       </div>
       <p className="text-muted text-xs mt-3">
-        <b>Sürükle</b> → birleştir · <b>tıkla</b> → seç
+        <b>Tıkla</b> → seç · <b>kenarından çek</b> → oranı değiştir · <b>sürükle</b> → birleştir
         {screenCols * screenRows > 1 ? " · kesik çizgi = ekran çerçevesi" : ""}
       </p>
     </div>
