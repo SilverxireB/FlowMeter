@@ -169,6 +169,13 @@ export default function EditPage() {
                 <Link href={`/remote/${id}`} className="rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper">
                   📱 Kumanda
                 </Link>
+                {/* Moderasyon ekranının adresi vardı ama uygulamada HİÇBİR yerden
+                    linki yoktu: rehberi yazarken "adres çubuğuna /moderate/ + kod
+                    yaz" demek zorunda kaldık. Soru & Cevap ve açık uçlu cevap
+                    onayı buradan açılır; adresi bir yardımcıya da verebilirsin. */}
+                <Link href={`/moderate/${presentation.joinCode}`} className="rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper">
+                  Moderasyon
+                </Link>
                 <div className="border-t border-line my-1.5" />
                 <label className="flex items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-paper cursor-pointer">
                   💬 Canlı sohbet

@@ -220,10 +220,9 @@ export const METER_REHBER: RehberBolum[] = [
 
         <Baslik>Moderasyon</Baslik>
         <p>
-          Soru &amp; Cevap ile açık uçlu cevaplar önce onaydan geçebilir. Moderasyon ekranının adresi{" "}
-          <span className="font-mono text-[13px]">/moderate/</span> + katılım kodudur; açıkken sorular ve cevaplar
-          perdeye düşmeden orada bekler. Onaylayan kişi sen olmak zorunda değilsin — adresi bir yardımcına verebilirsin
-          (giriş yapması gerekir).
+          Soru &amp; Cevap ile açık uçlu cevaplar önce onaydan geçebilir. Menüden <Dugme>Moderasyon</Dugme>: açık
+          olduğunda sorular ve cevaplar perdeye düşmeden orada bekler, sen onaylayınca görünür. Sayfayı yalnız sunumun sahibi
+          açabilir; ama telefonundan da açabilirsin — perdeyi sürdürürken onayları elinden yürütürsün.
         </p>
       </>
     ),
