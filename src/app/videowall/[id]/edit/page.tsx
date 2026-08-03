@@ -170,10 +170,13 @@ export default function VideowallEditPage() {
     return pick(vw) !== pick(vw.live);
   }, [vw]);
   const [publishing, setPublishing] = useState(false);
+  /** Yayın onayı gecikti — HATA değil, bekleme. Tamamlanınca kendiliğinden kalkar. */
+  const [bekliyor, setBekliyor] = useState<string | null>(null);
   const publish = async () => {
     if (!vw || publishing) return;
     setPublishing(true);
     setSaveErr(null);
+    setBekliyor(null);
     // Yazımı BIRAKMIYORUZ: Firestore çevrimdışıyken kuyruğa alıp bağlantı
     // gelince gönderiyor. Eskiden yalnız `withTimeout` bekleniyordu ve zaman
     // aşımında kırmızı şerit basılıyordu — yayın birkaç saniye sonra gerçekten
@@ -186,17 +189,28 @@ export default function VideowallEditPage() {
       () => {
         bitti = true;
         setSaveErr(null);
+        setBekliyor(null);
         flashToast("✓ Yayınlandı — ekranlar birkaç saniye içinde güncellenir.");
       },
       () => {
         bitti = true;
+        setBekliyor(null);
         setSaveErr("Yayınlanamadı — tekrar dene.");
       }
     );
     try {
-      await withTimeout(yazim);
+      // 20 sn: 12 sn'lik genel varsayılan burada erken konuşuyordu. Boştan sonraki
+      // İLK yazım, Firestore'un veri akışını yeniden kurmasını (ve gerekirse
+      // kimlik jetonunu tazelemesini) bekliyor; süzgeçli kurum ağında bu tek
+      // başına 12 sn'yi aşabiliyor.
+      await withTimeout(yazim, 20000);
     } catch {
-      if (!bitti) setSaveErr("Bağlantı bekleniyor — yayın sıraya alındı, bağlantı gelince kendiliğinden gidecek.");
+      if (!bitti)
+        setBekliyor(
+          navigator.onLine === false
+            ? "Bağlantı yok — yayın sıraya alındı, internet gelince kendiliğinden gidecek."
+            : "Sunucu yanıtı gecikti — yayın sıraya alındı, tamamlanınca burada haber vereceğim."
+        );
     } finally {
       setPublishing(false);
     }
@@ -335,6 +349,19 @@ export default function VideowallEditPage() {
       </header>
 
       {/* Hata / kaydedilmemiş değişiklik şeritleri */}
+      {/* BEKLİYOR — HATA DEĞİL, bu yüzden gül değil amber.
+          Yayın yazımı 20 sn içinde onaylanmazsa buraya düşer; yazım BIRAKILMAZ,
+          Firestore kuyrukta tutup bağlantı gelince gönderir ve tamamlanınca bu
+          şerit kendiliğinden kalkıp "✓ Yayınlandı" çıkar. Eskiden aynı durum
+          kırmızı "hata" şeridinde gösteriliyordu; tasarım kuralı gül rengi
+          YALNIZ uyarı/danger için ayırıyor ve kullanıcı da haklı olarak
+          "neden bu hatayı veriyor?" diye sordu — hata yoktu. */}
+      {bekliyor && !saveErr && (
+        <div className="bg-[#eda100]/10 border-b border-[#eda100]/30 px-4 sm:px-6 py-2.5 text-sm text-[#8a6100] font-semibold flex items-center justify-between gap-3">
+          <span>{bekliyor}</span>
+          <button onClick={() => setBekliyor(null)} className="text-[#8a6100]/70 hover:text-[#8a6100] shrink-0" aria-label="Kapat"><Icon name="close" size={14} /></button>
+        </div>
+      )}
       {saveErr && (
         <div className="bg-brand-soft border-b border-brand/20 px-4 sm:px-6 py-2.5 text-sm text-brand font-semibold flex items-center justify-between gap-3">
           <span>⚠ {saveErr}</span>
