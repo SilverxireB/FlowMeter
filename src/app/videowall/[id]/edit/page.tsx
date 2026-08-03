@@ -87,6 +87,43 @@ export default function VideowallEditPage() {
   const [undoZones, setUndoZones] = useState<Videowall["zones"] | null>(null);
   const [undoGrid, setUndoGrid] = useState<{ cols: number; rows: number } | null>(null);
 
+  // ⚠ KANCALAR ERKEN RETURN'LERİN ÜSTÜNDE. Bu blok bir kez aşağıya,
+  // `changeScreens`in yanına konmuştu ve sayfa TAMAMEN çöktü: altında
+  // `if (vw === undefined) return …` var, yani yükleme bitince kanca
+  // sayısı değişiyordu. React'in kanca sırası koşula bağlanamaz.
+  // Duvar tanımı BEKLEMEDE tutulur (bkz. yerleşim kartındaki blok yorumu):
+  // dört alan birlikte, Uygula ile gider.
+  const tanimVarsayilan = useMemo(
+    () => ({
+      width: String(vw?.width ?? ""),
+      height: String(vw?.height ?? ""),
+      cols: String(vw?.cols ?? ""),
+      rows: String(vw?.rows ?? ""),
+    }),
+    [vw?.width, vw?.height, vw?.cols, vw?.rows]
+  );
+  const [tanim, setTanim] = useState(tanimVarsayilan);
+  useEffect(() => setTanim(tanimVarsayilan), [tanimVarsayilan]);
+  const tanimDegisti =
+    tanim.width !== tanimVarsayilan.width ||
+    tanim.height !== tanimVarsayilan.height ||
+    tanim.cols !== tanimVarsayilan.cols ||
+    tanim.rows !== tanimVarsayilan.rows;
+  const tanimUygula = () => {
+    if (!vw) return;
+    const w = Math.max(1, Math.round(Number(tanim.width) || 0));
+    const h = Math.max(1, Math.round(Number(tanim.height) || 0));
+    const c = clampScreens(Number(tanim.cols));
+    const r = clampScreens(Number(tanim.rows));
+    if (w !== vw.width || h !== vw.height) {
+      updateVideowall(id, { width: w, height: h }).catch(() =>
+        setSaveErr("Çözünürlük kaydedilemedi — tekrar dene.")
+      );
+    }
+    // Ekran sayısı EN SON: yerleşimi sıfırlayabildiği için onay isteyebiliyor.
+    if (c !== vw.cols || r !== vw.rows) changeScreens(c, r);
+  };
+
   useEffect(() => watchVideowall(id, setVw), [id]);
   useEffect(() => setOrigin(window.location.origin), []);
   // Eski (slug'sız) ekrana isimden slug doldur → kolay link çalışsın (yalnız sahibi yazabilir).
@@ -249,38 +286,6 @@ export default function VideowallEditPage() {
     changeGrid(cols, rows);
   };
 
-  // Duvar tanımı BEKLEMEDE tutulur (bkz. yerleşim kartındaki blok yorumu):
-  // dört alan birlikte, Uygula ile gider.
-  const tanimVarsayilan = useMemo(
-    () => ({
-      width: String(vw?.width ?? ""),
-      height: String(vw?.height ?? ""),
-      cols: String(vw?.cols ?? ""),
-      rows: String(vw?.rows ?? ""),
-    }),
-    [vw?.width, vw?.height, vw?.cols, vw?.rows]
-  );
-  const [tanim, setTanim] = useState(tanimVarsayilan);
-  useEffect(() => setTanim(tanimVarsayilan), [tanimVarsayilan]);
-  const tanimDegisti =
-    tanim.width !== tanimVarsayilan.width ||
-    tanim.height !== tanimVarsayilan.height ||
-    tanim.cols !== tanimVarsayilan.cols ||
-    tanim.rows !== tanimVarsayilan.rows;
-  const tanimUygula = () => {
-    if (!vw) return;
-    const w = Math.max(1, Math.round(Number(tanim.width) || 0));
-    const h = Math.max(1, Math.round(Number(tanim.height) || 0));
-    const c = clampScreens(Number(tanim.cols));
-    const r = clampScreens(Number(tanim.rows));
-    if (w !== vw.width || h !== vw.height) {
-      updateVideowall(id, { width: w, height: h }).catch(() =>
-        setSaveErr("Çözünürlük kaydedilemedi — tekrar dene.")
-      );
-    }
-    // Ekran sayısı EN SON: yerleşimi sıfırlayabildiği için onay isteyebiliyor.
-    if (c !== vw.cols || r !== vw.rows) changeScreens(c, r);
-  };
 
 
   const changeGrid = (cols: number, rows: number) => {

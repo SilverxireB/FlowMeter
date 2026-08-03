@@ -34,13 +34,15 @@ export default function KantinAyarlarPage() {
     return izleMenu(seciliId, setMenu);
   }, [seciliId]);
 
-  const kapi = kapiDurumu({ hazir, user, rolHazir, yetkili: rol !== "personel", seciliId, kantinGerekli: false });
-  if (kapi !== "acik") return <YetkiKapisi durum={kapi} />;
-
   // CLAUDE.md kuralı: kayıt açan aksiyonda kilit REF ile — iki hızlı dokunuş
   // aynı ürünü/kantini iki kez açıyordu.
+  // ⚠ Kancalar yetki kapısının ÜSTÜNDE: kapı bir `return` ve altında kalan her
+  // kanca, kapı açılıp kapandığında sırayı değiştirip sayfayı çökertir.
   const urunKilit = useRef(false);
   const kantinKilit = useRef(false);
+
+  const kapi = kapiDurumu({ hazir, user, rolHazir, yetkili: rol !== "personel", seciliId, kantinGerekli: false });
+  if (kapi !== "acik") return <YetkiKapisi durum={kapi} />;
 
   const urunEkleGonder = async () => {
     if (!yeniAd.trim() || !seciliId || urunKilit.current) return;
