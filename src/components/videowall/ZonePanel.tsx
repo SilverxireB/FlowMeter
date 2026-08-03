@@ -469,7 +469,7 @@ export default function ZonePanel({
                   overIdx === i && dragIdx !== null ? "border-accent" : "border-line"
                 } ${dragIdx === i ? "opacity-40" : ""}`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-start gap-2 flex-wrap sm:flex-nowrap">
                   <span
                     draggable
                     onDragStart={() => setDragIdx(i)}
@@ -496,10 +496,14 @@ export default function ZonePanel({
                     {i + 1}
                   </span>
                   <ItemThumb item={it} />
-                  {/* min-w-0 + overflow-hidden: rozet şeridi eskiden `inline-flex`ti,
-                      daralamadığı için dar telefonda kutudan TAŞIP sağdaki düğmelerin
-                      ALTINA giriyordu (rozet yarım görünüyordu). */}
-                  <div className="flex-1 min-w-0 overflow-hidden">
+                  {/* DAR EKRANDA KENDİ SATIRI. Telefonda ▲▼ + sıra no + minyatür +
+                      ayar + sil sabit ~236px yer kaplıyor ve ada/rozetlere ~120px
+                      kalıyordu: rozetler kutulara sıkışıp KARAKTER KARAKTER
+                      sarıyordu ("9/sn", tarih dört satır). Artık ad ve rozetler
+                      alta, tam genişliğe iner; sm+ ekranda eski tek satır düzeni
+                      aynen kalır. (Rozetler ayrıca `truncate` — asla içeriden
+                      kırılmaz, sığmazsa üç noktaya düşer.) */}
+                  <div className="order-last basis-full sm:order-none sm:basis-auto flex-1 min-w-0">
                     {(() => {
                       // Bağlı ekranın adı, o ekranın GÜNCEL adıdır — bağlandığı
                       // andaki değil. Delege edilen kişi ekranını yeniden
@@ -514,23 +518,23 @@ export default function ZonePanel({
                         </p>
                       );
                     })()}
-                    <span className="flex items-center gap-1.5 mt-0.5 flex-wrap min-w-0">
-                      <span className="text-[10px] uppercase tracking-wider text-accent-dark bg-accent-soft rounded px-1.5 py-0.5">{KIND_LABEL[it.kind]}</span>
+                    <span className="flex items-center gap-1.5 mt-1 flex-wrap min-w-0">
+                      <span className="text-[10px] uppercase tracking-wider text-accent-dark bg-accent-soft rounded px-1.5 py-0.5 truncate max-w-full shrink-0">{KIND_LABEL[it.kind]}</span>
                       {/* Kompakt özet: ayrıntılar ⚙ ile açılır */}
-                      <span className="text-[10px] text-muted bg-white border border-line rounded px-1.5 py-0.5 tabular-nums">
+                      <span className="text-[10px] text-muted bg-white border border-line rounded px-1.5 py-0.5 tabular-nums truncate max-w-full shrink-0">
                         ⏱ {it.kind === "video" && !it.durationSec ? "video sonu" : `${it.durationSec ?? 8} sn`}
                       </span>
                       {(it.from || it.to || it.days?.length || it.fromDate || it.toDate) && (
-                        <span className="text-[10px] text-muted bg-white border border-line rounded px-1.5 py-0.5 tabular-nums">
+                        <span className="text-[10px] text-muted bg-white border border-line rounded px-1.5 py-0.5 tabular-nums truncate max-w-full shrink-0">
                           🗓 {it.fromDate || it.toDate ? `${(it.fromDate ?? "…").slice(5)} – ${(it.toDate ?? "…").slice(5)}` : "takvimli"}
                         </span>
                       )}
                       {it.kind === "url" && (it.zoom ?? 100) !== 100 && (
-                        <span className="text-[10px] text-muted bg-white border border-line rounded px-1.5 py-0.5">🔍 %{it.zoom}</span>
+                        <span className="text-[10px] text-muted bg-white border border-line rounded px-1.5 py-0.5 truncate max-w-full shrink-0">🔍 %{it.zoom}</span>
                       )}
                       {takvim !== "icinde" && (
                         <span
-                          className={`text-[10px] rounded px-1.5 py-0.5 ${
+                          className={`text-[10px] rounded px-1.5 py-0.5 truncate max-w-full shrink-0 ${
                             takvim === "doldu"
                               ? "bg-[#eda100]/12 text-[#8a6100] font-bold"
                               : takvim === "baslamadi"
@@ -542,7 +546,7 @@ export default function ZonePanel({
                         </span>
                       )}
                       {it.kind === "screen" && screens !== null && !screens.some((v) => v.id === it.screenId) && (
-                        <span className="text-[10px] font-bold text-brand bg-brand-soft rounded px-1.5 py-0.5">⚠ bağlı ekran bulunamadı</span>
+                        <span className="text-[10px] font-bold text-brand bg-brand-soft rounded px-1.5 py-0.5 truncate max-w-full shrink-0">⚠ bağlı ekran bulunamadı</span>
                       )}
                     </span>
                   </div>
