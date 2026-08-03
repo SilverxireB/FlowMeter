@@ -123,7 +123,11 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   kamera (getUserMedia — capture input Android'de RAM ölümüyle kare kaybediyordu,
   yedek yol duruyor); `pinnedMediaId` → perdede WallPinned takeover;
   misafir KENDİ medyasını siler: /u sessiz anonim auth (voterId=uid; **Firebase
-  Anonymous provider AÇIK olmalı**), rules delete voterId==uid, destroy API
+  Anonymous provider AÇIK olmalı**; oturum `browserSessionPersistence` ile
+  SEKMEYE hapsedilir — varsayılan kalıcılıkta anonim oturum tüm sekmelere
+  sızıp Studio'nun Google oturumunu eziyordu: panelde "kişiler/yetkiler
+  gitti", her okuma `permission-denied`. Sign perdesi/Pulse kiosk/Meter
+  izleyici HİÇ giriş yapmaz; anonim kimliğe ihtiyaç duyan TEK yer burası), rules delete voterId==uid, destroy API
   `mode:"guest"` (public_id sunucudan okunur); `frameUrl` etkinlik çerçevesi
   (yükleme ÖNCESİ canvas compose — Cloudinary kredisi yemez); çekiliş:
   adalet+denetim (draws logu); nonce ile perde tetikleme.

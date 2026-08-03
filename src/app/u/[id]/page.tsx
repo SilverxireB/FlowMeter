@@ -13,7 +13,7 @@ import FlowSpinner from "@/components/FlowSpinner";
 import { useConfirm } from "@/components/ConfirmDialog";
 import WallReactionBar from "@/components/wall/WallReactionBar";
 import { useWall } from "@/lib/hooks";
-import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
+import { browserSessionPersistence, onAuthStateChanged, setPersistence, signInAnonymously } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { addWallMedia, castContestVote, deleteMedia, getMyContestVote, getMyRaffleSicil, hasLikedMedia, isCurrentSession, likeMedia, raffleRegistrationOpen, registerRaffle, resolveCode, sendWallWish, wallMaxPerPerson, wallVideoLimitSec, watchWallMediaByVoter, watchWallMediaRecent } from "@/lib/walls";
 import { cloudinaryStatus, cldFit, cldVideoPoster, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
@@ -111,7 +111,29 @@ export default function UploadPage() {
         // dönünce içerikleri (ownerId eşleşmediği için) yok görünüyordu.
         if (ilk) {
           ilk = false;
-          if (!u) signInAnonymously(a).catch(() => {});
+          if (!u) {
+            // ANONİM OTURUM YALNIZ BU SEKMEDE KALIR.
+            //
+            // Firebase Auth varsayılan olarak oturumu localStorage/IndexedDB'ye
+            // yazar ve aynı uygulamanın TÜM sekmeleri onu paylaşır. Bu sayfa
+            // misafire sessizce anonim oturum açtığı için, duvarını kendi
+            // tarayıcısında açan bir Studio kullanıcısının Google oturumu
+            // anonim oturumla değişiyordu: panelde "kişiler/yetkiler gitti",
+            // her okuma reddediliyordu. Ürünü gösteren herkes bunu yaşıyor.
+            //
+            // sessionStorage kalıcılığı bunu tek satırla kesiyor: oturum SEKME
+            // BAŞINA saklanır, sayfa yenilense de yaşar (misafir kendi
+            // medyasını silmeye devam edebilir) ama başka sekmelere SIZMAZ.
+            //
+            // Sıra önemli: yalnız oturum YOKKEN çağrılıyor. Var olan bir oturum
+            // varken setPersistence onu yeni depoya TAŞIR ve eskisinden siler —
+            // yani Google oturumunu diğer sekmelerden koparırdı.
+            setPersistence(a, browserSessionPersistence)
+              .catch(() => {})
+              .finally(() => {
+                signInAnonymously(a).catch(() => {});
+              });
+          }
         }
       });
     } catch {}
