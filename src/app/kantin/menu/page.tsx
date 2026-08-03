@@ -43,10 +43,7 @@ import { useToast } from "@/components/Toast";
 import BosDurum from "@/components/kantin/BosDurum";
 
 export default function KantinMenuPage() {
-  const { user, kisi, rol, hazir, seciliKantin, seciliId, kantinler, acikSiparisler, siparislerim } = useKantin();
-  // Alt gezinme çubuğu YALNIZ personelde çizilir (bkz. Kabuk) — sepet çubuğunun
-  // ne kadar yukarı kalkacağı buna bağlı.
-  const altCubukVar = rol === "personel";
+  const { user, kisi, hazir, seciliKantin, seciliId, kantinler, acikSiparisler, siparislerim } = useKantin();
   const router = useRouter();
   const { show, toast } = useToast();
   const [menu, setMenu] = useState<MenuUrun[] | null>(null);
@@ -361,11 +358,10 @@ export default function KantinMenuPage() {
           {/* Sepet çubuğu alt gezinme çubuğunun ÜSTÜNDE durur. Eskiden ikisi de
               `bottom-0` idi: sepete tek ürün eklendiği anda Menü/Siparişim
               gezinmesi tamamen örtülüyordu — siparişi göndermeden başka sekmeye
-              geçmenin yolu kalmıyordu. (Alt çubuk yalnız personelde çizilir,
-              yönetici/görevlide üst şerit var; o yüzden ofset role bağlı.) */}
+              geçmenin yolu kalmıyordu. Ofset saf CSS: alt çubuk sm altında var,
+              sm ve üstünde yok. */}
           <div
-            className="fixed inset-x-0 z-40 p-3 pointer-events-none"
-            style={{ bottom: altCubukVar ? "calc(3.5rem + env(safe-area-inset-bottom))" : 0, paddingBottom: altCubukVar ? "0.75rem" : "calc(0.75rem + env(safe-area-inset-bottom))" }}
+            className="fixed inset-x-0 z-40 p-3 pointer-events-none bottom-[calc(3.5rem+env(safe-area-inset-bottom))] pb-3 sm:bottom-0 sm:pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
           >
             <div className="max-w-3xl mx-auto pointer-events-auto flex gap-2">
               <button
