@@ -26,10 +26,10 @@ function ClockView({ item }: { item: ZoneItem }) {
   }, []);
   return (
     <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-4 text-center" style={{ background: item.bg ?? "#0d102f", color: item.color ?? "#fff" }}>
-      <div className="font-display font-bold tabular-nums leading-none" style={{ fontSize: "clamp(28px, 9vw, 200px)" }}>
+      <div className="font-display font-bold tabular-nums leading-none" style={{ fontSize: "clamp(28px, 9cqw, 200px)" }}>
         {t.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
       </div>
-      <div className="font-display opacity-80" style={{ fontSize: "clamp(12px, 2.4vw, 44px)" }}>
+      <div className="font-display opacity-80" style={{ fontSize: "clamp(12px, 2.4cqw, 44px)" }}>
         {t.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" })}
       </div>
     </div>
@@ -39,8 +39,8 @@ function ClockView({ item }: { item: ZoneItem }) {
 function TextView({ item }: { item: ZoneItem }) {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center px-[6%]" style={{ background: item.bg ?? "#312e81", color: item.color ?? "#fff" }}>
-      {item.title && <div className="font-display font-bold leading-tight" style={{ fontSize: "clamp(24px, 6vw, 130px)" }}>{item.title}</div>}
-      {item.text && <div className="font-display opacity-90 leading-snug whitespace-pre-wrap" style={{ fontSize: "clamp(14px, 2.6vw, 52px)" }}>{item.text}</div>}
+      {item.title && <div className="font-display font-bold leading-tight max-w-full" style={{ fontSize: "clamp(24px, 6cqw, 130px)", overflowWrap: "anywhere" }}>{item.title}</div>}
+      {item.text && <div className="font-display opacity-90 leading-snug whitespace-pre-wrap max-w-full" style={{ fontSize: "clamp(14px, 2.6cqw, 52px)", overflowWrap: "anywhere" }}>{item.text}</div>}
     </div>
   );
 }
@@ -327,7 +327,12 @@ function ZonePlayer({
   return (
     <div
       className="absolute overflow-hidden"
-      style={{ left: `${zone.x * 100}%`, top: `${zone.y * 100}%`, width: `${zone.w * 100}%`, height: `${zone.h * 100}%`, background: zone.bg ?? ZONE_BG_DEFAULT }}
+      /* containerType: metin/saat boyutlari ALANA gore olculsun diye.
+         Eskiden `vw` kullaniliyordu, yani EKRANIN TAMAMINA gore: ucte bir
+         genislikteki bir alanda yazi uc kat buyuk cikiyor ve saga sola
+         tasip kesiliyordu (kullanici ekran goruntusu). Tek alanli duvarda
+         cqw ile vw ayni sonucu verir, yani eski davranis bozulmuyor. */
+      style={{ left: `${zone.x * 100}%`, top: `${zone.y * 100}%`, width: `${zone.w * 100}%`, height: `${zone.h * 100}%`, background: zone.bg ?? ZONE_BG_DEFAULT, containerType: "size" }}
     >
       {layers.length === 0 ? (
         <div className="w-full h-full grid place-items-center text-white/15 text-sm select-none">FlowSign</div>
