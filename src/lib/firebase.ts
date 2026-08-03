@@ -152,6 +152,13 @@ export async function jetonTeshis(): Promise<string> {
     const u = getAuth(app()).currentUser;
     if (!u) return "oturum yok";
     const r = await u.getIdTokenResult();
+    // KİM giriş yapmış? Jeton taze ve saat düzgünken hâlâ reddediliyorsa akla
+    // gelen tek şey kimliğin YANLIŞ olması — ör. oturumun sessizce ANONİM
+    // kullanıcıya dönmesi (FlowWall misafir sayfası varsayılan uygulamada
+    // anonim giriş yapıyor ve Firebase Auth oturumu tüm sekmelerde paylaşır).
+    const kim = u.isAnonymous
+      ? "ANONİM oturum"
+      : `${u.email ?? "e-posta yok"} (${u.providerData[0]?.providerId ?? "sağlayıcı yok"})`;
     const simdi = Date.now();
     const alindi = Math.round((simdi - Date.parse(r.issuedAtTime)) / 60000);
     const kalan = Math.round((Date.parse(r.expirationTime) - simdi) / 60000);
@@ -161,7 +168,7 @@ export async function jetonTeshis(): Promise<string> {
       const d = res.headers.get("date");
       if (d) sapma = `${Math.round((simdi - Date.parse(d)) / 1000)} sn`;
     } catch {}
-    return `jeton ${alindi} dk önce alındı, ${kalan} dk kaldı · cihaz saati sapması ${sapma} · ${
+    return `${kim} · jeton ${alindi} dk önce alındı, ${kalan} dk kaldı · saat sapması ${sapma} · ${
       navigator.onLine ? "çevrimiçi" : "çevrimdışı"
     }`;
   } catch (e) {
