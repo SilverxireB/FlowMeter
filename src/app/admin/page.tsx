@@ -48,7 +48,17 @@ export default function AdminPage() {
 
   // Yetki kontrolü: bootstrap e-posta veya users kaydında role=admin
   useEffect(() => {
-    if (!user) return;
+    // Oturum DÜŞERSE yetki kapısı da kapanmalı. Eskiden `if (!user) return`
+    // deyip çıkılıyordu: `allowed` bir önceki oturumdan TRUE kalıyor, sayfa
+    // çizilmeye ve sorgulamaya devam ediyordu. Oturum sessizce anonime dönerse
+    // (FlowWall misafir sayfası varsayılan uygulamada anonim giriş açıyor ve
+    // Auth oturumu tüm sekmelerde paylaşılıyor) ekran giriş istemek yerine
+    // arka arkaya "yetkiniz yok" veriyordu — kullanıcının gördüğü "her şey
+    // gitti" tablosu buydu.
+    if (!user) {
+      setAllowed(false);
+      return;
+    }
     if (user.email === ADMIN_EMAIL) {
       setAllowed(true);
       return;
