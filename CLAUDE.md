@@ -74,6 +74,16 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   yenilenince 1 sn). `lib/firebase.ts` → `baglantiyiTazele()`
   (disableNetwork→enableNetwork) sayacı sıfırlar: sekme 45 sn+ gizli kalıp
   dönünce, `online` olayında ve yazım gecikince otomatik çağrılır.
+  **ÇOK-SEKME TUZAĞI (asıl suçlu buydu):** kalıcı önbellek **tek sekme**
+  (`persistentSingleTabManager`) — GERİ ALMAYIN. Çok-sekmede sekmelerden biri
+  "birincil" olur ve ağa çıkan tek bağlantı onundur; diğer sekmelerin sorguları
+  onun KİMLİĞİYLE gider. Bizde sekmeler bilerek farklı kimlikte (kokpit Google,
+  perde/sunum/oylama auth'suz — o sayfalar `auth()` çağırmadığı için istek
+  kimliksiz, /u anonim): perde sekmesi birincil olunca kokpitin okumaları
+  kimliksiz çıkıp `permission-denied` alıyordu (kişiler/yetkiler/tabelalar
+  boşalır, teşhis satırı "doğru hesap · jeton taze" der). "Sunucu yanıtı
+  bekleniyor 2 dk" da aynı sebep: birincil sekme arka planda kısılınca herkes
+  onu bekler (düzelmesi için İKİ sekmeyi de yenilemek gerekiyordu).
 - **FlowSign:** editör TASLAK (`zones`), perde YAYIN (`live`); birleştir/böl içerik
   korur + onay sorar; slug ad değişince YENİLENİR (slugHistory eski linkleri taşır);
   iframe sandbox + http(s) doğrulama; Wake Lock + offline persistence

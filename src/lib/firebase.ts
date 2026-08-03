@@ -5,7 +5,7 @@ import {
   getFirestore,
   initializeFirestore,
   persistentLocalCache,
-  persistentMultipleTabManager,
+  persistentSingleTabManager,
   disableNetwork,
   enableNetwork,
 } from "firebase/firestore";
@@ -68,6 +68,39 @@ function app(): FirebaseApp {
 // Firestore: tarayıcıda kalıcı IndexedDB önbelleği (ağ kesilse son içerik/oynatma
 // devam eder — FlowSign tabelası için 7/24 dayanıklılık; realtime onSnapshot
 // online'da aynen çalışır). Tek giriş noktası → initializeFirestore bir kez.
+/**
+ * ⚠ TEK SEKME (`persistentSingleTabManager`) — ÇOK SEKMEYE GERİ DÖNMEYİN.
+ *
+ * 2026-07-30'da çok-sekme (`persistentMultipleTabManager`) açılmıştı ve o günden
+ * sonra kokpitte şu arıza başladı: ekran bir süre açık kalınca TÜM okumalar
+ * "Sunucu isteği kabul etmedi" veriyor (kişiler, yetkiler, tabelalar hepsi
+ * boşalıyor), sayfa yenilenince düzeliyor, telefonda hiç olmuyor. Teşhis satırı
+ * ise her seferinde "doğru Google hesabı · jeton taze · saat düzgün · çevrimiçi"
+ * diyordu — yani sorun o sekmenin kimliğinde DEĞİLDİ.
+ *
+ * Sebep: çok-sekme kipinde sekmelerden biri "birincil" seçilir ve ağa çıkan
+ * TEK bağlantı onundur — diğer sekmelerin sorguları ve yazımları IndexedDB
+ * üzerinden birincil sekmeye devredilir, o da bunları KENDİ kimliğiyle
+ * gönderir (SDK'nın kendi belgesi: "the primary client listens to notifications
+ * sent by secondary clients … such as the addition of new mutations and query
+ * targets").
+ *
+ * Bizde sekmeler BİLEREK farklı kimliktedir: kokpit Google ile girer, tabela
+ * perdesi / sunum ekranı / oylama sayfası hiç auth başlatmaz (o sayfalarda
+ * `auth()` çağrılmadığı için Firestore isteği KİMLİKSİZ gider), FlowWall misafir
+ * sayfası anonimdir. Aynı bilgisayarda bir perde sekmesi açıkken o sekme
+ * birincil olursa, kokpit sekmesinin okumaları kimliksiz çıkar ve sunucu haklı
+ * olarak reddeder. Aynı mekanizma "sunucu yanıtı bekleniyor 2 dakika" arızasını
+ * da açıklıyor: birincil sekme arka planda kısılmışsa herkes onun arkasında
+ * bekler — nitekim düzelmesi için HEM edit HEM perde sekmesini yenilemek
+ * gerekiyordu.
+ *
+ * Tek sekme kipinde her sekmenin kendi bağlantısı ve kendi jetonu vardır; kilidi
+ * alamayan sekme çökmez, SDK sessizce bellek önbelleğine düşer
+ * (`canFallbackFromIndexedDbError` → failed-precondition). Kalıcı önbelleğin
+ * gerçekten gerektiği yer olan tabela cihazında zaten tek sekme açıktır, orada
+ * hiçbir şey kaybedilmez.
+ */
 /**
  * UZUN BOŞLUKTAN SONRA BAĞLANTIYI TAZELE — "sunucu yanıtı bekleniyor" bir
  * dakika sürmesin.
@@ -205,7 +238,7 @@ export function db(): Firestore {
   if (typeof window !== "undefined") {
     try {
       _db = initializeFirestore(a, {
-        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+        localCache: persistentLocalCache({ tabManager: persistentSingleTabManager({}) }),
       });
     } catch {
       _db = getFirestore(a); // zaten başlatılmışsa / desteklenmiyorsa
