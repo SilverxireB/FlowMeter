@@ -11,25 +11,27 @@ import {
 /**
  * authDomain — Google girişinin geri döneceği adres.
  *
- * VARSAYILAN: Firebase'in kendi alan adı (`<projectId>.firebaseapp.com`).
- * Bu adres Google tarafında OTOMATİK kayıtlıdır, yani her zaman çalışır.
+ * ÜRETİMDE SİTENİN KENDİ ADRESİ kullanılıyor
+ * (`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = flowstudiomanisa.vercel.app`).
+ * Buradaki `.firebaseapp.com` yalnız YEDEK: değişken tanımsızsa devreye girer.
  *
- * NEDEN "sitenin kendi adresi" DEĞİL: bir denemede authDomain'i sayfanın
- * adresinden almıştım (rewrite sayesinde yardımcı bizim alan adımızda da
- * çalışıyor). Ama Google girişi bir kapı daha kontrol ediyor: istenen dönüş
- * adresi (`https://<authDomain>/__/auth/handler`) Google Cloud'daki OAuth
- * istemcisinin "izin verilen yönlendirme adresleri" listesinde OLMALI. Yeni
- * alan adı orada kayıtlı olmadığı için giriş "Hata 400: redirect_uri_mismatch"
- * ile tamamen durdu. Yani kendi alan adımızı kullanmak TEK BAŞINA yetmiyor,
- * konsolda bir kayıt daha istiyor.
+ * NEDEN — 2026-08, fabrika iç ağı: kurum ağı `*.firebaseapp.com`'u kapatıyordu.
+ * Site açılıyor, Firestore çalışıyor (o `googleapis.com` üstünden gider), ama
+ * Google giriş penceresi `flowmeter-938a3.firebaseapp.com/__/auth/handler`
+ * adresinde ERR_CONNECTION_TIMED_OUT alıp asılı kalıyordu. Dışarıdaki wifi'de
+ * sorun yoktu; ürünün asıl çalışacağı yer ise iç ağ. Yardımcı artık kendi alan
+ * adımızdan servis ediliyor (`next.config.mjs` içindeki `/__/auth/*` proxy'si),
+ * yani tarayıcı `firebaseapp.com`'a HİÇ gitmiyor ve engel anlamsızlaşıyor.
+ * Yan fayda: PWA'da üçüncü-taraf çerez bölümlemesi sorunu da kapanıyor.
  *
- * Kendi alan adından servis etmek istenirse (PWA'da üçüncü-taraf çerez
- * bölümlemesine takılmamak için tercih edilir) İKİ adım BİRLİKTE yapılmalı:
+ * ⚠ GERİ ALMAYIN — iki parça birlikte çalışıyor:
  *   1. Google Cloud > APIs & Services > Credentials > (Firebase'in açtığı Web
- *      OAuth istemcisi) > Authorized redirect URIs'e
- *      `https://<alan-adi>/__/auth/handler` eklenir,
- *   2. NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN o alan adına set edilir.
- * Biri eksikse giriş kırılır — bu yüzden varsayılan güvenli olan.
+ *      OAuth istemcisi) > Authorized redirect URIs içinde
+ *      `https://flowstudiomanisa.vercel.app/__/auth/handler` KAYITLI olmalı,
+ *   2. `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` o alan adına set olmalı (Vercel).
+ * Biri eksikse giriş "Hata 400: redirect_uri_mismatch" ile tamamen durur —
+ * bir kez yaşandı. Eski `.firebaseapp.com` kaydı Google Cloud'da BİLEREK
+ * duruyor: sorun çıkarsa değişkeni silmek eski davranışa anında döndürür.
  */
 const authDomain =
   process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ||

@@ -56,6 +56,14 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   linki ve Pulse kiosk ipuçları buna göre budandı.
 
 ## Kritik Mimari Notlar
+- **Google girişi KENDİ alan adımızdan** (`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN =
+  flowstudiomanisa.vercel.app` + `next.config.mjs` `/__/auth/*` proxy'si).
+  Fabrika iç ağı `*.firebaseapp.com`'u kapatıyordu: site açılıyor, Firestore
+  çalışıyor, ama giriş penceresi zaman aşımına düşüyordu. İKİ parça birlikte:
+  Google Cloud OAuth istemcisinde `…/__/auth/handler` kayıtlı OLMALI, yoksa
+  `redirect_uri_mismatch`. Eski `.firebaseapp.com` kaydı geri dönüş için duruyor
+  (ayrıntı `lib/firebase.ts`). İç ağ izin listesi: site + `*.googleapis.com` +
+  `res/api.cloudinary.com`.
 - **FlowSign:** editör TASLAK (`zones`), perde YAYIN (`live`); birleştir/böl içerik
   korur + onay sorar; slug ad değişince YENİLENİR (slugHistory eski linkleri taşır);
   iframe sandbox + http(s) doğrulama; Wake Lock + offline persistence
