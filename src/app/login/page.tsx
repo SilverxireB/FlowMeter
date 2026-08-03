@@ -150,14 +150,32 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (e) {
       const code = e instanceof FirebaseError ? e.code : "";
-      // Popup engellendiyse tam sayfa yönlendirmeye düş
-      if (/popup/i.test(code)) {
+      // Tam sayfa yönlendirmeye YALNIZ tarayıcı pencereyi ENGELLEDİYSE düşülür.
+      //
+      // Eskiden koşul `/popup/i` idi ve `auth/popup-closed-by-user` ile
+      // `auth/cancelled-popup-request` de ona uyuyordu: yani kullanıcı fikrini
+      // değiştirip pencereyi KAPATINCA uygulama bütün sayfayı Google'a
+      // götürüyordu. Vazgeçmenin cezası, vazgeçememek olmamalı.
+      const engellendi =
+        code === "auth/popup-blocked" ||
+        code === "auth/operation-not-supported-in-this-environment";
+      const vazgecti =
+        code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request";
+
+      if (engellendi) {
         try {
           await signInWithRedirect(auth(), new GoogleAuthProvider());
           return;
-        } catch (e2) {
-          setError(readableError(e2));
+        } catch {
+          // Yönlendirme de olmadıysa kullanıcıya YAPILACAK İŞİ söyle: "giriş
+          // başarısız" demek, engel simgesinin adres çubuğunda durduğunu
+          // bilmeyen birine hiçbir şey anlatmıyor.
+          setError(
+            "Tarayıcı giriş penceresini engelledi. Adres çubuğunun sağındaki engel simgesine dokunup bu siteye izin ver, sonra tekrar dene."
+          );
         }
+      } else if (vazgecti) {
+        setError("Giriş penceresi kapandı. Tekrar dene.");
       } else {
         setError(readableError(e));
       }
