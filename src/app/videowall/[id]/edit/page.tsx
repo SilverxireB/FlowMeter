@@ -249,6 +249,40 @@ export default function VideowallEditPage() {
     changeGrid(cols, rows);
   };
 
+  // Duvar tanımı BEKLEMEDE tutulur (bkz. yerleşim kartındaki blok yorumu):
+  // dört alan birlikte, Uygula ile gider.
+  const tanimVarsayilan = useMemo(
+    () => ({
+      width: String(vw?.width ?? ""),
+      height: String(vw?.height ?? ""),
+      cols: String(vw?.cols ?? ""),
+      rows: String(vw?.rows ?? ""),
+    }),
+    [vw?.width, vw?.height, vw?.cols, vw?.rows]
+  );
+  const [tanim, setTanim] = useState(tanimVarsayilan);
+  useEffect(() => setTanim(tanimVarsayilan), [tanimVarsayilan]);
+  const tanimDegisti =
+    tanim.width !== tanimVarsayilan.width ||
+    tanim.height !== tanimVarsayilan.height ||
+    tanim.cols !== tanimVarsayilan.cols ||
+    tanim.rows !== tanimVarsayilan.rows;
+  const tanimUygula = () => {
+    if (!vw) return;
+    const w = Math.max(1, Math.round(Number(tanim.width) || 0));
+    const h = Math.max(1, Math.round(Number(tanim.height) || 0));
+    const c = clampScreens(Number(tanim.cols));
+    const r = clampScreens(Number(tanim.rows));
+    if (w !== vw.width || h !== vw.height) {
+      updateVideowall(id, { width: w, height: h }).catch(() =>
+        setSaveErr("Çözünürlük kaydedilemedi — tekrar dene.")
+      );
+    }
+    // Ekran sayısı EN SON: yerleşimi sıfırlayabildiği için onay isteyebiliyor.
+    if (c !== vw.cols || r !== vw.rows) changeScreens(c, r);
+  };
+
+
   const changeGrid = (cols: number, rows: number) => {
     setConfirmBox({
       title: "Izgarayı değiştir",
@@ -359,34 +393,50 @@ export default function VideowallEditPage() {
             girdi solda toplanıp sağında kocaman boşluk bırakıyordu; hem israf hem
             de alttaki yerleşim kartıyla kenarları hizalanmıyordu. Duvar ölçüsü,
             ekran sayısı ve yerleşim zaten aynı soruyu cevaplıyor. */}
-        <div className="flex flex-col gap-6 min-[1600px]:grid min-[1600px]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] min-[1600px]:gap-6 min-[1600px]:items-start">
+        <div className="flex flex-col gap-6 min-[1600px]:grid min-[1600px]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] min-[1600px]:gap-6">
         <div className="flex flex-col gap-6 min-[1600px]:sticky min-[1600px]:top-4">
-          {/* Config */}
-          <div className="card p-5">
+        {/* Yerleşim editörü */}
+        <div className="card p-5">
+          {/* DUVAR TANIMI — ayrı kart değil, yerleşimin BAŞLIĞI.
+              Kullanıcı kararı: kendi kartında dururken tam genişlikte tek sıra
+              oluyor, dört küçük girdi solda toplanıp sağında kocaman boşluk
+              bırakıyordu. Zaten aynı şeyi tarif ediyorlar: duvarın ölçüsü, kaç
+              ekran ve o ekranların nasıl bölündüğü.
+
+              UYGULA ile: bu alanlar eskiden odaktan çıkar çıkmaz tek tek
+              kaydediliyordu. Ekran sayısı yerleşimi sıfırlayabildiği için
+              (bkz. changeScreens) yanlışlıkla değilen bir tuş, geri alınması zor
+              bir değişiklik yapıyordu. Artık dördü birlikte beklemede durur. */}
+          <div className="pb-4 mb-4 border-b border-line">
             <p className="eyebrow mb-3">Duvar tanımı</p>
             <div className="flex flex-wrap items-end gap-4 text-sm">
-              {/* Çözünürlük artık düzenlenebilir (oluşturmadaki yazım hatası duvarı silmeden düzeltilir) */}
               <label className="flex flex-col gap-1">
                 <span className="text-muted text-xs">Genişlik (px)</span>
-                <input key={`w${vw.width}`} type="number" min={1} defaultValue={vw.width} onBlur={(e) => { const nw = Math.max(1, Math.round(Number(e.target.value) || 0)); if (nw && nw !== vw.width) updateVideowall(id, { width: nw }).catch(() => setSaveErr("Çözünürlük kaydedilemedi — tekrar dene.")); else e.target.value = String(vw.width); }} className={`w-24 ${inputCls}`} />
+                <input type="number" min={1} value={tanim.width} onChange={(e) => setTanim({ ...tanim, width: e.target.value })} className={`w-24 ${inputCls}`} />
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-muted text-xs">Yükseklik (px)</span>
-                <input key={`h${vw.height}`} type="number" min={1} defaultValue={vw.height} onBlur={(e) => { const nh = Math.max(1, Math.round(Number(e.target.value) || 0)); if (nh && nh !== vw.height) updateVideowall(id, { height: nh }).catch(() => setSaveErr("Çözünürlük kaydedilemedi — tekrar dene.")); else e.target.value = String(vw.height); }} className={`w-24 ${inputCls}`} />
+                <input type="number" min={1} value={tanim.height} onChange={(e) => setTanim({ ...tanim, height: e.target.value })} className={`w-24 ${inputCls}`} />
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-muted text-xs">Yan yana kaç ekran?</span>
-                <input key={`c${vw.cols}`} type="number" min={1} max={24} defaultValue={vw.cols} onBlur={(e) => { const c = clampScreens(Number(e.target.value)); if (c !== vw.cols) changeScreens(c, vw.rows); e.target.value = String(vw.cols); }} className={`w-24 ${inputCls}`} />
+                <input type="number" min={1} max={24} value={tanim.cols} onChange={(e) => setTanim({ ...tanim, cols: e.target.value })} className={`w-24 ${inputCls}`} />
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-muted text-xs">Üst üste kaç ekran?</span>
-                <input key={`r${vw.rows}`} type="number" min={1} max={24} defaultValue={vw.rows} onBlur={(e) => { const rr = clampScreens(Number(e.target.value)); if (rr !== vw.rows) changeScreens(vw.cols, rr); e.target.value = String(vw.rows); }} className={`w-24 ${inputCls}`} />
+                <input type="number" min={1} max={24} value={tanim.rows} onChange={(e) => setTanim({ ...tanim, rows: e.target.value })} className={`w-24 ${inputCls}`} />
               </label>
-              <span className="text-muted text-xs pb-2 tabular-nums">{vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan</span>
+              <span className="text-muted text-xs pb-2 tabular-nums">
+                {vw.cols * vw.rows} fiziksel ekran · {vw.zones?.length ?? 0} alan
+              </span>
+              {tanimDegisti && (
+                <span className="flex items-center gap-2 pb-1">
+                  <button onClick={tanimUygula} className="btn-primary !py-2 !px-4 text-xs">Uygula</button>
+                  <button onClick={() => setTanim(tanimVarsayilan)} className="btn-ghost !py-2 !px-3 text-xs">Vazgeç</button>
+                </span>
+              )}
             </div>
           </div>
-        {/* Yerleşim editörü */}
-        <div className="card p-5">
           <div className="flex items-center justify-between gap-3 mb-3">
             <p className="eyebrow">Yerleşim</p>
             {undoZones && (
