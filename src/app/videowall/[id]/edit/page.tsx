@@ -137,15 +137,29 @@ export default function VideowallEditPage() {
     if (!vw || publishing) return;
     setPublishing(true);
     setSaveErr(null);
+    // Yazımı BIRAKMIYORUZ: Firestore çevrimdışıyken kuyruğa alıp bağlantı
+    // gelince gönderiyor. Eskiden yalnız `withTimeout` bekleniyordu ve zaman
+    // aşımında kırmızı şerit basılıyordu — yayın birkaç saniye sonra gerçekten
+    // gitse bile şerit ekranda KALIYORDU. Yani mesaj "kendiliğinden yayınlanır"
+    // diyor ama olduğunda bunu kimse söylemiyordu. Artık asıl söz izleniyor:
+    // tamamlanınca şerit kalkar ve başarı bildirimi çıkar.
+    const yazim = publishVideowall(vw);
+    let bitti = false;
+    void yazim.then(
+      () => {
+        bitti = true;
+        setSaveErr(null);
+        flashToast("✓ Yayınlandı — ekranlar birkaç saniye içinde güncellenir.");
+      },
+      () => {
+        bitti = true;
+        setSaveErr("Yayınlanamadı — tekrar dene.");
+      }
+    );
     try {
-      // Çevrimdışıyken sonsuz "Yayınlanıyor…" yerine dürüst mesaj (yazım yerelde
-      // kuyruğa girer, bağlantı gelince kendiliğinden yayına gider).
-      await withTimeout(publishVideowall(vw));
-      flashToast("✓ Yayınlandı — ekranlar birkaç saniye içinde güncellenir.");
+      await withTimeout(yazim);
     } catch {
-      setSaveErr(
-        "Yayın sunucuya ulaşmadı (bağlantı yok olabilir). Değişiklik cihazda kaydedildi — bağlantı gelince kendiliğinden yayınlanır; buton \"✓ Yayında\" olunca ekranlar güncellenmiştir."
-      );
+      if (!bitti) setSaveErr("Bağlantı bekleniyor — yayın sıraya alındı, bağlantı gelince kendiliğinden gidecek.");
     } finally {
       setPublishing(false);
     }

@@ -8,7 +8,7 @@
  * "takvim dışı" rozeti; ⇄ Değiştir; sürükle VE ▲▼ ile sıralama (dokunmatik).
  * İçerik alana STRETCH edilir. Yazım → updateZones (taslak).
  */
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import FlowSpinner from "@/components/FlowSpinner";
 import { uploadMedia } from "@/lib/media";
@@ -421,6 +421,13 @@ export default function ZonePanel({
                     <button onClick={() => reorder(i, i - 1)} disabled={i === 0} className="w-7 h-5 grid place-items-center text-muted hover:text-ink disabled:opacity-20" aria-label="Yukarı taşı"><Icon name="up" size={13} /></button>
                     <button onClick={() => reorder(i, i + 1)} disabled={i === zone.items.length - 1} className="w-7 h-5 grid place-items-center text-muted hover:text-ink disabled:opacity-20" aria-label="Aşağı taşı"><Icon name="down" size={13} /></button>
                   </span>
+                  {/* SIRA NUMARASI — bu bir oynatma listesi ve asıl bilgi sıra:
+                      "önce 3 sn görsel, sonra 9 sn video". Eskiden sırayı yalnız
+                      satırların dizilişinden çıkarmak gerekiyordu; kaydırmalı uzun
+                      listede "kaçıncıydı?" sorusunun cevabı yoktu. */}
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-wash border border-line grid place-items-center text-[11px] font-semibold text-muted tabular-nums">
+                    {i + 1}
+                  </span>
                   <ItemThumb item={it} />
                   {/* min-w-0 + overflow-hidden: rozet şeridi eskiden `inline-flex`ti,
                       daralamadığı için dar telefonda kutudan TAŞIP sağdaki düğmelerin
@@ -662,6 +669,7 @@ export default function ZonePanel({
                 {tr === "fade" ? "Yumuşak" : tr === "cut" ? "Kesme" : "Kaydır"}
               </button>
             ))}
+            <GecisOnizleme tur={bekGecis ?? transition} />
           </span>
           <label className="flex items-center gap-1.5">
             Alan zemini
@@ -673,6 +681,12 @@ export default function ZonePanel({
             />
           </label>
         </div>
+
+        {zone.items.length < 2 && (
+          <p className="text-muted text-[11px] mt-2">
+            Geçiş perdede görünür — bu alanda en az 2 içerik olunca.
+          </p>
+        )}
 
         {bekliyor && (
           <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -739,5 +753,44 @@ export default function ZonePanel({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * GEÇİŞ ÖNİZLEMESİ — seçilen geçişi panelde canlı oynatır.
+ *
+ * Neden gerekli: geçiş yalnız PERDEDE ve yalnız alanda 2+ içerik varken
+ * görünüyor. Editörde hiçbir işaret olmadığı için kullanıcı "bu seçenekler işe
+ * yarıyor mu?" diye sordu — haklıydı, seçtiğine dair tek geri bildirim düğmenin
+ * koyulaşmasıydı. Animasyon perdedeki değerlerin AYNISINI kullanır (550ms
+ * kaydırma / 500ms yumuşama / anında kesme), yani gördüğü şey gerçekten olacak
+ * olan şey.
+ */
+function GecisOnizleme({ tur }: { tur: "fade" | "cut" | "slide" }) {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    setOn(false);
+    const bas = window.setTimeout(() => setOn(true), 80);
+    const dongu = window.setInterval(() => setOn((o) => !o), 1700);
+    return () => {
+      window.clearTimeout(bas);
+      window.clearInterval(dongu);
+    };
+  }, [tur]);
+  const st: React.CSSProperties =
+    tur === "slide"
+      ? { transform: on ? "translateX(0)" : "translateX(100%)", transition: "transform 550ms ease" }
+      : tur === "cut"
+        ? { opacity: on ? 1 : 0 }
+        : { opacity: on ? 1 : 0, transition: "opacity 500ms ease" };
+  return (
+    <span
+      className="relative inline-block w-14 h-8 rounded-lg overflow-hidden border border-line align-middle shrink-0"
+      aria-hidden
+      title="Seçili geçişin önizlemesi"
+    >
+      <span className="absolute inset-0 bg-ink/15" />
+      <span className="absolute inset-0 bg-accent" style={st} />
+    </span>
   );
 }

@@ -114,11 +114,26 @@ export default function ScreenEditPage() {
     if (!vw || publishing) return;
     setPublishing(true);
     setSaveErr(null);
+    // Yazımı BIRAKMIYORUZ: zaman aşımı yalnız "beklemeyi bıraktık" demek.
+    // Eskiden şerit basılıp bir daha KALKMIYORDU — yayın birkaç saniye sonra
+    // gerçekten gitse bile kullanıcı kırmızı uyarıya bakmaya devam ediyordu.
+    const yazim = publishWall(vw.id);
+    let bitti = false;
+    void yazim.then(
+      () => {
+        bitti = true;
+        setSaveErr(null);
+        flashToast("✓ Yayınlandı — ekranlar birkaç saniye içinde güncellenir.");
+      },
+      () => {
+        bitti = true;
+        setSaveErr("Yayınlanamadı — tekrar dene.");
+      }
+    );
     try {
-      await withTimeout(publishWall(vw.id));
-      flashToast("✓ Yayınlandı — ekranlar birkaç saniye içinde güncellenir.");
+      await withTimeout(yazim);
     } catch {
-      setSaveErr("Yayın sunucuya ulaşmadı (bağlantı yok olabilir). Bağlantı gelince tekrar dene; buton \"✓ Yayında\" olunca ekranlar güncellenmiştir.");
+      if (!bitti) setSaveErr("Bağlantı bekleniyor — yayın sıraya alındı, bağlantı gelince kendiliğinden gidecek.");
     } finally {
       setPublishing(false);
     }
