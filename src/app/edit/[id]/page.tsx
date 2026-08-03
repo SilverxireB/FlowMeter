@@ -126,7 +126,7 @@ export default function EditPage() {
   return (
     <main className="h-dvh flex flex-col bg-wash">
       {/* ── Üst bar ── */}
-      <header className="bg-white/80 backdrop-blur border-b border-line px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2 shrink-0">
+      <header className="relative z-40 bg-white/80 backdrop-blur border-b border-line px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <Link href="/dashboard?p=decks" className="text-muted hover:text-ink shrink-0 text-lg px-1" aria-label="Panele dön">←</Link>
           <span className="font-display font-semibold truncate">{presentation.title}</span>
