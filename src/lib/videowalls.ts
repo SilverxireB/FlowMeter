@@ -258,18 +258,27 @@ export function splitZoneInto(
   cols: number,
   rows: number,
   zoneId: string,
-  parts: number,
-  axis: "h" | "v"
+  parcaC: number,
+  parcaR: number
 ): SplitResult | null {
-  const p = Math.max(2, Math.min(8, Math.round(parts) || 2));
-  const nc = axis === "h" ? cols * p : cols;
-  const nr = axis === "v" ? rows * p : rows;
+  // İKİ EKSEN AYNI ANDA: eskiden imza (parts, axis) idi ve bölme tek yönde
+  // yapılırdı. "3 yan yana + 2 alt alta" istendiğinde iki kez çağırmak işe
+  // yaramıyordu: ilk bölmeden sonra içerik İLK parçada kalıyor, ikinci çağrı
+  // da yalnız o ilk parçayı bölüyordu — ızgara değil, merdiven çıkıyordu.
+  // Tek geçişte pc × pr parçaya bölmek doğru sonucu veriyor.
+  const pc = Math.max(1, Math.min(8, Math.round(parcaC) || 1));
+  const pr = Math.max(1, Math.min(8, Math.round(parcaR) || 1));
+  if (pc === 1 && pr === 1) return null;
+  const nc = cols * pc;
+  const nr = rows * pr;
   if (nc > MAX_SCREENS_PER_AXIS * 4 || nr > MAX_SCREENS_PER_AXIS * 4) return null;
 
-  const scaled = (b: CellBox): CellBox =>
-    axis === "h"
-      ? { c0: b.c0 * p, c1: (b.c1 + 1) * p - 1, r0: b.r0, r1: b.r1 }
-      : { c0: b.c0, c1: b.c1, r0: b.r0 * p, r1: (b.r1 + 1) * p - 1 };
+  const scaled = (b: CellBox): CellBox => ({
+    c0: b.c0 * pc,
+    c1: (b.c1 + 1) * pc - 1,
+    r0: b.r0 * pr,
+    r1: (b.r1 + 1) * pr - 1,
+  });
 
   const out: Zone[] = [];
   for (const z of zones) {
@@ -279,20 +288,26 @@ export function splitZoneInto(
       continue;
     }
     // Hedef alan: eşit parçalara ayrılır; içerik/ayarlar İLK parçada kalır.
-    const span = axis === "h" ? (box.c1 - box.c0 + 1) / p : (box.r1 - box.r0 + 1) / p;
-    for (let i = 0; i < p; i++) {
-      const piece: CellBox =
-        axis === "h"
-          ? { c0: box.c0 + i * span, c1: box.c0 + (i + 1) * span - 1, r0: box.r0, r1: box.r1 }
-          : { c0: box.c0, c1: box.c1, r0: box.r0 + i * span, r1: box.r0 + (i + 1) * span - 1 };
-      const piece0: Zone = { id: i === 0 ? z.id : zid(), ...rectFromCells(piece, nc, nr), items: [] };
-      if (i === 0) {
-        piece0.items = z.items ?? [];
-        if (z.name) piece0.name = z.name;
-        if (z.transition) piece0.transition = z.transition;
-        if (z.bg) piece0.bg = z.bg;
+    const spanC = (box.c1 - box.c0 + 1) / pc;
+    const spanR = (box.r1 - box.r0 + 1) / pr;
+    for (let j = 0; j < pr; j++) {
+      for (let i = 0; i < pc; i++) {
+        const piece: CellBox = {
+          c0: box.c0 + i * spanC,
+          c1: box.c0 + (i + 1) * spanC - 1,
+          r0: box.r0 + j * spanR,
+          r1: box.r0 + (j + 1) * spanR - 1,
+        };
+        const ilk = i === 0 && j === 0;
+        const parca: Zone = { id: ilk ? z.id : zid(), ...rectFromCells(piece, nc, nr), items: [] };
+        if (ilk) {
+          parca.items = z.items ?? [];
+          if (z.name) parca.name = z.name;
+          if (z.transition) parca.transition = z.transition;
+          if (z.bg) parca.bg = z.bg;
+        }
+        out.push(parca);
       }
-      out.push(piece0);
     }
   }
   return normalizeGrid(out, nc, nr);

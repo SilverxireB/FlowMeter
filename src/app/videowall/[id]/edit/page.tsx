@@ -408,9 +408,9 @@ export default function VideowallEditPage() {
             zone={selected}
             index={selectedIndex}
             onZones={saveZones}
-            onSplit={(parts, axis) => {
+            onSplit={(parcaC, parcaR) => {
               const doSplit = () => {
-                const next = splitZoneInto(vw.zones ?? [], layoutColsOf(vw), layoutRowsOf(vw), selected.id, parts, axis);
+                const next = splitZoneInto(vw.zones ?? [], layoutColsOf(vw), layoutRowsOf(vw), selected.id, parcaC, parcaR);
                 if (!next) {
                   setSaveErr("Bu alan daha fazla bölünemez — önce birkaç parçayı birleştir.");
                   return;
@@ -423,7 +423,7 @@ export default function VideowallEditPage() {
               if ((selected.items?.length ?? 0) > 0) {
                 setConfirmBox({
                   title: "Alanı böl",
-                  message: `"${selected.name || `Alan ${selectedIndex + 1}`}" ${parts} parçaya bölünecek; içeriği İLK parçada kalır (kaybolmaz).`,
+                  message: `"${selected.name || `Alan ${selectedIndex + 1}`}" ${parcaC * parcaR} parçaya bölünecek (${parcaC} yan yana × ${parcaR} alt alta); içeriği İLK parçada kalır (kaybolmaz).`,
                   confirmLabel: "Böl",
                   run: doSplit,
                 });
