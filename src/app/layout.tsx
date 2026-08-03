@@ -12,7 +12,7 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Flow Studio — Canlı Etkinlik Ürünleri",
   description:
-    "İnteraktif sunum, canlı etkinlik duvarı, dijital tabela ve nabız ölçümü — dört ürün, tek hesap.",
+    "İnteraktif sunum, canlı etkinlik duvarı, videowall ve nabız ölçümü — dört ürün, tek hesap.",
   manifest: "/manifest.webmanifest",
   applicationName: "Flow Studio",
   icons: {

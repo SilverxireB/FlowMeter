@@ -34,7 +34,11 @@ export type IconName =
   | "pencil"
   | "refresh"
   | "users"
-  | "plus";
+  | "plus"
+  | "print"
+  | "upload"
+  | "folder"
+  | "clock";
 
 
 
@@ -174,6 +178,27 @@ const PATHS: Record<IconName, JSX.Element> = {
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
+  print: (
+    <>
+      <path d="M7.5 8V3.5h9V8" />
+      <path d="M7.5 17.5H4.5A1.5 1.5 0 0 1 3 16V10a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1.5 1.5 0 0 1-1.5 1.5h-3" />
+      <path d="M7.5 14h9v6.5h-9V14Z" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M12 20V10" />
+      <path d="M7.5 14 12 9.5 16.5 14" />
+      <path d="M5 5h14" />
+    </>
+  ),
+  folder: <path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l2.4 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-10.5Z" />,
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7v5.2l3.2 2" />
+    </>
+  )
 };
 
 export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {

@@ -48,6 +48,7 @@ export default function ZonePanel({
   onZones,
   onSplit,
   onClose,
+  onRehber,
 }: {
   vw: Videowall;
   zone: Zone;
@@ -56,6 +57,8 @@ export default function ZonePanel({
   /** Bu alanı `parts` parçaya böl (h = yan yana, v = alt alta). */
   onSplit: (parcaC: number, parcaR: number, zonesOverride?: Zone[]) => void;
   onClose: () => void;
+  /** Rehberi ilgili başlıkta aç (uyarının yanındaki "neden?" linki). */
+  onRehber?: (bolum: string) => void;
 }) {
   const [queue, setQueue] = useState<{ done: number; total: number; pct: number } | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -167,7 +170,7 @@ export default function ZonePanel({
       const r = await fetch(`/api/embed-check?url=${encodeURIComponent(src)}`);
       const d = (await r.json()) as { verdict: string; host?: string };
       if (d.verdict === "blocked") {
-        setErr(`⚠ ${d.host ?? "Bu site"} başka sayfaya gömülmeye izin vermiyor — tabelada boş görünür. (Google/YouTube gibi büyük siteler bunu yasaklar; pano/dashboard siteleri genelde izin verir.)`);
+        setErr(`⚠ ${d.host ?? "Bu site"} başka sayfaya gömülmeye izin vermiyor — videowall'da boş görünür. (Google/YouTube gibi büyük siteler bunu yasaklar; pano/dashboard siteleri genelde izin verir.)`);
       }
     } catch {}
   }
@@ -356,7 +359,14 @@ export default function ZonePanel({
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={submitUrl} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-4 py-2 text-sm font-semibold">Ekle</button>
             <button onClick={() => { setUrlForm(null); setErr(null); }} className="rounded-xl bg-white border border-line px-4 py-2 text-sm font-semibold hover:border-muted">Vazgeç</button>
-            <span className="text-muted text-[11px]">Bazı siteler gömülmeye izin vermez — Önizle ile kontrol et.</span>
+            <span className="text-muted text-[11px]">
+              Bazı siteler gömülmeye izin vermez — Önizle ile kontrol et.
+              {onRehber && (
+                <button onClick={() => onRehber("icerik")} className="ml-1 underline decoration-line hover:decoration-muted font-semibold">
+                  Neden?
+                </button>
+              )}
+            </span>
           </div>
         </div>
       )}

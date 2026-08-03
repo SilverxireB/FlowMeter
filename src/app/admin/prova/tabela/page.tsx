@@ -246,7 +246,7 @@ export default function TabelaProvaPage() {
           <p className="eyebrow text-accent mt-1">FlowSign provası</p>
           <h1 className="font-display text-2xl font-semibold">Prova ekranı</h1>
           <p className="text-muted text-sm">
-            Kendi prova ekranını açar; var olan tabelalara dokunmaz.
+            Kendi prova ekranını açar; var olan videowall'lara dokunmaz.
           </p>
         </div>
 

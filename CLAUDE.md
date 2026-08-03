@@ -123,6 +123,17 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   URL alanı gerçek sayfa iframe'i, lazy). İçerik takvimi: saat+gün+`fromDate/
   toDate` — TEK kapı `itemInWindow`. URL eklemede `/api/sign/embed-check`
   (X-Frame-Options uyarısı); zoom %25-150; STRETCH standart (kullanıcı kararı).
+  **REHBER (Sign):** `?` → sağdan çekmece (`components/Rehber.tsx` çekirdek kabuk
+  + `videowall/signRehberIcerik.tsx` içerik + `SignRehber` sarmalayıcı; editör ve
+  liste `next/dynamic` ile geciktirmeli çağırır). Ayrı sayfa DEĞİL: yardım aranan
+  an iş yapılan andır. **EKRAN GÖRÜNTÜSÜ YOK** — düğmeler ürünün gerçek
+  sınıflarıyla, yerleşim örneği GERÇEK `LayoutEditor` ile (`RehberDemo`, bellekte,
+  hiçbir yere yazmaz) basılır; tasarım değişince rehber kendiliğinden değişir.
+  Yalnız bizim olmayan yüzeyler (Windows/ekran kartı) ekran görüntüsü ister.
+  Derin link: hata şeridi + URL uyarısı ilgili başlığı açar (`errBolum`,
+  `onRehber`). Yazdırma: `.rehber-yazdir` + `@media print`.
+  Sign'ın TÜRKÇESİ **videowall** (tabela DEĞİL — kullanıcı kararı); oynatma modu
+  çipi de "Videowall / Sunum".
 - **FlowMeter:** `mode: audience-pace` → /p yerel gezinme (quiz slaytları atlanır —
   rules geri sayım kapısı); `textModeration` → open-ended/word-cloud cevapları
   pending (rules kapılı, /moderate "Cevaplar"); `/remote/[id]` telefon kumandası +

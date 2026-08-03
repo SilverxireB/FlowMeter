@@ -9,6 +9,7 @@
  */
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -35,7 +36,10 @@ const inputCls =
 /** Yayın linki: slug kayıtlıysa kolay link; değilse id (ölü link vermesin). */
 const playHref = (v: Videowall) => `/play/${v.slug ?? v.id}`;
 
+const SignRehber = dynamic(() => import("@/components/SignRehber"), { ssr: false });
+
 export default function ScreensPage() {
+  const [rehber, setRehber] = useState(false);
   const router = useRouter();
   const { loading, authed } = useSession();
   const playTarget = usePlayTarget();
@@ -235,6 +239,9 @@ export default function ScreensPage() {
           <span aria-hidden className="font-display font-semibold text-[26px] leading-none tracking-[0.03em] text-[#001e64]">SIGN</span>
         </span>
         <div className="flex items-center gap-2 min-w-0">
+          <button onClick={() => setRehber(true)} className="chip !py-1.5 text-xs text-muted hover:border-muted shrink-0 inline-flex items-center gap-1.5" title="Rehberi aç">
+            <Icon name="help" size={14} /> Rehber
+          </button>
           {me?.role === "admin" && (
             <Link href="/users" className="chip !py-1.5 text-xs text-muted hover:border-muted shrink-0 inline-flex items-center gap-1.5" title="Kullanıcılar ve yetkiler">
               <Icon name="users" size={14} /> <span className="hidden sm:inline">Kullanıcılar</span>
@@ -388,6 +395,8 @@ export default function ScreensPage() {
           onCancel={() => setConfirmDel(null)}
         />
       )}
+    
+      {rehber && <SignRehber onClose={() => setRehber(false)} />}
     </main>
   );
 }

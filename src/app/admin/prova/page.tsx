@@ -301,12 +301,12 @@ export default function ProvaPage() {
           {/* Sign'da izleyici yazımı yok: prova kendi ekranını açar, var olan
               tabelalara dokunmaz (sahadaki 7/24 ekranı bozmamak için). */}
           <div className="border-t border-line mt-5 pt-5">
-            <label className="text-xs font-semibold text-muted">Tabela</label>
+            <label className="text-xs font-semibold text-muted">Videowall</label>
             <p className="text-muted text-xs mt-0.5 mb-2">
               Kendi prova ekranını açar (2×2 yerleşim, dört öğe türü); var olan ekranlara dokunmaz.
             </p>
             <Link href="/admin/prova/tabela" className="btn-ghost !py-2 !px-4 text-sm inline-block">
-              Tabela provası
+              Videowall provası
             </Link>
           </div>
 

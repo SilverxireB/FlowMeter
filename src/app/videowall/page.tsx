@@ -8,6 +8,7 @@
  * karışmasın). Online: Firestore videowalls/.
  */
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
@@ -44,10 +45,13 @@ const PRESETS: { label: string; w: number; h: number; cols: number; rows: number
 
 const inputCls = "input-base !py-2 !px-3 !rounded-lg";
 
+const SignRehber = dynamic(() => import("@/components/videowall/SignRehber"), { ssr: false });
+
 /** Yayın linki: slug kayıtlıysa kolay link; değilse id rotası (eski ekranlar ölü link vermesin). */
 const playHref = (v: Videowall) => (v.slug ? `/flowsign/${v.slug}` : `/videowall/${v.id}/play`);
 
 export default function VideowallListPage() {
+  const [rehber, setRehber] = useState(false);
   const router = useRouter();
   const { user, loading } = useAuthUser();
   const playTarget = usePlayTarget();
@@ -290,7 +294,12 @@ export default function VideowallListPage() {
           <Link href="/dashboard" className="text-muted hover:text-ink shrink-0 text-lg" aria-label="Panele dön">←</Link>
           <Logo variant="sign" />
         </div>
-        <span className="chip text-muted text-xs min-w-0 max-w-[45vw]"><span className="truncate min-w-0">{user.email}</span></span>
+        <div className="flex items-center gap-2 min-w-0">
+          <button onClick={() => setRehber(true)} className="chip text-xs hover:border-muted" title="Rehberi aç">
+            <Icon name="help" size={14} /> Rehber
+          </button>
+          <span className="chip text-muted text-xs min-w-0 max-w-[45vw]"><span className="truncate min-w-0">{user.email}</span></span>
+        </div>
       </header>
 
       <section className="max-w-5xl mx-auto px-4 py-10">
@@ -425,6 +434,8 @@ export default function VideowallListPage() {
 
       {dialog}
       {toast}
+    
+      {rehber && <SignRehber onClose={() => setRehber(false)} />}
     </main>
   );
 }

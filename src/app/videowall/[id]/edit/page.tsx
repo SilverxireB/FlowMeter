@@ -7,6 +7,7 @@
  * görünür (banner) — sessiz kayıp yok. Config + LayoutEditor + ZonePanel + link.
  */
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { baglantiyiTazele } from "@/lib/firebase";
@@ -45,6 +46,9 @@ import { withTimeout } from "@/lib/withTimeout";
 
 const inputCls = "input-base !py-2 !px-3 !rounded-lg";
 
+// Rehber geciktirmeli: metni ve canlı demosu editörün ilk yüklemesine binmesin.
+const SignRehber = dynamic(() => import("@/components/videowall/SignRehber"), { ssr: false });
+
 // Sıra-bağımsız derin karşılaştırma: Firestore map alan sırasını değiştirebiliyor —
 // içerik AYNIYKEN "yayınlanmamış değişiklik var" uyarısı kalıcı görünüyordu.
 function sortDeep(v: unknown): unknown {
@@ -79,7 +83,12 @@ export default function VideowallEditPage() {
   const [origin, setOrigin] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [guide, setGuide] = useState(false);
+  // Rehber çekmecesi: `bolum` verilirse o başlıkta açılır (hata şeritlerinden
+  // derin link — "bölünemez" uyarısı doğrudan Yerleşim başlığını açar).
+  const [rehber, setRehber] = useState<{ bolum: string | null } | null>(null);
+  // Hata şeridinden rehbere derin link: uyarıyı okuyan kişi "peki nasıl?" diye
+  // sorduğunda cevap bir tık uzakta olsun (ayrı sayfa aramasın).
+  const [errBolum, setErrBolum] = useState<string | null>(null);
   const [saveErr, setSaveErr] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [confirmBox, setConfirmBox] = useState<Confirm | null>(null);
@@ -118,7 +127,7 @@ export default function VideowallEditPage() {
     const r = clampScreens(Number(tanim.rows));
     if (w !== vw.width || h !== vw.height) {
       updateVideowall(id, { width: w, height: h }).catch(() =>
-        setSaveErr("Çözünürlük kaydedilemedi — tekrar dene.")
+        hata("Çözünürlük kaydedilemedi — tekrar dene.")
       );
     }
     // Ekran sayısı EN SON: yerleşimi sıfırlayabildiği için onay isteyebiliyor.
@@ -139,10 +148,10 @@ export default function VideowallEditPage() {
   const playUrl = origin ? `${origin}/flowsign/${slug}` : "";
   // İlk kullanım rehberi (bir kez otomatik; ❓ Rehber ile her zaman geri açılır).
   useEffect(() => {
-    if (typeof window !== "undefined" && !localStorage.getItem("flowsign-onboarded")) setGuide(true);
+    if (typeof window !== "undefined" && !localStorage.getItem("flowsign-onboarded")) setRehber({ bolum: null });
   }, []);
-  const dismissGuide = () => {
-    setGuide(false);
+  const rehberKapat = () => {
+    setRehber(null);
     try {
       localStorage.setItem("flowsign-onboarded", "1");
     } catch {}
@@ -170,6 +179,10 @@ export default function VideowallEditPage() {
       stable({ z: s.zones ?? [], c: s.cols, r: s.rows, w: s.width, h: s.height });
     return pick(vw) !== pick(vw.live);
   }, [vw]);
+  const hata = (msg: string, bolum?: string) => {
+    setSaveErr(msg);
+    setErrBolum(bolum ?? null);
+  };
   const [publishing, setPublishing] = useState(false);
   /** Yayın onayı gecikti — HATA değil, bekleme. Tamamlanınca kendiliğinden kalkar. */
   const [bekliyor, setBekliyor] = useState<string | null>(null);
@@ -196,7 +209,7 @@ export default function VideowallEditPage() {
       () => {
         bitti = true;
         setBekliyor(null);
-        setSaveErr("Yayınlanamadı — tekrar dene.");
+        hata("Yayınlanamadı — tekrar dene.");
       }
     );
     try {
@@ -233,7 +246,7 @@ export default function VideowallEditPage() {
       run: () => {
         updateVideowall(id, { zones: live.zones, cols: live.cols, rows: live.rows, width: live.width, height: live.height })
           .then(() => flashToast("↩ Taslak, yayındaki hâle döndürüldü."))
-          .catch(() => setSaveErr("Geri dönme başarısız — tekrar dene."));
+          .catch(() => hata("Geri dönme başarısız — tekrar dene."));
         setSelectedId(null);
       },
     });
@@ -277,7 +290,7 @@ export default function VideowallEditPage() {
     setUndoZones(vw.zones ?? []);
     setUndoGrid({ cols: layoutColsOf(vw), rows: layoutRowsOf(vw) });
     setSaveErr(null);
-    updateZones(id, zones).catch(() => setSaveErr("Değişiklik kaydedilemedi — bağlantını kontrol edip tekrar dene."));
+    updateZones(id, zones).catch(() => hata("Değişiklik kaydedilemedi — bağlantını kontrol edip tekrar dene."));
   };
   const undoLayout = () => {
     if (!undoZones) return;
@@ -287,7 +300,7 @@ export default function VideowallEditPage() {
     const geri = undoGrid
       ? saveLayout(id, { zones: undoZones, cols: undoGrid.cols, rows: undoGrid.rows })
       : updateZones(id, undoZones);
-    geri.catch(() => setSaveErr("Geri alınamadı — tekrar dene."));
+    geri.catch(() => hata("Geri alınamadı — tekrar dene."));
     setUndoZones(null);
     setUndoGrid(null);
     setSelectedId(null);
@@ -300,7 +313,7 @@ export default function VideowallEditPage() {
    */
   const changeScreens = (cols: number, rows: number) => {
     if (hasCustomLayout(vw)) {
-      setScreenGrid(id, cols, rows).catch(() => setSaveErr("Ekran sayısı kaydedilemedi — tekrar dene."));
+      setScreenGrid(id, cols, rows).catch(() => hata("Ekran sayısı kaydedilemedi — tekrar dene."));
       return;
     }
     changeGrid(cols, rows);
@@ -316,7 +329,7 @@ export default function VideowallEditPage() {
       confirmLabel: "Izgarayı değiştir",
       run: () => {
         setUndoZones(null); // ızgara değişince eski anlık görüntü geçersiz (boyutlar farklı)
-        resetGrid(id, cols, rows, vw.zones ?? []).catch(() => setSaveErr("Izgara değişikliği kaydedilemedi — tekrar dene."));
+        resetGrid(id, cols, rows, vw.zones ?? []).catch(() => hata("Izgara değişikliği kaydedilemedi — tekrar dene."));
         setSelectedId(null);
       },
     });
@@ -330,12 +343,12 @@ export default function VideowallEditPage() {
         <input
           key={vw.name}
           defaultValue={vw.name}
-          onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== vw.name && renameVideowall(id, e.target.value).catch(() => setSaveErr("Ad kaydedilemedi — tekrar dene."))}
+          onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== vw.name && renameVideowall(id, e.target.value).catch(() => hata("Ad kaydedilemedi — tekrar dene."))}
           className="order-last basis-full sm:order-none sm:basis-auto sm:flex-1 min-w-0 bg-transparent font-display font-semibold text-lg focus:outline-none border-b border-transparent focus:border-accent"
           aria-label="Ekran adı"
         />
         <div className="flex items-center gap-2 shrink-0 ml-auto">
-          <button onClick={() => setGuide(true)} className="w-9 h-9 grid place-items-center rounded-xl bg-white border border-line text-muted hover:text-ink hover:border-muted" title="Rehberi aç" aria-label="Rehberi aç">
+          <button onClick={() => setRehber({ bolum: null })} className="w-9 h-9 grid place-items-center rounded-xl bg-white border border-line text-muted hover:text-ink hover:border-muted" title="Rehberi aç" aria-label="Rehberi aç">
             <Icon name="help" size={16} />
           </button>
           <a href={`/videowall/${id}/play?draft=1`} target={playTarget} className="rounded-xl bg-white border border-line px-3.5 py-2 text-sm font-semibold hover:border-muted inline-flex items-center gap-1.5">
@@ -370,7 +383,14 @@ export default function VideowallEditPage() {
       )}
       {saveErr && (
         <div className="bg-brand-soft border-b border-brand/20 px-4 sm:px-6 py-2.5 text-sm text-brand font-semibold flex items-center justify-between gap-3">
-          <span>⚠ {saveErr}</span>
+          <span>
+            ⚠ {saveErr}
+            {errBolum && (
+              <button onClick={() => setRehber({ bolum: errBolum })} className="ml-2 underline decoration-brand/40 hover:decoration-brand font-semibold">
+                Nasıl yapılır?
+              </button>
+            )}
+          </span>
           <button onClick={() => setSaveErr(null)} className="text-brand/70 hover:text-brand shrink-0" aria-label="Kapat"><Icon name="close" size={14} /></button>
         </div>
       )}
@@ -399,23 +419,6 @@ export default function VideowallEditPage() {
       )}
 
       <section className="max-w-5xl min-[1600px]:max-w-[1720px] mx-auto px-4 py-8 flex flex-col gap-6">
-        {/* Rehber (ilk açılışta otomatik; ❓ ile her zaman) */}
-        {guide && (
-          <div className="rounded-2xl bg-accent-soft border border-accent/25 p-5">
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <p className="font-display font-semibold text-accent-dark">👋 FlowSign — 5 adımda ekranın hazır</p>
-              <button onClick={dismissGuide} className="text-muted hover:text-ink text-sm shrink-0 inline-flex items-center gap-1">Anladım <Icon name="close" size={13} /></button>
-            </div>
-            <ol className="text-sm text-ink/75 space-y-1 list-decimal list-inside">
-              <li><b>Yerleşim:</b> alana tıkla → seç; sürükle → birleştir; panelden böl.</li>
-              <li><b>İçerik:</b> seçili alana görsel/video/URL/metin/saat ekle.</li>
-              <li><b>Önizle:</b> 👁 taslağı gösterir, canlı ekran bozulmaz.</li>
-              <li><b>Kaydet &amp; Yayınla:</b> aşağıdaki link bu hâli oynatır.</li>
-              <li><b>Çoklu TV:</b> ekran kartında tek birleşik görüntü yap (Surround/Eyefinity); yayında ⊞ ile sırayı doğrula.</li>
-            </ol>
-          </div>
-        )}
-
         {/* GENİŞ EKRANDA İKİ SÜTUN (yalnız xl ve üstü).
             Sebep estetik değil, iş akışı: bölme ve kenar-çek denetimleri alan
             panelinin altında, tuval ise sayfanın üstündeydi — içeriği kalabalık
@@ -491,18 +494,18 @@ export default function VideowallEditPage() {
               if (!r) {
                 // Sessizce yutma: kenar çekilemediyse sebebi söylenmeli, yoksa
                 // kullanıcı "tutmuyor" deyip uğraşmayı bırakıyor.
-                setSaveErr("Bu kenar çekilemedi — sınır komşu alanlarla düz bir çizgi oluşturmuyor.");
+                hata("Bu kenar çekilemedi — sınır komşu alanlarla düz bir çizgi oluşturmuyor.", "yerlesim");
                 return;
               }
               setUndoZones(vw.zones ?? []);
               setUndoGrid({ cols: layoutColsOf(vw), rows: layoutRowsOf(vw) });
               setSaveErr(null);
-              saveLayout(id, r).catch(() => setSaveErr("Değişiklik kaydedilemedi — bağlantını kontrol edip tekrar dene."));
+              saveLayout(id, r).catch(() => hata("Değişiklik kaydedilemedi — bağlantını kontrol edip tekrar dene."));
             }} onLayout={(r) => {
               setUndoZones(vw.zones ?? []);
               setUndoGrid({ cols: layoutColsOf(vw), rows: layoutRowsOf(vw) });
               setSaveErr(null);
-              saveLayout(id, r).catch(() => setSaveErr("Değişiklik kaydedilemedi — bağlantını kontrol edip tekrar dene."));
+              saveLayout(id, r).catch(() => hata("Değişiklik kaydedilemedi — bağlantını kontrol edip tekrar dene."));
             }} onConfirm={setConfirmBox} />
 
           {/* Oynatma modu — YERLEŞİMİN ALTINDA (kullanıcı isteği): içeriğin nasıl
@@ -516,14 +519,14 @@ export default function VideowallEditPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-muted text-xs shrink-0">Oynatma modu</span>
               {([
-                { v: "auto", label: "Tabela", icon: "refresh" },
+                { v: "auto", label: "Videowall", icon: "refresh" },
                 { v: "manual", label: "Sunum", icon: "remote" },
               ] as const).map((m) => {
                 const active = (vw.playMode ?? "auto") === m.v;
                 return (
                   <button
                     key={m.v}
-                    onClick={() => !active && setPlayMode(id, m.v).catch(() => setSaveErr("Mod kaydedilemedi — tekrar dene."))}
+                    onClick={() => !active && setPlayMode(id, m.v).catch(() => hata("Mod kaydedilemedi — tekrar dene."))}
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
                       active ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"
                     }`}
@@ -571,13 +574,13 @@ export default function VideowallEditPage() {
               const doSplit = () => {
                 const next = splitZoneInto(zonesOverride ?? vw.zones ?? [], layoutColsOf(vw), layoutRowsOf(vw), selected.id, parcaC, parcaR);
                 if (!next) {
-                  setSaveErr("Bu alan daha fazla bölünemez — önce birkaç parçayı birleştir.");
+                  hata("Bu alan daha fazla bölünemez — önce birkaç parçayı birleştir.", "yerlesim");
                   return;
                 }
                 setUndoZones(vw.zones ?? []); // tek adım geri al
                 setUndoGrid({ cols: layoutColsOf(vw), rows: layoutRowsOf(vw) });
                 setSaveErr(null);
-                saveLayout(id, next).catch(() => setSaveErr("Bölme kaydedilemedi — tekrar dene."));
+                saveLayout(id, next).catch(() => hata("Bölme kaydedilemedi — tekrar dene."));
                 setSelectedId(null);
               };
               if ((selected.items?.length ?? 0) > 0) {
@@ -590,6 +593,7 @@ export default function VideowallEditPage() {
               } else doSplit();
             }}
             onClose={() => setSelectedId(null)}
+            onRehber={(bolum) => setRehber({ bolum })}
           />
         )}
         </div>
@@ -613,7 +617,7 @@ export default function VideowallEditPage() {
               <a href={playUrl} target={playTarget} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-3 py-2 text-sm font-semibold">Aç{playTarget ? " ↗" : ""}</a>
             </div>
             <p className="text-muted text-xs mt-2">
-              Tabela PC&apos;sinde Chrome ile aç, tam ekran yap. Eski linkler çalışmaya devam eder.
+              Videowall bilgisayarında Chrome ile aç, tam ekran yap. Eski linkler çalışmaya devam eder.
               {lastPublished && <span className="text-ink/70"> · Son yayın: {lastPublished}</span>}
             </p>
           </div>
@@ -629,6 +633,8 @@ export default function VideowallEditPage() {
         </div>
 
       </section>
+
+      {rehber && <SignRehber bolum={rehber.bolum} onClose={rehberKapat} />}
 
       {confirmBox && (
         <ConfirmDialog

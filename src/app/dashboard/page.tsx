@@ -520,7 +520,7 @@ export default function DashboardPage() {
               <div className="rounded-3xl border border-line bg-white shadow-sm overflow-hidden flex flex-col">
                 <div className="p-6" style={{ background: "linear-gradient(160deg,#ecfdf5 0%,#ffffff 100%)" }}>
                   <Logo size="lg" variant="sign" />
-                  <p className="text-muted text-sm mt-3">Video-wall & dijital tabela</p>
+                  <p className="text-muted text-sm mt-3">Videowall & dijital ekran</p>
                 </div>
                 <div className="p-6 pt-4 flex-1 flex flex-col">
                   <p className="text-xs text-muted mb-2 tabular-nums">{signs.length} ekran</p>

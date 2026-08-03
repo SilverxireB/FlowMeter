@@ -190,7 +190,7 @@ export default function LoginPage() {
         {/* Çatı kimlik: hub'daki sahnenin kompakt hâli — giriş markayla açılır */}
         <StudioHero variant="compact" />
         <div className="card p-8 text-center">
-        <p className="text-muted text-sm mb-8">Sunum, etkinlik duvarı, tabela ve nabız ölçümü için giriş yap</p>
+        <p className="text-muted text-sm mb-8">Sunum, etkinlik duvarı, videowall ve nabız ölçümü için giriş yap</p>
 
         <button onClick={signIn} disabled={busy || kontrol} className="btn-accent w-full py-4">
           {kontrol ? (
