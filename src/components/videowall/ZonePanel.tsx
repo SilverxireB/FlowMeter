@@ -12,7 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName } from "@/components/Icon";
 import FlowSpinner from "@/components/FlowSpinner";
 import { cldFit, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
-import { itemInWindow, ZONE_BG_DEFAULT } from "@/lib/videowalls";
+import { icAgAdresi, itemInWindow, ZONE_BG_DEFAULT } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 const iid = () => `it-${Math.random().toString(36).slice(2, 9)}`;
@@ -370,6 +370,13 @@ export default function ZonePanel({
             placeholder="Ad (opsiyonel)"
             className={`${inputCls} px-3 py-2 text-sm`}
           />
+          {icAgAdresi(urlForm.src) && (
+            <p className="text-[11px] text-[#8a6100] bg-[#eda100]/10 border border-[#eda100]/30 rounded-lg px-2.5 py-2">
+              <b>İç ağ adresi.</b> Tarayıcı bu sayfayı gömerken bir kez &ldquo;yerel ağ erişimi&rdquo; izni
+              sorar. Reddedilirse bir daha SORMAZ ve alan boş kalır; izni geri açmak için
+              adres çubuğundaki site simgesi → Site ayarları → yerel ağ erişimi.
+            </p>
+          )}
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={submitUrl} className="rounded-xl bg-accent hover:bg-accent-dark text-white px-4 py-2 text-sm font-semibold">Ekle</button>
             <button onClick={() => { setUrlForm(null); setErr(null); }} className="rounded-xl bg-white border border-line px-4 py-2 text-sm font-semibold hover:border-muted">Vazgeç</button>

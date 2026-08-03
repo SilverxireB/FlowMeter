@@ -370,6 +370,28 @@ export function resizeZoneEdge(
   return normalizeGrid(cikti, nc, nr);
 }
 
+/**
+ * Adres İÇ AĞDA mı? (özel IP, .local, ya da noktasız makine adı)
+ *
+ * Neden gerekiyor: tabelaya iç ağdaki bir panoyu koymak bu üründe SIK bir
+ * kullanım, ama tarayıcı tarafında sessiz bir tuzağı var. Sayfa herkese açık
+ * HTTPS'te (vercel.app), gömülen adres ise özel ağda — Chrome bunu "yerel ağ
+ * erişimi" izniyle kapatıyor ve İLK açılışta bir kez soruyor. Kullanıcı o
+ * kutuyu kapatır/reddederse Chrome kararı hatırlıyor ve BİR DAHA SORMUYOR;
+ * ekranda yalnız boş bir çerçeve kalıyor, hiçbir hata da görünmüyor.
+ */
+export function icAgAdresi(url: string): boolean {
+  try {
+    const h = new URL(url).hostname.toLowerCase();
+    if (h === "localhost" || h.endsWith(".local") || !h.includes(".")) return true;
+    if (/^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h) || /^169\.254\./.test(h)) return true;
+    const m = /^172\.(\d+)\./.exec(h);
+    return !!m && Number(m[1]) >= 16 && Number(m[1]) <= 31;
+  } catch {
+    return false;
+  }
+}
+
 export function splitZoneInto(
   zones: Zone[],
   cols: number,
