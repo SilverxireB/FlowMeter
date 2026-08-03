@@ -381,8 +381,8 @@ export default function VideowallEditPage() {
             1280-1599 dizüstüler dahil); 1600+ ekranda tuval ~830-890px olur,
             yani kimse tuval boyutu kaybetmez. Sol sütun yapışkan: sayfa kayarken tuval yerinde kalır.
             Alan seçili değilken tek sütuna döner (yarısı boş kalmasın). */}
-        <div className={selected && selectedIndex >= 0 ? "flex flex-col gap-6 min-[1600px]:grid min-[1600px]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] min-[1600px]:gap-6 min-[1600px]:items-start" : "flex flex-col gap-6"}>
-        <div className="min-[1600px]:sticky min-[1600px]:top-4 min-[1600px]:self-start">
+        <div className="flex flex-col gap-6 min-[1600px]:grid min-[1600px]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] min-[1600px]:gap-6 min-[1600px]:items-start">
+        <div className="min-[1600px]:sticky min-[1600px]:top-4">
         {/* Yerleşim editörü */}
         <div className="card p-5">
           <div className="flex items-center justify-between gap-3 mb-3">
@@ -456,6 +456,19 @@ export default function VideowallEditPage() {
         </div>
 
         </div>
+        {/* Alan seçili DEĞİLKEN sağ sütun boş kalmaz. Eskiden bu durumda tek
+            sütuna dönülüyordu ve seçtikçe/kapattıkça sayfa yerleşimi zıplıyordu;
+            üstelik `self-start` esnek sütunda yatay eksende çalıştığı için
+            yerleşim kartı içeriği kadar DARALIYOR, sağı bomboş kalıyordu.
+            Izgara artık hep açık, sağda ne yapılacağını söyleyen bir kart var. */}
+        {!(selected && selectedIndex >= 0) && (
+          <div className="card p-8 text-center hidden min-[1600px]:block">
+            <p className="font-display font-semibold">Bir alan seç</p>
+            <p className="text-muted text-sm mt-1">
+              Soldaki yerleşimden bir alana tıkla — içeriği ve ayarları burada açılır.
+            </p>
+          </div>
+        )}
         {/* İçerik paneli (seçili alan) */}
         {selected && selectedIndex >= 0 && (
           <ZonePanel
@@ -491,6 +504,10 @@ export default function VideowallEditPage() {
         )}
         </div>
 
+        {/* Yayın linki ve Ekranlar geniş ekranda YAN YANA: tam genişlikte
+            tek sıra olunca satırlar gereksiz uzuyor ve kartlar bomboş
+            görünüyordu (kullanıcı). İkisi bağımsız kart, yan yana doğal. */}
+        <div className="flex flex-col gap-6 min-[1600px]:grid min-[1600px]:grid-cols-2 min-[1600px]:gap-6 min-[1600px]:items-start">
         {/* Yayın linki + QR + ekran sağlığı EN ALTTA: önce tasarlarsın
             (tanım → yerleşim → içerik), sonra yayınlar/izlersin. Üstte durunca
             her açılışta tasarımı aşağı itiyorlardı. */}
@@ -516,6 +533,7 @@ export default function VideowallEditPage() {
 
         {/* Ekran sağlığı: bu yayını açık tutan cihazlar (heartbeat) */}
         <ScreensCard id={id} />
+        </div>
 
       </section>
 
