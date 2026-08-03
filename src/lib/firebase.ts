@@ -135,6 +135,40 @@ export async function kimligiTazele(): Promise<boolean> {
   }
 }
 
+/**
+ * JETON TEŞHİSİ — arıza ANINDA gerçekleri yakalar (tahmin değil, ölçüm).
+ *
+ * "permission-denied" için üç ayrı hikâye kurulabiliyor: jetonun süresi doldu,
+ * cihaz saati kaymış, ya da gerçekten yetki yok. Üçü de aynı ekranı gösteriyor.
+ * Bu satır hangisi olduğunu tek bakışta söylüyor:
+ *  - jeton kaç dakika önce alındı, bitmesine kaç dakika var,
+ *  - cihaz saatinin SUNUCUDAN sapması (kendi alan adımızın `Date` başlığı),
+ *  - tarayıcı çevrimiçi mi.
+ * Jeton dolmadan reddediliyorsa suçlu jeton değildir; saat sapması büyükse
+ * doğrudan onu gösterir.
+ */
+export async function jetonTeshis(): Promise<string> {
+  try {
+    const u = getAuth(app()).currentUser;
+    if (!u) return "oturum yok";
+    const r = await u.getIdTokenResult();
+    const simdi = Date.now();
+    const alindi = Math.round((simdi - Date.parse(r.issuedAtTime)) / 60000);
+    const kalan = Math.round((Date.parse(r.expirationTime) - simdi) / 60000);
+    let sapma = "ölçülemedi";
+    try {
+      const res = await fetch("/", { method: "HEAD", cache: "no-store" });
+      const d = res.headers.get("date");
+      if (d) sapma = `${Math.round((simdi - Date.parse(d)) / 1000)} sn`;
+    } catch {}
+    return `jeton ${alindi} dk önce alındı, ${kalan} dk kaldı · cihaz saati sapması ${sapma} · ${
+      navigator.onLine ? "çevrimiçi" : "çevrimdışı"
+    }`;
+  } catch (e) {
+    return `jeton okunamadı (${e instanceof Error ? e.message : "bilinmeyen"})`;
+  }
+}
+
 function agTazelemeKur(): void {
   if (typeof window === "undefined") return;
   let gizlendi = 0;

@@ -7,7 +7,7 @@
  */
 import Link from "next/link";
 import { studioHata } from "@/lib/hata";
-import { kimligiTazele } from "@/lib/firebase";
+import { jetonTeshis, kimligiTazele } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import AdminTabs from "@/components/AdminTabs";
@@ -67,17 +67,20 @@ export default function AdminPage() {
         // yapıp gir" dedirtmeden önce jetonu tazeleyip BİR KEZ daha deniyoruz —
         // sayfayı yenilemenin yaptığı iş, sayfa yenilenmeden.
         const kod = (e as { code?: string } | null)?.code ?? "";
+        // Arıza anındaki GERÇEKLER mesaja iliştirilir: bir dahaki sefere
+        // "neden oluyor?" sorusunu tahminle değil ölçümle cevaplayalım.
+        const teshis = kod === "permission-denied" ? await jetonTeshis() : "";
         if (kod === "permission-denied" && (await kimligiTazele())) {
           try {
             setUsers(await listUsers());
             setErr(null);
             return;
           } catch (e2) {
-            setErr(studioHata(e2, "Liste alınamadı."));
+            setErr(`${studioHata(e2, "Liste alınamadı.")} [${teshis}]`);
             return;
           }
         }
-        setErr(studioHata(e, "Liste alınamadı."));
+        setErr(teshis ? `${studioHata(e, "Liste alınamadı.")} [${teshis}]` : studioHata(e, "Liste alınamadı."));
       });
   }, []);
 
