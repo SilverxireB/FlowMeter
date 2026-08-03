@@ -326,7 +326,7 @@ export default function VideowallEditPage() {
         </div>
       )}
 
-      <section className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
+      <section className="max-w-5xl min-[1600px]:max-w-[1720px] mx-auto px-4 py-8 flex flex-col gap-6">
         {/* Rehber (ilk açılışta otomatik; ❓ ile her zaman) */}
         {guide && (
           <div className="rounded-2xl bg-accent-soft border border-accent/25 p-5">
@@ -369,6 +369,20 @@ export default function VideowallEditPage() {
           </div>
         </div>
 
+        {/* GENİŞ EKRANDA İKİ SÜTUN (yalnız xl ve üstü).
+            Sebep estetik değil, iş akışı: bölme ve kenar-çek denetimleri alan
+            panelinin altında, tuval ise sayfanın üstündeydi — içeriği kalabalık
+            bir alanda ikisi AYNI ANDA ekranda hiç görünmüyordu. Bölüyorsun,
+            tuval görüş dışında kalıyor, panel kapanıyor, sonucu göremiyorsun.
+            Kenarından çekme ise tuval görünmeden zaten yapılamaz.
+            KIRILIM 1600px: xl (1280) denendi ama orada tuval 900→613px'e
+            düşüyordu — iki sütun uğruna tuvali küçültmek kötü takas. 1600'den
+            küçük her ekranda BUGÜNKÜ yerleşim aynen kalır (telefon, tablet ve
+            1280-1599 dizüstüler dahil); 1600+ ekranda tuval ~830-890px olur,
+            yani kimse tuval boyutu kaybetmez. Sol sütun yapışkan: sayfa kayarken tuval yerinde kalır.
+            Alan seçili değilken tek sütuna döner (yarısı boş kalmasın). */}
+        <div className={selected && selectedIndex >= 0 ? "flex flex-col gap-6 min-[1600px]:grid min-[1600px]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] min-[1600px]:gap-6 min-[1600px]:items-start" : "flex flex-col gap-6"}>
+        <div className="min-[1600px]:sticky min-[1600px]:top-4 min-[1600px]:self-start">
         {/* Yerleşim editörü */}
         <div className="card p-5">
           <div className="flex items-center justify-between gap-3 mb-3">
@@ -441,6 +455,7 @@ export default function VideowallEditPage() {
           </div>
         </div>
 
+        </div>
         {/* İçerik paneli (seçili alan) */}
         {selected && selectedIndex >= 0 && (
           <ZonePanel
@@ -474,6 +489,8 @@ export default function VideowallEditPage() {
             onClose={() => setSelectedId(null)}
           />
         )}
+        </div>
+
         {/* Yayın linki + QR + ekran sağlığı EN ALTTA: önce tasarlarsın
             (tanım → yerleşim → içerik), sonra yayınlar/izlersin. Üstte durunca
             her açılışta tasarımı aşağı itiyorlardı. */}
