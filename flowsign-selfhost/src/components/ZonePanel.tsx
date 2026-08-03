@@ -212,6 +212,30 @@ export default function ZonePanel({
     setItems(arr);
   };
   const transition = zone.transition ?? "fade";
+
+  // Alan ayarları BEKLEMEDE tutulur; Kaydet'e basılana kadar hiçbiri taslağa
+  // yazılmaz (bölme ızgarayı katladığı için en çok o dert oluyordu).
+  const [bekGecis, setBekGecis] = useState<"fade" | "cut" | "slide" | null>(null);
+  const [bekZemin, setBekZemin] = useState<string | null>(null);
+  const [bekBolme, setBekBolme] = useState<{ n: number; axis: "h" | "v" } | null>(null);
+  const bekliyor = bekGecis !== null || bekZemin !== null || bekBolme !== null;
+  const ayarlariAt = () => {
+    setBekGecis(null);
+    setBekZemin(null);
+    setBekBolme(null);
+  };
+  const ayarlariUygula = () => {
+    const p: Partial<Zone> = {};
+    if (bekGecis) p.transition = bekGecis;
+    if (bekZemin) p.bg = bekZemin;
+    if (Object.keys(p).length) patch(p);
+    const b = bekBolme;
+    ayarlariAt();
+    // Bölme EN SON: ızgarayı ve alan listesini değiştirdiği için önce
+    // yazılacakların yazılması gerekiyor, yoksa patch eski listeye uygulanır.
+    if (b) onSplit(b.n, b.axis);
+  };
+
   const allOutOfWindow = zone.items.length > 0 && zone.items.every((it) => !itemInWindow(it, now));
 
   const ADD_BTNS: { label: string; icon: string; fn: () => void; disabled?: boolean; title?: string }[] = [
@@ -260,56 +284,6 @@ export default function ZonePanel({
         <button onClick={onClose} className="shrink-0 w-9 h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-paper" aria-label="Paneli kapat">
           <Icon name="close" size={16} />
         </button>
-      </div>
-
-      {/* BÖLME — alanın kendi panelinde (kokpitte genel "yerleşim ızgarası"
-          satırı YOK). İKİ SATIR + sabit genişlikte yön etiketi: tek satıra
-          sıkıştırılınca telefonda sarıp kırık görünüyordu (kullanıcı ekran
-          görüntüsü). Sayı düğmeleri iki satırda alt alta hizalı durur. */}
-      <div className="mb-4">
-        <p className="text-xs font-semibold text-ink mb-2">Bu alanı böl</p>
-        <div className="flex flex-col gap-2">
-          {([
-            { axis: "h", label: "yan yana", icon: "⇄" },
-            { axis: "v", label: "alt alta", icon: "⇅" },
-          ] as const).map((dir) => (
-            <div key={dir.axis} className="flex items-center gap-2">
-              <span className="text-xs text-muted inline-flex items-center gap-1.5 w-24 shrink-0">
-                <span aria-hidden>{dir.icon}</span>
-                {dir.label}
-              </span>
-              {[2, 3, 4].map((n) => (
-                <button
-                  key={n}
-                  onClick={() => onSplit(n, dir.axis)}
-                  className="w-9 h-9 rounded-xl border border-line bg-white text-sm font-semibold text-ink hover:border-accent hover:text-accent"
-                  title={`${dir.label} ${n} parçaya böl`}
-                  aria-label={`${dir.label} ${n} parçaya böl`}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-        <p className="text-muted text-[11px] mt-2">İçerik ilk parçada kalır.</p>
-      </div>
-
-      {/* Alan ayarları: geçiş + arka plan */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-4 text-xs text-muted">
-        <span className="flex items-center gap-2">
-          Geçiş:
-          {(["fade", "cut", "slide"] as const).map((tr) => (
-            <button
-              key={tr}
-              onClick={() => patch({ transition: tr })}
-              className={`px-2.5 py-1.5 rounded-full font-semibold border ${transition === tr ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"}`}
-            >
-              {tr === "fade" ? "Yumuşak" : tr === "cut" ? "Kesme" : "Kaydır"}
-            </button>
-          ))}
-        </span>
-        <label className="flex items-center gap-1.5">Alan zemini <input type="color" defaultValue={zone.bg ?? ZONE_BG_DEFAULT} onChange={(e) => patch({ bg: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-line p-0.5 cursor-pointer" /></label>
       </div>
 
       {/* Hedef çözünürlük: içerik alana tam yayılır (stretch) → doğru boyutta
@@ -616,6 +590,75 @@ export default function ZonePanel({
       <p className="text-muted text-[11px] mt-3 inline-flex items-center gap-1">
         Süre ve takvim öğedeki <Icon name="settings" size={12} /> ile ayarlanır.
       </p>
+
+      {/* ALAN AYARLARI — panelin EN ALTINDA ve KAYDET ile uygulanır.
+          İki ayrı karar var, ikisi de kullanıcıdan geldi:
+           • YER: bunlar günlük iş değil, kurulum işi. Panelin tepesinde
+             dururken içerik yüklemek isteyen kişi her açışta üstlerinden
+             atlıyordu. Medya işinin altına indiler.
+           • ZAMANLAMA: bölme, sayıya dokunulur dokunulmaz ızgarayı katlıyor ve
+             diğer alanları ölçekliyordu — yanlış sayıya değmek geri alması zor
+             bir değişiklikti. Artık seçim BEKLEMEDE durur, Kaydet uygular,
+             Vazgeç atar. Geçiş ve zemin de aynı kapıdan geçiyor ki "seçtim ama
+             olmadı mı?" belirsizliği doğmasın. */}
+      <div className="mt-6 pt-4 border-t border-line">
+        <p className="text-xs font-semibold text-ink mb-3">Alan ayarları</p>
+
+        <p className="text-xs text-muted mb-2">Bu alanı böl</p>
+        <div className="flex flex-col gap-2">
+          {([
+            { axis: "h", label: "yan yana", icon: "\u21c4" },
+            { axis: "v", label: "alt alta", icon: "\u21c5" },
+          ] as const).map((dir) => (
+            <div key={dir.axis} className="flex items-center gap-2">
+              <span className="text-xs text-muted inline-flex items-center gap-1.5 w-24 shrink-0">
+                <span aria-hidden>{dir.icon}</span>
+                {dir.label}
+              </span>
+              {[2, 3, 4].map((n) => {
+                const secili = bekBolme?.axis === dir.axis && bekBolme?.n === n;
+                return (
+                  <button
+                    key={n}
+                    onClick={() => setBekBolme(secili ? null : { n, axis: dir.axis })}
+                    aria-pressed={secili}
+                    className={`w-9 h-9 rounded-xl border text-sm font-semibold ${secili ? "bg-ink text-white border-ink" : "border-line bg-white text-ink hover:border-accent hover:text-accent"}`}
+                    title={`${dir.label} ${n} par\u00e7aya b\u00f6l`}
+                    aria-label={`${dir.label} ${n} par\u00e7aya b\u00f6l`}
+                  >
+                    {n}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+        <p className="text-muted text-[11px] mt-2">\u0130\u00e7erik ilk par\u00e7ada kal\u0131r.</p>
+
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 text-xs text-muted">
+          <span className="flex items-center gap-2">
+            Ge\u00e7i\u015f:
+            {(["fade", "cut", "slide"] as const).map((tr) => (
+              <button
+                key={tr}
+                onClick={() => setBekGecis(tr)}
+                className={`px-2.5 py-1.5 rounded-full font-semibold border ${(bekGecis ?? transition) === tr ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"}`}
+              >
+                {tr === "fade" ? "Yumu\u015fak" : tr === "cut" ? "Kesme" : "Kayd\u0131r"}
+              </button>
+            ))}
+          </span>
+          <label className="flex items-center gap-1.5">Alan zemini <input type="color" value={bekZemin ?? zone.bg ?? ZONE_BG_DEFAULT} onChange={(e) => setBekZemin(e.target.value)} className="w-7 h-7 rounded bg-transparent border border-line p-0.5 cursor-pointer" /></label>
+        </div>
+
+        {bekliyor && (
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <button onClick={ayarlariUygula} className="btn-primary !py-2 !px-4 text-xs">Kaydet</button>
+            <button onClick={ayarlariAt} className="btn-ghost !py-2 !px-3 text-xs">Vazge\u00e7</button>
+            <span className="text-muted text-[11px]">Se\u00e7imler hen\u00fcz uygulanmad\u0131.</span>
+          </div>
+        )}
+      </div>
 
       {/* Medya kütüphanesi */}
       {libOpen && (
