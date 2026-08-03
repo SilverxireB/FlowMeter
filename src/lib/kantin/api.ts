@@ -282,6 +282,18 @@ export async function kantinSil(id: string, idToken?: string): Promise<void> {
     }
   }
   await deleteDoc(doc(kDb(), "kantin", id));
+
+  // O kantine bağlı görevlileri SERBEST BIRAK. Eskiden bağ duruyordu: kişinin
+  // `kantinId`si silinmiş kantini gösterdiği için oturum ona kilitleniyor,
+  // kantin seçici de kantinci'de gizli olduğu için kurtulma yolu kalmıyordu.
+  // Tezgâhta "sipariş alımı kapalı" yazıyor ama açacak düğme çizilmiyordu
+  // (kantin belgesi yok) — kişi çıkmaz sokakta kalıyordu.
+  // Rolü personele çekmek en az sürprizli çözüm: yönetici yeni kantin açıp
+  // yeniden atayabilir.
+  const bagli = await getDocs(query(collection(kDb(), "kantinUsers"), where("kantinId", "==", id), limit(450)));
+  await Promise.all(
+    bagli.docs.map((d) => updateDoc(d.ref, { kantinId: "", rol: "personel" }).catch(() => {}))
+  );
 }
 
 // ── Menü ─────────────────────────────────────────────────────────────────────

@@ -129,8 +129,20 @@ function attemptUpload(file: File, folder: string, onProgress: (pct: number) => 
           reject(new Error("Cloudinary yanıtı okunamadı."));
         }
       } else if (xhr.status >= 400 && xhr.status < 500) {
-        // Kalıcı hata (geçersiz preset, dosya reddi…) — tekrar deneme boşuna
-        reject(new PermanentUploadError("Yükleme reddedildi (" + xhr.status + ")."));
+        // Kalıcı hata (geçersiz preset, dosya reddi…) — tekrar deneme boşuna.
+        // Cloudinary sebebi gövdede JSON olarak söylüyor; eskiden yalnız durum
+        // kodu gösteriliyordu ve "Yükleme reddedildi (400)" hiçbir şey
+        // anlatmıyordu: preset mi kapalı, klasör mü yasak, dosya mı büyük —
+        // hepsi aynı cümleye çıkıyordu. Sebebi bilinen hata düzeltilebilir.
+        let sebep = "";
+        try {
+          sebep = JSON.parse(xhr.responseText)?.error?.message ?? "";
+        } catch {}
+        reject(
+          new PermanentUploadError(
+            sebep ? `Yükleme reddedildi: ${sebep}` : `Yükleme reddedildi (${xhr.status}).`
+          )
+        );
       } else {
         reject(new Error("Yükleme başarısız (" + xhr.status + ")."));
       }

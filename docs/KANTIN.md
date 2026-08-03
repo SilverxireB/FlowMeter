@@ -141,6 +141,19 @@ eklenmedi (geçici klasörde kurulur).
 3. `/kantin` → yönetici e-postasıyla hesap aç → Ayarlar'dan kantinleri ve
    menüleri kur → Kişiler'den kantincileri ata.
 
+## Kenarda duran not — giriş akışı (Studio, kantin değil)
+
+Google girişi şu an **açılır pencere** (popup) ile. İlk denemede tarayıcı
+pencereyi engelliyor, kullanıcı elle izin verince çalışıyor — yani her yeni
+kişi bir kez bu duvara tosluyor. Alternatif **tam sayfa yönlendirme**
+(`signInWithRedirect`): popup engelleyici denklemden tümden çıkar.
+
+Popup'ın seçilme sebebi kodda yazılıydı: uygulama adresi ile auth adresi farklı
+olduğu için tarayıcılar yönlendirme akışını üçüncü-taraf depolama engeliyle
+bozuyordu. **2026-08'de iki adres aynı oldu** (authDomain artık
+`flowstudiomanisa.vercel.app`), yani o gerekçe ortadan kalktı. Değişiklik tek
+satır ve geri alması kolay; kullanıcı kararı bekliyor.
+
 ## Sırada (yapılmadı)
 
 - Sunucu push'u (yukarıdaki iki anahtar geldiğinde).

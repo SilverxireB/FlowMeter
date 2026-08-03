@@ -82,8 +82,17 @@ export async function POST(req: Request) {
   } else if (kantinMode) {
     // Kantin ayrı bir dünya: sahiplik yerine ROL. Yönetici ya da o kantinin
     // görevlisi silebilir (Firestore kurallarındaki kGorevli ile aynı kapı).
+    // KİMLİKLE oku: `kantinUsers` kuralları giriş yapmış olmayı şart koşuyor
+    // (`kGirisli()`), yani kimliksiz istek HER ZAMAN reddediliyordu. Sonuç
+    // sessizdi: `kisiRes.ok` false → rol boş → yalnız bootstrap e-postası
+    // geçiyor, `rol:"admin"` yapılmış İKİNCİ bir yönetici kantin silince 403
+    // alıyordu. Üstelik çağıran taraf bu hatayı yutuyor (api.ts), yani
+    // Firestore temizleniyor ama Cloudinary'deki ürün görselleri yetim kalıp
+    // URL'siyle açık kalmaya devam ediyordu. (Diğer dallar çalışıyordu çünkü
+    // `walls`/`videowalls` belgeleri herkese açık okunabiliyor.)
     const kisiRes = await fetch(
-      `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/kantinUsers/${uid}`
+      `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/kantinUsers/${uid}`,
+      { headers: { Authorization: `Bearer ${idToken}` } }
     );
     const kf = kisiRes.ok ? ((await kisiRes.json())?.fields ?? {}) : {};
     const rol = kf?.rol?.stringValue ?? "";
