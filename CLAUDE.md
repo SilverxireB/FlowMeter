@@ -68,6 +68,12 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   üstünden yenilenir; o adres kapalıysa ilk saat her şey ÇALIŞIR, sonra tüm
   okumalar `permission-denied` verir (kural değil, kimlik sorunu). Teşhis:
   `/admin/prova` → "Oturum jetonu".
+  **Geri çekilme tuzağı:** Firestore bağlantısı koptuğunda üstel geri
+  çekilmeyle yeniden dener ve bekleme **60 sn'ye kadar** çıkar; ekran uzun
+  süre açık kalınca "sunucu yanıtı bekleniyor" dakikalarca sürüyordu (sayfa
+  yenilenince 1 sn). `lib/firebase.ts` → `baglantiyiTazele()`
+  (disableNetwork→enableNetwork) sayacı sıfırlar: sekme 45 sn+ gizli kalıp
+  dönünce, `online` olayında ve yazım gecikince otomatik çağrılır.
 - **FlowSign:** editör TASLAK (`zones`), perde YAYIN (`live`); birleştir/böl içerik
   korur + onay sorar; slug ad değişince YENİLENİR (slugHistory eski linkleri taşır);
   iframe sandbox + http(s) doğrulama; Wake Lock + offline persistence

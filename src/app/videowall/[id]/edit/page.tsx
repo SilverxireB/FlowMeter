@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { baglantiyiTazele } from "@/lib/firebase";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import LayoutEditor from "@/components/videowall/LayoutEditor";
 import ScreensCard from "@/components/videowall/ScreensCard";
@@ -205,6 +206,11 @@ export default function VideowallEditPage() {
       // başına 12 sn'yi aşabiliyor.
       await withTimeout(yazim, 20000);
     } catch {
+      // Yazım gecikti: sayfayı YENİLEMEDEN, yenilemenin yaptığı işi yap —
+      // Firestore'un geri çekilme sayacını sıfırla. Kullanıcı "iki sayfayı da
+      // yenileyince geldi, sonrası 1 sn bile sürmedi" dedi; teşhis buydu.
+      // Kuyruktaki yazım tazeleme biter bitmez gidiyor.
+      void baglantiyiTazele();
       if (!bitti)
         setBekliyor(
           navigator.onLine === false

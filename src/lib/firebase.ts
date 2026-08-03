@@ -6,6 +6,8 @@ import {
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
+  disableNetwork,
+  enableNetwork,
 } from "firebase/firestore";
 
 /**
@@ -66,6 +68,63 @@ function app(): FirebaseApp {
 // Firestore: tarayıcıda kalıcı IndexedDB önbelleği (ağ kesilse son içerik/oynatma
 // devam eder — FlowSign tabelası için 7/24 dayanıklılık; realtime onSnapshot
 // online'da aynen çalışır). Tek giriş noktası → initializeFirestore bir kez.
+/**
+ * UZUN BOŞLUKTAN SONRA BAĞLANTIYI TAZELE — "sunucu yanıtı bekleniyor" bir
+ * dakika sürmesin.
+ *
+ * Firestore bağlantısı koptuğunda (sekme arka plana atılıp dondurulur, ağ
+ * dalgalanır, kimlik jetonu tazelenemez) SDK üstel geri çekilmeyle yeniden
+ * dener ve bu bekleme **60 saniyeye kadar** çıkar. Sekmeye dönen kullanıcı
+ * hiçbir şey yapmadan o pencerenin dolmasını bekliyor: yazım kuyrukta duruyor,
+ * ekranda "sunucu yanıtı bekleniyor" yazıyor, oysa ağ çoktan geri gelmiş.
+ *
+ * disableNetwork→enableNetwork o geri çekilme sayacını SIFIRLAR ve bağlantıyı
+ * hemen kurar. Yalnız sekme UZUN süre (45 sn+) gizli kaldıysa yapılır; kısa
+ * sekme değişimlerinde bağlantıyı boşuna sarsmanın anlamı yok.
+ *
+ * Yazımlar kaybolmaz: çevrimdışı geçişte kuyrukta beklerler, bağlantı gelince
+ * giderler — zaten kalıcı önbellek bunun için açık.
+ */
+let _tazeleniyor = false;
+
+/**
+ * Bağlantıyı ZORLA tazele — geri çekilme sayacını sıfırlar.
+ *
+ * Sekme dönüşünde kendiliğinden çağrılır (aşağıda), ama YETMİYOR: ekran uzun
+ * süre GÖRÜNÜR kalıp boşta beklediğinde `visibilitychange` hiç tetiklenmiyor ve
+ * kullanıcı bir dakikadan uzun "sunucu yanıtı bekleniyor" görüyor. Bu yüzden
+ * bir yazım gecikirse çağıran taraf bunu doğrudan çağırabiliyor — sayfayı
+ * yenilemenin yaptığı işi, sayfayı yenilemeden yapar.
+ */
+export async function baglantiyiTazele(): Promise<void> {
+  if (typeof window === "undefined" || !_db || _tazeleniyor) return;
+  _tazeleniyor = true;
+  try {
+    await disableNetwork(_db);
+    await enableNetwork(_db);
+  } catch {
+    // Tazeleme başarısızsa SDK kendi döngüsüne devam eder — yutulur.
+  } finally {
+    _tazeleniyor = false;
+  }
+}
+
+function agTazelemeKur(): void {
+  if (typeof window === "undefined") return;
+  let gizlendi = 0;
+  const tazele = () => void baglantiyiTazele();
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      gizlendi = Date.now();
+      return;
+    }
+    if (gizlendi && Date.now() - gizlendi > 45_000) tazele();
+    gizlendi = 0;
+  });
+  // Ağ geri geldiğinde de aynı sayaç sıfırlanmalı.
+  window.addEventListener("online", tazele);
+}
+
 let _db: Firestore | null = null;
 export function db(): Firestore {
   if (_db) return _db;
@@ -81,6 +140,7 @@ export function db(): Firestore {
   } else {
     _db = getFirestore(a);
   }
+  if (typeof window !== "undefined") agTazelemeKur();
   return _db;
 }
 
