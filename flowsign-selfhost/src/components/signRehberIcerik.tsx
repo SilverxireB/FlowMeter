@@ -113,21 +113,20 @@ export const SIGN_REHBER: RehberBolum[] = [
     baslik: "Dört kelime",
     icerik: (
       <>
-        <p>Rehber boyunca hep aynı anlamda kullanılıyor.</p>
         <Tablo
           basliklar={["Kelime", "Ne demek"]}
           satirlar={[
-            ["Ekran", "FlowSign'da tanımladığın yayın. Bir TV'yi de kapsayabilir, yan yana altı TV'yi de."],
-            ["Fiziksel ekran", "Duvardaki gerçek TV. Editördeki kesik çizgiler bunların arasındaki çerçeveyi gösterir."],
-            ["Alan", "İçerik koyduğun bölge. Bir alan birkaç TV'ye yayılabilir, bir TV birkaç alana bölünebilir."],
-            ["Öğe", "Alanın içinde sırayla dönen tek bir şey: görsel, video, sayfa, metin ya da saat."],
+            ["Ekran", "FlowSign'da tanımladığın yayın. Bir TV'yi de kapsar, yan yana altı TV'yi de."],
+            ["Fiziksel ekran", "Duvardaki gerçek TV. Tuvaldeki kesik çizgiler bunların arasındaki çerçevedir."],
+            ["Alan", "İçerik koyduğun bölge. Birkaç TV'ye yayılabilir; bir TV birkaç alana bölünebilir."],
+            ["Öğe", "Alanda sırayla dönen tek bir şey: görsel, video, sayfa, metin ya da saat."],
           ]}
         />
 
         <Baslik>Taslak ve yayın</Baslik>
         <p>
-          En çok karıştırılan şey bu, bir kez oku yeter: <b>editörde yaptığın hiçbir şey videowall'a anında gitmez.</b> İki ayrı
-          hâl var ve üstteki renkli şerit hangisinde olduğunu her zaman söyler.
+          Bir kez oku, yeter: <b>editörde yaptığın hiçbir şey videowall'a anında gitmez.</b> Üstteki renkli şerit hangi
+          hâlde olduğunu her zaman söyler.
         </p>
         <div className="grid sm:grid-cols-2 gap-2">
           <div className="rounded-xl border border-accent/25 bg-accent-soft/50 p-3">
@@ -140,12 +139,12 @@ export const SIGN_REHBER: RehberBolum[] = [
           </div>
         </div>
         <p>
-          Bir şeyi bozduysan mor şeritteki <Dugme icon="undo">Yayındaki hâle dön</Dugme> taslağı, ekranın şu an oynattığı hâle
-          geri sarar. Tek adımlık hatalar için yerleşim kartındaki <Dugme icon="undo">Son değişikliği geri al</Dugme> yeter.
+          Bozduysan mor şeritteki <Dugme icon="undo">Yayındaki hâle dön</Dugme> taslağı ekranın oynattığı hâle geri sarar;
+          tek adımlık hatalar için <Dugme icon="undo">Son değişikliği geri al</Dugme> yeter.
         </p>
         <Kutu baslik="Tek istisna">
           <p>
-            <b>Oynatma modu</b> (Videowall / Sunum) yayından bağımsızdır — seçtiğin anda perdeye gider, yayınlaman gerekmez.
+            <b>Oynatma modu</b> (Videowall / Sunum) yayından bağımsızdır — seçtiğin anda perdeye gider.
           </p>
         </Kutu>
       </>
@@ -158,16 +157,16 @@ export const SIGN_REHBER: RehberBolum[] = [
     baslik: "İlk ekranını yayına al",
     icerik: (
       <>
-        <p>Altı adım. Sonunda videowall bilgisayarında dönen bir yayının olur.</p>
+        <p>Altı adım; sonunda videowall bilgisayarında dönen bir yayının olur.</p>
         <Adimlar
           items={[
             {
               baslik: "Ekranı oluştur",
               metin: (
                 <>
-                  Ekranlar sayfasında ada duvarın yerini yaz (<i>Giriş Holü</i> gibi) ve hazır şablonlardan birini seç. Duvarın
-                  bunlardan biri değilse ölçüleri elle gir: <b>Genişlik/Yükseklik</b> duvarın toplam piksel ölçüsü,{" "}
-                  <b>yan yana / üst üste kaç ekran</b> ise kaç TV olduğu.
+                  Ada duvarın yerini yaz (<i>Giriş Holü</i>) ve hazır şablonlardan birini seç. Şablon uymuyorsa:{" "}
+                  <b>Genişlik/Yükseklik</b> duvarın toplam piksel ölçüsü, <b>yan yana / üst üste kaç ekran</b> kaç TV
+                  olduğu.
                 </>
               ),
             },
@@ -175,8 +174,7 @@ export const SIGN_REHBER: RehberBolum[] = [
               baslik: "Bir alan seç",
               metin: (
                 <>
-                  Yerleşim tuvalinde alana tıkla. O alanın paneli açılır; başlığında alanın gerçek piksel ölçüsü yazar — hangi
-                  çözünürlükte afiş hazırlayacağını oradan öğrenirsin.
+                  Tuvalde alana tıkla. Panel başlığında alanın gerçek piksel ölçüsü yazar — afişi o ölçüde hazırla.
                 </>
               ),
             },
@@ -184,9 +182,9 @@ export const SIGN_REHBER: RehberBolum[] = [
               baslik: "İçerik ekle",
               metin: (
                 <>
-                  Panelin üstündeki beş düğme: <Dugme icon="upload">Görsel / Video</Dugme> <Dugme icon="folder">Kütüphane</Dugme>{" "}
-                  <Dugme icon="link">URL</Dugme> <Dugme icon="pencil">Metin</Dugme> <Dugme icon="clock">Saat</Dugme>. Dosyayı
-                  doğrudan panelin üzerine sürükleyip bırakmak da olur.
+                  <Dugme icon="upload">Görsel / Video</Dugme> <Dugme icon="folder">Kütüphane</Dugme>{" "}
+                  <Dugme icon="link">URL</Dugme> <Dugme icon="pencil">Metin</Dugme> <Dugme icon="clock">Saat</Dugme>.
+                  Dosyayı panelin üzerine sürükleyip bırakmak da olur.
                 </>
               ),
             },
@@ -194,8 +192,7 @@ export const SIGN_REHBER: RehberBolum[] = [
               baslik: "Önizle",
               metin: (
                 <>
-                  <Dugme icon="eye">Önizle</Dugme> taslağını ayrı bir sekmede açar. Videowall'daki yayın bundan etkilenmez —
-                  istediğin kadar dene.
+                  <Dugme icon="eye">Önizle</Dugme> taslağı ayrı sekmede açar; videowall'daki yayın etkilenmez.
                 </>
               ),
             },
@@ -203,8 +200,8 @@ export const SIGN_REHBER: RehberBolum[] = [
               baslik: "Kaydet & Yayınla",
               metin: (
                 <>
-                  Sağ üstteki <Dugme icon="save" birincil>Kaydet &amp; Yayınla</Dugme> düğmesi. Düğme{" "}
-                  <Dugme>✓ Yayında</Dugme> hâline dönünce ekranlar birkaç saniye içinde yeni hâli alır.
+                  Sağ üstteki <Dugme icon="save" birincil>Kaydet &amp; Yayınla</Dugme>. Düğme <Dugme>✓ Yayında</Dugme>{" "}
+                  olunca ekranlar birkaç saniye içinde yeni hâli alır.
                 </>
               ),
             },
@@ -212,13 +209,16 @@ export const SIGN_REHBER: RehberBolum[] = [
               baslik: "Videowall'da aç",
               metin: (
                 <>
-                  Sayfanın altındaki <b>Yayın linki</b>ni kopyala — ya da yanındaki kareyi telefonla okut. Videowall bilgisayarında
-                  Chrome ile aç, tam ekran yap. Bundan sonrası kendiliğinden döner.
+                  Alttaki <b>Yayın linki</b>ni kopyala ya da kareyi telefonla okut. Videowall bilgisayarında Chrome ile
+                  aç, tam ekran yap.
                 </>
               ),
             },
           ]}
         />
+        <Kutu baslik="Adı değiştirirsen">
+          <p>Yayın linki de yenilenir, ama eski link çalışmaya devam eder — videowall'a koşmana gerek yok.</p>
+        </Kutu>
       </>
     ),
   },
@@ -229,33 +229,30 @@ export const SIGN_REHBER: RehberBolum[] = [
     baslik: "Alanları düzenlemek",
     icerik: (
       <>
-        <p>
-          Aşağıdaki tuval gerçek yerleşim editörünün kendisi — üstünde deneyebilirsin. Buradaki hiçbir değişiklik
-          kaydedilmez.
-        </p>
+        <p>Aşağıdaki tuval gerçek editörün kendisi — üstünde dene.</p>
         <RehberDemo />
-
-        <Baslik>Üç hareket</Baslik>
         <Tablo
-          basliklar={["Ne yapmak istiyorsun", "Nasıl"]}
+          basliklar={["Ne yapmak istersen", "Nasıl"]}
           satirlar={[
-            ["Alan seçmek", "Alana tıkla. Ayarları ve içeriği panelde açılır."],
-            ["Alanları birleştirmek", "Bir alandan diğerine sürükle. Kapsadığın dikdörtgen tek alan olur."],
-            ["Alanı bölmek", <>Panelin altındaki <b>Bu alanı böl</b>: yan yana ⇄ ve alt alta ⇅ için 2·3·4. İkisini birden seçip tek <b>Uygula</b> ile 3×2 yapabilirsin.</>],
-            ["Oranı değiştirmek", "Tuvalde iki alanın paylaştığı çizgiyi tut ve sürükle."],
+            ["Alan seçmek", "Alana tıkla."],
+            ["Birleştirmek", "Bir alandan diğerine sürükle; kapsadığın dikdörtgen tek alan olur."],
+            [
+              "Bölmek",
+              <>
+                Panelin altındaki <b>Bu alanı böl</b>: yan yana ⇄ ve alt alta ⇅ için 2·3·4. İkisini birden seçip tek{" "}
+                <b>Uygula</b> ile 3×2 yaparsın. İçerik ilk parçada kalır.
+              </>,
+            ],
+            ["Oranı değiştirmek", "İki alanın paylaştığı çizgiyi tut ve sürükle."],
           ]}
         />
         <Kutu tur="ekran" baslik="Kesik çizgiler">
           <p>
-            Tuvaldeki kesik çizgiler TV'lerin arasındaki <b>çerçeve</b>dir — taşınmazlar, donanım gerçeğidir. Bir yüzü tam
-            ortadan bölen çerçevenin üstüne yazı denk getirme.
+            TV'lerin arasındaki <b>çerçeve</b>dir, taşınmaz. Bir yüzü ya da yazıyı tam o çizgiye denk getirme.
           </p>
         </Kutu>
         <Kutu tur="uyari" baslik="Bölünemiyor derse">
-          <p>
-            &ldquo;Bu alan daha fazla bölünemez&rdquo; uyarısı, yerleşimin en küçük parçasına inildiği anlamına gelir. Önce
-            birkaç parçayı birleştir, sonra istediğin gibi böl.
-          </p>
+          <p>Yerleşimin en küçük parçasındasın: önce birkaç parçayı birleştir, sonra istediğin gibi böl.</p>
         </Kutu>
       </>
     ),
@@ -269,56 +266,61 @@ export const SIGN_REHBER: RehberBolum[] = [
       <>
         <p>Bir alandaki öğeler listedeki sırayla, verdiğin süre ve takvime göre döner.</p>
         <Tablo
-          basliklar={["Tür", "Ne için"]}
+          basliklar={["Tür", "Bilmen gereken"]}
           satirlar={[
-            ["Görsel / Video", "Cihazından yükle. Panelin üzerine sürükleyip bırakmak da olur."],
-            ["Kütüphane", "Bu ekrana daha önce yüklediklerin. Aynı afişi ikinci alana koyarken yeniden yükleme."],
-            ["URL", "Bir web sayfası ya da pano. Bazı siteler gömülmeye izin vermez — eklerken uyarır, Önizle ile doğrula."],
-            ["Metin", "Başlık + mesaj. Zemin ve yazı rengi senin."],
+            ["Görsel / Video", "Cihazından yükle ya da panelin üzerine bırak. Video için MP4 (H.264) en güvenlisi."],
+            ["Kütüphane", "Bu ekrana daha önce yüklediklerin — aynı afişi ikinci alana koyarken yeniden yükleme."],
+            [
+              "URL",
+              <>
+                Web sayfası ya da pano. Bazı siteler gömülmeye izin vermez; eklerken uyarır. Şirket panoları sığmıyorsa{" "}
+                <b>yakınlaştırmayı</b> %25–150 arasında ayarla.
+              </>,
+            ],
+            ["Metin", "Başlık + mesaj; zemin ve yazı rengi senin."],
             ["Saat", "Canlı saat."],
           ]}
         />
 
         <Baslik>Sıra</Baslik>
         <p>
-          Öğeler listedeki sırayla döner. Sürükleme tutamağından taşı, ya da <b>▲▼</b> ile bir basamak oynat.
+          Öğeler listedeki sırayla döner. Tutamağından sürükle, ya da <b>▲▼</b> ile bir basamak oynat.
         </p>
 
         <Baslik>Süre ve takvim</Baslik>
         <p>
-          Her öğenin kendi <Dugme icon="settings">ayar</Dugme> düğmesi var. Dördü birlikte &ldquo;bu içerik ne zaman
-          görünsün&rdquo; sorusunu cevaplar.
+          Her öğenin kendi <Dugme icon="settings">ayar</Dugme> düğmesi var.
         </p>
         <Tablo
           basliklar={["Ayar", "Ne yapar", "Boş bırakırsan"]}
           satirlar={[
-            ["Süre (sn)", "Öğenin ekranda kalma süresi", "Görsel ve metin 8 sn; video kendi sonuna kadar oynar"],
-            ["Saat", "Günün hangi saatleri arasında dönsün", "Gün boyu. 22:00–06:00 gibi geceyi aşan aralık da çalışır"],
+            ["Süre (sn)", "Ekranda kalma süresi", "Görsel ve metin 8 sn; video kendi sonuna kadar"],
+            ["Saat", "Günün hangi saatleri", "Gün boyu. 22:00–06:00 gibi geceyi aşan aralık da olur"],
             ["Tarih", "Kampanya aralığı; bitiş günü dahil", "Süresiz"],
             ["Gün", "Haftanın hangi günleri", "Her gün"],
           ]}
         />
         <p>
-          Sırası gelmeyen öğe listede <Dugme>şu an takvim dışı</Dugme> rozeti alır. Kaybolmadı — sadece bugün, bu saatte
-          dönmüyor.
+          Sırası gelmeyen öğe <Dugme>şu an takvim dışı</Dugme> rozeti alır. Kaybolmadı — bugün, bu saatte dönmüyor.
         </p>
 
         <Baslik>Geçiş ve zemin</Baslik>
         <p>
-          Panelin altındaki <b>Alan ayarları</b> bölümünde: geçiş <Dugme>Yumuşak</Dugme> <Dugme>Kesme</Dugme>{" "}
-          <Dugme>Kaydır</Dugme> ve alanın zemin rengi. Seçimler beklemede durur, <Dugme birincil>Uygula</Dugme> ile devreye
-          girer. Geçişi görebilmek için alanda en az iki öğe olmalı.
+          Panelin altında, <b>Alan ayarları</b>: <Dugme>Yumuşak</Dugme> <Dugme>Kesme</Dugme> <Dugme>Kaydır</Dugme> ve
+          zemin rengi. Seçimler <Dugme birincil>Uygula</Dugme> ile devreye girer; geçişi görmek için alanda en az iki öğe
+          olmalı.
         </p>
 
         <Baslik>Oynatma modu</Baslik>
         <Tablo
           basliklar={["Mod", "Nasıl ilerler", "Nerede"]}
           satirlar={[
-            ["Videowall", "İçerik süre ve takvime göre kendiliğinden döner", "Normal kullanım — koridor, hol, üretim panosu"],
+            ["Videowall", "Süre ve takvime göre kendiliğinden döner", "Koridor, hol, üretim panosu"],
             [
               "Sunum",
               <>
-                Kumanda veya klavye ile: <Tus>→</Tus> <Tus>←</Tus> <Tus>boşluk</Tus>. Süre ve otomatik geçiş çalışmaz
+                Kumanda veya klavye: <Tus>→</Tus> <Tus>←</Tus> <Tus>boşluk</Tus>, <Tus>B</Tus> siyah ekran. Süre ve
+                otomatik geçiş çalışmaz
               </>,
               "Toplantı odası perdesi",
             ],
@@ -337,7 +339,7 @@ export const SIGN_REHBER: RehberBolum[] = [
         <p>Bir kez doğru kurulursa aylarca elleşmeden döner.</p>
         <Adimlar
           items={[
-            { baslik: "Chrome ile yayın linkini aç", metin: "Başka tarayıcı da açar ama uzun süreli çalışmada Chrome'u kullan." },
+            { baslik: "Chrome ile yayın linkini aç", metin: "Başka tarayıcı da açar; uzun süreli çalışmada Chrome'u kullan." },
             {
               baslik: "Tam ekran yap",
               metin: (
@@ -350,8 +352,8 @@ export const SIGN_REHBER: RehberBolum[] = [
               baslik: "Birden çok TV varsa: tek birleşik masaüstü",
               metin: (
                 <>
-                  TV'ler ekran kartında <b>tek bir geniş ekran</b> gibi tanımlanmalı (NVIDIA Surround / AMD Eyefinity).
-                  Windows'un &ldquo;ekranları genişlet&rdquo; ayarı yetmez — o durumda yayın yalnız bir TV'de kalır.
+                  TV'ler ekran kartında <b>tek bir geniş ekran</b> olmalı (NVIDIA Surround / AMD Eyefinity). Windows'un
+                  &ldquo;ekranları genişlet&rdquo;i yetmez — yayın yalnız bir TV'de kalır.
                 </>
               ),
             },
@@ -359,7 +361,7 @@ export const SIGN_REHBER: RehberBolum[] = [
               baslik: "Sırayı doğrula",
               metin: (
                 <>
-                  Sağ alttaki <Dugme icon="grid">Ekranları tanı</Dugme> her TV'ye kocaman bir numara basar. Soldan sağa 1-2-3
+                  <Dugme icon="grid">Ekranları tanı</Dugme> her TV'ye kocaman bir numara basar. Soldan sağa 1-2-3
                   gitmiyorsa ekran kartı ayarından TV sırasını düzelt — içeriği değil.
                 </>
               ),
@@ -367,41 +369,41 @@ export const SIGN_REHBER: RehberBolum[] = [
             {
               baslik: "Uykuyu kapat",
               metin:
-                "Windows güç ayarlarında ekran ve uyku “hiçbir zaman” olsun. Sayfa ekranı uyanık tutmaya çalışır ama işletim sisteminin ayarını ezemez.",
+                "Windows güç ayarlarında ekran ve uyku “hiçbir zaman” olsun. Sayfa uyanık tutmaya çalışır ama işletim sisteminin ayarını ezemez.",
             },
           ]}
         />
 
         <Kutu baslik="Kendi kendine">
           <p>
-            Yayın 7/24 açık kalacak şekilde yazıldı: içeriği değiştirince kendi günceller, bağlantı koparsa son hâlini
-            oynatmaya devam eder, gece bir kez kendini tazeler. Videowall'a her gün gitmen gerekmez.
+            İçeriği değiştirince kendi günceller, bağlantı koparsa son hâlini oynatmaya devam eder, gece bir kez kendini
+            tazeler.
           </p>
         </Kutu>
 
         <Baslik>Ekranlar kartı</Baslik>
         <p>
-          Editörün altındaki <b>Ekranlar</b> kartı bu yayını açık tutan cihazları listeler: hangisi çevrimiçi, ne kadardır
-          yayında, toplam ne kadar yayın yapmış. Bir TV'nin gerçekten açık olup olmadığını odaya gitmeden buradan görürsün.
+          Editörün altındaki <b>Ekranlar</b>, bu yayını açık tutan cihazları gösterir: hangisi çevrimiçi, ne kadardır
+          yayında, toplam ne kadar yayın yapmış. Bir TV'nin gerçekten açık olup olmadığını odaya gitmeden görürsün.
         </p>
 
         <Baslik>Sık karşılaşılanlar</Baslik>
         <Tablo
           basliklar={["Ne görüyorsun", "Sebebi", "Ne yapacaksın"]}
           satirlar={[
-            ["Değişiklik videowall'a gelmedi", "Yayınlanmadı", "Üstteki şeride bak; mor ise Kaydet & Yayınla"],
-            ["Sarı şerit: sunucu yanıtı gecikti", "Hata değil — yazım sıraya alındı", "Bekle; tamamlanınca “✓ Yayınlandı” çıkar"],
-            ["URL alanı boş kalıyor", "Site gömülmeye izin vermiyor", "Panonun gömme adresini kullan, ya da görselini koy"],
-            ["Video duraksıyor", "Dosya, alanın boyutuna göre çok büyük", "Küçük alanlara küçük çözünürlüklü video koy"],
-            ["Kumanda ilerletmiyor", "Oynatma modu Videowall", "Modu Sunum yap"],
-            ["Ekran listede yok", "Link kapalı ya da 5 dakikadır haber vermiyor", "Videowall'da sayfa açık mı, ağ var mı bak"],
+            ["Değişiklik gitmedi", "Yayınlanmadı", "Şerit mor ise Kaydet & Yayınla"],
+            ["Sarı şerit: yanıt gecikti", "Hata değil, yazım sıraya alındı", "Bekle; bitince “✓ Yayınlandı” çıkar"],
+            ["URL alanı boş", "Site gömülmeye izin vermiyor", "Panonun gömme adresini ya da görselini koy"],
+            ["Video duraksıyor", "Dosya alana göre çok büyük", "Küçük alana küçük çözünürlüklü video"],
+            ["Kumanda ilerletmiyor", "Mod Videowall", "Modu Sunum yap"],
+            ["Ekran listede yok", "Link kapalı ya da 5 dk'dır haber yok", "Sayfa açık mı, ağ var mı bak"],
           ]}
         />
 
         <Kutu tur="uyari" baslik="Dikkat">
           <p>
-            Yayın linkini bilen herkes ekranı <b>izleyebilir</b> — videowall bilgisayarı giriş yapamadığı için böyle olmak
-            zorunda. Değiştirmek ise yetki ister. Gizli kalması gereken bir pano varsa onu videowall'a koyma.
+            Yayın linkini bilen herkes ekranı <b>izleyebilir</b> — videowall bilgisayarı giriş yapamadığı için böyle
+            olmak zorunda. Değiştirmek yetki ister. Gizli kalması gereken bir panoyu videowall'a koyma.
           </p>
         </Kutu>
       </>
