@@ -194,8 +194,23 @@ export const SIGN_REHBER: RehberBolum[] = [
             ],
             ["Metin", "Başlık + mesaj; zemin ve yazı rengi senin."],
             ["Saat", "Canlı saat."],
+            [
+              "Ekran",
+              <>
+                Başka bir ekranı bu alana bağlar. <b>Ekranın bir bölümünü başkasına yönettirmenin yolu budur</b>: o
+                kişi kendi ekranını düzenler, sen onu buraya bağlarsın; seninkine dokunamaz.
+              </>,
+            ],
           ]}
         />
+
+        <Kutu baslik="Bir alanı başkasına devretmek">
+          <p>
+            Alana <Dugme icon="monitor">Ekran</Dugme> ile o kişinin ekranını bağla. Perde onun <b>yayınını</b> gösterir
+            — denemeleri senin duvarına düşmez, ancak <b>Kaydet &amp; Yayınla</b> dediğinde değişir. Tasarımı ezilmesin
+            diye o ekranın ölçüsü alanın ölçüsü olmalı; seçici sana yazar.
+          </p>
+        </Kutu>
 
         <Baslik>Sıra</Baslik>
         <p>

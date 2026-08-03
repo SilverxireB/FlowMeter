@@ -358,7 +358,7 @@ export default function ZonePanel({
       )}
 
       {/* İçerik ekle */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
         {ADD_BTNS.map((b) => (
           <button
             key={b.label}

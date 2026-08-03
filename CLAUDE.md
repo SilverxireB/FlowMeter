@@ -143,7 +143,14 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   internetsiz iç ağ; README ile yazılımcıya teslim edilir; ana repo
   tsconfig'inden dışlandı).
   KURAL: Sign ürün davranışı değişince İKİ yerde güncellenir — `src/` (online)
-  + `flowsign-selfhost/` (kopya bileşenler: PlayerStage/ZonePanel/LayoutEditor/
+  + `flowsign-selfhost/`. **Bu kural elle tutulmuyor, SINAVLA tutuluyor:**
+  `node tests/sign-esitlik.test.mjs` ürünün ayırt edici izlerini iki ağaçta da
+  arar (2026-08'de üç eksik yakaladı: self-host'ta "Ekran bağla" düğmesi hiç
+  yoktu — seçici penceresi vardı ama açan düğme yoktu, yani özellik
+  ULAŞILAMAZDI; bağlı ekranın editör önizlemesi yoktu; rehber güncellenmemişti).
+  Ayrıca self-host için `npm run build` ŞART, `tsc --noEmit` YETMEZ: "use client"
+  yanlış satırdayken tsc susuyor, yalnız Next derlemesi patlıyor (paket bir süre
+  hiç derlenmiyor durumda kalmıştı) (kopya bileşenler: PlayerStage/ZonePanel/LayoutEditor/
   zones.ts birebir mantık taşır). İKON SETİ de kopyadır: `icons.tsx` glifleri
   `components/Icon.tsx`ten alınır (2026-08'de 22 ikon ayrışmıştı — self-host
   eski ince seti taşıyordu; optik kalınlık `strokeFor` ile birlikte taşındı).

@@ -266,12 +266,20 @@ export default function ZonePanel({
 
   const allOutOfWindow = zone.items.length > 0 && zone.items.every((it) => !itemInWindow(it, now));
 
-  const ADD_BTNS: { label: string; icon: string; fn: () => void; disabled?: boolean; title?: string }[] = [
-    { label: "Görsel / Video", icon: "🖼", fn: () => fileRef.current?.click(), disabled: queue !== null },
-    { label: "Kütüphane", icon: "🗂", fn: () => setLibOpen(true), disabled: library.length === 0 },
-    { label: "URL", icon: "🔗", fn: () => setUrlForm({ src: "", name: "" }) },
-    { label: "Metin", icon: "📝", fn: addText },
-    { label: "Saat", icon: "🕐", fn: addClock },
+  // İkonlar SVG (online kopyayla aynı): işlevsel simge emoji olmaz — bu satır
+  // uzun süre emojiyle kalmıştı ve iki kopya birbirinden ayrışmıştı.
+  const ADD_BTNS: { label: string; icon: IconName; fn: () => void; disabled?: boolean; title?: string }[] = [
+    { label: "Görsel / Video", icon: "image" as const, fn: () => fileRef.current?.click(), disabled: queue !== null },
+    { label: "Kütüphane", icon: "folder" as const, fn: () => setLibOpen(true), disabled: library.length === 0 },
+    { label: "URL", icon: "link" as const, fn: () => setUrlForm({ src: "", name: "" }) },
+    { label: "Metin", icon: "pencil" as const, fn: addText },
+    { label: "Saat", icon: "clock" as const, fn: addClock },
+    {
+      label: "Ekran",
+      icon: "monitor" as const,
+      fn: () => setScreenPick(true),
+      title: "Başka bir ekranı bu alana bağla (o ekranı başkası yönetebilir)",
+    },
   ];
 
   return (
@@ -329,7 +337,7 @@ export default function ZonePanel({
       )}
 
       {/* İçerik ekle */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
         {ADD_BTNS.map((b) => (
           <button
             key={b.label}
@@ -338,7 +346,7 @@ export default function ZonePanel({
             title={b.title}
             className="rounded-xl bg-paper border border-line hover:border-accent/60 hover:bg-accent-soft/40 px-2 py-3 text-sm font-semibold flex flex-col items-center gap-1 transition-colors disabled:opacity-40"
           >
-            <span className="text-lg" aria-hidden>{b.icon}</span>
+            <Icon name={b.icon} size={20} />
             {b.label}
           </button>
         ))}
