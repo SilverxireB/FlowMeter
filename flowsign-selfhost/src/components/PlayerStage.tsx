@@ -11,14 +11,61 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import { sendScreenBeat } from "@/lib/client";
-import { itemInWindow as inWindow, ZONE_BG_DEFAULT } from "@/lib/zones";
+import { sendScreenBeat, watchWall, watchWallByKey } from "@/lib/client";
+import { itemInWindow as inWindow, signAdresi, ZONE_BG_DEFAULT } from "@/lib/zones";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 type Transition = "fade" | "cut" | "slide";
 
 /** http(s) VE yerel /media yolları oynatılır — javascript:/data: XSS'i keser (derin savunma). */
 const safeSrc = (src?: string) => (src && (/^https?:\/\//i.test(src) || /^\/(?!\/)/.test(src)) ? src : undefined);
+
+/**
+ * GÖMÜLÜ EKRAN — bir alana bağlanan başka bir ekran (yetki devri).
+ *
+ * NEDEN IFRAME DEĞİL: gömülü ekran eskiden `/flowsign/[slug]` adresiyle URL
+ * öğesi olarak ekleniyordu, yani alanın içinde UYGULAMANIN TAMAMI yeniden
+ * çalışıyordu — ikinci bir React ağacı, ikinci Firebase SDK'sı, ikinci
+ * Firestore bağlantısı, ikinci nabız, ikinci "sıradakini önden indir". Üstüne
+ * iframe, gömülü ekranın TASARIM çözünürlüğünde çizilip küçültüldüğü için her
+ * karede dev bir yüzey ölçekleniyordu. Sonuç: videolar geç açılıyor ve
+ * duraksıyordu.
+ *
+ * Burada bağlı ekranın YAYINI (live) okunup alanları doğrudan bu ağacın içinde
+ * çiziliyor: tek uygulama, tek bağlantı, gerçek boyutta yüzey.
+ *
+ * Üç kapı:
+ *  - `zincir` döngüyü keser (A→B→A sonsuza gider),
+ *  - gömülü ekran HEP otomatik oynar (iç ekranın "Sunum" modu kumanda beklemesin),
+ *  - nabız ve ekran kilidi yalnız EN DIŞTAKİ perdede (PlayerStage) çalışır.
+ */
+function GomuluEkran({ hedef, box, zincir }: { hedef: { id?: string; slug?: string }; box: { w: number; h: number }; zincir: string[] }) {
+  const [vw, setVw] = useState<Videowall | null | undefined>(undefined);
+  const anahtar = hedef.id ?? `slug:${hedef.slug}`;
+  const dongu = zincir.includes(anahtar) || (vw?.id ? zincir.includes(vw.id) : false);
+  useEffect(() => {
+    if (zincir.includes(anahtar)) return;
+    if (hedef.id) return watchWall(hedef.id, setVw);
+    if (hedef.slug) return watchWallByKey(hedef.slug, setVw);
+  }, [hedef.id, hedef.slug, anahtar, zincir]);
+
+  if (dongu)
+    return (
+      <div className="w-full h-full grid place-items-center bg-black/40 text-white/40 text-xs text-center px-2">
+        Bu ekran kendini içeriyor
+      </div>
+    );
+  const stage = vw?.live ?? vw ?? null;
+  if (!stage?.zones?.length)
+    return <div className="w-full h-full grid place-items-center text-white/15 text-sm select-none">FlowSign</div>;
+  return (
+    <div className="absolute inset-0">
+      {stage.zones.map((z) => (
+        <ZonePlayer key={z.id} zone={z} stageW={box.w} stageH={box.h} manual={false} zincir={[...zincir, anahtar, vw?.id ?? ""]} />
+      ))}
+    </div>
+  );
+}
 
 function ClockView({ item }: { item: ZoneItem }) {
   const [t, setT] = useState(() => new Date());
@@ -65,7 +112,7 @@ function TextView({ item }: { item: ZoneItem }) {
 /** Tek öğe katmanı — güvenilir enter animasyonu (reflow + çift rAF → asla ani
  * zıplama/flaş yapmaz). İçerik alana STRETCH edilir (object-fit: fill).
  * Video: giriş animasyonu İLK KARE HAZIR OLANA dek bekler (loadeddata). */
-function Layer({ item, transition, loop, designPx, onEnded, onError }: { item: ZoneItem; transition: Transition; loop: boolean; designPx?: { w: number; h: number }; onEnded?: () => void; onError?: () => void }) {
+function Layer({ item, transition, loop, designPx, zincir = [], onEnded, onError }: { item: ZoneItem; transition: Transition; loop: boolean; designPx?: { w: number; h: number }; zincir?: string[]; onEnded?: () => void; onError?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const vidRef = useRef<HTMLVideoElement>(null);
   const isVideo = item.kind === "video";
@@ -152,9 +199,23 @@ function Layer({ item, transition, loop, designPx, onEnded, onError }: { item: Z
       ? {}
       : { opacity: on ? 1 : 0, transition: "opacity 500ms ease" };
 
+  // Gömülü ekran: ya açıkça bağlanmış (kind "screen"), ya da ESKİDEN URL olarak
+  // yapıştırılmış kendi Sign adresimiz. İkincisi bilerek destekleniyor —
+  // üretimdeki linklerin de iframe yerine yerel çizilmesi için.
+  const gomuluHedef =
+    item.kind === "screen"
+      ? item.screenId
+        ? { id: item.screenId }
+        : null
+      : item.kind === "url"
+        ? signAdresi(item.src, typeof window !== "undefined" ? window.location.origin : undefined)
+        : null;
+
   return (
     <div ref={ref} className="absolute inset-0" style={style}>
-      {item.kind === "video" ? (
+      {gomuluHedef ? (
+        <GomuluEkran hedef={gomuluHedef} box={designPx ?? { w: 1920, h: 1080 }} zincir={zincir} />
+      ) : item.kind === "video" ? (
         <video
           ref={vidRef}
           src={safeSrc(item.src)}
@@ -221,6 +282,7 @@ function ZonePlayer({
   manual = false,
   nav,
   onIndex,
+  zincir = [],
 }: {
   zone: Zone;
   /** Duvarın tasarım çözünürlüğü (px) — URL öğesinin ölçek düzeltmesi için. */
@@ -231,6 +293,8 @@ function ZonePlayer({
   nav?: NavSignal;
   /** Sayaç için (yalnız en büyük alana verilir): aktif index + toplam. */
   onIndex?: (i: number, len: number) => void;
+  /** Gömülü ekran zinciri (döngü koruması) — en dışta boş. */
+  zincir?: string[];
 }) {
   const transition: Transition = zone.transition ?? "fade";
   // Bu alanın tasarım-piksel ölçüsü (URL iframe'i bu boyutta render edilir)
@@ -355,6 +419,7 @@ function ZonePlayer({
               item={l.item}
               transition={transition}
               designPx={designPx}
+              zincir={zincir}
               /* Sunum modunda video hep loop eder (sayfada kaldıkça döner) */
               loop={top && l.item.kind === "video" && (manual || len <= 1)}
               onEnded={top && !manual && l.item.kind === "video" && len > 1 ? advance : undefined}
@@ -363,7 +428,7 @@ function ZonePlayer({
           );
         })
       )}
-      {next?.kind === "video" && next.src && <video key={next.src} src={next.src} preload="auto" muted playsInline className="hidden" aria-hidden />}
+      {next?.kind === "video" && next.src && <video key={next.src} src={next.src} preload={designPx.w >= 900 ? "auto" : "metadata"} muted playsInline className="hidden" aria-hidden />}
     </div>
   );
 }

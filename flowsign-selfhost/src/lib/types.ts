@@ -7,8 +7,15 @@
 /** Bir yerleşim alanının içeriği (playlist öğesi). */
 export interface ZoneItem {
   id: string;
-  kind: "image" | "video" | "url" | "text" | "clock";
+  /**
+   * `screen` = BAŞKA BİR EKRANI bu alana bağla (yetki devri). Ekranın bir
+   * bölümünü başkasına yönettirmenin yolu: o kişi kendi ekranını düzenler,
+   * sen onu buraya bağlarsın. Perde bağlı ekranın YAYININI çizer.
+   */
+  kind: "image" | "video" | "url" | "text" | "clock" | "screen";
   src?: string; // image/video: yerel /media/... yolu; url: http(s) — iç ağ adresleri dahil
+  /** screen öğesi: bağlanan ekranın KİMLİĞİ (adres değil — ad değişse de kopmaz). */
+  screenId?: string;
   name?: string;
   durationSec?: number; // image/url/text/clock için gösterim süresi; video kendi süresi (ya da cap)
   from?: string; // "HH:MM" saat aralığı başı (boşsa hep)

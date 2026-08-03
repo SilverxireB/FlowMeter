@@ -12,11 +12,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName } from "@/components/Icon";
 import FlowSpinner from "@/components/FlowSpinner";
 import { cldFit, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
-import { icAgAdresi, itemInWindow, ZONE_BG_DEFAULT } from "@/lib/videowalls";
+import { icAgAdresi, itemInWindow, listAllVideowalls, ZONE_BG_DEFAULT } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 const iid = () => `it-${Math.random().toString(36).slice(2, 9)}`;
-const KIND_LABEL = { image: "Görsel", video: "Video", url: "URL", text: "Metin", clock: "Saat" } as const;
+const KIND_LABEL = { image: "Görsel", video: "Video", url: "URL", text: "Metin", clock: "Saat", screen: "Ekran" } as const;
 const DAYS = [
   { v: 1, l: "Pzt" }, { v: 2, l: "Sal" }, { v: 3, l: "Çar" }, { v: 4, l: "Per" },
   { v: 5, l: "Cum" }, { v: 6, l: "Cmt" }, { v: 0, l: "Paz" },
@@ -76,6 +76,15 @@ export default function ZonePanel({
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [fileOver, setFileOver] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
+  // Ekran seçici: bu alana bağlanacak BAŞKA ekran (yetki devri).
+  const [screenPick, setScreenPick] = useState(false);
+  const [screens, setScreens] = useState<Videowall[] | null>(null);
+  useEffect(() => {
+    if (!screenPick || screens) return;
+    listAllVideowalls()
+      .then((l) => setScreens(l.filter((v) => v.id !== vw.id)))  // kendini bağlayamaz
+      .catch(() => setScreens([]));
+  }, [screenPick, screens, vw.id]);
   const [libFilter, setLibFilter] = useState<"all" | "image" | "video">("all");
   const [urlForm, setUrlForm] = useState<{ src: string; name: string } | null>(null);
   const [replacingId, setReplacingId] = useState<string | null>(null);
@@ -207,6 +216,11 @@ export default function ZonePanel({
 
   const addText = () => setItems([...zone.items, { id: iid(), kind: "text", title: "Başlık", text: "", bg: "#312e81", color: "#ffffff", durationSec: 10 }]);
   const addClock = () => setItems([...zone.items, { id: iid(), kind: "clock", bg: "#0d102f", color: "#ffffff", durationSec: 10 }]);
+  /** Başka bir ekranı bu alana bağla — ADRESLE değil KİMLİKLE (ad değişse de kopmaz). */
+  const addScreen = (hedef: Videowall) => {
+    setItems([...zone.items, { id: iid(), kind: "screen", screenId: hedef.id, name: hedef.name }]);
+    setScreenPick(false);
+  };
   const addFromLib = (src: ZoneItem) => {
     // Yalnız dosyanın kendisi kopyalanır — eski öğenin takvimi/süresi GİZLİCE
     // taşınmaz ("kütüphaneden ekledim, neden görünmüyor?" sürprizi biterdi).
@@ -281,6 +295,12 @@ export default function ZonePanel({
     { label: "URL", icon: "link" as const, fn: () => setUrlForm({ src: "", name: "" }) },
     { label: "Metin", icon: "pencil" as const, fn: addText },
     { label: "Saat", icon: "clock" as const, fn: addClock },
+    {
+      label: "Ekran",
+      icon: "monitor" as const,
+      fn: () => setScreenPick(true),
+      title: "Başka bir ekranı bu alana bağla (o ekranı başkası yönetebilir)",
+    },
   ];
 
   return (
@@ -785,6 +805,49 @@ export default function ZonePanel({
             </div>
             {library.filter((it) => libFilter === "all" || it.kind === libFilter).length === 0 && (
               <p className="text-muted text-sm text-center py-8">Bu türde medya yok.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* EKRAN SEÇİCİ — ekranın bir bölümünü başkasına yönettirmenin yolu.
+          Adres değil KİMLİK saklanır: o kişi ekranının adını değiştirse de bağ
+          kopmaz. Perde bağlı ekranın YAYININI çizer, taslağını değil — yani
+          delege ettiğin kişi "Kaydet & Yayınla" demeden senin duvarında hiçbir
+          şey değişmez. */}
+      {screenPick && (
+        <div className="fixed inset-0 z-50 bg-black/60 grid place-items-center p-4" onClick={() => setScreenPick(false)}>
+          <div className="bg-white border border-line rounded-2xl p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-display font-semibold inline-flex items-center gap-2"><Icon name="monitor" size={16} /> Ekran bağla</p>
+              <button onClick={() => setScreenPick(false)} className="w-9 h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-paper" aria-label="Kapat"><Icon name="close" size={16} /></button>
+            </div>
+            <p className="text-muted text-xs mb-4">
+              Bu alan seçtiğin ekranın yayınını gösterir. O ekranı başkası yönetebilir — seninkine dokunamaz.
+              Tasarımın ezilmemesi için o ekranın ölçüsü <b className="tabular-nums">{Math.round(vw.width * zone.w)}×{Math.round(vw.height * zone.h)}</b> olmalı.
+            </p>
+            {screens === null ? (
+              <p className="text-muted text-sm text-center py-8">Yükleniyor…</p>
+            ) : screens.length === 0 ? (
+              <p className="text-muted text-sm text-center py-8">Bağlanabilecek başka ekran yok.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {screens.map((v) => (
+                  <li key={v.id}>
+                    <button
+                      onClick={() => addScreen(v)}
+                      className="w-full text-left rounded-xl border border-line hover:border-accent hover:bg-accent-soft/40 px-3 py-2.5"
+                    >
+                      <p className="font-semibold text-sm truncate">{v.name}</p>
+                      <p className="text-muted text-xs tabular-nums">
+                        {v.width}×{v.height}
+                        {v.ownerName ? ` · ${v.ownerName}` : ""}
+                        {v.live ? "" : " · henüz yayınlanmamış"}
+                      </p>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>

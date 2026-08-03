@@ -38,7 +38,8 @@ export type IconName =
   | "print"
   | "upload"
   | "folder"
-  | "clock";
+  | "clock"
+  | "monitor";
 
 
 
@@ -197,6 +198,12 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <circle cx="12" cy="12" r="8.5" />
       <path d="M12 7v5.2l3.2 2" />
+    </>
+  ),
+  monitor: (
+    <>
+      <rect x="2.5" y="4" width="19" height="12.5" rx="2.5" />
+      <path d="M8.5 20.5h7M12 16.5v4" />
     </>
   )
 };

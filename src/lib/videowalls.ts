@@ -689,6 +689,30 @@ export function watchScreens(vwId: string, cb: (s: ScreenBeat[]) => void): () =>
   });
 }
 
+/**
+ * Bu adres BİZİM bir ekranımıza mı işaret ediyor?
+ *
+ * Ekran bağlama artık "Ekran" düğmesiyle kimliğe bağlanıyor, ama üretimde
+ * ZATEN yapıştırılmış `/flowsign/...` linkleri var. Onlar da iframe yerine
+ * yerel çizilsin diye perde bu adresleri tanıyor — kimse elle düzeltmek
+ * zorunda kalmıyor. Yalnız AYNI kaynaktan gelen adresler kabul edilir
+ * (başka bir kurumun Sign adresi gömülü ekran sayılmaz).
+ */
+export function signAdresi(src?: string, origin?: string): { slug?: string; id?: string } | null {
+  if (!src) return null;
+  try {
+    const u = new URL(src, origin ?? "http://yerel");
+    if (origin && u.origin !== origin) return null;
+    const slug = u.pathname.match(/^\/flowsign\/([^/]+)\/?$/);
+    if (slug) return { slug: decodeURIComponent(slug[1]) };
+    const id = u.pathname.match(/^\/videowall\/([^/]+)\/play\/?$/);
+    if (id) return { id: id[1] };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /** Bayat ekran kaydını sil (kokpit temizliği). */
 export async function deleteScreenBeat(vwId: string, screenId: string): Promise<void> {
   await deleteDoc(doc(db(), "videowalls", vwId, "screens", screenId));

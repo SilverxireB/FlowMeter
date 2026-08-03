@@ -123,6 +123,20 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   (+ oynatma modu) → içerik → yayın linki + ekranlar (EN ALTTA).
   Alan zemini varsayılanı `ZONE_BG_DEFAULT` = Flow lacivert #001e64 (siyah
   değil; editör tuvali de aynı renk).
+  **GÖMÜLÜ EKRAN (yetki devri):** alana `Ekran` düğmesiyle BAŞKA bir ekran
+  bağlanır (`ZoneItem.kind:"screen"` + `screenId` — ADRES değil KİMLİK, ad
+  değişse de kopmaz). Amaç: ekranın bir bölümünü başkasına yönettirmek; sınır
+  ekranın sınırıdır, o kişi seninkine dokunamaz. Perde bağlı ekranın YAYININI
+  çizer. IFRAME DEĞİL — `GomuluEkran` hedefin alanlarını AYNI ağaçta çizer
+  (`PlayerStage`): eskiden `/flowsign/...` URL öğesi olarak ekleniyor ve alanın
+  içinde uygulamanın TAMAMI yeniden çalışıyordu (ikinci React + Firebase +
+  Firestore + nabız + önden indirme), üstelik iframe gömülü ekranın TASARIM
+  çözünürlüğünde çizilip küçültüldüğü için her karede dev yüzey ölçekleniyordu
+  → video geç açılıp duraksıyordu. Üç kapı: `zincir` döngüyü keser, gömülü ekran
+  HEP otomatik oynar, nabız/Wake Lock yalnız en dıştaki perdede. Eski
+  yapıştırılmış linkler de tanınır (`signAdresi`, yalnız AYNI köken) → kimse
+  elle düzeltmez. Önden indirme küçük alanda `metadata`ya düşer. Sınav:
+  `node tests/gomulu-ekran.test.mjs`.
   **Self-host paketi VAR: `flowsign-selfhost/`** (bağımsız Next app; Firestore→
   `data/` JSON dosya deposu, Cloudinary→yerel disk + güvenli dosya adı
   [boşluk/TR→alt çizgi], realtime→SSE, kişi başına hesap (users.json),

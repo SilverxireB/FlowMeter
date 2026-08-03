@@ -408,3 +408,21 @@ export function splitZoneInto(
 }
 
 export const stripUndefined = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+
+
+/**
+ * Bu adres BİZİM bir ekranımıza mı işaret ediyor? (eski, URL olarak
+ * yapıştırılmış gömme linkleri de yerel çizilsin diye — bkz. PlayerStage.)
+ * Self-host yayın adresi: /play/<slug|id>.
+ */
+export function signAdresi(src?: string, origin?: string): { slug?: string; id?: string } | null {
+  if (!src) return null;
+  try {
+    const u = new URL(src, origin ?? "http://yerel");
+    if (origin && u.origin !== origin) return null;
+    const m = u.pathname.match(/^\/play\/([^/]+)\/?$/);
+    return m ? { slug: decodeURIComponent(m[1]) } : null;
+  } catch {
+    return null;
+  }
+}

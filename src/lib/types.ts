@@ -452,8 +452,16 @@ export const QUIZ_SLIDE_TYPES: SlideType[] = ["quiz", "quiz-type"];
 /** Bir yerleşim alanının içeriği (playlist öğesi). */
 export interface ZoneItem {
   id: string;
-  kind: "image" | "video" | "url" | "text" | "clock";
+  /**
+   * `screen` = BAŞKA BİR EKRANI bu alana bağla (yetki devri). Ekranın bir
+   * bölümünü başkasına yönettirmenin yolu: o kişi kendi ekranını düzenler,
+   * sen onu buraya bağlarsın. Sınır ekranın sınırıdır — o kişi seninkine
+   * dokunamaz. Perde, bağlı ekranın YAYININI çizer (taslağı değil).
+   */
+  kind: "image" | "video" | "url" | "text" | "clock" | "screen";
   src?: string; // image/video/url için kaynak; text/clock'ta yok
+  /** screen öğesi: bağlanan ekranın KİMLİĞİ (adres değil — ad değişse de kopmaz). */
+  screenId?: string;
   name?: string;
   durationSec?: number; // image/url/text/clock için gösterim süresi; video kendi süresi (ya da cap)
   from?: string; // "HH:MM" saat aralığı başı (boşsa hep)

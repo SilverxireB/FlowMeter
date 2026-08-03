@@ -33,6 +33,15 @@ function ZonePreview({ item }: { item?: ZoneItem }) {
     // eslint-disable-next-line @next/next/no-img-element
     return still ? <img src={still} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: "fill" }} /> : <div className="absolute inset-0 grid place-items-center bg-black/40 text-lg">🎬</div>;
   }
+  if (item.kind === "screen")
+    // Bağlı ekran: minyatürünü çizmiyoruz (o ekran kendi başına bir yayın; burada
+    // canlı çizmek editörde ikinci bir abonelik açardı). Adı yeter — ne bağlı
+    // olduğunu söyler, tasarımı da bozmaz.
+    return (
+      <div className="absolute inset-0 grid place-items-center bg-black/40 text-white/70 text-[10px] text-center px-1 leading-tight">
+        <span className="truncate max-w-full">▣ {item.name || "bağlı ekran"}</span>
+      </div>
+    );
   if (item.kind === "text") return <div className="absolute inset-0" style={{ background: item.bg ?? "#312e81" }} />;
   if (item.kind === "clock") return <div className="absolute inset-0 grid place-items-center text-lg" style={{ background: item.bg ?? "#0d102f" }}>🕐</div>;
   if (item.kind === "url") {
