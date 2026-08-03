@@ -230,6 +230,37 @@ export const SIGN_REHBER: RehberBolum[] = [
             ["Gün", "Haftanın hangi günleri", "Her gün"],
           ]}
         />
+        <Baslik>Üçü birden tutmalı</Baslik>
+        <p>
+          <b>Tarih</b>, <b>gün</b> ve <b>saat</b> birbirinden bağımsız üç süzgeçtir ve öğenin dönmesi için{" "}
+          <b>hepsi birden</b> tutmalıdır. Boş bıraktığın süzgeç hiç kısıtlamaz — yani hiçbirini doldurmazsan içerik
+          her zaman döner.
+        </p>
+        <Tablo
+          basliklar={["Ne yazdın", "Ne olur"]}
+          satirlar={[
+            ["Hiçbiri", "Her gün, gün boyu, süresiz döner."],
+            ["Yalnız saat başlangıcı — 09:00", "09:00'dan gece yarısına kadar."],
+            ["Yalnız saat bitişi — 17:00", "Gece yarısından 17:00'ye kadar."],
+            ["22:00 – 06:00", "Gece yarısını aşar: akşam 22:00'de başlar, sabah 06:00'da biter."],
+            ["Yalnız tarih başlangıcı", "O günden itibaren süresiz döner."],
+            ["Yalnız tarih bitişi", "O güne kadar döner — bitiş günü dahil, ertesi gün düşer."],
+            ["Gün seçmezsen", "Her gün. Seçersen yalnız işaretli günler."],
+          ]}
+        />
+        <Kutu tur="uyari" baslik="Gece aşan saat + gün seçimi">
+          <p>
+            Gün süzgeci <b>o anki güne</b> bakar. &ldquo;Pazartesi + 22:00–06:00&rdquo; seçersen içerik pazartesi
+            gecesi 22:00'de başlar ama <b>salı 02:00'de dönmez</b> — çünkü o saatte gün artık salıdır. Gecenin
+            tamamını istiyorsan iki günü de işaretle.
+          </p>
+        </Kutu>
+        <Kutu tur="uyari" baslik="Aynı saati iki yana yazma">
+          <p>
+            10:00 – 10:00 yazarsan içerik <b>yalnız o dakika</b> döner. Gün boyu istiyorsan saat alanlarını boş bırak.
+          </p>
+        </Kutu>
+
         <p>
           Sırası gelmeyen öğe neden dönmediğini söyleyen bir rozet alır: <Dugme>şu an takvim dışı</Dugme> gün/saat
           penceresi dışında (yarın yine döner), <Dugme>henüz başlamadı</Dugme> tarihi gelmemiş,

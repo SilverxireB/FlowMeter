@@ -66,6 +66,59 @@ const tarayici = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium",
 });
 
+// ── AYAR SATIRI (⚙ ile açılan Saat / Tarih) ─────────────────────────────────
+// İKİNCİ TAŞMA: `<input type="time">` ve `<input type="date">` yerel girdiler,
+// kendi ASGARİ genişlikleri var (Chromium'da tarih ~120px) ve `min-width:auto`
+// ile flex kutusundan küçülmezler. "Tarih [girdi] – [girdi]" tek satırda ~380px
+// istiyor; 360px telefonda ikinci girdi ekranın dışında kalıyor, takvim oku
+// kesiliyordu. Çözüm: etiket ayrı satırda kalsın, girdi çifti `basis-full` ile
+// TAM satır alsın ve girdiler `min-w-0 flex-1` ile küçülebilsin.
+// `min-w-0` ETİKETTE de gerekiyor: etiketin kendisi de bir flex öğesi ve
+// varsayılan `min-width:auto` ile içeriğinin altına inemiyor — 320px'de girdiler
+// tam satırı alsa bile etiket kutusu dışarı taşıyordu (ölçüldü: 2 girdi taşkın).
+const ayarSatiri = (yeni) => `
+<style>${fs.readFileSync(css, "utf8")}</style>
+<div style="width:100%;padding:36px" class="bg-white">
+  <div id="kart" class="rounded-xl bg-paper border border-line p-2.5">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pl-9 text-xs text-muted">
+      <label class="flex items-center gap-1.5">Süre
+        <input type="number" value="8" class="w-20 input-base !rounded-lg !px-2 !py-1 tabular-nums" /> sn
+      </label>
+      ${["time", "date"]
+        .map((t) =>
+          yeni
+            ? `<label class="flex flex-wrap items-center gap-1.5 min-w-0">
+                 <span class="shrink-0">${t === "time" ? "Saat" : "Tarih"}</span>
+                 <span class="flex items-center gap-1.5 basis-full sm:basis-auto min-w-0">
+                   <input class="girdi input-base !rounded-lg px-2 py-1 min-w-0 flex-1" type="${t}" />
+                   –
+                   <input class="girdi input-base !rounded-lg px-2 py-1 min-w-0 flex-1" type="${t}" />
+                 </span>
+               </label>`
+            : `<label class="flex items-center gap-1.5">${t === "time" ? "Saat" : "Tarih"}
+                 <input class="girdi input-base !rounded-lg px-2 py-1" type="${t}" />
+                 –
+                 <input class="girdi input-base !rounded-lg px-2 py-1" type="${t}" />
+               </label>`
+        )
+        .join("")}
+    </div>
+  </div>
+</div>`;
+
+/** Kart kutusundan taşan girdi sayısı. */
+async function tasanGirdi(genislik, html) {
+  const sayfa = await tarayici.newPage({ viewport: { width: genislik, height: 900 } });
+  await sayfa.setContent(html);
+  await sayfa.waitForTimeout(250);
+  const n = await sayfa.evaluate(() => {
+    const sag = document.getElementById("kart").getBoundingClientRect().right;
+    return [...document.querySelectorAll(".girdi")].filter((e) => e.getBoundingClientRect().right > sag + 1).length;
+  });
+  await sayfa.close();
+  return n;
+}
+
 let hata = 0;
 for (const genislik of [320, 360, 412]) {
   const sayfa = await tarayici.newPage({ viewport: { width: genislik, height: 800 } });
@@ -90,6 +143,20 @@ for (const genislik of [320, 360, 412]) {
     }`
   );
   await sayfa.close();
+}
+
+// Sınav ÇİFT YÖNLÜ: eski yapının dar ekranda taştığını da ölçer. Yoksa "geçti"
+// satırı düzeltmeyi değil, ölçümün hiçbir şeye bakmadığını gösterirdi.
+for (const genislik of [320, 360]) {
+  const eski = await tasanGirdi(genislik, ayarSatiri(false));
+  const yeni = await tasanGirdi(genislik, ayarSatiri(true));
+  const gecti = yeni === 0 && eski > 0;
+  if (!gecti) hata++;
+  console.log(
+    `${gecti ? "✓" : "✗"} ${genislik}px — Saat/Tarih girdileri karta sığıyor (eski yapıda taşan: ${eski}, yeni: ${yeni})${
+      eski === 0 ? "  ⚠ eski yapı da taşmıyor: sınav bir şey ölçmüyor" : ""
+    }`
+  );
 }
 await tarayici.close();
 

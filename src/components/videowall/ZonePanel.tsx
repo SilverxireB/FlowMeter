@@ -28,6 +28,19 @@ const MAX_VIDEO_MB = 100;
 
 const inputCls = "input-base !rounded-lg";
 
+/**
+ * Yerel gün, yyyy-mm-dd. `toISOString()` UTC'ye kayar — TR'de akşam saatlerinde
+ * bir sonraki günü, gece yarısından hemen sonra bir önceki günü yazardı.
+ */
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/**
+ * Takvim girdisinin seçilebilir EN ERKEN günü. Geçmiş tarih seçmek her zaman
+ * hatadır (içerik daha kaydedilmeden ölü doğar), ama VAR OLAN değer geçmişte
+ * olabilir — süregelen bir kampanya böyledir. O zaman sınır kendi değeridir,
+ * yoksa tarayıcı çalışan içeriği geçersiz gösterirdi.
+ */
+const enErken = (mevcut: string | undefined, bugun: string) => (mevcut && mevcut < bugun ? mevcut : bugun);
+
 /** Cloudinary değilse "" → 🎬 yer tutucu (kırık .jpg üretme). */
 const stillOf = (src: string) =>
   src.includes("res.cloudinary.com") ? cldFit(src, 160).replace(/\.(mp4|mov|webm|m4v)$/i, ".jpg") : "";
@@ -101,6 +114,7 @@ export default function ZonePanel({
 
   const cloudReady = isCloudinaryConfigured();
   const now = new Date();
+  const bugun = ymd(now);
 
   // Uzun yükleme sırasında kullanıcı sıralama/silme yapabilir → bitişte GÜNCEL
   // listeye ekle (bayat closure ile eski listeyi ezme).
@@ -660,18 +674,41 @@ export default function ZonePanel({
                         />
                         sn
                       </label>
-                      <label className="flex items-center gap-1.5">
-                        Saat
-                        <input type="time" defaultValue={it.from ?? ""} onBlur={(e) => patchItem(it.id, { from: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
-                        –
-                        <input type="time" defaultValue={it.to ?? ""} onBlur={(e) => patchItem(it.id, { to: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
+                      {/* DAR EKRANDA TAŞIYORDU: yerel tarih/saat girdilerinin
+                          kendi asgari genişliği var ve etiketle birlikte tek
+                          satırda ~380px istiyorlar; 360px telefonda ikinci girdi
+                          ekranın dışında kalıyor, açılır oku kesiliyordu.
+                          Etiket ayrı, girdi çifti tam genişlikte bir satır. */}
+                      <label className="flex flex-wrap items-center gap-1.5 min-w-0">
+                        <span className="shrink-0">Saat</span>
+                        <span className="flex items-center gap-1.5 basis-full sm:basis-auto min-w-0">
+                          <input type="time" defaultValue={it.from ?? ""} onBlur={(e) => patchItem(it.id, { from: e.target.value || undefined })} className={`${inputCls} px-2 py-1 min-w-0 flex-1`} />
+                          –
+                          <input type="time" defaultValue={it.to ?? ""} onBlur={(e) => patchItem(it.id, { to: e.target.value || undefined })} className={`${inputCls} px-2 py-1 min-w-0 flex-1`} />
+                        </span>
                       </label>
-                      {/* Kampanya aralığı: bitiş günü DAHİL; boş uç = sınırsız o yönde */}
-                      <label className="flex items-center gap-1.5" title="Bu tarihler arasında döner, bitince kendiliğinden düşer (bitiş günü dahil)">
-                        Tarih
-                        <input type="date" defaultValue={it.fromDate ?? ""} onBlur={(e) => patchItem(it.id, { fromDate: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
-                        –
-                        <input type="date" defaultValue={it.toDate ?? ""} onBlur={(e) => patchItem(it.id, { toDate: e.target.value || undefined })} className={`${inputCls} px-2 py-1`} />
+                      {/* Kampanya aralığı: bitiş günü DAHİL; boş uç = sınırsız o yönde.
+                          `min` ile GEÇMİŞ gün seçilemez (ölü doğan içerik) ve
+                          bitiş başlangıcın gerisine alınamaz — aşağıdaki uyarı
+                          yine de duruyor: `min` yalnız seçiciyi kısıtlar, elle
+                          yazılan ya da eskiden kalan değeri engellemez. */}
+                      <label className="flex flex-wrap items-center gap-1.5 min-w-0" title="Bu tarihler arasında döner, bitince kendiliğinden düşer (bitiş günü dahil)">
+                        <span className="shrink-0">Tarih</span>
+                        <span className="flex items-center gap-1.5 basis-full sm:basis-auto min-w-0">
+                          <input type="date" min={enErken(it.fromDate, bugun)} defaultValue={it.fromDate ?? ""} onBlur={(e) => patchItem(it.id, { fromDate: e.target.value || undefined })} className={`${inputCls} px-2 py-1 min-w-0 flex-1`} />
+                          –
+                          <input type="date" min={[enErken(it.toDate, bugun), it.fromDate ?? ""].sort().pop()} defaultValue={it.toDate ?? ""} onBlur={(e) => patchItem(it.id, { toDate: e.target.value || undefined })} className={`${inputCls} px-2 py-1 min-w-0 flex-1`} />
+                        </span>
+                        {/* TERS ARALIK SESSİZ ÖLÜM. Başlangıç bitişten sonraysa
+                            hiçbir gün iki koşulu birden sağlayamaz: içerik ASLA
+                            dönmez ama rozet "henüz başlamadı" der ve kimse
+                            sebebini anlamaz. Saatte ters aralık MEŞRU (22:00–06:00
+                            geceyi aşar), tarihte her zaman hatadır. */}
+                        {it.fromDate && it.toDate && it.fromDate > it.toDate && (
+                          <span className="basis-full text-[11px] font-semibold text-brand">
+                            ⚠ Başlangıç bitişten sonra — bu içerik hiç dönmez.
+                          </span>
+                        )}
                       </label>
                     </div>
 

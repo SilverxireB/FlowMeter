@@ -45,6 +45,10 @@ const IZLER = [
   ["süresi doldu rozeti", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "süresi doldu"],
   ["mobilde rozet kırılmaz", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "truncate max-w-full shrink-0"],
   ["mobilde ad kendi satırında", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "order-last basis-full"],
+  ["mobilde Saat/Tarih taşmaz", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "basis-full sm:basis-auto min-w-0"],
+  ["ters tarih aralığı uyarısı", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Başlangıç bitişten sonra"],
+  ["geçmiş gün seçilemez", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "const enErken ="],
+  ["rehberde süzgeç kombinasyonu", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "Üçü birden tutmalı"],
 ];
 
 const oku = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);
