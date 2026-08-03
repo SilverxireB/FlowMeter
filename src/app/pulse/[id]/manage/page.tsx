@@ -7,6 +7,7 @@
  * Yalnız sahibi; veriler günlük özetlerden okunur (ucuz).
  */
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QrCode from "@/components/present/QrCode";
@@ -61,7 +62,10 @@ function LinkRow({
   );
 }
 
+const PulseRehber = dynamic(() => import("@/components/rehber/PulseRehber"), { ssr: false });
+
 export default function PulseManagePage() {
+  const [rehber, setRehber] = useState(false);
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading } = useAuthUser();
@@ -200,6 +204,9 @@ export default function PulseManagePage() {
           aria-label="Nokta adı"
         />
         <div className="flex items-center gap-2 shrink-0 ml-auto">
+          <button onClick={() => setRehber(true)} className="btn-ghost !py-2 !px-3 text-sm" title="Rehberi aç" aria-label="Rehberi aç">
+            <Icon name="help" size={15} />
+          </button>
           <a href={`/pulse/${id}/kiosk`} target={playTarget} className="btn-ghost !py-2 !px-3.5 text-sm"><Icon name="monitor" size={15} /> Kiosk{playTarget ? " ↗" : ""}</a>
           <a href={`/pulse/${id}/board`} target={playTarget} className="btn-primary !py-2 !px-3.5 text-sm"><Icon name="chart" size={15} /> Pano{playTarget ? " ↗" : ""}</a>
         </div>
@@ -453,6 +460,8 @@ export default function PulseManagePage() {
           </div>
         </div>
       </section>
+    
+      {rehber && <PulseRehber onClose={() => setRehber(false)} />}
     </main>
   );
 }

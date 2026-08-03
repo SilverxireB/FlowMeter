@@ -6,6 +6,7 @@
  * Liste = noktalar arası karşılaştırma: bugünkü skor yan yana (v4).
  */
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Logo from "@/components/Logo";
@@ -43,7 +44,10 @@ function TodayScore({ pulse }: { pulse: Pulse }) {
   );
 }
 
+const PulseRehber = dynamic(() => import("@/components/rehber/PulseRehber"), { ssr: false });
+
 export default function PulseListPage() {
+  const [rehber, setRehber] = useState(false);
   const router = useRouter();
   const { user, loading } = useAuthUser();
   const playTarget = usePlayTarget();
@@ -135,7 +139,12 @@ export default function PulseListPage() {
           <Link href="/dashboard" className="text-muted hover:text-ink shrink-0 text-lg" aria-label="Panele dön">←</Link>
           <Logo variant="pulse" />
         </div>
-        <span className="chip text-muted min-w-0 max-w-[45vw]"><span className="truncate">{user.email}</span></span>
+        <div className="flex items-center gap-2 min-w-0">
+          <button onClick={() => setRehber(true)} className="chip text-xs hover:border-muted" title="Rehberi aç">
+            <Icon name="help" size={14} /> Rehber
+          </button>
+          <span className="chip text-muted min-w-0 max-w-[45vw]"><span className="truncate">{user.email}</span></span>
+        </div>
       </header>
 
       <section className="max-w-4xl mx-auto px-4 py-10">
@@ -209,6 +218,8 @@ export default function PulseListPage() {
 
       {dialog}
       {toast}
+    
+      {rehber && <PulseRehber onClose={() => setRehber(false)} />}
     </main>
   );
 }

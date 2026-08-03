@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { signOut } from "firebase/auth";
 import Logo from "@/components/Logo";
 import StudioHero from "@/components/StudioHero";
@@ -74,7 +75,13 @@ function CardThumb({ presentation, view }: { presentation: Presentation; view: "
 }
 
 /** Sunucu paneli — arama, klasörler, grid/liste görünümü (Menti "My Mentis"). */
+// Hub'daki "?" o alanın rehberini açar: henüz hiçbir şey oluşturmamış kişi de
+// rehbere ulaşabilsin. Pulse ve Sign kendi liste sayfalarında (oralarda da var).
+const MeterRehber = dynamic(() => import("@/components/rehber/MeterRehber"), { ssr: false });
+const WallRehber = dynamic(() => import("@/components/rehber/WallRehber"), { ssr: false });
+
 export default function DashboardPage() {
+  const [rehber, setRehber] = useState(false);
   const router = useRouter();
   const { user, loading } = useAuthUser();
   const playTarget = usePlayTarget();
@@ -567,7 +574,12 @@ export default function DashboardPage() {
 
         {product === "walls" && (
           <div>
-            <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">Duvarlarım</h1>
+            <div className="flex items-center gap-2.5 mb-1">
+              <h1 className="font-display text-3xl font-semibold tracking-tight">Duvarlarım</h1>
+              <button onClick={() => setRehber(true)} className="chip text-xs text-muted hover:border-muted" title="Rehberi aç">
+                <Icon name="help" size={14} /> Rehber
+              </button>
+            </div>
             <p className="text-muted text-sm mb-6">
               FlowWall — etkinlik canlı foto/video duvarı. Duvar oluştur, perdeyi aç, misafirler QR ile katılıp fotoğraf paylaşsın.
             </p>
@@ -628,7 +640,12 @@ export default function DashboardPage() {
 
         {product === "decks" && (
         <>
-        <h1 className="font-display text-3xl font-semibold tracking-tight mb-6">Sunumlarım</h1>
+        <div className="flex items-center gap-2.5 mb-6">
+          <h1 className="font-display text-3xl font-semibold tracking-tight">Sunumlarım</h1>
+          <button onClick={() => setRehber(true)} className="chip text-xs text-muted hover:border-muted" title="Rehberi aç">
+            <Icon name="help" size={14} /> Rehber
+          </button>
+        </div>
         <form onSubmit={create} className="card p-2 flex gap-2 mb-3">
           <input
             ref={titleRef}
@@ -889,6 +906,9 @@ export default function DashboardPage() {
 
       {dialog}
       {toast}
+    
+      {rehber && product === "decks" && <MeterRehber onClose={() => setRehber(false)} />}
+      {rehber && product === "walls" && <WallRehber onClose={() => setRehber(false)} />}
     </main>
   );
 }

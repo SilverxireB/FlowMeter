@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/Icon";
@@ -55,6 +56,8 @@ type SheetKind = "edit" | "add" | "more" | "interactivity" | "test" | null;
  * panelleri bottom-sheet (geniş ekranda sağ çekmece) olarak açılır,
  * değişiklikler otomatik kaydedilir.
  */
+const MeterRehber = dynamic(() => import("@/components/rehber/MeterRehber"), { ssr: false });
+
 export default function EditPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -65,6 +68,7 @@ export default function EditPage() {
   const [sheet, setSheet] = useState<SheetKind>(null);
   const [themeOpen, setThemeOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [rehber, setRehber] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropId, setDropId] = useState<string | null>(null);
 
@@ -133,6 +137,14 @@ export default function EditPage() {
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0 relative">
+          <button
+            onClick={() => setRehber(true)}
+            className="btn-ghost !py-2 !px-3 text-sm"
+            title="Rehberi aç"
+            aria-label="Rehberi aç"
+          >
+            <Icon name="help" size={18} />
+          </button>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="btn-ghost !py-2 !px-3 text-sm"
@@ -412,6 +424,8 @@ export default function EditPage() {
           onClose={() => setThemeOpen(false)}
         />
       )}
+    
+      {rehber && <MeterRehber onClose={() => setRehber(false)} />}
     </main>
   );
 }

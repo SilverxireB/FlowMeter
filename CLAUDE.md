@@ -50,6 +50,22 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   (emoji efektin kendisini gösterir), Pulse yüz ölçeği, tepkiler/kutlamalar.
   İkon kontrol sayfası: `/dev/icons`.
   Onaylar `ConfirmDialog` (native confirm değil). Girdilere odak reçetesi.
+- **KULLANIM REHBERLERİ (dört ürün):** `?` → sağdan çekmece. Kabuk
+  `components/Rehber.tsx` + yapı taşları `components/RehberParcalari.tsx`
+  (çekirdek, ürün bilmez); içerik ürün başına: `rehber/meterIcerik` ·
+  `rehber/wallIcerik` · `rehber/pulseIcerik` · `videowall/signRehberIcerik`
+  (Sign kendi klasöründe — ayrı paket olarak satılacak, self-host'ta da var ve
+  metni HİÇBİR ürüne atıf yapmaz). Hepsi `next/dynamic` ile geciktirmeli.
+  **EKRAN GÖRÜNTÜSÜ YOK — kural:** düğmeler ürünün gerçek sınıflarıyla (`Dugme`),
+  ekranlar gerçek bileşenle (Sign `LayoutEditor`, Meter `SlidePreview`), referans
+  tabloları ÜRÜNÜN KENDİ SABİTİNDEN türetilir (`SLIDE_TYPE_LABELS`,
+  `WALL_SCREEN_MODES`, `WALL_EFFECTS`) → yeni slayt tipi/perde modu eklenince
+  rehber kendiliğinden güncellenir. Yalnız bizim olmayan yüzeyler (Windows,
+  ekran kartı) ekran görüntüsü ister. Giriş: her kokpit + liste + hub başlıkları.
+  Derin link: hata şeridi ilgili bölümü açar (Sign `errBolum`/`onRehber`).
+  Yazdırma `.rehber-yazdir` + `@media print`.
+  Editoryal kural: tekrar yok (aynı bilgi iki bölümde geçmez), dolgu yok, her
+  bölümde bir "sık karşılaşılanlar" tablosu, uyarı kutusu YALNIZ gerçek tuzak için.
 - **Metin ekonomisi (kullanıcı kararı):** yardım paragrafları KISA — "demo sayfa"
   hissi veriyordu. Kural: bir cümle, gerekiyorsa kalın vurgu; tekrar eden bilgi
   (zaten ekranda görünen) yazılmaz. 2026-08'de Sign editörü/listesi, Wall perde

@@ -5,6 +5,7 @@
  * reddet, tüm medyayı gör/kaldır, katılım QR + kod, perde ekranı linki.
  */
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
@@ -63,7 +64,10 @@ async function parseRoster(file: File): Promise<{ name: string; sicil: string }[
 const fmtInterval = (s: number) => (s < 60 ? `${s} sn` : s % 60 === 0 ? `${s / 60} dk` : `${(s / 60).toFixed(1)} dk`);
 const ANN_MINUTES = [1, 2, 5, 10, 15, 30, 60];
 
+const WallRehber = dynamic(() => import("@/components/rehber/WallRehber"), { ssr: false });
+
 export default function WallManage() {
+  const [rehber, setRehber] = useState(false);
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading: authLoading } = useAuthUser();
@@ -357,9 +361,14 @@ export default function WallManage() {
           <Logo variant="wall" />
           <span className="font-display font-semibold truncate">{wall.title}</span>
         </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => setRehber(true)} className="btn-ghost !py-2 !px-3 text-sm" title="Rehberi aç" aria-label="Rehberi aç">
+            <Icon name="help" size={16} />
+          </button>
         <a href={`/wall/${id}`} target={playTarget} className="btn-primary !py-2 !px-4 text-sm shrink-0">
           ▶ Perde ekranı{playTarget ? " ↗" : ""}
         </a>
+        </div>
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
@@ -1223,6 +1232,8 @@ export default function WallManage() {
           onCancel={() => setConfirmReq(null)}
         />
       )}
+    
+      {rehber && <WallRehber onClose={() => setRehber(false)} />}
     </main>
   );
 }
