@@ -109,10 +109,37 @@ export async function baglantiyiTazele(): Promise<void> {
   }
 }
 
+/**
+ * KİMLİĞİ TAZELE — `permission-denied` çoğu zaman yetki değil, JETON sorunudur.
+ *
+ * Firebase kimlik jetonu ~1 saat yaşar; SDK onu `securetoken.googleapis.com`
+ * üstünden yeniler. Kurum ağı bu adresi süzüyorsa ya da uzun ömürlü bağlantıları
+ * kesiyorsa yenileme sessizce başarısız oluyor ve o andan sonra Firestore'a
+ * giden her istek ESKİ jetonla gidiyor: sunucu reddediyor, ekranlar boşalıyor
+ * ("tüm kişiler, yetkiler gitti"). Sayfayı yenilemek düzeltiyor çünkü yenileme
+ * TAZE bir bağlantı üzerinden jeton alıyor.
+ *
+ * Bu işlev sayfayı yenilemeden aynısını yapar: jetonu ZORLA tazeler, sonra
+ * Firestore bağlantısını sıfırlar ki dinleyiciler yeni jetonla yeniden kurulsun.
+ * Gerçekten yetki sorunuysa sonuç değişmez — yalnız bir tazeleme maliyeti.
+ */
+export async function kimligiTazele(): Promise<boolean> {
+  try {
+    const u = getAuth(app()).currentUser;
+    if (!u) return false;
+    await u.getIdToken(true);
+    await baglantiyiTazele();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function agTazelemeKur(): void {
   if (typeof window === "undefined") return;
   let gizlendi = 0;
-  const tazele = () => void baglantiyiTazele();
+  // Bağlantı tazelenirken KİMLİK de tazelenir: ikisi aynı arızanın iki yüzü.
+  const tazele = () => void kimligiTazele().then((oldu) => (oldu ? undefined : baglantiyiTazele()));
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
       gizlendi = Date.now();
@@ -123,6 +150,11 @@ function agTazelemeKur(): void {
   });
   // Ağ geri geldiğinde de aynı sayaç sıfırlanmalı.
   window.addEventListener("online", tazele);
+  // ÖNDEN TAZELEME: jeton ~60 dk yaşıyor. 40 dakikada bir yenileyerek uçuruma
+  // hiç gelinmiyor; süzgeçli ağda deneme sayısı arttıkça en az birinin geçme
+  // olasılığı da artıyor. Sekme gizliyken tarayıcı zamanlayıcıyı kısar, o yüzden
+  // görünürlük dönüşündeki tazeleme bunun tamamlayıcısı.
+  window.setInterval(() => void kimligiTazele(), 40 * 60_000);
 }
 
 let _db: Firestore | null = null;

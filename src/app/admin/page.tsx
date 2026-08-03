@@ -7,6 +7,7 @@
  */
 import Link from "next/link";
 import { studioHata } from "@/lib/hata";
+import { kimligiTazele } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import AdminTabs from "@/components/AdminTabs";
@@ -60,7 +61,24 @@ export default function AdminPage() {
   const refresh = useCallback(() => {
     listUsers()
       .then(setUsers)
-      .catch((e) => setErr(studioHata(e, "Liste alınamadı.")));
+      .catch(async (e) => {
+        // KENDİNİ ONAR: permission-denied çoğu zaman yetki değil, süresi geçmiş
+        // jeton demek (kurum ağı jeton yenilemeyi süzüyor). Kullanıcıya "çıkış
+        // yapıp gir" dedirtmeden önce jetonu tazeleyip BİR KEZ daha deniyoruz —
+        // sayfayı yenilemenin yaptığı iş, sayfa yenilenmeden.
+        const kod = (e as { code?: string } | null)?.code ?? "";
+        if (kod === "permission-denied" && (await kimligiTazele())) {
+          try {
+            setUsers(await listUsers());
+            setErr(null);
+            return;
+          } catch (e2) {
+            setErr(studioHata(e2, "Liste alınamadı."));
+            return;
+          }
+        }
+        setErr(studioHata(e, "Liste alınamadı."));
+      });
   }, []);
 
   useEffect(() => {
