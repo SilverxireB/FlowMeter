@@ -676,7 +676,6 @@ export default function ZonePanel({
                 {tr === "fade" ? "Yumuşak" : tr === "cut" ? "Kesme" : "Kaydır"}
               </button>
             ))}
-            <GecisOnizleme tur={bekGecis ?? transition} />
           </span>
           <label className="flex items-center gap-1.5">
             Alan zemini
@@ -691,7 +690,7 @@ export default function ZonePanel({
 
         {zone.items.length < 2 && (
           <p className="text-muted text-[11px] mt-2">
-            Geçiş perdede görünür — bu alanda en az 2 içerik olunca.
+            Geçiş, yerleşim önizlemesinde ve perdede görünür — alanda en az 2 içerik olunca.
           </p>
         )}
 
@@ -763,41 +762,3 @@ export default function ZonePanel({
   );
 }
 
-/**
- * GEÇİŞ ÖNİZLEMESİ — seçilen geçişi panelde canlı oynatır.
- *
- * Neden gerekli: geçiş yalnız PERDEDE ve yalnız alanda 2+ içerik varken
- * görünüyor. Editörde hiçbir işaret olmadığı için kullanıcı "bu seçenekler işe
- * yarıyor mu?" diye sordu — haklıydı, seçtiğine dair tek geri bildirim düğmenin
- * koyulaşmasıydı. Animasyon perdedeki değerlerin AYNISINI kullanır (550ms
- * kaydırma / 500ms yumuşama / anında kesme), yani gördüğü şey gerçekten olacak
- * olan şey.
- */
-function GecisOnizleme({ tur }: { tur: "fade" | "cut" | "slide" }) {
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    setOn(false);
-    const bas = window.setTimeout(() => setOn(true), 80);
-    const dongu = window.setInterval(() => setOn((o) => !o), 1700);
-    return () => {
-      window.clearTimeout(bas);
-      window.clearInterval(dongu);
-    };
-  }, [tur]);
-  const st: React.CSSProperties =
-    tur === "slide"
-      ? { transform: on ? "translateX(0)" : "translateX(100%)", transition: "transform 550ms ease" }
-      : tur === "cut"
-        ? { opacity: on ? 1 : 0 }
-        : { opacity: on ? 1 : 0, transition: "opacity 500ms ease" };
-  return (
-    <span
-      className="relative inline-block w-14 h-8 rounded-lg overflow-hidden border border-line align-middle shrink-0"
-      aria-hidden
-      title="Seçili geçişin önizlemesi"
-    >
-      <span className="absolute inset-0 bg-ink/15" />
-      <span className="absolute inset-0 bg-accent" style={st} />
-    </span>
-  );
-}

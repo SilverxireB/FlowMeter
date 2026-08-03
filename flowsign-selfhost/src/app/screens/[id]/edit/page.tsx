@@ -474,8 +474,11 @@ export default function ScreenEditPage() {
 
         {/* Yayın linki ve Ekranlar geniş ekranda YAN YANA: tam genişlikte
             tek sıra olunca satırlar gereksiz uzuyor ve kartlar bomboş
-            görünüyordu (kullanıcı). İkisi bağımsız kart, yan yana doğal. */}
-        <div className="flex flex-col gap-6 min-[1600px]:grid min-[1600px]:grid-cols-2 min-[1600px]:gap-6 min-[1600px]:items-start">
+            görünüyordu (kullanıcı). İkisi bağımsız kart, yan yana doğal.
+            SÜTUN ORANI ÜSTTEKİYLE AYNI (1.15/1): eşit ikiye bölünce alttaki
+            dikey dikiş üsttekiyle hizalanmıyordu, göz bunu hemen yakalıyor.
+            `items-start` de kaldırıldı — kartlar eşit boyda dursun. */}
+        <div className="flex flex-col gap-6 min-[1600px]:grid min-[1600px]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] min-[1600px]:gap-6">
         {/* Yayın linki + QR + ekran sağlığı EN ALTTA: önce tasarla (tanım →
             yerleşim → içerik), sonra yayınla/izle. */}
         <div className="card p-5 flex flex-col sm:flex-row items-start gap-5">

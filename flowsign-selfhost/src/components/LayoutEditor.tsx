@@ -7,8 +7,8 @@
  * Cloudinary boyutlandırma yok — görsel yerel yolundan olduğu gibi gösterilir,
  * video minyatürü 🎬 yer tutucudur.
  */
-import { useRef, useState } from "react";
-import { CellBox, contentZonesIn, layoutColsOf, layoutRowsOf, mergeCells, normalizeGrid, zoneCells, ZONE_BG_DEFAULT, snapBoxToZones } from "@/lib/zones";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CellBox, contentZonesIn, itemInWindow, layoutColsOf, layoutRowsOf, mergeCells, normalizeGrid, zoneCells, ZONE_BG_DEFAULT, snapBoxToZones } from "@/lib/zones";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 /**
@@ -51,6 +51,87 @@ function ZonePreview({ item }: { item?: ZoneItem }) {
     );
   }
   return null;
+}
+
+/** Dönen önizlemenin üst katmanı — alanın KENDİ geçişiyle girer. */
+function GecisliKare({ item, gecis }: { item: ZoneItem; gecis: "fade" | "cut" | "slide" }) {
+  const [on, setOn] = useState(gecis === "cut");
+  useEffect(() => {
+    if (gecis === "cut") {
+      setOn(true);
+      return;
+    }
+    setOn(false);
+    const t = window.setTimeout(() => setOn(true), 30);
+    return () => window.clearTimeout(t);
+  }, [item.id, gecis]);
+  const st: React.CSSProperties =
+    gecis === "slide"
+      ? { transform: on ? "translateX(0)" : "translateX(100%)", transition: "transform 550ms ease" }
+      : gecis === "cut"
+        ? {}
+        : { opacity: on ? 1 : 0, transition: "opacity 500ms ease" };
+  return (
+    <span className="absolute inset-0 overflow-hidden" style={st}>
+      <ZonePreview item={item} />
+    </span>
+  );
+}
+
+/**
+ * Alanda 2+ içerik varsa önizleme YAVAŞÇA DÖNER (3 sn).
+ *
+ * İki işi birden yapıyor:
+ *  1. Alanın birden fazla içeriği olduğu tek bakışta görünür (rozetteki sayıyı
+ *     okumaya gerek kalmaz).
+ *  2. Önizleme DÜRÜST olur. Eskiden hep `items[0]` çiziliyordu; perde ise
+ *     takvime uyan ilk öğeyi oynatıyor. İlk öğe takvimliyse editör, ekranda o an
+ *     olmayan bir şeyi gösteriyordu. Burada da takvim süzgeci uygulanıyor.
+ *
+ * Sıralar KAYDIRILARAK başlar (alan sırası kadar gecikme): yedi alan aynı anda
+ * değişince tuval yanıp sönüyor gibi duruyordu. Hareket azaltma tercihine
+ * saygılıdır — o durumda hiç dönmez.
+ */
+function ZoneDoner({ items, sira, gecis }: { items: ZoneItem[]; sira: number; gecis: "fade" | "cut" | "slide" }) {
+  // Takvim süzgeci dakikada bir tazelenir: "14:00'te düşecek" öğe editörde de
+  // o dakikada düşsün, sayfa yenilenmeyi beklemesin.
+  const [dakika, setDakika] = useState(0);
+  useEffect(() => {
+    const iv = window.setInterval(() => setDakika((d) => d + 1), 60_000);
+    return () => window.clearInterval(iv);
+  }, []);
+  const gosterilecek = useMemo(() => {
+    const simdi = new Date();
+    const uygun = items.filter((it) => itemInWindow(it, simdi));
+    return uygun.length ? uygun : items.slice(0, 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, dakika]);
+  const [i, setI] = useState(0);
+
+  useEffect(() => {
+    if (gosterilecek.length < 2) return;
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    let iv = 0;
+    const bas = window.setTimeout(() => {
+      iv = window.setInterval(() => setI((n) => n + 1), 3000);
+    }, (sira % 4) * 500);
+    return () => {
+      window.clearTimeout(bas);
+      window.clearInterval(iv);
+    };
+  }, [gosterilecek.length, sira]);
+
+  if (!gosterilecek.length) return null;
+  const simdiki = gosterilecek[i % gosterilecek.length];
+  // Alttaki katman ÖNCEKİ öğe: yumuşama/kaydırma boşluğa değil, gerçekten
+  // değişen içeriğin üstüne uygulanıyor — perdede olan da bu.
+  const onceki = i > 0 && gosterilecek.length > 1 ? gosterilecek[(i - 1) % gosterilecek.length] : undefined;
+  return (
+    <>
+      {onceki && <ZonePreview item={onceki} />}
+      <GecisliKare key={simdiki.id + i} item={simdiki} gecis={gecis} />
+    </>
+  );
 }
 
 type Cell = { c: number; r: number };
@@ -184,7 +265,7 @@ export default function LayoutEditor({
                  z.bg'yi çiziyor, yalnız burası çizmiyordu). */
               style={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%`, background: z.bg ?? undefined }}
             >
-              <ZonePreview item={z.items[0]} />
+              <ZoneDoner items={z.items} sira={i} gecis={z.transition ?? "fade"} />
               {/* KENAR TUTAMAKLARI — yalnız seçili alanda ve yalnız duvarın DIŞ
                   kenarı olmayan yönlerde. Bölme yalnız eşit parça verdiği için
                   70/30 gibi bir yerleşim başka türlü kurulamıyordu. */}
