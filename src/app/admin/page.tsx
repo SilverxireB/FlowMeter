@@ -6,6 +6,7 @@
  * v1: listele · yönetici yap/kaldır · kaydı sil. Detaylar sonra genişletilecek.
  */
 import Link from "next/link";
+import { studioHata } from "@/lib/hata";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import AdminTabs from "@/components/AdminTabs";
@@ -59,7 +60,7 @@ export default function AdminPage() {
   const refresh = useCallback(() => {
     listUsers()
       .then(setUsers)
-      .catch((e) => setErr(e instanceof Error ? e.message : "Liste alınamadı."));
+      .catch((e) => setErr(studioHata(e, "Liste alınamadı.")));
   }, []);
 
   useEffect(() => {
@@ -74,7 +75,7 @@ export default function AdminPage() {
       await setUserRole(u.id, makeAdmin ? "admin" : "user");
       refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Rol değiştirilemedi.");
+      setErr(studioHata(e, "Rol değiştirilemedi."));
     } finally {
       setBusy(null);
     }
@@ -95,7 +96,7 @@ export default function AdminPage() {
       ]);
       setIcerik((m) => ({ ...m, [uid]: { sunum: a.length, duvar: b.length, ekran: c.length, nokta: d.length } }));
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "İçerik sayılamadı.");
+      setErr(studioHata(e, "İçerik sayılamadı."));
     } finally {
       setIcerikBusy(null);
     }
@@ -110,7 +111,7 @@ export default function AdminPage() {
       setIcerik((m) => ({ ...m, [u.id]: { sunum: 0, duvar: 0, ekran: 0, nokta: 0 } }));
       setErr(n ? `${n} içerik devralındı — artık senin panelinde.` : "Devralınacak içerik yok.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Devralınamadı.");
+      setErr(studioHata(e, "Devralınamadı."));
     } finally {
       setBusy(null);
     }
@@ -126,7 +127,7 @@ export default function AdminPage() {
       setIcerik((m) => ({ ...m, [u.id]: { sunum: 0, duvar: 0, ekran: 0, nokta: 0 } }));
       setErr(n ? `${n} içerik silindi.` : "Silinecek içerik yok.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Silinemedi.");
+      setErr(studioHata(e, "Silinemedi."));
     } finally {
       setBusy(null);
     }
@@ -139,7 +140,7 @@ export default function AdminPage() {
       await setUserBlocked(u.id, kapat);
       refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Değiştirilemedi.");
+      setErr(studioHata(e, "Değiştirilemedi."));
     } finally {
       setBusy(null);
     }
@@ -152,7 +153,7 @@ export default function AdminPage() {
       await deleteUserRecord(u.id);
       refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Silinemedi.");
+      setErr(studioHata(e, "Silinemedi."));
     } finally {
       setBusy(null);
     }
@@ -186,7 +187,7 @@ export default function AdminPage() {
       for (const u of hayalet) await deleteUserRecord(u.id);
       refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Silinemedi.");
+      setErr(studioHata(e, "Silinemedi."));
     } finally {
       setBusy(null);
     }

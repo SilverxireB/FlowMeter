@@ -18,6 +18,7 @@
  * edit/delete gerçek kapıdır (firestore.rules).
  */
 import Link from "next/link";
+import { studioHata } from "@/lib/hata";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminTabs from "@/components/AdminTabs";
@@ -93,7 +94,7 @@ export default function AdminSignPage() {
       }
       await refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Yetki kaydedilemedi — tekrar dene.");
+      setErr(studioHata(e, "Yetki kaydedilemedi — tekrar dene."));
     } finally {
       setBusy(false);
     }
@@ -117,7 +118,7 @@ export default function AdminSignPage() {
       }
       await refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Yetki kaydedilemedi — tekrar dene.");
+      setErr(studioHata(e, "Yetki kaydedilemedi — tekrar dene."));
     } finally {
       setBusy(false);
     }
@@ -130,7 +131,7 @@ export default function AdminSignPage() {
       await setCanCreateSign(u.id, u.canCreateSign === false);
       await refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Kaydedilemedi — tekrar dene.");
+      setErr(studioHata(e, "Kaydedilemedi — tekrar dene."));
     } finally {
       setBusy(false);
     }

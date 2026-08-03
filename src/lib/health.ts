@@ -162,15 +162,49 @@ async function kontrolDomain(): Promise<Kontrol[]> {
 async function kontrolAuthDomain(): Promise<Kontrol[]> {
   const authDomain = (auth().app.options as { authDomain?: string }).authDomain ?? "";
   const kendiAlan = !!authDomain && !authDomain.endsWith(".firebaseapp.com");
+
+  // Bu kontrol eskiden kendi alan adı kullanılıyorsa KOŞULSUZ sarı yanıyordu:
+  // "Google Cloud'daki kaydı buradan doğrulayamam" demenin bir yoluydu. Ama
+  // 2026-08'de kendi alan adına GEÇİLDİ, yani doğru yapılandırılmış bir sistemde
+  // bu uyarı artık kalıcı. Kalıcı uyarı, uyarıyı susturur — asıl arıza çıktığında
+  // da kimse bakmaz.
+  //
+  // Onun yerine GERÇEKTEN ÖLÇÜLEBİLİR olan şey ölçülüyor: giriş yardımcısının
+  // adresine bu cihazdan ulaşılıyor mu? Fabrika iç ağında bozulan tam olarak
+  // buydu (*.firebaseapp.com kapalıydı, giriş penceresi zaman aşımına düşüyordu).
+  let ulasilir: boolean | null = null;
+  if (authDomain) {
+    try {
+      const iptal = new AbortController();
+      const zaman = setTimeout(() => iptal.abort(), 6000);
+      await fetch(`https://${authDomain}/__/auth/handler`, {
+        mode: "no-cors",
+        cache: "no-store",
+        signal: iptal.signal,
+      });
+      clearTimeout(zaman);
+      ulasilir = true;
+    } catch {
+      ulasilir = false;
+    }
+  }
+
   return [
     {
       id: "authdomain",
       baslik: "Giriş dönüş adresi",
-      durum: kendiAlan ? "uyari" : "ok",
-      detay: authDomain || "tanımsız",
-      ipucu: kendiAlan
-        ? `Kendi alan adı kullanılıyor: Google Cloud > Credentials > Web OAuth istemcisi > Authorized redirect URIs listesinde https://${authDomain}/__/auth/handler OLMALI. Yoksa giriş "redirect_uri_mismatch" verir.`
-        : undefined,
+      durum: !authDomain ? "uyari" : ulasilir === false ? "hata" : "ok",
+      detay: !authDomain
+        ? "tanımsız"
+        : ulasilir === false
+          ? `${authDomain} — bu cihazdan ULAŞILAMIYOR.`
+          : `${authDomain} — ulaşılabilir.`,
+      ipucu:
+        ulasilir === false
+          ? "Bu ağ adresi engelliyor; giriş penceresi zaman aşımına düşer. Bilgi işlemden bu adrese izin iste ya da başka bir ağdan dene."
+          : kendiAlan
+            ? `Not: kendi alan adımız kullanılıyor, yani Google Cloud > Credentials > Web OAuth istemcisinde https://${authDomain}/__/auth/handler kayıtlı olmak zorunda (giriş çalışıyorsa kayıtlıdır).`
+            : undefined,
     },
   ];
 }
