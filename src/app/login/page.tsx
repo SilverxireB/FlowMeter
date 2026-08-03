@@ -36,6 +36,40 @@ function isStandalone(): boolean {
  * butonu serbest bırakır.
  */
 
+/**
+ * Google girişinin yardımcı sayfası (`https://<authDomain>/__/auth/handler`)
+ * bu bilgisayardan açılabiliyor mu?
+ *
+ * Neden gerekiyor: giriş açılır penceresi ayrı bir kaynak (origin) olduğu için
+ * ana sayfa onun içine bakamaz — pencere "Bu siteye ulaşılamıyor" gösterirken
+ * uygulama yalnızca "bir şey olmadı" bilgisine sahip oluyor. Adresi doğrudan
+ * yoklamak o körlüğü kapatıyor.
+ *
+ * `no-cors`: yanıtı OKUMAK istemiyoruz, yalnız BAĞLANTININ kurulup kurulmadığını
+ * öğrenmek istiyoruz — engelli ağda istek reddedilir/zaman aşar, açık ağda
+ * opak da olsa döner. Kendi alan adımızdaki /__/auth/* proxy'sini yoklamak
+ * İŞE YARAMAZ: o istek sunucumuz üzerinden gider, istemcinin engelini görmez.
+ */
+const AUTH_DOMAIN =
+  process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ||
+  `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "firebase"}.firebaseapp.com`;
+
+async function authDomainUlasilirMi(): Promise<boolean> {
+  try {
+    const iptal = new AbortController();
+    const zaman = setTimeout(() => iptal.abort(), 6000);
+    await fetch(`https://${AUTH_DOMAIN}/__/auth/handler`, {
+      mode: "no-cors",
+      cache: "no-store",
+      signal: iptal.signal,
+    });
+    clearTimeout(zaman);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Firebase hata kodunu kullanıcıya anlatılabilir Türkçeye çevir. */
 function readableError(e: unknown): string {
   const code = e instanceof FirebaseError ? e.code : "";
@@ -91,7 +125,18 @@ export default function LoginPage() {
     durdur();
     bekci.current = window.setTimeout(() => {
       setBusy(false);
-      setError("Giriş tamamlanmadı. Tekrar dene.");
+      // "Tekrar dene" tek başına kullanıcıyı sonsuz döngüye sokuyordu: aynı
+      // engel duruyorsa yüzüncü deneme de aynı yerde takılır. Takılmanın EN SIK
+      // sebebi Google'ın giriş yardımcısının barındığı adrese (authDomain)
+      // ulaşılamaması — kurum/fabrika ağları *.firebaseapp.com'u kapatabiliyor.
+      // Onu burada ölçüp söylüyoruz; sebebi bilinen hata çözülebilir hatadır.
+      void authDomainUlasilirMi().then((ulasilir) =>
+        setError(
+          ulasilir
+            ? "Giriş tamamlanmadı. Tekrar dene."
+            : `Google giriş sayfasına ulaşılamıyor (${AUTH_DOMAIN}). Bu adres ağ tarafından engelleniyor olabilir — başka bir ağda (ör. telefon internetini paylaşarak) dene ya da bilgi işlemden bu adrese izin iste.`
+        )
+      );
     }, 25000);
 
     try {
