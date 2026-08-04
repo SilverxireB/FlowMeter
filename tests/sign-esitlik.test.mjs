@@ -45,6 +45,9 @@ const IZLER = [
   ["süresi doldu rozeti", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "süresi doldu"],
   ["mobilde rozet kırılmaz", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "truncate max-w-full shrink-0"],
   ["mobilde ad kendi satırında", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "order-last basis-full"],
+  // ── Kütüphane = tek veri merkezi (yeniden kurulum 1. adım) ────────────────
+  ["kütüphane içinden yükleme", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Cihazdan yükle (görsel / video)"],
+  ["rehberde tek kapı", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "TEK kapısı"],
   ["mobilde Saat/Tarih taşmaz", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "basis-full sm:basis-auto min-w-0"],
   ["ters tarih aralığı uyarısı", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Başlangıç bitişten sonra"],
   ["geçmiş gün seçilemez", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "const enErken ="],
@@ -149,6 +152,17 @@ for (const [etiket, yol] of [
     `${topluDogru && disaDogru ? "✓" : "✗"} ${etiket}: toplu uygulama SÜZÜLMÜŞ listeye, dışa aktarma TAM listeye bakıyor` +
       `${topluDogru ? "" : " — topluUygula süzgeci yok sayıyor"}${disaDogru ? "" : " — disaAktar süzgeçten etkileniyor"}`
   );
+}
+
+// AYRI "Görsel / Video" DÜĞMESİ GERİ GELMESİN (kullanıcı kararı, kütüphane
+// yeniden kurulumunun 1. adımı): veri merkezi KÜTÜPHANE — almak isteyen oraya
+// girer, yüklemek isteyen oradan yükler. İki kapı "yüklediğim nereye gitti?"
+// karışıklığını doğuruyordu.
+for (const yol of ["src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx"]) {
+  const k = oku(yol) ?? "";
+  const geriGeldi = /label: "Görsel \/ Video"/.test(k);
+  if (geriGeldi) hata++;
+  console.log(`${geriGeldi ? "✗" : "✓"} ${yol.includes("selfhost") ? "self-host" : "online"}: ayrı Görsel/Video düğmesi YOK (tek kapı kütüphane)`);
 }
 
 // İkon seti: self-host, online'da kullanılan her ikonu tanımalı.

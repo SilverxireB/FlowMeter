@@ -92,9 +92,10 @@ export const SIGN_REHBER: RehberBolum[] = [
               baslik: "İçerik ekle",
               metin: (
                 <>
-                  <Dugme icon="upload">Görsel / Video</Dugme> <Dugme icon="folder">Kütüphane</Dugme>{" "}
-                  <Dugme icon="link">URL</Dugme> <Dugme icon="pencil">Metin</Dugme> <Dugme icon="clock">Saat</Dugme>.
-                  Dosyayı panelin üzerine sürükleyip bırakmak da olur.
+                  <Dugme icon="folder">Kütüphane</Dugme> <Dugme icon="link">URL</Dugme>{" "}
+                  <Dugme icon="pencil">Metin</Dugme> <Dugme icon="clock">Saat</Dugme>. Görsel ve video
+                  KÜTÜPHANEDEN gelir: seçmek de yüklemek de orada. Dosyayı panelin üzerine sürükleyip
+                  bırakmak da olur.
                 </>
               ),
             },
@@ -183,8 +184,14 @@ export const SIGN_REHBER: RehberBolum[] = [
         <Tablo
           basliklar={["Tür", "Bilmen gereken"]}
           satirlar={[
-            ["Görsel / Video", "Cihazından yükle ya da panelin üzerine bırak. Video için MP4 (H.264) en güvenlisi."],
-            ["Kütüphane", "Bu ekrana daha önce yüklediklerin — aynı afişi ikinci alana koyarken yeniden yükleme."],
+            [
+              "Kütüphane",
+              <>
+                Görsel ve videonun TEK kapısı: bu ekranın medyasından seç ya da <b>Cihazdan yükle</b> ile
+                oradan yükle. Aynı afişi ikinci alana koyarken yeniden yüklemezsin. Video için MP4 (H.264)
+                en güvenlisi.
+              </>,
+            ],
             [
               "URL",
               <>

@@ -284,8 +284,9 @@ export default function ZonePanel({
   // İkonlar SVG (online kopyayla aynı): işlevsel simge emoji olmaz — bu satır
   // uzun süre emojiyle kalmıştı ve iki kopya birbirinden ayrışmıştı.
   const ADD_BTNS: { label: string; icon: IconName; fn: () => void; disabled?: boolean; title?: string }[] = [
-    { label: "Görsel / Video", icon: "image" as const, fn: () => fileRef.current?.click(), disabled: queue !== null },
-    { label: "Kütüphane", icon: "folder" as const, fn: () => setLibOpen(true), disabled: library.length === 0 },
+    // "Görsel / Video" ayrı düğme değil (kullanıcı kararı): veri merkezi
+    // KÜTÜPHANE — almak isteyen oraya girer, yüklemek isteyen oradan yükler.
+    { label: "Kütüphane", icon: "folder" as const, fn: () => setLibOpen(true) },
     { label: "URL", icon: "link" as const, fn: () => setUrlForm({ src: "", name: "" }) },
     { label: "Metin", icon: "pencil" as const, fn: addText },
     { label: "Saat", icon: "clock" as const, fn: addClock },
@@ -813,7 +814,21 @@ export default function ZonePanel({
               <p className="font-display font-semibold">🗂 Medya kütüphanesi</p>
               <button onClick={() => setLibOpen(false)} className="w-9 h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-paper" aria-label="Kapat"><Icon name="close" size={16} /></button>
             </div>
-            <p className="text-muted text-xs mb-3">Bu ekrana daha önce yüklediğin medya (taslak + yayın) — tıkla, bu alana ekle.</p>
+            {/* YÜKLEME KAPISI BURADA (kullanıcı kararı): veri merkezi kütüphane —
+                almak isteyen buraya girer, yüklemek isteyen BURADAN yükler. */}
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={queue !== null}
+              className="w-full mb-3 rounded-xl border-2 border-dashed border-line hover:border-accent text-muted hover:text-accent px-3 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-40"
+            >
+              <Icon name="upload" size={15} /> Cihazdan yükle (görsel / video)
+            </button>
+            {queue && (
+              <p className="text-muted text-xs mb-3 text-center">
+                Yükleniyor {queue.done + 1}/{queue.total} · %{queue.pct}
+              </p>
+            )}
+            <p className="text-muted text-xs mb-3">Bu ekranın medyası (taslak + yayın) — tıkla, bu alana ekle.</p>
 
             {/* Tür sekmeleri: Tümü / Foto / Video */}
             <div className="flex gap-1.5 mb-3">
@@ -855,7 +870,9 @@ export default function ZonePanel({
                 ))}
             </div>
             {library.filter((it) => libFilter === "all" || it.kind === libFilter).length === 0 && (
-              <p className="text-muted text-sm text-center py-8">Bu türde medya yok.</p>
+              <p className="text-muted text-sm text-center py-8">
+                {library.length === 0 ? "Henüz medya yok — yukarıdan Cihazdan yükle ile başla." : "Bu türde medya yok."}
+              </p>
             )}
           </div>
         </div>
