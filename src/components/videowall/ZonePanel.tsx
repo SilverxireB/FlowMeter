@@ -141,6 +141,9 @@ export default function ZonePanel({
   // varsayılanda kompakt liste gösterir ("çok fazla şey var" şikâyeti).
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Foto sahne seçicisinden DOĞRUDAN yükleme: "önce alana ekle, sonra kaldır,
+  // sonra kütüphaneden sahneye seç" diye bir yol OLMAZ (kullanıcı bunu yaşadı).
+  const sahneFileRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
 
   const cloudReady = isCloudinaryConfigured();
@@ -310,6 +313,30 @@ export default function ZonePanel({
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  /** Cihazdan seç, yükle, sahneye DOĞRUDAN ekle (ara adım yok). */
+  async function sahneyeYukle(files: File[]) {
+    if (!fotoSecici) return;
+    setErr(null);
+    if (!cloudReady) {
+      setErr("Medya deposu yapılandırılmadı — fotoğraf yüklenemez.");
+      return;
+    }
+    const { ok, rejected } = precheck(files.filter((f) => f.type.startsWith("image/")));
+    const failed: string[] = [...rejected, ...files.filter((f) => !f.type.startsWith("image/")).map((f) => `${f.name} (sahneye yalnız fotoğraf girer)`)];
+    for (let i = 0; i < ok.length; i++) {
+      try {
+        setQueue({ done: i, total: ok.length, pct: 0 });
+        const res = await uploadToCloudinary(ok[i], `flowsign/${vw.id}`, (pct) => setQueue({ done: i, total: ok.length, pct }), { keepOriginal: true });
+        sahneyeEkle(res.url);
+      } catch (e) {
+        failed.push(`${ok[i].name} (${e instanceof Error ? e.message : "yükleme hatası"})`);
+      }
+    }
+    setQueue(null);
+    if (failed.length) setErr(`Yüklenemeyenler: ${failed.join(" · ")}`);
+    if (sahneFileRef.current) sahneFileRef.current.value = "";
+  }
+
   /** ⇄ Değiştir: yeni dosya AYNI öğenin yerine geçer — sıra/takvim/süre korunur. */
   async function replaceFile(itemId: string, file: File) {
     setErr(null);
@@ -389,8 +416,11 @@ export default function ZonePanel({
    */
   const sahneyeEkle = (src: string) => {
     if (!fotoSecici || !src) return;
+    // zoneRef: arka arkaya yükleme TEK closure içinde döner; `zone.items`
+    // bayat kalır ve yalnız SON fotoğraf hayatta kalırdı (dosya yükleme
+    // yolundaki tuzağın aynısı).
     setItems(
-      zone.items.map((x) =>
+      zoneRef.current.items.map((x) =>
         x.id === fotoSecici && !(x.fotolar ?? []).includes(src)
           ? { ...x, fotolar: [...(x.fotolar ?? []), src] }
           : x
@@ -1082,9 +1112,26 @@ export default function ZonePanel({
                 </button>
               ))}
             </div>
+            {/* SAHNE KİPİNDE DOĞRUDAN YÜKLEME: fotoğrafın sahneye girmek için
+                önce alana öğe olarak eklenmesi gerekmez — o yol "önce ekle,
+                sonra kaldır, sonra seç" gibi saçma bir tura dönüşüyordu. */}
+            {fotoSecici && (
+              <div className="mb-3">
+                <input ref={sahneFileRef} type="file" accept="image/*" multiple hidden onChange={(e) => e.target.files && sahneyeYukle(Array.from(e.target.files))} />
+                <button
+                  onClick={() => sahneFileRef.current?.click()}
+                  className="w-full rounded-xl border-2 border-dashed border-line hover:border-accent text-muted hover:text-accent px-3 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-2"
+                >
+                  <Icon name="upload" size={15} /> Cihazdan fotoğraf yükle — doğrudan sahneye
+                </button>
+                {queue && (
+                  <p className="text-muted text-xs mt-1.5 text-center">Yükleniyor {queue.done + 1}/{queue.total} · %{queue.pct}</p>
+                )}
+              </div>
+            )}
             <p className="text-muted text-xs mb-3">
               {fotoSecici
-                ? "Tıkla, foto sahneye ekle. Pencere açık kalır — birkaçını arka arkaya seçebilirsin."
+                ? "Ya da aşağıdan seç — tıkla, sahneye eklensin. Pencere açık kalır."
                 : libTab === "ekran"
                   ? "Bu ekrana yüklediğin medya (taslak + yayın). Tıkla, bu alana ekle."
                   : "Kurumun ortak medyası — herkes buradan seçebilir. Ekran silinse bile raf etkilenmez."}

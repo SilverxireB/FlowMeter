@@ -74,8 +74,10 @@ export interface SahneKaresi {
  */
 export function izgaraOlcu(adet: number, oran: number, yogunluk = 1): { sutun: number; satir: number } {
   if (adet <= 0) return { sutun: 1, satir: 1 };
-  // Hedef kare sayısı: fotoğraf sayısıyla sınırlı, yoğunlukla ölçekli.
-  const hedef = Math.max(1, Math.min(adet, Math.round(4 * yogunluk)));
+  // DUVAR HİSSİ: hedef, fotoğrafların HEPSİNİ göstermek (kullanıcı kararı —
+  // "yapacağın şey fotoğraflarla bir wall oluşturmak, bu kadar"). Yalnız üst
+  // sınır var: 16'dan sonra hücreler pul kadar kalıyor, fazlası sırayla döner.
+  const hedef = Math.max(1, Math.min(adet, Math.round(16 * yogunluk)));
   // Oran geniş ise sütun, dar ise satır artar; hücreler kareye yakın kalsın.
   let sutun = Math.max(1, Math.round(Math.sqrt(hedef * oran)));
   let satir = Math.max(1, Math.ceil(hedef / sutun));
