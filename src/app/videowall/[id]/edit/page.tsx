@@ -579,6 +579,7 @@ export default function VideowallEditPage() {
             vw={vw}
             zone={selected}
             index={selectedIndex}
+            isAdmin={isAdmin}
             onZones={saveZones}
             onSplit={(parcaC, parcaR, zonesOverride) => {
               const doSplit = () => {

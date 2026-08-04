@@ -12,6 +12,7 @@ import { clampLayout } from "@/lib/zones";
  * "böyle bir ekran yok" dediğinde çağrılır.
  */
 import { PublicUser, ScreenBeat, SignPerms, Videowall, VideowallPlayMode, Zone } from "./types";
+import { RafOgesi } from "./ortakRaf";
 import { clampScreens, gridZones, SplitResult, stripUndefined } from "./zones";
 
 type WallEvent = { found: boolean; wall: Videowall | null; screens: ScreenBeat[] };
@@ -263,3 +264,35 @@ export const canViewWall = (w: Videowall | null | undefined, me: PublicUser | nu
   const p = wallPerm(w, me);
   return p.view || p.edit || p.copy || p.delete;
 };
+
+// ── ORTAK RAF ────────────────────────────────────────────────────────────────
+// Kurumun paylaşılan medyası. Rafa HERKES koyar, YALNIZ YÖNETİCİ siler
+// (kararlar sunucuda; buradaki işlevler yalnız uca gider).
+
+/** Hata gövdesini insanca mesaja çeviren küçük sarmalayıcı. */
+async function rafJson(r: Response): Promise<Record<string, unknown>> {
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(String((j as { error?: string }).error ?? "İşlem tamamlanamadı"));
+  return j as Record<string, unknown>;
+}
+
+export async function listOrtakRaf(): Promise<RafOgesi[]> {
+  const r = await fetch("/api/ortak-raf");
+  if (!r.ok) return [];
+  return ((await r.json()).raf ?? []) as RafOgesi[];
+}
+
+export async function rafaKoy(o: { src: string; kind: string; name: string; fromWall?: string }): Promise<RafOgesi> {
+  const j = await rafJson(
+    await fetch("/api/ortak-raf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(o),
+    })
+  );
+  return j.oge as RafOgesi;
+}
+
+export async function raftanSil(id: string): Promise<void> {
+  await rafJson(await fetch(`/api/ortak-raf?id=${encodeURIComponent(id)}`, { method: "DELETE" }));
+}

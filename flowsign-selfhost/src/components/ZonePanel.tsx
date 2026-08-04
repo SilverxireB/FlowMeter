@@ -11,7 +11,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName } from "@/components/icons";
 import FlowSpinner from "@/components/FlowSpinner";
-import { listWalls } from "@/lib/client";
+import { listOrtakRaf, listWalls, rafaKoy as rafaKoyUc, raftanSil as raftanSilUc } from "@/lib/client";
+import { adresDegistir, RafOgesi } from "@/lib/ortakRaf";
 import { uploadMedia } from "@/lib/media";
 import { icAgAdresi, itemInWindow, itemTakvimDurumu, ZONE_BG_DEFAULT } from "@/lib/zones";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
@@ -59,6 +60,7 @@ export default function ZonePanel({
   vw,
   zone,
   index,
+  isAdmin,
   onZones,
   onSplit,
   onClose,
@@ -67,6 +69,8 @@ export default function ZonePanel({
   vw: Videowall;
   zone: Zone;
   index: number;
+  /** Ortak raftan SİLME yalnız yöneticide (kullanıcı kararı: koymak herkese açık). */
+  isAdmin?: boolean;
   onZones: (zones: Zone[]) => void;
   /** Bu alanı `parts` parçaya böl (h = yan yana, v = alt alta). */
   onSplit: (parcaC: number, parcaR: number, zonesOverride?: Zone[]) => void;
@@ -91,6 +95,23 @@ export default function ZonePanel({
       .catch(() => setScreens([]));
   }, [screenPick, ekranOgesiVar, screens, vw.id]);
   const [libFilter, setLibFilter] = useState<"all" | "image" | "video">("all");
+  /**
+   * ORTAK RAF. Kütüphane iki sekme: "Bu ekran" ve "Ortak raf". Raf YALNIZ
+   * pencere açıkken okunur — kokpit her açıldığında boşuna istek atmasın.
+   */
+  const [libTab, setLibTab] = useState<"ekran" | "ortak">("ekran");
+  const [raf, setRaf] = useState<RafOgesi[] | null>(null);
+  const [rafBusy, setRafBusy] = useState<string | null>(null);
+  useEffect(() => {
+    if (!libOpen) return;
+    let iptal = false;
+    listOrtakRaf()
+      .then((l) => !iptal && setRaf(l))
+      .catch(() => !iptal && setRaf([]));
+    return () => {
+      iptal = true;
+    };
+  }, [libOpen]);
   const [urlForm, setUrlForm] = useState<{ src: string; name: string } | null>(null);
   const [replacingId, setReplacingId] = useState<string | null>(null);
   // Sadeleştirme: süre/takvim/gün ayarları öğe başına AÇILIR (⚙) — panel
@@ -123,6 +144,45 @@ export default function ZonePanel({
         }
     return out;
   }, [vw.zones, vw.live?.zones]);
+
+  /**
+   * ORTAK RAFA KOY. Dosya SUNUCUDA raf klasörüne TAŞINIR (kopyalanmaz), sonra
+   * bu ekranın kendi öğeleri yeni adrese çevrilir.
+   *
+   * SIRA ÖNEMLİ: önce taşı, sonra adresleri çevir. Ortadaki bir hata en kötü
+   * ihtimalle "rafta görünüyor ama benim ekranımda eski adres" bırakır — kırık
+   * ekran değil. Ters sırada olsaydı adres çevrildiği an dosya henüz taşınmamış
+   * olurdu ve perde kararırdı.
+   */
+  async function rafaKoy(it: ZoneItem) {
+    if (!it.src || (it.kind !== "image" && it.kind !== "video")) return;
+    setRafBusy(it.src);
+    setErr(null);
+    try {
+      const oge = await rafaKoyUc({ src: it.src, kind: it.kind, name: it.name || "adsız", fromWall: vw.name });
+      onZones(adresDegistir(vw.zones, it.src, oge.src));
+      setRaf((r) => [oge, ...(r ?? [])]);
+      setLibTab("ortak");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Ortak rafa taşınamadı.");
+    } finally {
+      setRafBusy(null);
+    }
+  }
+
+  /** Raftan KALICI sil — yalnız yönetici (sunucu da aynı kapıyı uygular). */
+  async function rafSil(o: RafOgesi) {
+    setRafBusy(o.src);
+    setErr(null);
+    try {
+      await raftanSilUc(o.id);
+      setRaf((r) => (r ?? []).filter((x) => x.id !== o.id));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Raftan silinemedi.");
+    } finally {
+      setRafBusy(null);
+    }
+  }
 
   /** Boyut/tür ön-kontrolü: geçenler + insanca ret nedenleri. */
   function precheck(files: File[]): { ok: File[]; rejected: string[] } {
@@ -813,14 +873,39 @@ export default function ZonePanel({
               <p className="font-display font-semibold">🗂 Medya kütüphanesi</p>
               <button onClick={() => setLibOpen(false)} className="w-9 h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-paper" aria-label="Kapat"><Icon name="close" size={16} /></button>
             </div>
-            <p className="text-muted text-xs mb-3">Bu ekrana daha önce yüklediğin medya (taslak + yayın) — tıkla, bu alana ekle.</p>
+            {/* SEKMELER — "Bu ekran" ile "Ortak raf" AYRI iki havuz.
+                Ortak raf bir depo değil DAĞITIM aracı: kurumsaldan gelen video
+                bir kez rafa konur, herkes kendi ekranında oradan seçer (dosyayı
+                aramak / USB'yle taşımak yok). Otomatik akmaz — paylaşmak bir
+                EYLEMDİR, yoksa raf bir yılda çöplüğe döner. */}
+            <div className="flex gap-1.5 mb-3">
+              {([
+                { v: "ekran", label: "Bu ekran", n: library.length },
+                { v: "ortak", label: "Ortak raf", n: raf?.length ?? 0 },
+              ] as const).map((t) => (
+                <button
+                  key={t.v}
+                  onClick={() => setLibTab(t.v)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                    libTab === t.v ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"
+                  }`}
+                >
+                  {t.label} ({t.n})
+                </button>
+              ))}
+            </div>
+            <p className="text-muted text-xs mb-3">
+              {libTab === "ekran"
+                ? "Bu ekrana yüklediğin medya (taslak + yayın). Tıkla, bu alana ekle."
+                : "Kurumun ortak medyası — herkes buradan seçebilir. Ekran silinse bile raf etkilenmez."}
+            </p>
 
             {/* Tür sekmeleri: Tümü / Foto / Video */}
             <div className="flex gap-1.5 mb-3">
               {([
-                { v: "all", label: `Tümü (${library.length})` },
-                { v: "image", label: `📷 Foto (${library.filter((i) => i.kind === "image").length})` },
-                { v: "video", label: `🎬 Video (${library.filter((i) => i.kind === "video").length})` },
+                { v: "all", label: "Tümü" },
+                { v: "image", label: "📷 Foto" },
+                { v: "video", label: "🎬 Video" },
               ] as const).map((t) => (
                 <button
                   key={t.v}
@@ -834,28 +919,84 @@ export default function ZonePanel({
               ))}
             </div>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {library
-                .filter((it) => libFilter === "all" || it.kind === libFilter)
-                .map((it) => (
-                  <button key={it.src} onClick={() => addFromLib(it)} className="rounded-lg overflow-hidden border border-line hover:border-accent text-left">
-                    <span className="block aspect-square relative">
-                      {it.kind === "video" ? (
-                        <span className="w-full h-full grid place-items-center bg-black text-2xl">🎬</span>
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={it.src} alt="" className="w-full h-full object-cover bg-black" />
+            {libTab === "ekran" ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {library
+                  .filter((it) => libFilter === "all" || it.kind === libFilter)
+                  .map((it) => (
+                    // Kart ARTIK düğme değil: içinde ikinci bir eylem var
+                    // (rafa koy) ve iç içe düğme geçersiz HTML.
+                    <div key={it.src} className="relative rounded-lg overflow-hidden border border-line hover:border-accent">
+                      <button onClick={() => addFromLib(it)} className="block w-full text-left" title="Bu alana ekle">
+                        <span className="block aspect-square relative">
+                          {it.kind === "video" ? (
+                            <span className="w-full h-full grid place-items-center bg-black text-2xl">🎬</span>
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={it.src} alt="" className="w-full h-full object-cover bg-black" />
+                          )}
+                        </span>
+                        <span className="block px-1.5 py-1 text-[10px] text-muted truncate bg-paper">{it.name || "adsız"}</span>
+                      </button>
+                      {/* RAFA KOY — herkese açık (kullanıcı kararı). Köşede
+                          durur, kartın asıl işini (alana ekle) gölgelemez. */}
+                      <button
+                        onClick={() => rafaKoy(it)}
+                        disabled={rafBusy === it.src}
+                        title="Ortak rafa koy — herkes kendi ekranında kullanabilsin"
+                        aria-label="Ortak rafa koy"
+                        className="absolute top-1 left-1 w-7 h-7 grid place-items-center rounded-lg bg-white/90 backdrop-blur border border-line text-muted hover:text-accent hover:border-accent disabled:opacity-40"
+                      >
+                        {rafBusy === it.src ? <FlowSpinner size={12} /> : <Icon name="upload" size={12} />}
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            ) : raf === null ? (
+              <p className="text-muted text-sm text-center py-8">Raf okunuyor…</p>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {raf
+                  .filter((o) => libFilter === "all" || o.kind === libFilter)
+                  .map((o) => (
+                    <div key={o.id} className="relative rounded-lg overflow-hidden border border-line hover:border-accent">
+                      <button onClick={() => addFromLib({ id: o.id, kind: o.kind, src: o.src, name: o.name })} className="block w-full text-left" title="Bu alana ekle">
+                        <span className="block aspect-square relative">
+                          {o.kind === "video" ? (
+                            <span className="w-full h-full grid place-items-center bg-black text-2xl">🎬</span>
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={o.src} alt="" className="w-full h-full object-cover bg-black" />
+                          )}
+                        </span>
+                        <span className="block px-1.5 py-1 text-[10px] text-muted truncate bg-paper" title={o.by ? `Rafa koyan: ${o.by}` : undefined}>
+                          {o.name || "adsız"}
+                        </span>
+                      </button>
+                      {/* SİLME YALNIZ YÖNETİCİDE. Başkasının ekranında dönen
+                          bir dosyayı silmek o duvarı karartır; koymak ucuz ve
+                          geri alınabilir, silmek değil. */}
+                      {isAdmin && (
+                        <button
+                          onClick={() => rafSil(o)}
+                          disabled={rafBusy === o.src}
+                          title="Raftan KALICI sil (başka ekranlar kullanıyor olabilir)"
+                          aria-label="Raftan sil"
+                          className="absolute top-1 left-1 w-7 h-7 grid place-items-center rounded-lg bg-white/90 backdrop-blur border border-line text-muted hover:text-brand hover:border-brand disabled:opacity-40"
+                        >
+                          {rafBusy === o.src ? <FlowSpinner size={12} /> : <Icon name="trash" size={12} />}
+                        </button>
                       )}
-                    </span>
-                    {/* Dosya adı — hangi dosya olduğu görünsün */}
-                    <span className="block px-1.5 py-1 text-[10px] text-muted truncate bg-paper">
-                      {it.name || "adsız"}
-                    </span>
-                  </button>
-                ))}
-            </div>
-            {library.filter((it) => libFilter === "all" || it.kind === libFilter).length === 0 && (
-              <p className="text-muted text-sm text-center py-8">Bu türde medya yok.</p>
+                    </div>
+                  ))}
+              </div>
+            )}
+            {(libTab === "ekran" ? library : raf ?? []).filter((o) => libFilter === "all" || o.kind === libFilter).length === 0 && (
+              <p className="text-muted text-sm text-center py-8">
+                {libTab === "ekran"
+                  ? "Bu türde medya yok."
+                  : "Ortak raf boş. Bir dosyayı \u201cBu ekran\u201d sekmesinden rafa koyabilirsin."}
+              </p>
             )}
           </div>
         </div>

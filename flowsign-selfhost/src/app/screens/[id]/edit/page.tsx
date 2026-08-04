@@ -532,6 +532,7 @@ export default function ScreenEditPage() {
             vw={vw}
             zone={selected}
             index={selectedIndex}
+            isAdmin={me?.role === "admin"}
             onZones={saveZones}
             onSplit={(parcaC, parcaR, zonesOverride) => {
               const doSplit = () => {

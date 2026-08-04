@@ -344,6 +344,30 @@ service cloud.firestore {
     //   Yönetici (isAdmin) her ekranda tam yetkilidir.
     // NOT: view/copy GÖRÜNÜRLÜK seviyesidir — doküman okuması public olmak
     // zorunda olduğundan rules ile gizlenemez; edit/delete gerçek kapıdır.
+    // ── ORTAK RAF (FlowSign) ────────────────────────────────────────────────
+    // Kurumun paylaşılan medyası. Kütüphane bir depo değil DAĞITIM aracıdır:
+    // kurumsaldan gelen video bir kez rafa konur, herkes kendi ekranında oradan
+    // seçer. Otomatik akmaz — paylaşmak bir EYLEMdir, yoksa raf çöplüğe döner.
+    //
+    // YETKİ (kullanıcı kararı): rafa HERKES koyar, raftan YALNIZ YÖNETİCİ siler.
+    // Koymak ucuz ve geri alınabilir; silmek başkasının duvarını karartabilir.
+    // Aynı kapı sunucuda da var (/api/sign/ortak-raf) — dosyanın kendisi orada
+    // taşınır/silinir, buradaki kayıt yalnız listedir.
+    //
+    // Okuma girişli herkese: ekranını hazırlayan kişi rafta ne var görmeli.
+    // Güncelleme YOK: rafa konan kayıt değiştirilmez (ad/adres oynatılamaz);
+    // yanlışsa yönetici siler, sahibi yeniden koyar.
+    match /signOrtak/{ogeId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['kind', 'src', 'publicId', 'name', 'by', 'at', 'fromWall'])
+        && request.resource.data.kind in ['image', 'video']
+        && request.resource.data.src is string
+        && request.resource.data.name is string;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
     match /videowalls/{id} {
       function signAllows(d, key) {
         return request.auth != null && (

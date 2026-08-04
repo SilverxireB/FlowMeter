@@ -193,6 +193,30 @@ function isCld(url: string): boolean {
   return url.includes("res.cloudinary.com") && url.includes("/upload/");
 }
 
+/**
+ * URL → Cloudinary `public_id` (silme/taşıma bunu ister).
+ *
+ * Neden gerekiyor: yeni yüklemelerde `cloudinaryId` öğeye yazılıyor, ama
+ * ESKİDEN yüklenmiş öğelerde o alan yok — tek elimizdeki adres. Ayrıştırma
+ * sessiz hata üretmeye çok müsait olduğu için sınavlı (`tests/ortak-raf.test.mjs`).
+ *
+ * Kurallar: `/upload/` sonrası alınır; virgüllü segmentler DÖNÜŞÜMdür
+ * (`c_fill,w_200`), `v1712…` SÜRÜMdür — ikisi de public_id'ye girmez; uzantı
+ * yalnız SON parçadan atılır ("rapor.final.pdf" → "rapor.final").
+ * Sakladığımız adresler dönüşümsüz `secure_url` olduğu için pratikte yalnız
+ * sürüm + uzantı ayıklanır; dönüşüm ayıklaması elle yapıştırılmış adresler için.
+ */
+export function cldPublicId(url: string): string {
+  if (!isCld(url)) return "";
+  const sonra = url.split("/upload/")[1] ?? "";
+  const parcalar = sonra.split("/");
+  while (parcalar.length > 1 && (parcalar[0].includes(",") || /^v\d+$/.test(parcalar[0]))) parcalar.shift();
+  const yol = parcalar.join("/");
+  const nokta = yol.lastIndexOf(".");
+  const egik = yol.lastIndexOf("/");
+  return nokta > egik ? yol.slice(0, nokta) : yol;
+}
+
 /** secure_url'e Cloudinary dönüşümü ekler (thumbnail — kare doldur). */
 export function cldThumb(url: string, w = 480, h = 480): string {
   return isCld(url) ? url.replace("/upload/", `/upload/c_fill,g_auto,w_${w},h_${h},q_auto,f_auto/`) : url;

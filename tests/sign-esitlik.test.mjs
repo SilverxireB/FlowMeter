@@ -59,6 +59,14 @@ const IZLER = [
   ["yetki dışa aktarma (CSV)", "src/lib/yetkiCsv.ts", "flowsign-selfhost/src/lib/yetkiCsv.ts", "export function yetkiCsv"],
   ["dışa aktar düğmesi", "src/app/admin/sign/page.tsx", "flowsign-selfhost/src/app/users/page.tsx", "onClick={disaAktar}"],
   ["minyatürde bezel çizgileri", "src/components/videowall/WallThumb.tsx", "flowsign-selfhost/src/components/WallThumb.tsx", "function BezelCizgileri"],
+  // ── Ortak raf ─────────────────────────────────────────────────────────────
+  ["ortak raf çekirdeği", "src/lib/ortakRaf.ts", "flowsign-selfhost/src/lib/ortakRaf.ts", "export function adresDegistir"],
+  ["raf klasörü ayrı ağaçta", "src/lib/ortakRaf.ts", "flowsign-selfhost/src/lib/ortakRaf.ts", "export function klasorCakisiyorMu"],
+  ["kütüphanede iki sekme", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", 'setLibTab("ortak")'],
+  ["rafa koy düğmesi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Ortak rafa koy"],
+  ["raftan silme yalnız yöneticide", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "{isAdmin && ("],
+  ["rehberde ortak raf", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", 'id: "ortakraf"'],
+  ["rehberde yetkiler", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", 'id: "yetkiler"'],
 ];
 
 const oku = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);

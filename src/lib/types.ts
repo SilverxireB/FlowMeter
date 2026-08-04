@@ -462,6 +462,8 @@ export interface ZoneItem {
   src?: string; // image/video/url için kaynak; text/clock'ta yok
   /** screen öğesi: bağlanan ekranın KİMLİĞİ (adres değil — ad değişse de kopmaz). */
   screenId?: string;
+  /** Cloudinary public_id — silme/ortak rafa taşıma bunu ister (yeni yüklemelerde yazılır; eskilerde adresten çözülür). */
+  cloudinaryId?: string;
   name?: string;
   durationSec?: number; // image/url/text/clock için gösterim süresi; video kendi süresi (ya da cap)
   from?: string; // "HH:MM" saat aralığı başı (boşsa hep)

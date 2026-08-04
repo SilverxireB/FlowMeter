@@ -16,6 +16,7 @@ import path from "path";
 import { EventEmitter } from "events";
 import { ScreenBeat, Videowall, Zone } from "./types";
 import { BEAT_MS, gridZones, ONLINE_MS, slugify, stripUndefined } from "./zones";
+import { klasorCakisiyorMu } from "./ortakRaf";
 
 export const DATA_DIR = process.env.SIGN_DATA_DIR || path.join(process.cwd(), "data");
 const WALLS_DIR = path.join(DATA_DIR, "walls");
@@ -202,6 +203,11 @@ export async function deleteWall(id: string): Promise<void> {
   if (!safeId(id)) return;
   await fs.rm(path.join(WALLS_DIR, `${id}.json`), { force: true });
   await fs.rm(path.join(SCREENS_DIR, `${id}.json`), { force: true });
+  // ORTAK RAF KORUMASI. Ekran kimlikleri "w-…" olduğu için raf klasörüyle
+  // (`_ortak`) çakışamaz — ama bu tek satır yanlış bir kimlikle TÜM ortak rafı
+  // götürebilecek yer. Güvence yapısal olsun, "kimlikler zaten öyle" varsayımına
+  // bırakılmasın (sınav: tests/ortak-raf.test.mjs).
+  if (klasorCakisiyorMu(id)) throw new Error("Geçersiz ekran kimliği");
   await fs.rm(path.join(MEDIA_DIR, id), { recursive: true, force: true });
   emitWall(id);
 }

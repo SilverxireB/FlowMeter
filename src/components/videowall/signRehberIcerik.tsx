@@ -184,7 +184,7 @@ export const SIGN_REHBER: RehberBolum[] = [
           basliklar={["Tür", "Bilmen gereken"]}
           satirlar={[
             ["Görsel / Video", "Cihazından yükle ya da panelin üzerine bırak. Video için MP4 (H.264) en güvenlisi."],
-            ["Kütüphane", "Bu ekrana daha önce yüklediklerin — aynı afişi ikinci alana koyarken yeniden yükleme."],
+            ["Kütüphane", <>İki sekme: <b>Bu ekran</b> (yüklediklerin) ve <b>Ortak raf</b> (kurumun paylaşılan medyası). Aynı afişi ikinci alana koyarken yeniden yüklemezsin.</>],
             [
               "URL",
               <>
@@ -289,6 +289,79 @@ export const SIGN_REHBER: RehberBolum[] = [
             ],
           ]}
         />
+      </>
+    ),
+  },
+
+  {
+    id: "ortakraf",
+    kicker: "Medya",
+    baslik: "Ortak raf — bir dosya, birçok ekran",
+    icerik: (
+      <>
+        <p>
+          Kütüphanede iki sekme var. <b>Bu ekran</b>, bu ekrana yüklediklerin. <b>Ortak raf</b>, kurumun
+          paylaşılan medyası — herkes oradan seçebilir.
+        </p>
+        <p>
+          Raf bir depo değil, bir <b>dağıtım</b> yolu: kurumsaldan gelen tanıtım filmi bir kez rafa konur, sonra
+          &ldquo;sen de şu ekranda aç&rdquo; denen kişi dosyayı aramaz, USB&rsquo;yle taşımaz — raftan seçer.
+        </p>
+        <Tablo
+          basliklar={["Soru", "Cevap"]}
+          satirlar={[
+            ["Rafa nasıl koyarım?", <>Kütüphane → <b>Bu ekran</b> sekmesi → dosyanın köşesindeki yukarı ok. Dosya rafa TAŞINIR; senin ekranında çalışmaya devam eder.</>],
+            ["Kim koyabilir?", "Ekranı düzenleyebilen herkes. Paylaşmak ucuz ve geri alınabilir."],
+            ["Kim silebilir?", <>Yalnız <b>yönetici</b>. Silmek, o dosyayı kullanan başka bir ekranı karartabilir.</>],
+            ["Ekranımı silersem raf ne olur?", <>Hiçbir şey. Raf ayrı bir yerde durur; ekran silme <b>rafa dokunmaz</b>.</>],
+            ["Neden her yüklediğim rafa düşmüyor?", "Düşseydi raf bir yılda çöplüğe dönerdi. Rafta yalnız bilerek konan şey bulunur."],
+          ]}
+        />
+        <Kutu tur="uyari" baslik="Raftan silmek geri alınamaz">
+          Raftan silmek <b>kalıcıdır</b> ve o dosyayı kullanan diğer ekranlarda alan boşalır. Silmeden önce
+          gerçekten kimsenin kullanmadığından emin ol.
+        </Kutu>
+      </>
+    ),
+  },
+
+  {
+    id: "yetkiler",
+    kicker: "Yönetim",
+    baslik: "Kim neyi yapabilir",
+    icerik: (
+      <>
+        <p>
+          Yetkiler tek yerden dağıtılır: <b>Kullanıcılar → Sign yetkileri</b>. Ekran sayfalarında yetki kutusu
+          yoktur. Kişiye tıkla, ekranları tikle.
+        </p>
+        <Tablo
+          basliklar={["Tik", "Ne verir"]}
+          satirlar={[
+            ["Görüntüle", "Listede görür, editörü açar."],
+            ["Düzenle", "İçeriği ve yerleşimi değiştirir, YAYINLAR."],
+            ["Kopyala", "Kendine bir kopyasını çıkarır."],
+            ["Sil", "Ekranı siler."],
+          ]}
+        />
+        <p>
+          Bir ekranı <b>oluşturan</b> kişi orada zaten tam yetkilidir; tik gerekmez. Yönetici bir tiki kaldırdığı
+          anda o kişi için açık kayıt yazılır ve varsayılanı ezer — ayrılan personelin erişimi böyle kesilir.
+        </p>
+        <p>
+          Ekran sayısı arttığında tabloyu tek tek tiklemek gerekmez: üstteki kutuya yazıp <b>ekranları süz</b>,
+          sonra <b>Görünenlere uygula</b> ile o sütunu topluca aç/kapat. Sütun başlıkları kaydırırken yerinde
+          kalır, 40. satırda hangi tikin &ldquo;Sil&rdquo; olduğu kaybolmaz. <b>Dışa aktar</b>, tüm yetki
+          tablosunu Excel&rsquo;le açılan bir dosya olarak indirir (denetim istendiğinde tam olarak bu sorulur).
+        </p>
+        <p>
+          Her yetki satırı <b>kimin ne zaman verdiğini</b> yazar; hesap satırları da öyle. &ldquo;Bunu kim
+          açtı?&rdquo; sorusunun cevabı ekranın kendisindedir.
+        </p>
+        <Kutu tur="uyari" baslik="İki düğme, iki ayrı kapsam">
+          <b>Görünenlere uygula</b> yalnız <b>süzülmüş</b> listeye işler — göremediğin ekrana yetki vermezsin.
+          <b> Dışa aktar</b> ise tam tersi: süzgeçten bağımsız, her şeyi yazar (denetim belgesi eksik olmamalı).
+        </Kutu>
       </>
     ),
   },
