@@ -6,6 +6,26 @@
 import { Zone, ZoneItem } from "./types";
 
 /**
+ * NABIZ ARALIĞI — TEK KAYNAK. Perdenin zamanlayıcısı, çevrimiçi eşiği ve süre
+ * tavanı hep buradan türer (eskiden üç dosyada ayrı ayrı sabitti; perdedeki
+ * `120_000` diğerlerinden habersizdi).
+ *
+ * ⚠ TEK BİLİNÇLİ AYRIM — online sürüm 5 dk, BU PAKET 2 dk KALIR.
+ * Sebep: online'da her nabız bir Firestore yazımıdır ve günlük kota vardır
+ * (7/24 çalışan bir ekran 2 dk'da günde 720 yazım harcar). Burada Firestore
+ * yok: nabız sunucunun kendi diskine yazılır, kota diye bir kısıt yoktur.
+ * Kısa nabız burada BEDAVA ve daha iyisidir — ölü ekran daha çabuk fark edilir.
+ * İki paketin tek kasıtlı farkı budur; eşitlemeyin.
+ * Sınav: `node tests/sign-esitlik.test.mjs` ikisinin FARKLI olmasını arar.
+ */
+export const BEAT_MS = 2 * 60_000;
+/**
+ * ÇEVRİMİÇİ EŞİĞİ nabızdan TÜRETİLİR, ayrı sabit değildir. 2,5 nabız = bir
+ * vuruş ağ takıldığı için kaçarsa ekran yeşil kalır, iki vuruş kaçarsa düşer.
+ */
+export const ONLINE_MS = BEAT_MS * 2.5;
+
+/**
  * Öğe şu an takvimde mi? (gün + saat penceresi; boşsa hep). Gece yarısını aşan
  * pencere desteklenir (22:00–06:00). Perde OYNATIRKEN ve editör "takvim dışı"
  * rozetini gösterirken aynı fonksiyon kullanılır — asla ayrışmasınlar.

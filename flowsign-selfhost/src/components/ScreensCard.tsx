@@ -2,15 +2,15 @@
 
 /**
  * Ekran sağlığı kartı (kokpit) — bu yayını açık tutan cihazlar (heartbeat).
- * Perde ~2dk'da bir yazar; 5dk içinde görülen = 🟢 çevrimiçi. Bayat kayıtlar
- * 🗑 ile temizlenir (yalnız kayıt silinir; cihaz açıksa yeniden belirir).
+ * Perde BEAT_MS'te bir yazar; ONLINE_MS içinde görülen = 🟢 çevrimiçi. Bayat
+ * kayıtlar 🗑 ile temizlenir (yalnız kayıt silinir; cihaz açıksa yeniden belirir).
+ * Eşik BURADA SABİT YAZILMAZ — nabızdan türer (bu dosyada 5dk ayrı sabitti).
  */
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
 import { deleteScreenBeat, watchScreens } from "@/lib/client";
+import { ONLINE_MS } from "@/lib/zones";
 import { ScreenBeat } from "@/lib/types";
-
-const ONLINE_MS = 5 * 60_000;
 
 function uaLabel(ua?: string): string {
   if (!ua) return "Bilinmeyen cihaz";

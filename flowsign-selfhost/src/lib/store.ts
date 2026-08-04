@@ -15,7 +15,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { EventEmitter } from "events";
 import { ScreenBeat, Videowall, Zone } from "./types";
-import { gridZones, slugify, stripUndefined } from "./zones";
+import { BEAT_MS, gridZones, ONLINE_MS, slugify, stripUndefined } from "./zones";
 
 export const DATA_DIR = process.env.SIGN_DATA_DIR || path.join(process.cwd(), "data");
 const WALLS_DIR = path.join(DATA_DIR, "walls");
@@ -229,7 +229,7 @@ export async function beat(wallId: string, screenId: string, data: Omit<ScreenBe
   // nabız atmaz, o boşluk sayılmaz). Üst sınır, uyuyup uyanan sekmenin dev bir
   // fark ekleyip süreyi şişirmesini engeller. Hesap SUNUCUDA — istemciye güven yok.
   const simdi = Date.now();
-  const gecen = includeStart || !prev.lastSeenAt ? 0 : Math.min(simdi - prev.lastSeenAt, 6 * 60_000);
+  const gecen = includeStart || !prev.lastSeenAt ? 0 : Math.min(simdi - prev.lastSeenAt, 3 * BEAT_MS);
   map[screenId] = {
     ...prev,
     ua: data.ua,
@@ -254,7 +254,6 @@ export async function deleteScreen(wallId: string, screenId: string): Promise<vo
 
 /** Liste kartları için canlılık özeti. */
 export async function screenSummaries(ids: string[]): Promise<Record<string, { online: number; lastSeen: number }>> {
-  const ONLINE_MS = 5 * 60_000;
   const now = Date.now();
   const out: Record<string, { online: number; lastSeen: number }> = {};
   await Promise.all(

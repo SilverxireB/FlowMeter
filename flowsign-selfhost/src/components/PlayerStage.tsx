@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { sendScreenBeat, watchWall, watchWallByKey } from "@/lib/client";
-import { itemInWindow as inWindow, signAdresi, ZONE_BG_DEFAULT } from "@/lib/zones";
+import { BEAT_MS, itemInWindow as inWindow, signAdresi, ZONE_BG_DEFAULT } from "@/lib/zones";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 type Transition = "fade" | "cut" | "slide";
@@ -575,11 +575,13 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
     };
   }, [requestWake]);
 
-  // EKRAN SAĞLIĞI: perde ~2dk'da bir "canlıyım" yazar; kokpit çevrimiçi gösterir.
+  // EKRAN SAĞLIĞI: perde BEAT_MS'te bir "canlıyım" yazar; kokpit çevrimiçi
+  // gösterir. Aralık BURADA SABİT YAZILMAZ (eskiden `120_000` yazıyordu ve
+  // lib'deki değerden habersizdi) — tek kaynak `@/lib/zones`.
   useEffect(() => {
     if (draft) return;
     sendScreenBeat(vw.id, true).catch(() => {});
-    const iv = window.setInterval(() => sendScreenBeat(vw.id).catch(() => {}), 120_000);
+    const iv = window.setInterval(() => sendScreenBeat(vw.id).catch(() => {}), BEAT_MS);
     return () => window.clearInterval(iv);
   }, [draft, vw.id]);
 

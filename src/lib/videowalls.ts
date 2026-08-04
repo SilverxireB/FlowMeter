@@ -667,6 +667,32 @@ export function getScreenId(): string {
 }
 
 /**
+ * NABIZ ARALIĞI — TEK KAYNAK. Perdenin zamanlayıcısı, çevrimiçi eşiği ve süre
+ * tavanı hep buradan türer. Eskiden üç dosyada ayrı ayrı sabitti ve perdedeki
+ * `120_000` bu değerden HABERSİZDİ: `BEAT_MS`i değiştirmek yazma sıklığını
+ * değiştirmiyor, yalnız süre tavanını bozuyordu.
+ *
+ * DEĞER BİR KOTA KARARIDIR: her nabız bir Firestore yazımıdır ve ekran 7/24
+ * çalışır. 2 dk = günde 720 yazım/ekran (20 ekranda ücretsiz günlük kotanın
+ * ~%72'si, başka hiçbir şey çalışmadan); 5 dk = 288 (~%29). Karşılığı yalnız
+ * ölü ekranın GEÇ fark edilmesi — açılan ekran anında görünür, çünkü ilk nabız
+ * bağlanır bağlanmaz atar (includeStart).
+ *
+ * ⚠ TEK BİLİNÇLİ AYRIM (self-host): `flowsign-selfhost` 2 dk kullanır ve
+ * kullanmaya devam etmeli — orada Firestore yok, nabız kendi diskine yazılır,
+ * kota diye bir kısıt yoktur. İki paketin tek kasıtlı farkı budur; eşitlemeyin.
+ * Sınav: `node tests/sign-esitlik.test.mjs` ikisinin FARKLI olmasını arar.
+ */
+export const BEAT_MS = 5 * 60_000;
+/**
+ * ÇEVRİMİÇİ EŞİĞİ nabızdan TÜRETİLİR, ayrı sabit değildir. 2,5 nabız = bir
+ * vuruş ağ takıldığı için kaçarsa ekran yeşil kalır, iki vuruş kaçarsa düşer.
+ * Ayrı sabit olsaydı nabız uzatılınca sapasağlam ekranlar çevrimdışı görünürdü
+ * — kotayı düşürmenin bedeli sahte alarm olurdu.
+ */
+export const ONLINE_MS = BEAT_MS * 2.5;
+
+/**
  * "Canlıyım" yaz (perde). includeStart: sayfa oturumu başlangıcında true.
  *
  * Toplam yayın süresi: her nabızda İKİ NABIZ ARASI geçen süre eklenir. Ekran
@@ -674,7 +700,6 @@ export function getScreenId(): string {
  * de üst sınır konur (uyuyan sekme uyanınca dev bir fark ekleyip süreyi
  * şişirmesin).
  */
-const BEAT_MS = 2 * 60_000;
 let _sonNabiz = 0;
 
 export async function sendScreenBeat(vwId: string, includeStart = false): Promise<void> {
@@ -779,7 +804,6 @@ export function watchVideowallBySlugHistory(slug: string, cb: (v: Videowall | nu
 export async function fetchScreenSummaries(
   ids: string[]
 ): Promise<Record<string, { online: number; lastSeen: number }>> {
-  const ONLINE_MS = 5 * 60_000;
   const now = Date.now();
   const out: Record<string, { online: number; lastSeen: number }> = {};
   await Promise.all(

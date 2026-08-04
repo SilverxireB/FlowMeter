@@ -154,6 +154,14 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   zones.ts birebir mantık taşır). İKON SETİ de kopyadır: `icons.tsx` glifleri
   `components/Icon.tsx`ten alınır (2026-08'de 22 ikon ayrışmıştı — self-host
   eski ince seti taşıyordu; optik kalınlık `strokeFor` ile birlikte taşındı).
+  **TEK BİLİNÇLİ AYRIM = NABIZ (`BEAT_MS`): online 5 dk, self-host 2 dk.**
+  Online'da her nabız bir Firestore yazımı ve kota günlük (7/24 ekran 2 dk'da
+  günde 720 yazım → 20 ekran ücretsiz kotanın ~%72'si); self-host kendi diskine
+  yazar, kota yok. `ONLINE_MS` ayrı sabit DEĞİL, `BEAT_MS * 2.5` — ayrı olsaydı
+  nabız uzatılınca çalışan ekranlar çevrimdışı görünürdü. Aralık başka hiçbir
+  yerde sabit yazılmaz (perdedeki `120_000` lib'deki değerden habersizdi:
+  BEAT_MS'i değiştirmek yazma sıklığını değil yalnız süre tavanını bozuyordu).
+  Sınav bu ayrımı KORUR — eşitlenirse düşer.
   7/24 bekçiler Sign dosyalarında: donma bekçisi + dayanıklı abonelik + gece
   04:0x reload + tek-URL 15dk tazeleme + play error boundary (PlayerStage,
   videowalls.ts, play rotaları). Liste kartları `WallThumb` (YAYIN minyatürü;

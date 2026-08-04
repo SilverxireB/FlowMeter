@@ -10,7 +10,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { itemInWindow as inWindow, sendScreenBeat, signAdresi, watchVideowall, watchVideowallBySlug, ZONE_BG_DEFAULT } from "@/lib/videowalls";
+import { BEAT_MS, itemInWindow as inWindow, sendScreenBeat, signAdresi, watchVideowall, watchVideowallBySlug, ZONE_BG_DEFAULT } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 type Transition = "fade" | "cut" | "slide";
@@ -590,12 +590,14 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
     };
   }, [requestWake]);
 
-  // EKRAN SAĞLIĞI: perde ~2dk'da bir "canlıyım" yazar (alt koleksiyon — ana
-  // dokümanı ve diğer perdeleri tetiklemez); kokpit çevrimiçi/son görülme gösterir.
+  // EKRAN SAĞLIĞI: perde BEAT_MS'te bir "canlıyım" yazar (alt koleksiyon — ana
+  // dokümanı ve diğer perdeleri tetiklemez); kokpit çevrimiçi/son görülme
+  // gösterir. Aralık BURADA SABİT YAZILMAZ: eskiden `120_000` yazıyordu ve
+  // lib'deki BEAT_MS'ten habersizdi — biri değişince ikisi ayrışıyordu.
   useEffect(() => {
     if (draft) return;
     sendScreenBeat(vw.id, true).catch(() => {});
-    const iv = window.setInterval(() => sendScreenBeat(vw.id).catch(() => {}), 120_000);
+    const iv = window.setInterval(() => sendScreenBeat(vw.id).catch(() => {}), BEAT_MS);
     return () => window.clearInterval(iv);
   }, [draft, vw.id]);
 

@@ -62,6 +62,54 @@ for (const [ad, onlineYol, selfYol, iz] of IZLER) {
   console.log(`${durum ? "✗" : "✓"} ${ad}${durum ? ` — ${durum}` : ""}`);
 }
 
+// ── TEK BİLİNÇLİ AYRIM: NABIZ ARALIĞI ───────────────────────────────────────
+// Bu sınavın geri kalanı "ikisi AYNI olmalı" der; burada tersi geçerli.
+// Online'da her nabız bir Firestore yazımıdır ve günlük kota vardır: 7/24
+// çalışan bir ekran 2 dk'da günde 720 yazım harcar (20 ekran = ücretsiz
+// kotanın ~%72'si, başka hiçbir şey çalışmadan). Self-host'ta Firestore yok,
+// nabız sunucunun kendi diskine yazılır, kota diye bir kısıt yoktur — orada
+// kısa nabız bedava ve daha iyisidir.
+//
+// Sınav üç şeyi birden tutuyor, çünkü üçü de sessizce bozulabilir:
+//  1. Değerler FARKLI kalmalı (biri diğerine eşitlenirse ya kota geri gelir ya
+//     self-host boşuna körleşir),
+//  2. İkisi de gerekçeyi taşımalı (yorumsuz sabit, bir sonraki kişiye "burada
+//     bir tutarsızlık var" gibi görünür ve düzeltilir),
+//  3. Eşik TÜRETİLMİŞ olmalı — ayrı sabit yazılırsa nabız uzatıldığında
+//     sapasağlam ekranlar "çevrimdışı" görünür.
+const nabiz = [
+  ["online", "src/lib/videowalls.ts", "export const BEAT_MS = 5 * 60_000;"],
+  ["self-host", "flowsign-selfhost/src/lib/zones.ts", "export const BEAT_MS = 2 * 60_000;"],
+];
+for (const [ad, yol, bekle] of nabiz) {
+  const k = oku(yol) ?? "";
+  const dogru = k.includes(bekle);
+  const gerekce = k.includes("TEK BİLİNÇLİ AYRIM");
+  const turetilmis = k.includes("export const ONLINE_MS = BEAT_MS *");
+  if (!dogru || !gerekce || !turetilmis) hata++;
+  console.log(
+    `${dogru && gerekce && turetilmis ? "✓" : "✗"} nabız ${ad}: ${bekle.match(/= (.+);/)[1]}` +
+      `${dogru ? "" : " — DEĞER DEĞİŞMİŞ"}${gerekce ? "" : " — gerekçe yorumu yok"}${turetilmis ? "" : " — ONLINE_MS türetilmemiş"}`
+  );
+}
+// Aralık HİÇBİR yerde ikinci kez sabit yazılmasın (perdedeki `120_000` tam da
+// böyle ayrışmıştı: BEAT_MS'i değiştirmek yazma sıklığını değiştirmiyordu).
+// (Perdedeki 15dk'lık tek-URL tazelemesi BAŞKA bir zamanlayıcıdır — nabız
+// zamanlayıcısı `sendScreenBeat` çağıran satırdan tanınır, süreye göre değil.)
+const kopyaSabit = [
+  "src/components/videowall/PlayerStage.tsx",
+  "src/components/videowall/ScreensCard.tsx",
+  "flowsign-selfhost/src/components/PlayerStage.tsx",
+  "flowsign-selfhost/src/components/ScreensCard.tsx",
+].filter((f) => {
+  const k = oku(f) ?? "";
+  if (/^\s*const ONLINE_MS\s*=/m.test(k)) return true;             // eşik yeniden tanımlanmış
+  const beatIv = k.match(/setInterval\([^\n]*sendScreenBeat[^\n]*\)/);
+  return Boolean(beatIv) && !/,\s*BEAT_MS\)/.test(beatIv[0]);      // aralık sabit yazılmış
+});
+if (kopyaSabit.length) hata++;
+console.log(`${kopyaSabit.length ? "✗" : "✓"} nabız aralığı tek kaynakta${kopyaSabit.length ? ` — kopya sabit: ${kopyaSabit.join(", ")}` : ""}`);
+
 // İkon seti: self-host, online'da kullanılan her ikonu tanımalı.
 const online = oku("src/components/Icon.tsx") ?? "";
 const self = oku("flowsign-selfhost/src/components/icons.tsx") ?? "";
