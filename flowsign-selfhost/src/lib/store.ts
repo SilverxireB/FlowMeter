@@ -279,13 +279,15 @@ export async function screenSummaries(ids: string[]): Promise<Record<string, { o
 export async function setWallGrant(
   id: string,
   userId: string,
-  perms: { view?: boolean; edit?: boolean; copy?: boolean; delete?: boolean } | null
+  perms: { view?: boolean; edit?: boolean; copy?: boolean; delete?: boolean } | null,
+  /** Denetim izi: yetkiyi veren/alan kişinin giriş adı. */
+  kim?: string
 ): Promise<Videowall | null> {
   const cur = await getWall(id);
   if (!cur) return null;
   const grants = { ...(cur.grants ?? {}) };
   if (perms === null) delete grants[userId];
-  else grants[userId] = { view: !!perms.view, edit: !!perms.edit, copy: !!perms.copy, delete: !!perms.delete };
+  else grants[userId] = { view: !!perms.view, edit: !!perms.edit, copy: !!perms.copy, delete: !!perms.delete, by: kim, at: Date.now() };
   const next: Videowall = { ...cur, grants, updatedAt: Date.now() };
   await writeJsonAtomic(path.join(WALLS_DIR, `${id}.json`), next);
   emitWall(id);

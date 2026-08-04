@@ -252,6 +252,12 @@ export default function ScreensPage() {
               <Icon name="users" size={14} /> <span className="hidden sm:inline">Kullanıcılar</span>
             </Link>
           )}
+          {/* Ayarlar herkese GÖRÜNÜR, yalnız yönetici DEĞİŞTİRİR: veri klasörü
+              ve sürüm gibi satırları destek isteyen kişinin de okuyabilmesi
+              gerekiyor (sayfanın kendisi kimin ne yapabileceğini söylüyor). */}
+          <Link href="/settings" className="chip !py-1.5 text-xs text-muted hover:border-muted shrink-0 inline-flex items-center gap-1.5" title="Uygulama ayarları">
+            <Icon name="settings" size={14} /> <span className="hidden sm:inline">Ayarlar</span>
+          </Link>
           <span className="chip text-muted text-xs min-w-0 max-w-[35vw] hidden sm:inline-flex">
             <span className="truncate min-w-0">{me?.label || me?.name}</span>
           </span>

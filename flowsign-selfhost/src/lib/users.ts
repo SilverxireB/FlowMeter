@@ -35,7 +35,17 @@ export interface User {
   salt: string;
   hash: string;
   createdAt: number;
+  /** Denetim izi — "bu hesabı kim değiştirdi" sorusunun cevabı. */
+  updatedBy?: string;
+  updatedAt?: number;
 }
+
+/**
+ * Denetim damgası. Her yazma yolundan geçer: tek tek eklenirse biri unutulur
+ * ve o alan sessizce izsiz kalır (en çok da parola sıfırlama gibi en merak
+ * edilen işlem).
+ */
+const damgala = (u: User, kim: string): User => ({ ...u, updatedBy: kim, updatedAt: Date.now() });
 
 /** İstemciye giden güvenli görünüm — tuz/özet ASLA dışarı çıkmaz (tip: types.ts). */
 export const publicUser = (u: User): PublicUser => ({
@@ -45,6 +55,8 @@ export const publicUser = (u: User): PublicUser => ({
   role: u.role,
   canCreate: u.canCreate,
   createdAt: u.createdAt,
+  updatedBy: u.updatedBy,
+  updatedAt: u.updatedAt,
 });
 
 /** Ekran açma hakkı — kayıt yoksa AÇIK sayılır (kapatma açık karardır). */
@@ -134,30 +146,30 @@ export async function createUser(name: string, password: string, role: Role, lab
   return u;
 }
 
-export async function setPassword(id: string, password: string): Promise<void> {
+export async function setPassword(id: string, password: string, kim: string): Promise<void> {
   if (password.length < 4) throw new Error("Parola en az 4 karakter olmalı.");
   const users = await listUsers();
   const salt = randomBytes(16).toString("hex");
-  await saveUsers(users.map((u) => (u.id === id ? { ...u, salt, hash: hashPassword(password, salt) } : u)));
+  await saveUsers(users.map((u) => (u.id === id ? damgala({ ...u, salt, hash: hashPassword(password, salt) }, kim) : u)));
 }
 
-export async function setRole(id: string, role: Role): Promise<void> {
+export async function setRole(id: string, role: Role, kim: string): Promise<void> {
   const users = await listUsers();
   // Son yönetici rolünü bırakamaz — sistem yönetici SIZ kalmasın.
   if (role === "user" && users.filter((u) => u.role === "admin").length <= 1 && users.find((u) => u.id === id)?.role === "admin") {
     throw new Error("Tek yönetici kaldı — önce başka bir yönetici ata.");
   }
-  await saveUsers(users.map((u) => (u.id === id ? { ...u, role } : u)));
+  await saveUsers(users.map((u) => (u.id === id ? damgala({ ...u, role }, kim) : u)));
 }
 
-export async function setCanCreate(id: string, canCreate: boolean): Promise<void> {
+export async function setCanCreate(id: string, canCreate: boolean, kim: string): Promise<void> {
   const users = await listUsers();
-  await saveUsers(users.map((u) => (u.id === id ? { ...u, canCreate } : u)));
+  await saveUsers(users.map((u) => (u.id === id ? damgala({ ...u, canCreate }, kim) : u)));
 }
 
-export async function setLabel(id: string, label: string): Promise<void> {
+export async function setLabel(id: string, label: string, kim: string): Promise<void> {
   const users = await listUsers();
-  await saveUsers(users.map((u) => (u.id === id ? { ...u, label: label.trim() || undefined } : u)));
+  await saveUsers(users.map((u) => (u.id === id ? damgala({ ...u, label: label.trim() || undefined }, kim) : u)));
 }
 
 export async function deleteUser(id: string): Promise<void> {

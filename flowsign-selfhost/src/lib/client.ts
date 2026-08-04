@@ -11,7 +11,7 @@ import { clampLayout } from "@/lib/zones";
  * çağrılmaz) ve bağlantı gelince ilk olayda tazelenir. cb(null) yalnız sunucu
  * "böyle bir ekran yok" dediğinde çağrılır.
  */
-import { PublicUser, ScreenBeat, SignGrant, Videowall, VideowallPlayMode, Zone } from "./types";
+import { PublicUser, ScreenBeat, SignPerms, Videowall, VideowallPlayMode, Zone } from "./types";
 import { clampScreens, gridZones, SplitResult, stripUndefined } from "./zones";
 
 type WallEvent = { found: boolean; wall: Videowall | null; screens: ScreenBeat[] };
@@ -231,7 +231,7 @@ export async function deleteUser(id: string): Promise<void> {
 export async function setWallGrant(
   wallId: string,
   userId: string,
-  perms: SignGrant | null
+  perms: SignPerms | null
 ): Promise<void> {
   await j(
     await fetch(`/api/walls/${encodeURIComponent(wallId)}/access`, {
@@ -244,11 +244,11 @@ export async function setWallGrant(
 
 // ── Yetki kararları (istemcide yalnız DÜĞME GİZLEME; asıl kapı sunucuda) ─────
 
-const NONE: Required<SignGrant> = { view: false, edit: false, copy: false, delete: false };
-const FULL: Required<SignGrant> = { view: true, edit: true, copy: true, delete: true };
+const NONE: Required<SignPerms> = { view: false, edit: false, copy: false, delete: false };
+const FULL: Required<SignPerms> = { view: true, edit: true, copy: true, delete: true };
 
 /** Etkin yetki: açık kayıt > oluşturan varsayılanı. Yönetici her yerde tam. */
-export function wallPerm(w: Videowall | null | undefined, me: PublicUser | null): Required<SignGrant> {
+export function wallPerm(w: Videowall | null | undefined, me: PublicUser | null): Required<SignPerms> {
   if (!w || !me) return NONE;
   if (me.role === "admin") return FULL;
   const explicit = w.grants?.[me.id];

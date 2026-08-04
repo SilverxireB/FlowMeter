@@ -3,12 +3,15 @@ import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { canEdit, currentUser, forbidden, unauthorized } from "@/lib/serverAuth";
 import { getWall, MEDIA_DIR } from "@/lib/store";
+import { ayarSayi } from "@/lib/settings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_IMAGE_MB = 25;
-const MAX_VIDEO_MB = 500;
+// Sınırlar artık AYARDAN geliyor (Uygulama ayarları → görsel/video boyut
+// sınırı). Kodda sabit kalsaydı iç ağda 2 GB'lık tanıtım filmi yükleyebilmek
+// için yeni sürüm gerekirdi. Otorite SUNUCUDA: panel kapatılıp uca elle istek
+// atılabilir.
 
 /**
  * Dosya adı GÜVENLİ hale getirilir: boşluk ve Türkçe/özel karakterler alt
@@ -52,8 +55,10 @@ export async function POST(req: NextRequest) {
   const isVideo = file.type.startsWith("video/");
   if (!isImage && !isVideo) return NextResponse.json({ error: "Yalnız görsel/video yüklenebilir" }, { status: 400 });
   const mb = file.size / (1024 * 1024);
-  if (isImage && mb > MAX_IMAGE_MB) return NextResponse.json({ error: `görsel için sınır ~${MAX_IMAGE_MB} MB` }, { status: 400 });
-  if (isVideo && mb > MAX_VIDEO_MB) return NextResponse.json({ error: `video için sınır ~${MAX_VIDEO_MB} MB` }, { status: 400 });
+  const maxGorsel = await ayarSayi("maxGorselMB");
+  const maxVideo = await ayarSayi("maxVideoMB");
+  if (isImage && mb > maxGorsel) return NextResponse.json({ error: `görsel için sınır ~${maxGorsel} MB` }, { status: 400 });
+  if (isVideo && mb > maxVideo) return NextResponse.json({ error: `video için sınır ~${maxVideo} MB` }, { status: 400 });
 
   const { base, ext } = sanitizeName(file.name || "dosya");
   const fname = `${Date.now().toString(36)}_${base}.${ext}`;

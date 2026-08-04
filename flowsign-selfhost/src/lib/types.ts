@@ -68,12 +68,29 @@ export interface VideowallLive {
   publishedAt?: number | null; // ms
 }
 
-/** Bir kişinin BİR ekran üzerindeki yetkileri. */
-export interface SignGrant {
+/**
+ * Bir kişinin BİR ekran üzerindeki yetkileri.
+ *
+ * DENETİM İZİ (`by`/`at`): fabrikada personel değişiyor ve sorulan soru hep
+ * aynı — "bu kişiye bu ekranı kim, ne zaman açtı?". Yetkinin kendisi kadar
+ * kimin verdiği de kayıt altında olmalı; yoksa yıllar sonra kimse silmeye
+ * cesaret edemiyor (belki gerekiyordur) ve yetkiler birikiyor.
+ */
+export interface SignPerms {
   view?: boolean; // listede görsün / editörü açsın
   edit?: boolean; // içerik + yerleşim değiştirsin ve YAYINLASIN
   copy?: boolean; // kendine kopyasını çıkarsın
   delete?: boolean; // ekranı silsin
+}
+/**
+ * Yetki bitleri AYRI tip (`SignPerms`): "bu kişi ne yapabilir" sorusunun cevabı
+ * yalnız dört tik. Denetim izi cevabın parçası değil, cevabın GEÇMİŞİ — aynı
+ * tipte olsaydı `Required<SignGrant>` gibi yerlerde "by/at zorunlu" diye
+ * sızardı (nitekim sızdı).
+ */
+export interface SignGrant extends SignPerms {
+  by?: string; // yetkiyi son değiştiren kişinin giriş adı
+  at?: number; // ms
 }
 
 /** Video-wall tanımı. zones = TASLAK (editör); live = YAYIN. */
@@ -119,4 +136,7 @@ export interface PublicUser {
   /** Yeni ekran açabilir mi? (yoksa AÇABİLİR sayılır — yönetici kapatabilir) */
   canCreate?: boolean;
   createdAt: number;
+  /** Denetim izi — hesabı son değiştiren kişi ve zamanı (ms). */
+  updatedBy?: string;
+  updatedAt?: number;
 }

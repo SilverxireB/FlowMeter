@@ -16,7 +16,17 @@ import { useCallback, useEffect, useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Icon } from "@/components/icons";
 import { createUser, deleteUser, listUsers, listWalls, setWallGrant, updateUser, wallPerm } from "@/lib/client";
-import { PublicUser, SignGrant, Videowall } from "@/lib/types";
+import { PublicUser, SignPerms, Videowall } from "@/lib/types";
+
+/**
+ * Denetim izi damgası — "kim, ne zaman". Fabrikada personel değişiyor ve
+ * sorulan soru hep aynı: bu yetkiyi kim verdi? Kayıt yoksa satır hiç yazılmaz
+ * (boş "—" gürültüden ibaret).
+ */
+const iz = (kim?: string, ne?: number) =>
+  kim
+    ? `${kim} · ${new Date(ne ?? 0).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
+    : "";
 
 /** Yetki sütunları — matrisin tamamı bu dört tikten ibaret (bilerek sade). */
 const PERMS = [
@@ -64,9 +74,9 @@ export default function UsersPage() {
    * Tek tik → o kişinin o ekrandaki kaydı (varsayılandan kopyalanarak) yazılır.
    * Oluşturan kişide TÜM tikler geri gelirse kayıt kaldırılır → varsayılana döner.
    */
-  const toggleGrant = (w: Videowall, u: PublicUser, key: keyof SignGrant) => {
+  const toggleGrant = (w: Videowall, u: PublicUser, key: keyof SignPerms) => {
     const cur = wallPerm(w, u);
-    const next: SignGrant = { ...cur, [key]: !cur[key] };
+    const next: SignPerms = { ...cur, [key]: !cur[key] };
     const backToDefault = w.ownerId === u.id && next.view && next.edit && next.copy && next.delete;
     run(() => setWallGrant(w.id, u.id, backToDefault ? null : next));
   };
@@ -219,6 +229,11 @@ export default function UsersPage() {
                     <p className="text-muted text-xs truncate">
                       {u.name} · {u.role === "admin" ? "Yönetici" : "Kullanıcı"}
                     </p>
+                    {/* Hesabı en son kim değiştirdi (rol/parola/ad). Ayrılan
+                        personelin yetkisi neden hâlâ açık sorusunun ilk adımı. */}
+                    {u.updatedBy && (
+                      <p className="text-muted text-[11px] truncate">son düzenleyen: {iz(u.updatedBy, u.updatedAt)}</p>
+                    )}
                   </div>
                   {canReset && (
                     <button
@@ -375,6 +390,14 @@ export default function UsersPage() {
                                         <td className="rounded-l-xl px-3 py-2 min-w-0">
                                           <span className="font-semibold">{w.name}</span>
                                           {w.ownerId === u.id && <span className="text-muted text-xs"> · oluşturan</span>}
+                                          {/* Yetkiyi KİM verdi: satırın kendisinde durur, ayrı
+                                              bir "geçmiş" ekranı açtırmaz — soru bu satıra
+                                              bakarken soruluyor. */}
+                                          {w.grants?.[u.id]?.by && (
+                                            <span className="block text-muted text-[11px] mt-0.5">
+                                              yetkilendiren: {iz(w.grants[u.id].by, w.grants[u.id].at)}
+                                            </span>
+                                          )}
                                         </td>
                                         {PERMS.map((p) => (
                                           <td key={p.key} className="text-center px-2 py-2">
