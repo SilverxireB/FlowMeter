@@ -207,6 +207,16 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   akışına düşer. Duvar/Tabela örnek medyayı CİHAZDA üretip Cloudinary'ye yükler
   (rules dış link kabul etmez). Tabela provası kendi ekranını açar, var olan
   tabelalara dokunmaz. Ayrıntı: `docs/ROADMAP.md`.
+  **KOTA satırı = YALNIZ Cloudinary (kullanıcı kararı).** `/api/kota` (sunucu,
+  `api_secret` istemciye inmez, yönetici kapısı `isAdminUser` ile birebir) →
+  Cloudinary Admin `usage`. Şekillendirme `lib/kota.ts`te SAF ve sınavlı
+  (`node tests/kota-okuma.test.mjs`): plan iki ayrı şema döndürüyor (kredi
+  tabanlı `credits` vs. eski `limit`li ölçüler) ve panelin baktığı sayı kredi
+  değil EN DOLU ölçü. Doluluk SKOR DEĞİL — eşikler ters (≥%90 hata, ≥%70 uyarı).
+  **Firestore kotası için satır YOK ve eklenmeyecek:** istemci SDK'sında sayaç
+  yok, Cloud Monitoring servis hesabı ister (dış bağımlılık), kendi sayacımızı
+  tutmak yazımı ölçmek için yazım harcamaktır. Firestore tarafı Firebase
+  konsolundan (Usage + bütçe alarmı) izlenir. Tahmine dayalı satır yazılmaz.
 - Küfür süzgeci `lib/profanity.ts` TÜM açık uçlu girişlerde (Meter sohbet/Q&A/
   cevaplar, Wall dilek+takma ad, Pulse yorum) — engellemez, yıldızlar.
 - Silme akışları sayfalı (`limit(450)` batch) + Cloudinary prefix temizliği.

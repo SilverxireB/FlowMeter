@@ -19,6 +19,7 @@ import { deleteUser, getAuth, inMemoryPersistence, signInAnonymously } from "fir
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "./firebase";
 import { cloudinaryStatus } from "./cloudinary";
+import { bayt, enDoluYuzde, kotaDurumu, KotaOzeti } from "./kota";
 
 export type Durum = "ok" | "uyari" | "hata" | "bilinmiyor";
 
@@ -345,6 +346,84 @@ async function kontrolCloudinary(): Promise<Kontrol[]> {
   ];
 }
 
+/**
+ * MEDYA KOTASI — hesabın Cloudinary kullanımının GERÇEK rakamı.
+ *
+ * Panelde neden tek kota satırı var: suite'in kota sayılabilen iki kaynağından
+ * yalnız bu okunabiliyor. Firestore'un günlük okuma/yazma sayacı istemci
+ * SDK'sında yok; Cloud Monitoring API'si servis hesabı ister (yeni dış
+ * bağımlılık) ve kendi sayacımızı tutmak, YAZIMI ÖLÇMEK İÇİN YAZIM harcamak
+ * demek. Kullanıcı kararı: tahmin satırı yok, ölçüm için ek maliyet yok.
+ * Firestore tarafı Firebase konsolundan (Usage + bütçe alarmı) izlenir.
+ *
+ * Yüzde eşikleri SKOR DEĞİL, DOLULUK: burada büyük sayı kötüdür, o yüzden
+ * ürünün yeşil/amber/gül semantiği TERS uygulanır.
+ */
+async function kontrolKota(): Promise<Kontrol[]> {
+  const baslik = "Medya kotası (Cloudinary)";
+  const kullanici = auth().currentUser;
+  if (!kullanici)
+    return [{ id: "kota", baslik, durum: "bilinmiyor", detay: "Oturum yok — kota hesabın kendi anahtarıyla okunuyor." }];
+
+  const res = await fetch("/api/kota", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken: await kullanici.getIdToken() }),
+  });
+  const j = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    // Bilinemeyen şeye "iyi" denmez (bu dosyanın kuralı): her ret kendi
+    // sebebini ve YAPILACAK İŞİ söyler, hepsi "hata" diye toplanmaz.
+    const durum: Durum = res.status === 501 || res.status === 403 ? "bilinmiyor" : "uyari";
+    const detay =
+      res.status === 501
+        ? "Sunucuda Cloudinary anahtarları tanımlı değil."
+        : res.status === 403
+          ? "Kota yalnız yöneticiye gösterilir."
+          : `Cloudinary yanıt vermedi (${j.status ?? res.status}).`;
+    const ipucu =
+      res.status === 501
+        ? "Vercel → Settings → Environment Variables: CLOUDINARY_API_KEY ve CLOUDINARY_API_SECRET."
+        : res.status === 403
+          ? undefined
+          : "Anahtarlar doğru mu, ya da Cloudinary geçici olarak erişilemiyor olabilir.";
+    return [{ id: "kota", baslik, durum, detay, ipucu }];
+  }
+
+  // En dolu ölçü panelin bakacağı TEK sayı — kredi %10'dayken bant genişliği
+  // %95 olabilir ve asıl duracak yer odur (hesap `kota.ts`te, sınavlı).
+  const ozet = j as KotaOzeti;
+  const enDolu = enDoluYuzde(ozet);
+
+  const parcalar: string[] = [];
+  if (ozet.kredi?.limit) parcalar.push(`${Number(ozet.kredi.kullanilan ?? 0).toFixed(2)}/${ozet.kredi.limit} kredi`);
+  for (const m of ozet.olculer ?? []) {
+    if (typeof m.kullanim !== "number") continue;
+    const yaz = (n: number) => (m.bayt ? bayt(n) : n.toLocaleString("tr-TR"));
+    parcalar.push(`${m.ad.toLowerCase()} ${yaz(m.kullanim)}${m.limit ? ` / ${yaz(m.limit)}` : ""}`);
+  }
+  if (typeof ozet.dosya === "number") parcalar.push(`${ozet.dosya.toLocaleString("tr-TR")} dosya`);
+
+  return [
+    {
+      id: "kota",
+      baslik,
+      durum: kotaDurumu(enDolu),
+      detay:
+        (enDolu === null ? "Plan bir üst sınır bildirmiyor. " : `%${Math.round(enDolu)} dolu. `) +
+        parcalar.join(" · ") +
+        // Rakam CANLI DEĞİL: Cloudinary günlük toparlar. Bunu yazmazsak panel
+        // "bugün yüklenen 2 GB" görünmediği için yanlış rahatlatır.
+        (ozet.guncellendi ? ` (Cloudinary'nin son güncellemesi: ${ozet.guncellendi})` : ""),
+      ipucu:
+        enDolu !== null && enDolu >= 70
+          ? "Biten etkinliklerin duvarlarını silmek yer açar — duvar silinince Cloudinary'deki dosyaları da temizlenir."
+          : undefined,
+    },
+  ];
+}
+
 /** Panelin sırası: en sık arızalanan (ve en sessiz) başlıklar üstte. */
 export const KONTROLLER: KontrolTanim[] = [
   {
@@ -388,6 +467,12 @@ export const KONTROLLER: KontrolTanim[] = [
     baslik: "Medya deposu (Cloudinary)",
     ozet: "FlowWall medyası ve FlowSign içeriği buna bağlı; ayarlar var mı ve depo yanıt veriyor mu.",
     calistir: kontrolCloudinary,
+  },
+  {
+    id: "kota",
+    baslik: "Medya kotası (Cloudinary)",
+    ozet: "Hesabın gerçek kullanımı — depo, bant genişliği, dosya sayısı. Tahmin değil, Cloudinary'nin kendi rakamı.",
+    calistir: kontrolKota,
   },
 ];
 
