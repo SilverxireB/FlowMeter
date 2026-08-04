@@ -20,9 +20,9 @@
 import fs from "node:fs";
 
 // ── Gerçek kaynaklardan çalıştır ────────────────────────────────────────────
-const rafSrc = fs.readFileSync("src/lib/ortakRaf.ts", "utf8");
+const rafSrc = fs.readFileSync("src/lib/ortakRafCekirdek.ts", "utf8");
 const rafKod = rafSrc
-  .slice(rafSrc.indexOf("export const ORTAK_KLASOR"), rafSrc.indexOf("// ── Firestore"))
+  .slice(rafSrc.indexOf("export const ORTAK_KLASOR"))
   .replace(/export interface [\s\S]*?\n\}\n/g, "")
   .replace(/export const ORTAK_KLASOR = /, "const ORTAK_KLASOR = ")
   .replace(/export const EKRAN_KLASOR = /, "const EKRAN_KLASOR = ")
@@ -175,6 +175,21 @@ const vw = { zones, live: { zones: [{ id: "l1", items: [{ id: "d", src: ESKI }] 
 kontrol(adresKullanimSayisi(vw, ESKI) === 3, `kullanım sayısı taslak(2) + yayın(1) = 3 (ölçülen ${adresKullanimSayisi(vw, ESKI)})`);
 kontrol(adresKullanimSayisi({ zones: undefined, live: null }, ESKI) === 0, "boş ekran 0 döner");
 
+
+// ── 3b. SUNUCU/İSTEMCİ SINIRI ───────────────────────────────────────────────
+// Çekirdek dosyası SUNUCU rotasından import ediliyor. İçine Firebase girerse
+// rota, tek bir metin sabiti için tüm istemci SDK'sını yükler ve uç patlar —
+// bu bir kez gerçekten oldu ve panelde yalnız "Ortak rafa taşınamadı" yazdı.
+{
+  const cek = fs.readFileSync("src/lib/ortakRafCekirdek.ts", "utf8");
+  const importlar = [...cek.matchAll(/^import\s+[\s\S]*?from\s+"([^"]+)";/gm)].map((m) => m[1]);
+  const kirli = importlar.filter((i) => i !== "./types");
+  kontrol(kirli.length === 0, `çekirdek Firebase'e dokunmuyor (importlar: ${importlar.join(", ") || "yok"})`);
+
+  const rota = fs.readFileSync("src/app/api/sign/ortak-raf/route.ts", "utf8");
+  kontrol(!/from "@\/lib\/ortakRaf"/.test(rota), "sunucu rotası Firestore katmanını DEĞİL çekirdeği import ediyor");
+  kontrol(/message: mesaj/.test(rota), "sunucu Cloudinary'nin gerçek hata metnini geri veriyor (kör kalmayalım)");
+}
 
 // ── 4. CLOUDINARY İMZASI (online taraf) ─────────────────────────────────────
 // Online uç gerçek anahtar istediği için uçtan uca denenemiyor; oradaki TEK

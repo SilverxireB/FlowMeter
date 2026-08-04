@@ -182,7 +182,15 @@ export default function ZonePanel({
         body: JSON.stringify({ idToken: await kullanici?.getIdToken(), publicId, resourceType: it.kind }),
       });
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error === "already-shared" ? "Bu dosya zaten ortak rafta." : "Ortak rafa taşınamadı.");
+      if (!r.ok) {
+        // SUNUCUNUN SÖYLEDİĞİNİ SÖYLE. Genel "taşınamadı" mesajı hiç kimseye
+        // yardım etmiyordu: ne kullanıcı ne biz sebebi görebiliyorduk.
+        if (j.error === "already-shared") throw new Error("Bu dosya zaten ortak rafta.");
+        if (j.error === "not-configured") throw new Error("Sunucuda Cloudinary anahtarları tanımlı değil.");
+        throw new Error(
+          j.message ? `Ortak rafa taşınamadı — ${j.message}${j.denenen ? ` (${j.denenen})` : ""}` : "Ortak rafa taşınamadı."
+        );
+      }
 
       // SIRA: dosya taşındıktan sonra ÖNCE kendi adreslerimizi çevir, SONRA
       // rafa yaz. Ters sırada bir kez yandık: kurallar henüz yayınlanmamışken
@@ -230,7 +238,10 @@ export default function ZonePanel({
           resourceType: o.kind,
         }),
       });
-      if (!r.ok) throw new Error("Silinemedi.");
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j.message ? `Silinemedi — ${j.message}` : "Silinemedi.");
+      }
       await raftanSil(o.id);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Raftan silinemedi.");

@@ -16,7 +16,9 @@
  */
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { ORTAK_KLASOR } from "@/lib/ortakRaf";
+// ÇEKİRDEKTEN: `@/lib/ortakRaf` Firestore istemcisini içeri çeker ve bu uç
+// sunucuda çalışıyor (tek sabit için tüm Firebase SDK'sı yüklenmemeli).
+import { ORTAK_KLASOR } from "@/lib/ortakRafCekirdek";
 
 export const dynamic = "force-dynamic";
 
@@ -114,7 +116,13 @@ export async function POST(req: Request) {
   });
   const j = await res.json().catch(() => ({}));
   if (!res.ok || !j.secure_url) {
-    return NextResponse.json({ ok: false, error: "cloudinary", detail: j }, { status: 502 });
+    // HATA METNİ YÜZEYE ÇIKAR. Önce yalnız "cloudinary" dönüyordu ve panelde
+    // "Ortak rafa taşınamadı" yazıyordu — sebep hiçbir yerde görünmüyordu, ne
+    // kullanıcı ne de biz teşhis edebiliyorduk. Cloudinary'nin kendi mesajı
+    // ("Resource not found", "Invalid Signature" gibi) doğrudan yapılacak işi
+    // söyler; hangi public_id denendiği de öyle.
+    const mesaj = (j as { error?: { message?: string } })?.error?.message ?? `Cloudinary ${res.status}`;
+    return NextResponse.json({ ok: false, error: "cloudinary", message: mesaj, denenen: b.publicId }, { status: 502 });
   }
   return NextResponse.json({ ok: true, src: j.secure_url, publicId: j.public_id as string });
 }
@@ -154,7 +162,8 @@ export async function DELETE(req: Request) {
   });
   const j = await res.json().catch(() => ({}));
   if (!res.ok || (j.result && j.result !== "ok" && j.result !== "not found")) {
-    return NextResponse.json({ ok: false, error: "cloudinary", detail: j }, { status: 502 });
+    const mesaj = (j as { error?: { message?: string } })?.error?.message ?? `Cloudinary ${res.status}`;
+    return NextResponse.json({ ok: false, error: "cloudinary", message: mesaj, denenen: b.publicId }, { status: 502 });
   }
   return NextResponse.json({ ok: true });
 }

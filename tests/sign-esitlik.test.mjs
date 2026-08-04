@@ -60,8 +60,11 @@ const IZLER = [
   ["dışa aktar düğmesi", "src/app/admin/sign/page.tsx", "flowsign-selfhost/src/app/users/page.tsx", "onClick={disaAktar}"],
   ["minyatürde bezel çizgileri", "src/components/videowall/WallThumb.tsx", "flowsign-selfhost/src/components/WallThumb.tsx", "function BezelCizgileri"],
   // ── Ortak raf ─────────────────────────────────────────────────────────────
-  ["ortak raf çekirdeği", "src/lib/ortakRaf.ts", "flowsign-selfhost/src/lib/ortakRaf.ts", "export function adresDegistir"],
-  ["raf klasörü ayrı ağaçta", "src/lib/ortakRaf.ts", "flowsign-selfhost/src/lib/ortakRaf.ts", "export function klasorCakisiyorMu"],
+  // Online'da çekirdek AYRI dosyada: sunucu rotası Firebase SDK'sını içeri
+  // çekmeden sabitleri kullanabilsin diye. Self-host'ta Firebase yok, bölmeye
+  // gerek de yok — bu yüzden yollar farklı, davranış aynı.
+  ["ortak raf çekirdeği", "src/lib/ortakRafCekirdek.ts", "flowsign-selfhost/src/lib/ortakRaf.ts", "export function adresDegistir"],
+  ["raf klasörü ayrı ağaçta", "src/lib/ortakRafCekirdek.ts", "flowsign-selfhost/src/lib/ortakRaf.ts", "export function klasorCakisiyorMu"],
   ["kütüphanede iki sekme", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", 'setLibTab("ortak")'],
   ["rafa koy düğmesi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Ortak rafa koy"],
   ["raftan silme yalnız yöneticide", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "{isAdmin && ("],
