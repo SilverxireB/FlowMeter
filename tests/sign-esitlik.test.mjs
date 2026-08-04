@@ -48,6 +48,10 @@ const IZLER = [
   // ── Kütüphane = tek veri merkezi (yeniden kurulum 1. adım) ────────────────
   ["kütüphane içinden yükleme", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Cihazdan yükle (görsel / video)"],
   ["rehberde tek kapı", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "TEK kapısı"],
+  // 2. adım: ekranın kalıcı medya[] kaydı — alandan silinen dosya kütüphanede kalır.
+  ["kütüphane kaydı tipi", "src/lib/types.ts", "flowsign-selfhost/src/lib/types.ts", "export interface MedyaKaydi"],
+  ["kütüphane = medya[] ∪ alanlar", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "[...(vw.medya ?? [])].reverse()"],
+  ["pencereden yükleme kütüphaneye", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", ', "kutuphane")'],
   ["mobilde Saat/Tarih taşmaz", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "basis-full sm:basis-auto min-w-0"],
   ["ters tarih aralığı uyarısı", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Başlangıç bitişten sonra"],
   ["geçmiş gün seçilemez", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "const enErken ="],

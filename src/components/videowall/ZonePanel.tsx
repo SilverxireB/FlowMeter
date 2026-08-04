@@ -12,8 +12,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName } from "@/components/Icon";
 import FlowSpinner from "@/components/FlowSpinner";
 import { cldFit, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
-import { icAgAdresi, itemInWindow, itemTakvimDurumu, listAllVideowalls, ZONE_BG_DEFAULT } from "@/lib/videowalls";
-import { Videowall, Zone, ZoneItem } from "@/lib/types";
+import { addMedya, icAgAdresi, itemInWindow, itemTakvimDurumu, listAllVideowalls, ZONE_BG_DEFAULT } from "@/lib/videowalls";
+import { auth } from "@/lib/firebase";
+import { MedyaKaydi, Videowall, Zone, ZoneItem } from "@/lib/types";
 
 const iid = () => `it-${Math.random().toString(36).slice(2, 9)}`;
 const KIND_LABEL = { image: "Görsel", video: "Video", url: "URL", text: "Metin", clock: "Saat", screen: "Ekran" } as const;
@@ -124,10 +125,17 @@ export default function ZonePanel({
   const patch = (p: Partial<Zone>) => onZones((vw.zones ?? []).map((z) => (z.id === zone.id ? { ...z, ...p } : z)));
   const setItems = (items: ZoneItem[]) => patch({ items });
 
-  // Kütüphane: TASLAK + YAYIN medyası (ızgara sıfırlansa da yüklenenler kaybolmaz).
+  // Kütüphane: ekranın KENDİ medya[] listesi (kalıcı kayıt — alandan silinse de
+  // kütüphanede durur) ∪ alanlardan türetilen eski medya (eski ekranlar göç
+  // gerekmeden çalışır). medya[] önce ve son yüklenen ÜSTTE.
   const library = useMemo(() => {
     const seen = new Set<string>();
     const out: ZoneItem[] = [];
+    for (const m of [...(vw.medya ?? [])].reverse())
+      if (m.src && !seen.has(m.src)) {
+        seen.add(m.src);
+        out.push({ id: m.id, kind: m.kind, src: m.src, name: m.name });
+      }
     const pools = [...(vw.zones ?? []), ...(vw.live?.zones ?? [])];
     for (const z of pools)
       for (const it of z.items ?? [])
@@ -136,7 +144,21 @@ export default function ZonePanel({
           out.push(it);
         }
     return out;
-  }, [vw.zones, vw.live?.zones]);
+  }, [vw.medya, vw.zones, vw.live?.zones]);
+
+  /** Yüklenen dosyayı ekranın medya[] listesine yazar (kütüphane kalıcı kaydı). */
+  async function medyaKaydet(kind: "image" | "video", src: string, name: string) {
+    const u = auth().currentUser;
+    const kayit: MedyaKaydi = {
+      id: `m-${Math.random().toString(36).slice(2, 9)}`,
+      kind,
+      src,
+      name,
+      at: Date.now(), // arrayUnion içinde serverTimestamp olmaz — ms sayı
+      by: u?.displayName || u?.email || undefined,
+    };
+    await addMedya(vw.id, kayit);
+  }
 
   /** Boyut/tür ön-kontrolü: geçenler + insanca ret nedenleri. */
   function precheck(files: File[]): { ok: File[]; rejected: string[] } {
@@ -155,7 +177,12 @@ export default function ZonePanel({
     return { ok, rejected };
   }
 
-  async function uploadFiles(files: File[]) {
+  /**
+   * hedef "kutuphane": pencereden yükleme — dosya KÜTÜPHANEYE girer, alana
+   * yerleştirme tıklamayla (yanlış alana istemsiz düşmesin).
+   * hedef "alan": panele sürükle-bırak — eskisi gibi hem kütüphaneye hem alana.
+   */
+  async function uploadFiles(files: File[], hedef: "kutuphane" | "alan" = "alan") {
     setErr(null);
     if (!cloudReady) {
       setErr("Medya deposu yapılandırılmadı — görsel/video yüklenemez (URL/metin/saat ekleyebilirsin).");
@@ -168,13 +195,15 @@ export default function ZonePanel({
       try {
         setQueue({ done: i, total: ok.length, pct: 0 });
         const res = await uploadToCloudinary(ok[i], `flowsign/${vw.id}`, (pct) => setQueue({ done: i, total: ok.length, pct }), { keepOriginal: true });
-        added.push({ id: iid(), kind: res.type, src: res.url, name: ok[i].name.replace(/\.[^.]+$/, ""), durationSec: res.type === "image" ? 8 : undefined });
+        const ad = ok[i].name.replace(/\.[^.]+$/, "");
+        await medyaKaydet(res.type, res.url, ad);
+        added.push({ id: iid(), kind: res.type, src: res.url, name: ad, durationSec: res.type === "image" ? 8 : undefined });
       } catch (e) {
         failed.push(`${ok[i].name} (${e instanceof Error ? e.message : "yükleme hatası"})`);
       }
     }
     setQueue(null);
-    if (added.length) setItems([...zoneRef.current.items, ...added]);
+    if (added.length && hedef === "alan") setItems([...zoneRef.current.items, ...added]);
     if (failed.length)
       setErr(`${added.length}/${added.length + failed.length} dosya yüklendi. Yüklenemeyenler: ${failed.join(" · ")}`);
     if (fileRef.current) fileRef.current.value = "";
@@ -191,6 +220,7 @@ export default function ZonePanel({
     try {
       setQueue({ done: 0, total: 1, pct: 0 });
       const res = await uploadToCloudinary(ok[0], `flowsign/${vw.id}`, (pct) => setQueue({ done: 0, total: 1, pct }), { keepOriginal: true });
+      await medyaKaydet(res.type, res.url, ok[0].name.replace(/\.[^.]+$/, ""));
       setItems(
         zoneRef.current.items.map((it) =>
           it.id === itemId
@@ -387,7 +417,7 @@ export default function ZonePanel({
             {b.label}
           </button>
         ))}
-        <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => e.target.files && uploadFiles(Array.from(e.target.files))} />
+        <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => e.target.files && uploadFiles(Array.from(e.target.files), "kutuphane")} />
         <input ref={replaceRef} type="file" accept="image/*,video/*" hidden onChange={(e) => e.target.files?.[0] && replacingId && replaceFile(replacingId, e.target.files[0])} />
       </div>
 
@@ -837,9 +867,10 @@ export default function ZonePanel({
             </div>
             {/* YÜKLEME KAPISI BURADA (kullanıcı kararı, kütüphane kurulumunun
                 1. adımı): veri merkezi kütüphane — almak isteyen buraya girer,
-                yüklemek isteyen BURADAN yükler. Ayrı "Görsel / Video" düğmesi
-                kaldırıldı; davranış aynı: yüklenen dosya bu alana öğe olarak
-                girer ve kütüphanede görünür. */}
+                yüklemek isteyen BURADAN yükler. Adım 2: yüklenen dosya KÜTÜPHANEYE
+                (ekranın medya[] kaydına) girer, alana yerleştirme tıklamayla —
+                yanlış alana istemsiz düşmesin. Panele sürükle-bırak ise eskisi
+                gibi hem yükler hem alana koyar. */}
             <button
               onClick={() => fileRef.current?.click()}
               disabled={queue !== null || !cloudReady}
@@ -853,7 +884,7 @@ export default function ZonePanel({
                 Yükleniyor {queue.done + 1}/{queue.total} · %{queue.pct}
               </p>
             )}
-            <p className="text-muted text-xs mb-3">Bu ekranın medyası (taslak + yayın) — tıkla, bu alana ekle.</p>
+            <p className="text-muted text-xs mb-3">Yüklenen dosya kütüphaneye girer; bir öğeye tıklayınca bu alana eklenir.</p>
 
             {/* Tür sekmeleri: Tümü / Foto / Video */}
             <div className="flex gap-1.5 mb-3">

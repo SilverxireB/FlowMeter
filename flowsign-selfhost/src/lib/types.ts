@@ -93,9 +93,26 @@ export interface SignGrant extends SignPerms {
   at?: number; // ms
 }
 
+/**
+ * KÜTÜPHANE KAYDI — ekranın KENDİ medya listesi (adım 2): yüklenen buraya
+ * yazılır, alanlar buradan referans alır. Eski ekranlarda alan-türevli listeyle
+ * birleştirilir (göç gerekmez). `at` ms.
+ */
+export interface MedyaKaydi {
+  id: string;
+  kind: "image" | "video";
+  src: string;
+  name: string;
+  at?: number;
+  /** Yükleyen — denetim izi (giriş adı). */
+  by?: string;
+}
+
 /** Video-wall tanımı. zones = TASLAK (editör); live = YAYIN. */
 export interface Videowall {
   id: string;
+  /** Ekranın medya kütüphanesi (sunucu yükleme ucunda beslenir). */
+  medya?: MedyaKaydi[];
   name: string;
   /**
    * YETKİ — TEK yerden yönetilir: Kullanıcılar → "Sign yetkileri" sekmesi.

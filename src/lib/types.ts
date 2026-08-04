@@ -533,8 +533,28 @@ export interface SignGrant {
 }
 
 /** Video-wall tanımı (videowalls/{id}). zones = TASLAK (editör); live = YAYIN. */
+/**
+ * KÜTÜPHANE KAYDI — ekranın KENDİ medya listesi (adım 2, kullanıcı kararı:
+ * veri merkezi kütüphane). Eskiden kütüphane alanlardaki öğelerden TÜRETİLİYORDU:
+ * dosya hiçbir alanda kullanılmıyorsa kütüphaneden de kayboluyordu ("yüklediğim
+ * nereye gitti"). Artık yüklenen BURAYA yazılır; alanlar buradan referans alır.
+ * `at` ms sayıdır (arrayUnion içinde serverTimestamp kullanılamaz).
+ */
+export interface MedyaKaydi {
+  id: string;
+  kind: "image" | "video";
+  src: string;
+  name: string;
+  at?: number;
+  /** Yükleyen — denetim izi. */
+  by?: string;
+}
+
 export interface Videowall {
   id: string;
+  /** Ekranın medya kütüphanesi (görsel/video havuzu). Eski ekranlarda yok —
+   *  kütüphane görünümü bunu alan-türevli listeyle BİRLEŞTİRİR (göç gerekmez). */
+  medya?: MedyaKaydi[];
   ownerId: string;
   ownerName?: string; // listede "kimin duvarı" (yetkisiz sönük kartlarda bilgi)
   /**

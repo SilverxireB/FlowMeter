@@ -110,10 +110,17 @@ export default function ZonePanel({
   const patch = (p: Partial<Zone>) => onZones((vw.zones ?? []).map((z) => (z.id === zone.id ? { ...z, ...p } : z)));
   const setItems = (items: ZoneItem[]) => patch({ items });
 
-  // Kütüphane: TASLAK + YAYIN medyası (ızgara sıfırlansa da yüklenenler kaybolmaz).
+  // Kütüphane: ekranın KENDİ medya[] listesi (kalıcı kayıt — alandan silinse de
+  // kütüphanede durur; sunucu upload'da yazar) ∪ alanlardan türetilen eski medya
+  // (eski ekranlar göç gerekmeden çalışır). medya[] önce ve son yüklenen ÜSTTE.
   const library = useMemo(() => {
     const seen = new Set<string>();
     const out: ZoneItem[] = [];
+    for (const m of [...(vw.medya ?? [])].reverse())
+      if (m.src && !seen.has(m.src)) {
+        seen.add(m.src);
+        out.push({ id: m.id, kind: m.kind, src: m.src, name: m.name });
+      }
     const pools = [...(vw.zones ?? []), ...(vw.live?.zones ?? [])];
     for (const z of pools)
       for (const it of z.items ?? [])
@@ -122,7 +129,7 @@ export default function ZonePanel({
           out.push(it);
         }
     return out;
-  }, [vw.zones, vw.live?.zones]);
+  }, [vw.medya, vw.zones, vw.live?.zones]);
 
   /** Boyut/tür ön-kontrolü: geçenler + insanca ret nedenleri. */
   function precheck(files: File[]): { ok: File[]; rejected: string[] } {
@@ -141,7 +148,12 @@ export default function ZonePanel({
     return { ok, rejected };
   }
 
-  async function uploadFiles(files: File[]) {
+  /**
+   * hedef "kutuphane": pencereden yükleme — dosya KÜTÜPHANEYE girer (kaydı
+   * sunucu upload rotası yazar), alana yerleştirme tıklamayla.
+   * hedef "alan": panele sürükle-bırak — eskisi gibi hem kütüphaneye hem alana.
+   */
+  async function uploadFiles(files: File[], hedef: "kutuphane" | "alan" = "alan") {
     setErr(null);
     const { ok, rejected } = precheck(files);
     const failed: string[] = [...rejected];
@@ -156,7 +168,7 @@ export default function ZonePanel({
       }
     }
     setQueue(null);
-    if (added.length) setItems([...zoneRef.current.items, ...added]);
+    if (added.length && hedef === "alan") setItems([...zoneRef.current.items, ...added]);
     if (failed.length)
       setErr(`${added.length}/${added.length + failed.length} dosya yüklendi. Yüklenemeyenler: ${failed.join(" · ")}`);
     if (fileRef.current) fileRef.current.value = "";
@@ -366,7 +378,7 @@ export default function ZonePanel({
             {b.label}
           </button>
         ))}
-        <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => e.target.files && uploadFiles(Array.from(e.target.files))} />
+        <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => e.target.files && uploadFiles(Array.from(e.target.files), "kutuphane")} />
         <input ref={replaceRef} type="file" accept="image/*,video/*" hidden onChange={(e) => e.target.files?.[0] && replacingId && replaceFile(replacingId, e.target.files[0])} />
       </div>
 
@@ -815,7 +827,10 @@ export default function ZonePanel({
               <button onClick={() => setLibOpen(false)} className="w-9 h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-paper" aria-label="Kapat"><Icon name="close" size={16} /></button>
             </div>
             {/* YÜKLEME KAPISI BURADA (kullanıcı kararı): veri merkezi kütüphane —
-                almak isteyen buraya girer, yüklemek isteyen BURADAN yükler. */}
+                almak isteyen buraya girer, yüklemek isteyen BURADAN yükler.
+                Adım 2: yüklenen dosya KÜTÜPHANEYE (ekranın medya[] kaydına)
+                girer, alana yerleştirme tıklamayla. Panele sürükle-bırak ise
+                eskisi gibi hem yükler hem alana koyar. */}
             <button
               onClick={() => fileRef.current?.click()}
               disabled={queue !== null}
@@ -828,7 +843,7 @@ export default function ZonePanel({
                 Yükleniyor {queue.done + 1}/{queue.total} · %{queue.pct}
               </p>
             )}
-            <p className="text-muted text-xs mb-3">Bu ekranın medyası (taslak + yayın) — tıkla, bu alana ekle.</p>
+            <p className="text-muted text-xs mb-3">Yüklenen dosya kütüphaneye girer; bir öğeye tıklayınca bu alana eklenir.</p>
 
             {/* Tür sekmeleri: Tümü / Foto / Video */}
             <div className="flex gap-1.5 mb-3">

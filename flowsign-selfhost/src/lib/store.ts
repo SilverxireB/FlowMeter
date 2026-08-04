@@ -14,7 +14,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { EventEmitter } from "events";
-import { ScreenBeat, Videowall, Zone } from "./types";
+import { MedyaKaydi, ScreenBeat, Videowall, Zone } from "./types";
 import { BEAT_MS, gridZones, ONLINE_MS, slugify, stripUndefined } from "./zones";
 
 export const DATA_DIR = process.env.SIGN_DATA_DIR || path.join(process.cwd(), "data");
@@ -195,6 +195,20 @@ export async function duplicateWall(id: string, ownerId?: string): Promise<Video
   await writeJsonAtomic(path.join(WALLS_DIR, `${nid}.json`), wall);
   emitWall(nid);
   return wall;
+}
+
+/** Kütüphaneye medya kaydı ekler (ekranın kendi `medya[]` listesi). */
+export async function addWallMedya(id: string, kayit: MedyaKaydi): Promise<Videowall | null> {
+  const cur = await getWall(id);
+  if (!cur) return null;
+  const next: Videowall = {
+    ...cur,
+    medya: [...(cur.medya ?? []), stripUndefined(kayit)],
+    updatedAt: Date.now(),
+  };
+  await writeJsonAtomic(path.join(WALLS_DIR, `${id}.json`), next);
+  emitWall(id);
+  return next;
 }
 
 /** Duvarı sil: tanım + kalp atışları + medya klasörü birlikte gider (yetim dosya kalmaz). */

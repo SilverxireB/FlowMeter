@@ -187,9 +187,9 @@ export const SIGN_REHBER: RehberBolum[] = [
             [
               "Kütüphane",
               <>
-                Görsel ve videonun TEK kapısı: bu ekranın medyasından seç ya da <b>Cihazdan yükle</b> ile
-                oradan yükle. Aynı afişi ikinci alana koyarken yeniden yüklemezsin. Video için MP4 (H.264)
-                en güvenlisi.
+                Görsel ve videonun TEK kapısı. <b>Cihazdan yükle</b> dosyayı kütüphaneye alır; alana
+                yerleştirmek için öğeye tıkla. Aynı afişi ikinci alana koyarken yeniden yüklemezsin.
+                Video için MP4 (H.264) en güvenlisi.
               </>,
             ],
             [

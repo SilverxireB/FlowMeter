@@ -4,6 +4,7 @@
  */
 import {
   addDoc,
+  arrayUnion,
   deleteField,
   collection,
   deleteDoc,
@@ -19,7 +20,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { ScreenBeat, SignGrant, Videowall, VideowallPlayMode, Zone, ZoneItem } from "./types";
+import { MedyaKaydi, ScreenBeat, SignGrant, Videowall, VideowallPlayMode, Zone, ZoneItem } from "./types";
 
 /**
  * Öğe şu an takvimde mi? (gün + saat penceresi; boşsa hep). Gece yarısını aşan
@@ -643,6 +644,17 @@ export async function updateZones(id: string, zones: Zone[]): Promise<void> {
   await updateDoc(doc(db(), "videowalls", id), { zones: stripUndefined(zones), updatedAt: serverTimestamp() });
 }
 
+/**
+ * Kütüphaneye medya kaydı ekler (ekranın kendi `medya[]` listesi).
+ * arrayUnion: iki sekme aynı anda yüklese de birbirinin kaydını ezmez.
+ */
+export async function addMedya(id: string, kayit: MedyaKaydi): Promise<void> {
+  await updateDoc(doc(db(), "videowalls", id), {
+    medya: arrayUnion(stripUndefined(kayit)),
+    updatedAt: serverTimestamp(),
+  });
+}
+
 /** Oynatma modu (tabela/sunum) — yayından bağımsız, perde anında uyar. */
 export async function setPlayMode(id: string, playMode: VideowallPlayMode): Promise<void> {
   await updateDoc(doc(db(), "videowalls", id), { playMode, updatedAt: serverTimestamp() });
@@ -887,6 +899,8 @@ export async function duplicateVideowall(ownerId: string, v: Videowall): Promise
     cols: v.cols,
     rows: v.rows,
     zones: cleanZones,
+    // Kütüphane kayıtları kopyaya taşınır (dosyalar zaten URL ile paylaşılır).
+    medya: stripUndefined(v.medya ?? []),
     live: { zones: cleanZones, cols: v.cols, rows: v.rows, width: v.width, height: v.height, publishedAt: serverTimestamp() },
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),

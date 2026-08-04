@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { canEdit, currentUser, forbidden, unauthorized } from "@/lib/serverAuth";
-import { getWall, MEDIA_DIR } from "@/lib/store";
+import { addWallMedya, getWall, MEDIA_DIR } from "@/lib/store";
 import { ayarSayi } from "@/lib/settings";
 
 export const runtime = "nodejs";
@@ -66,5 +66,17 @@ export async function POST(req: NextRequest) {
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(path.join(dir, fname), Buffer.from(await file.arrayBuffer()));
 
-  return NextResponse.json({ url: `/media/${wall.id}/${fname}`, type: isImage ? "image" : "video" });
+  // Yükleme KÜTÜPHANEYE kaydedilir (ekranın medya[] listesi) — SUNUCUDA, dosya
+  // yazımıyla aynı istekte: istemci unutamaz, dosya ile kayıt ayrışamaz.
+  const kayit = {
+    id: `m-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    kind: (isImage ? "image" : "video") as "image" | "video",
+    src: `/media/${wall.id}/${fname}`,
+    name: file.name || fname,
+    at: Date.now(),
+    by: me.label || me.name,
+  };
+  await addWallMedya(wall.id, kayit);
+
+  return NextResponse.json({ url: kayit.src, type: kayit.kind, kayit });
 }
