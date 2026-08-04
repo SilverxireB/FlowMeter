@@ -53,6 +53,32 @@ function ItemFace({ item }: { item?: ZoneItem }) {
   );
 }
 
+/**
+ * FİZİKSEL EKRAN SINIRLARI — TV çerçevelerinin (bezel) düştüğü yerler.
+ *
+ * Neden minyatürde de olmalı: karttaki "3×2" yazısı bilgiyi VERİYOR ama
+ * göstermiyor. İçeriği yerleştiren kişinin sorduğu soru "yüz ikiye bölünüyor
+ * mu" ve buna ancak çizgiyi görerek cevap verilebilir. Editörde zaten kesik
+ * çizgi dili var (fiziksel ızgara = kesik çizgi); minyatür aynı dili taşır.
+ *
+ * Tek ekranlı duvarda (1×1) hiç çizilmez — çizecek sınır yok, gürültü olurdu.
+ */
+function BezelCizgileri({ cols, rows }: { cols: number; rows: number }) {
+  const dikey = Array.from({ length: Math.max(0, cols - 1) }, (_, i) => ((i + 1) / cols) * 100);
+  const yatay = Array.from({ length: Math.max(0, rows - 1) }, (_, i) => ((i + 1) / rows) * 100);
+  if (!dikey.length && !yatay.length) return null;
+  return (
+    <div className="absolute inset-0 pointer-events-none" aria-hidden>
+      {dikey.map((p) => (
+        <span key={`d${p}`} className="absolute top-0 bottom-0 border-l border-dashed border-white/45" style={{ left: `${p}%` }} />
+      ))}
+      {yatay.map((p) => (
+        <span key={`y${p}`} className="absolute left-0 right-0 border-t border-dashed border-white/45" style={{ top: `${p}%` }} />
+      ))}
+    </div>
+  );
+}
+
 export default function WallThumb({ vw }: { vw: Videowall }) {
   const stage = vw.live ?? vw;
   const zones = stage.zones ?? [];
@@ -80,6 +106,9 @@ export default function WallThumb({ vw }: { vw: Videowall }) {
             <ItemFace item={z.items?.[0]} />
           </div>
         ))}
+        {/* Bezel çizgileri alanların ÜSTÜNDE: sınır içeriğin neresinden
+            geçiyor, ancak öyle görünür. */}
+        <BezelCizgileri cols={Math.max(1, vw.cols || 1)} rows={Math.max(1, vw.rows || 1)} />
       </div>
       {zones.length === 0 && (
         // eslint-disable-next-line @next/next/no-img-element

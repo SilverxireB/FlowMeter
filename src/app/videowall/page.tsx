@@ -34,6 +34,7 @@ import {
 } from "@/lib/videowalls";
 import { Videowall } from "@/lib/types";
 import { loginYolu } from "@/lib/girisYolu";
+import { eslesir } from "@/lib/arama";
 
 // DİKKAT: preset çözünürlükleri fiziksel gerçek — 3 dikey (portre) TV yan yana
 // 3×(1080×1920) = 3240×1920'dir (1920×3240 DEĞİL; o hata ilk izlenimi bozuyordu).
@@ -108,16 +109,27 @@ export default function VideowallListPage() {
     return { text: "○ çevrimdışı", cls: "bg-black/55 text-white/60" };
   };
 
+  /**
+   * ARAMA. Kırk ekranda listeyi gözle taramak günlük bir eziyet. Süzgeç ÜÇ
+   * GRUBA DA uygulanır: aradığın ekran "başkasının" grubunda olabilir ve
+   * yalnız kendi grubunda arayan kişi "yok" sanır.
+   *
+   * Eşleşme Türkçe duyarlı (`lib/arama`): "giris" yazan "GİRİŞ EKRANLARI"nı
+   * bulmalı — düz `toLowerCase()` bunu SESSİZCE bulamıyor.
+   */
+  const [ara, setAra] = useState("");
+  const suz = useCallback((liste: Videowall[]) => liste.filter((v) => eslesir(v.name, ara) || eslesir(v.slug, ara)), [ara]);
+
   // ÜÇ GRUP: oluşturduklarım · bana yetki verilenler · geri kalanı (yalnız izleme).
   // Yetkiler yöneticinin "Sign yetkileri" sayfasından gelir; burada karar verilmez.
-  const mine = useMemo(() => walls.filter((v) => v.ownerId === user?.uid), [walls, user]);
+  const mine = useMemo(() => suz(walls.filter((v) => v.ownerId === user?.uid)), [walls, user, suz]);
   const shared = useMemo(
-    () => walls.filter((v) => v.ownerId !== user?.uid && canViewSign(v, user?.uid, isAdmin)),
-    [walls, user, isAdmin]
+    () => suz(walls.filter((v) => v.ownerId !== user?.uid && canViewSign(v, user?.uid, isAdmin))),
+    [walls, user, isAdmin, suz]
   );
   const others = useMemo(
-    () => walls.filter((v) => v.ownerId !== user?.uid && !canViewSign(v, user?.uid, isAdmin)),
-    [walls, user, isAdmin]
+    () => suz(walls.filter((v) => v.ownerId !== user?.uid && !canViewSign(v, user?.uid, isAdmin))),
+    [walls, user, isAdmin, suz]
   );
 
   useEffect(() => {
@@ -379,11 +391,42 @@ export default function VideowallListPage() {
           </div>
         </form>
 
+        {/* Arama kutusu: liste UZUNSA görünür. Üç ekranı olan kişiye süzgeç
+            göstermek gürültü; kırk ekranı olan kişi onsuz çalışamıyor. */}
+        {walls.length > 6 && (
+          <div className="relative mb-5">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" aria-hidden>
+              <Icon name="search" size={16} />
+            </span>
+            <input
+              value={ara}
+              onChange={(e) => setAra(e.target.value)}
+              placeholder="Ekran ara…"
+              aria-label="Ekran ara"
+              className="input-base !py-2.5 !pl-11"
+            />
+          </div>
+        )}
+
         {/* Senin ekranların — SAHİP (tam yetki) */}
-        {mine.length === 0 && shared.length === 0 ? (
+        {mine.length === 0 && shared.length === 0 && others.length === 0 ? (
           <div className="text-center py-16 text-muted">
-            <p className="text-5xl mb-4" aria-hidden>🖥️</p>
-            <p>Henüz ekranın yok. Yukarıdan ilkini oluştur.</p>
+            {/* "Hiç ekran yok" ile "arama bulmadı" AYRI: ilkinde kullanıcıya
+                ekran oluşturmasını söylemek doğru, ikincisinde yanlış yönlendirir. */}
+            {ara.trim() ? (
+              <>
+                <p className="text-5xl mb-4" aria-hidden>🔍</p>
+                <p>&ldquo;{ara}&rdquo; ile eşleşen ekran yok.</p>
+                <button onClick={() => setAra("")} className="mt-3 text-accent font-semibold hover:underline">
+                  Aramayı temizle
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-5xl mb-4" aria-hidden>🖥️</p>
+                <p>Henüz ekranın yok. Yukarıdan ilkini oluştur.</p>
+              </>
+            )}
           </div>
         ) : (
           mine.length > 0 && (

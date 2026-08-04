@@ -17,6 +17,8 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { Icon } from "@/components/icons";
 import { createUser, deleteUser, listUsers, listWalls, setWallGrant, updateUser, wallPerm } from "@/lib/client";
 import { PublicUser, SignPerms, Videowall } from "@/lib/types";
+import { eslesir } from "@/lib/arama";
+import { csvIndir, yetkiCsv, yetkiDosyaAdi, YetkiSatiri } from "@/lib/yetkiCsv";
 
 /**
  * Denetim izi damgası — "kim, ne zaman". Fabrikada personel değişiyor ve
@@ -40,6 +42,7 @@ export default function UsersPage() {
   const [tab, setTab] = useState<"accounts" | "access">("accounts");
   const [walls, setWalls] = useState<Videowall[]>([]);
   const [open, setOpen] = useState<string | null>(null); // açık kişi (yetki matrisi)
+  const [wallAra, setWallAra] = useState("");
   const [users, setUsers] = useState<PublicUser[]>([]);
   const [me, setMe] = useState<PublicUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,6 +93,58 @@ export default function UsersPage() {
     if (allOn) run(() => setWallGrant(w.id, u.id, { view: false, edit: false, copy: false, delete: false }));
     else if (w.ownerId === u.id) run(() => setWallGrant(w.id, u.id, null));
     else run(() => setWallGrant(w.id, u.id, { view: true, edit: true, copy: true, delete: true }));
+  };
+
+  /**
+   * EKRAN ARAMASI — kişi satırının İÇİNDE. Kırk ekranlık tabloda tek bir ekranı
+   * bulmak için kaydırmak gerekiyordu. Tek kutu tüm kişiler için geçerli: kişi
+   * kişi ayrı süzgeç tutmak, bir sonraki kişiye geçince aramanın sıfırlanması
+   * demekti (aynı ekranı birkaç kişiye vermek en sık iş).
+   */
+  const wallsFiltered = walls.filter((w) => eslesir(w.name, wallAra) || eslesir(w.slug, wallAra));
+
+  /**
+   * SÜZGEÇTEKİ TÜM EKRANLARA tek sütunu uygula. Gerçek kalıp şu: herkese
+   * görüntüleme, birkaçına düzenleme, kimseye silme. Bu kalıbı kurmak kırk tık
+   * sürüyordu. Düğme SÜZÜLMÜŞ listeye bakar, tamamına değil — aksi hâlde arama
+   * yapan kişi görmediği ekranları da değiştirirdi.
+   */
+  const topluUygula = (u: PublicUser, key: keyof SignPerms, deger: boolean) =>
+    run(async () => {
+      for (const w of wallsFiltered) {
+        const cur = wallPerm(w, u);
+        if (!!cur[key] === deger) continue; // gereksiz yazım yok
+        const next: SignPerms = { ...cur, [key]: deger };
+        const varsayilana = w.ownerId === u.id && next.view && next.edit && next.copy && next.delete;
+        await setWallGrant(w.id, u.id, varsayilana ? null : next);
+      }
+    });
+
+  /**
+   * CSV: "kim hangi ekranda ne yapabiliyor" — iç denetim sorusunun cevabı.
+   * SÜZGEÇLERDEN BAĞIMSIZ: denetim belgesi ekranda ne göründüğüne değil,
+   * sistemde ne olduğuna bakar. Yalnız en az bir yetkisi olan satır girer.
+   */
+  const disaAktar = () => {
+    const satirlar: YetkiSatiri[] = [];
+    for (const u of users) {
+      const yonetici = u.role === "admin";
+      for (const w of walls) {
+        const p = wallPerm(w, u);
+        if (!yonetici && !p.view && !p.edit && !p.copy && !p.delete) continue;
+        const g = w.grants?.[u.id];
+        satirlar.push({
+          kisi: u.label || u.name,
+          girisAdi: u.name,
+          ekran: w.name,
+          view: !!p.view, edit: !!p.edit, copy: !!p.copy, delete: !!p.delete,
+          kaynak: yonetici ? "yönetici" : g ? "açık kayıt" : w.ownerId === u.id ? "oluşturan" : "varsayılan",
+          veren: g?.by,
+          tarih: g?.at,
+        });
+      }
+    }
+    csvIndir(yetkiCsv(satirlar), yetkiDosyaAdi(new Date()));
   };
 
   useEffect(() => {
@@ -315,9 +370,22 @@ export default function UsersPage() {
             </div>
           ) : (
             <>
-              <p className="text-muted text-sm font-semibold mb-3 tabular-nums">
-                {users.length} kişi · {walls.length} ekran
-              </p>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <p className="text-muted text-sm font-semibold tabular-nums">
+                  {users.length} kişi · {walls.length} ekran
+                </p>
+                {/* DIŞA AKTAR: "kim hangi ekranda ne yapabiliyor" tek dosya.
+                    İç denetim istediğinde sorulan tam olarak bu; bugüne dek
+                    cevabı ekrandan tek tek okumaktı. */}
+                <button
+                  onClick={disaAktar}
+                  disabled={!users.length}
+                  className="chip !py-1.5 text-xs text-muted hover:border-muted shrink-0 inline-flex items-center gap-1.5 disabled:opacity-40"
+                  title="Tüm yetki tablosunu CSV olarak indir (Excel ile açılır)"
+                >
+                  <Icon name="download" size={14} /> <span className="hidden sm:inline">Dışa aktar</span>
+                </button>
+              </div>
               <ul className="flex flex-col gap-2.5">
                 {users.map((u) => {
                   const expanded = open === u.id;
@@ -365,13 +433,65 @@ export default function UsersPage() {
                           ) : walls.length === 0 ? (
                             <p className="text-muted text-sm py-2">Henüz ekran yok.</p>
                           ) : (
-                            <div className="overflow-x-auto">
+                            <>
+                            {/* Ekran araması + toplu uygulama: kırk ekranlık
+                                tabloda "herkese görüntüleme" kurmak kırk tık
+                                sürüyordu. Süzgeç varken düğmeler YALNIZ görünen
+                                ekranlara işler. */}
+                            {walls.length > 6 && (
+                              <div className="relative mb-2.5">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" aria-hidden>
+                                  <Icon name="search" size={14} />
+                                </span>
+                                <input
+                                  value={wallAra}
+                                  onChange={(e) => setWallAra(e.target.value)}
+                                  placeholder="Ekran ara…"
+                                  aria-label="Bu tabloda ekran ara"
+                                  className="input-base !py-1.5 !pl-9 !text-sm"
+                                />
+                              </div>
+                            )}
+                            <div className="flex flex-wrap items-center gap-1.5 mb-2.5 text-[11px]">
+                              <span className="text-muted">
+                                {wallAra.trim() ? `${wallsFiltered.length} ekran süzüldü · ` : ""}Görünenlere uygula:
+                              </span>
+                              {PERMS.map((p) => (
+                                <span key={p.key} className="inline-flex items-center rounded-lg border border-line overflow-hidden">
+                                  <span className="px-2 py-1 bg-paper text-muted font-semibold">{p.label}</span>
+                                  <button
+                                    onClick={() => topluUygula(u, p.key, true)}
+                                    disabled={busy || !wallsFiltered.length}
+                                    className="px-2 py-1 font-bold text-accent hover:bg-accent-soft disabled:opacity-30 border-l border-line"
+                                    title={`Görünen ${wallsFiltered.length} ekranda "${p.label}" yetkisini AÇ`}
+                                  >
+                                    aç
+                                  </button>
+                                  <button
+                                    onClick={() => topluUygula(u, p.key, false)}
+                                    disabled={busy || !wallsFiltered.length}
+                                    className="px-2 py-1 font-bold text-muted hover:bg-paper disabled:opacity-30 border-l border-line"
+                                    title={`Görünen ${wallsFiltered.length} ekranda "${p.label}" yetkisini KAPAT`}
+                                  >
+                                    kapat
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                            {wallsFiltered.length === 0 ? (
+                              <p className="text-muted text-sm py-2">&ldquo;{wallAra}&rdquo; ile eşleşen ekran yok.</p>
+                            ) : (
+                            <div className="overflow-x-auto max-h-[26rem] overflow-y-auto rounded-xl">
                               <table className="w-full text-sm border-separate border-spacing-y-1">
-                                <thead>
+                                {/* YAPIŞIK BAŞLIK: kırk satırlık tabloda 30.
+                                    satırdayken hangi tikin "Düzenle" hangisinin
+                                    "Sil" olduğu görünmüyordu — yanlış tik sessiz
+                                    ve tehlikeli. */}
+                                <thead className="sticky top-0 z-10 bg-paper">
                                   <tr className="text-muted text-[11px] uppercase tracking-wider">
-                                    <th className="text-left font-bold py-1">Ekran</th>
+                                    <th className="text-left font-bold py-1.5">Ekran</th>
                                     {PERMS.map((p) => (
-                                      <th key={p.key} className="font-bold px-2 py-1 whitespace-nowrap" title={p.hint}>
+                                      <th key={p.key} className="font-bold px-2 py-1.5 whitespace-nowrap" title={p.hint}>
                                         {p.label}
                                       </th>
                                     ))}
@@ -381,7 +501,7 @@ export default function UsersPage() {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {walls.map((w) => {
+                                  {wallsFiltered.map((w) => {
                                     const perm = wallPerm(w, u);
                                     const allOn = PERMS.every((p) => perm[p.key]);
                                     const someOn = PERMS.some((p) => perm[p.key]);
@@ -432,6 +552,8 @@ export default function UsersPage() {
                                 </tbody>
                               </table>
                             </div>
+                            )}
+                            </>
                           )}
                         </div>
                       )}

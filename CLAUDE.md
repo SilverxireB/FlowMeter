@@ -162,6 +162,23 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   yerde sabit yazılmaz (perdedeki `120_000` lib'deki değerden habersizdi:
   BEAT_MS'i değiştirmek yazma sıklığını değil yalnız süre tavanını bozuyordu).
   Sınav bu ayrımı KORUR — eşitlenirse düşer.
+  **Kırk ekranlık kurulum için (2026-08, mevcut .NET uygulamasından alınan
+  desenler):** ekran listesinde + yetki matrisinde ARAMA (`lib/arama.ts` —
+  Türkçe duyarlı: `"İSTANBUL".toLowerCase()` görünmez bir birleşen nokta
+  bırakır, düz `includes` SESSİZCE bulamaz; sınav `tests/arama.test.mjs`),
+  yetki tablosunda YAPIŞIK başlık (kırk satırda hangi tikin "Sil" olduğu
+  kayboluyordu — `tests/yetki-tablosu.test.mjs` gerçek tarayıcıda ölçer),
+  süzgece göre TOPLU tik, ve CSV DIŞA AKTARMA (`lib/yetkiCsv.ts`; Türkçe
+  Excel için `;` + BOM + kaçış, `tests/yetki-csv.test.mjs`). İKİ TERS KURAL,
+  ikisi de sessiz: toplu tik SÜZÜLMÜŞ listeye bakar (görmediğin ekrana yetki
+  verme), dışa aktarma TAM listeye bakar (denetim belgesi eksik olmaz) —
+  eşitlik sınavı ikisini de kaynaktan korur. Minyatürde bezel kesik çizgileri
+  (içerik TV çerçevesinin neresinden geçiyor).
+  **Self-host'ta `/settings`** (Uygulama ayarları): parametre kayıt defteri
+  (`lib/settings.ts`), düzenlenebilir satırlar + "kurulumun gerçeği" satırları
+  (veri klasörü = yedek yeri, sürüm, nabız — değerleri diske YAZILMAZ, çalışma
+  anında okunur). **DENETİM İZİ** (kim/ne zaman) ayarda + hesapta + EKRAN
+  YETKİSİNDE; `SignPerms` (dört tik) ile `SignGrant` (tikler + iz) ayrı tiptir.
   7/24 bekçiler Sign dosyalarında: donma bekçisi + dayanıklı abonelik + gece
   04:0x reload + tek-URL 15dk tazeleme + play error boundary (PlayerStage,
   videowalls.ts, play rotaları). Liste kartları `WallThumb` (YAYIN minyatürü;

@@ -49,6 +49,16 @@ const IZLER = [
   ["ters tarih aralığı uyarısı", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Başlangıç bitişten sonra"],
   ["geçmiş gün seçilemez", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "const enErken ="],
   ["rehberde süzgeç kombinasyonu", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "Üçü birden tutmalı"],
+  // ── Kırk ekranlık kurulumda çalışabilmek için gerekenler ──────────────────
+  ["Türkçe duyarlı arama", "src/lib/arama.ts", "flowsign-selfhost/src/lib/arama.ts", "export function eslesir"],
+  ["ekran listesinde arama", "src/app/videowall/page.tsx", "flowsign-selfhost/src/app/screens/page.tsx", 'placeholder="Ekran ara…"'],
+  ["arama sonuçsuzsa ayrı mesaj", "src/app/videowall/page.tsx", "flowsign-selfhost/src/app/screens/page.tsx", "Aramayı temizle"],
+  ["yetki matrisinde ekran araması", "src/app/admin/sign/page.tsx", "flowsign-selfhost/src/app/users/page.tsx", 'aria-label="Bu tabloda ekran ara"'],
+  ["yetki matrisinde toplu uygulama", "src/app/admin/sign/page.tsx", "flowsign-selfhost/src/app/users/page.tsx", "topluUygula"],
+  ["yetki tablosunda yapışık başlık", "src/app/admin/sign/page.tsx", "flowsign-selfhost/src/app/users/page.tsx", 'thead className="sticky top-0'],
+  ["yetki dışa aktarma (CSV)", "src/lib/yetkiCsv.ts", "flowsign-selfhost/src/lib/yetkiCsv.ts", "export function yetkiCsv"],
+  ["dışa aktar düğmesi", "src/app/admin/sign/page.tsx", "flowsign-selfhost/src/app/users/page.tsx", "onClick={disaAktar}"],
+  ["minyatürde bezel çizgileri", "src/components/videowall/WallThumb.tsx", "flowsign-selfhost/src/components/WallThumb.tsx", "function BezelCizgileri"],
 ];
 
 const oku = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);
@@ -110,6 +120,37 @@ const kopyaSabit = [
 if (kopyaSabit.length) hata++;
 console.log(`${kopyaSabit.length ? "✗" : "✓"} nabız aralığı tek kaynakta${kopyaSabit.length ? ` — kopya sabit: ${kopyaSabit.join(", ")}` : ""}`);
 
+// ── İKİ TERS YÖNLÜ KURAL (kaynak koruması) ──────────────────────────────────
+// Bunlar derlemeyi kırmaz, gözle de fark edilmez; ikisi de YANLIŞ SONUÇ üretir:
+//
+//  1. Toplu uygulama SÜZÜLMÜŞ listeye bakmalı. "montaj" aratıp "Düzenle → aç"
+//     diyen kişi yalnız gördüğü ekranlara yetki verdiğini sanır; kod tam listeyi
+//     dolaşırsa GÖRMEDİĞİ kırk ekrana da yetki verir ve bunu hiç öğrenmez.
+//  2. Dışa aktarma TAM listeye bakmalı. Denetim belgesi ekranda ne göründüğüne
+//     değil sistemde ne olduğuna bakar; süzgeçliyken indirilen dosya EKSİK olur
+//     ve eksikliği dosyanın üstünde yazmaz.
+const govde = (kaynak, ad) => {
+  const bas = kaynak.indexOf(`const ${ad} =`);
+  if (bas < 0) return null;
+  return kaynak.slice(bas, bas + 1400);
+};
+for (const [etiket, yol] of [
+  ["online", "src/app/admin/sign/page.tsx"],
+  ["self-host", "flowsign-selfhost/src/app/users/page.tsx"],
+]) {
+  const k = oku(yol) ?? "";
+  const toplu = govde(k, "topluUygula");
+  const disa = govde(k, "disaAktar");
+  const topluDogru = Boolean(toplu) && /for \(const w of wallsFiltered\)/.test(toplu);
+  // Dışa aktarma süzülmüş listeyi HİÇ görmemeli.
+  const disaDogru = Boolean(disa) && !/wallsFiltered/.test(disa);
+  if (!topluDogru || !disaDogru) hata++;
+  console.log(
+    `${topluDogru && disaDogru ? "✓" : "✗"} ${etiket}: toplu uygulama SÜZÜLMÜŞ listeye, dışa aktarma TAM listeye bakıyor` +
+      `${topluDogru ? "" : " — topluUygula süzgeci yok sayıyor"}${disaDogru ? "" : " — disaAktar süzgeçten etkileniyor"}`
+  );
+}
+
 // İkon seti: self-host, online'da kullanılan her ikonu tanımalı.
 const online = oku("src/components/Icon.tsx") ?? "";
 const self = oku("flowsign-selfhost/src/components/icons.tsx") ?? "";
@@ -121,6 +162,9 @@ const signDosyalari = [
   "flowsign-selfhost/src/components/Rehber.tsx",
   "flowsign-selfhost/src/components/RehberParcalari.tsx",
   "flowsign-selfhost/src/components/signRehberIcerik.tsx",
+  "flowsign-selfhost/src/app/screens/page.tsx",
+  "flowsign-selfhost/src/app/users/page.tsx",
+  "flowsign-selfhost/src/app/settings/page.tsx",
 ];
 const kullanilan = new Set();
 for (const d of signDosyalari)

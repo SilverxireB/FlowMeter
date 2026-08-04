@@ -11,6 +11,8 @@
 import { JSX } from "react";
 
 export type IconName =
+  | "search"
+  | "download"
   | "eye"
   | "save"
   | "trash"
@@ -70,6 +72,21 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <path d="M5 4h11l4 4v12H5V4Z" />
       <path d="M9 4v5h6M8 20v-6h8v6" />
+    </>
+  ),
+  // Büyüteç — arama kutusu (online `components/Icon.tsx` ile birebir aynı glif).
+  search: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m20 20-4.7-4.7" />
+    </>
+  ),
+  // İndirme oku — CSV dışa aktarma (online `components/Icon.tsx` ile aynı glif).
+  download: (
+    <>
+      <path d="M12 4v10" />
+      <path d="m7.5 10 4.5 4.5L16.5 10" />
+      <path d="M5 19h14" />
     </>
   ),
   trash: (

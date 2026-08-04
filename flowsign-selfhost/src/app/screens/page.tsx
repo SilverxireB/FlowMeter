@@ -19,6 +19,7 @@ import { usePlayTarget } from "@/lib/usePlayTarget";
 import { useSession } from "@/lib/useSession";
 import { canCopyWall, canDeleteWall, canEditWall, canViewWall, createWall, deleteWall, duplicateWall, listWalls } from "@/lib/client";
 import { clampScreens } from "@/lib/zones";
+import { eslesir } from "@/lib/arama";
 import { PublicUser, Videowall } from "@/lib/types";
 
 // DİKKAT: preset çözünürlükleri fiziksel gerçek — 3 dikey (portre) TV yan yana
@@ -53,6 +54,7 @@ export default function ScreensPage() {
   const [rows, setRows] = useState<number | "">(1);
   const numOr = (v: number | "", fallback: number) => (v === "" ? fallback : v);
   const [busy, setBusy] = useState(false);
+  const [ara, setAra] = useState("");
   /** ÇİFT TIKLAMA KİLİDİ — ref, state DEĞİL: state bir sonraki çizimde geçerli
    *  olduğundan hızlı iki dokunuş ikisi de "boşta" görüp iki kayıt açıyordu. */
   const creatingRef = useRef(false);
@@ -173,9 +175,19 @@ export default function ScreensPage() {
 
   // Yetki grupları (istemcide yalnız GÖRÜNÜM; asıl kapı sunucuda — serverAuth.ts).
   // Yetkiler yöneticinin "Sign yetkileri" sekmesinden gelir.
-  const mine = walls.filter((v) => v.ownerId === me?.id || (me?.role === "admin" && !v.ownerId));
-  const shared = walls.filter((v) => v.ownerId !== me?.id && canViewWall(v, me));
-  const others = walls.filter((v) => v.ownerId !== me?.id && !canViewWall(v, me));
+  /**
+   * ARAMA. Kırk ekranda listeyi gözle taramak günlük bir eziyet. Süzgeç ÜÇ
+   * GRUBA DA uygulanır: aradığın ekran "başkasının" grubunda olabilir ve
+   * yalnız kendi grubunda arayan kişi "yok" sanır.
+   *
+   * Eşleşme Türkçe duyarlı (`lib/arama`): "giris" yazan "GİRİŞ EKRANLARI"nı
+   * bulmalı — düz `toLowerCase()` bunu SESSİZCE bulamıyor.
+   */
+  const suz = (liste: Videowall[]) => liste.filter((v) => eslesir(v.name, ara) || eslesir(v.slug, ara));
+  const mine = suz(walls.filter((v) => v.ownerId === me?.id || (me?.role === "admin" && !v.ownerId)));
+  const shared = suz(walls.filter((v) => v.ownerId !== me?.id && canViewWall(v, me)));
+  const others = suz(walls.filter((v) => v.ownerId !== me?.id && !canViewWall(v, me)));
+  const bulunan = mine.length + shared.length + others.length;
 
   /** Kart gövdesi TEK yerde; düğmeler kişinin YETKİSİNE göre çizilir. */
   const wallCard = (v: Videowall, owned: boolean) => {
@@ -331,11 +343,42 @@ export default function ScreensPage() {
           </div>
         </form>
 
+        {/* Arama kutusu: liste UZUNSA görünür. Üç ekranı olan kişiye süzgeç
+            göstermek gürültü; kırk ekranı olan kişi onsuz çalışamıyor. */}
+        {walls.length > 6 && (
+          <div className="relative mb-5">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" aria-hidden>
+              <Icon name="search" size={16} />
+            </span>
+            <input
+              value={ara}
+              onChange={(e) => setAra(e.target.value)}
+              placeholder="Ekran ara…"
+              aria-label="Ekran ara"
+              className="input-base !py-2.5 !pl-11"
+            />
+          </div>
+        )}
+
         {/* Üç grup: sahibi olduklarım · bana yetki verilenler · diğerleri */}
-        {walls.length === 0 ? (
+        {bulunan === 0 ? (
           <div className="text-center py-16 text-muted">
-            <p className="text-5xl mb-4" aria-hidden>🖥️</p>
-            <p>Henüz ekran yok. Yukarıdan ilkini oluştur.</p>
+            {/* "Hiç ekran yok" ile "arama bulmadı" AYRI: ilkinde ekran
+                oluşturmasını söylemek doğru, ikincisinde yanlış yönlendirir. */}
+            {ara.trim() ? (
+              <>
+                <p className="text-5xl mb-4" aria-hidden>🔍</p>
+                <p>&ldquo;{ara}&rdquo; ile eşleşen ekran yok.</p>
+                <button onClick={() => setAra("")} className="mt-3 text-accent font-semibold hover:underline">
+                  Aramayı temizle
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-5xl mb-4" aria-hidden>🖥️</p>
+                <p>Henüz ekran yok. Yukarıdan ilkini oluştur.</p>
+              </>
+            )}
           </div>
         ) : (
           <>

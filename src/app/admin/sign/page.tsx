@@ -30,6 +30,8 @@ import { ADMIN_EMAIL, getUserRecord, isAdminUser, listUsers, setCanCreateSign } 
 import { clearSignGrant, listAllVideowalls, setSignGrant, signPerm } from "@/lib/videowalls";
 import { SignGrant, UserRecord, Videowall } from "@/lib/types";
 import { loginYolu } from "@/lib/girisYolu";
+import { eslesir } from "@/lib/arama";
+import { csvIndir, yetkiCsv, yetkiDosyaAdi, YetkiSatiri } from "@/lib/yetkiCsv";
 
 const PERMS = [
   { key: "view", label: "Görüntüle", hint: "Listede görsün, editörü açsın" },
@@ -74,11 +76,81 @@ export default function AdminSignPage() {
     () => [...walls].sort((a, b) => a.name.localeCompare(b.name, "tr")),
     [walls]
   );
-  const visibleUsers = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter((u) => (u.email ?? "").toLowerCase().includes(q) || (u.displayName ?? "").toLowerCase().includes(q));
-  }, [users, search]);
+  // Kişi araması da Türkçe duyarlı: "gozde" yazan "Gözde"yi bulmalı. Eskiden
+  // düz `toLowerCase()` ile aranıyordu ve büyük İ/ı olan adlar bulunamıyordu.
+  const visibleUsers = useMemo(
+    () => users.filter((u) => eslesir(u.email, search) || eslesir(u.displayName, search)),
+    [users, search]
+  );
+
+  /**
+   * EKRAN ARAMASI — kişi satırının İÇİNDE. Kırk ekranlık tabloda tek bir
+   * ekranı bulmak için kaydırmak gerekiyordu. Tek kutu tüm kişiler için
+   * geçerli: kişi kişi ayrı arama durumu tutmak, bir sonraki kişiye geçince
+   * süzgecin sıfırlanması demekti (ve aynı ekranı herkese vermek en sık iş).
+   */
+  const [wallSearch, setWallSearch] = useState("");
+  const wallsFiltered = useMemo(
+    () => wallsSorted.filter((w) => eslesir(w.name, wallSearch) || eslesir(w.slug, wallSearch)),
+    [wallsSorted, wallSearch]
+  );
+
+  /**
+   * SÜZGEÇTEKİ TÜM EKRANLARA tek sütunu uygula. Ekran görüntülerinden okunan
+   * gerçek kalıp şu: herkese görüntüleme, birkaçına düzenleme, kimseye silme.
+   * Bu kalıbı kurmak kırk tık sürüyordu; artık bir tık + istisnalar.
+   *
+   * ARAMAYLA BİRLİKTE çalışır: "montaj" aratıp yalnız o ekranlara düzenleme
+   * vermek mümkün. Bu yüzden düğme SÜZÜLMÜŞ listeye bakar, tamamına değil —
+   * aksi hâlde arama yapan kişi görmediği ekranları da değiştirirdi.
+   */
+  const topluUygula = async (uid: string, key: (typeof PERMS)[number]["key"], deger: boolean) => {
+    setErr(null);
+    setBusy(true);
+    try {
+      for (const w of wallsFiltered) {
+        const cur = signPerm(w, uid);
+        if (!!cur[key] === deger) continue; // gereksiz yazım yok
+        const next: SignGrant = { ...cur, [key]: deger };
+        if (w.ownerId === uid && next.view && next.edit && next.copy && next.delete) await clearSignGrant(w.id, uid);
+        else await setSignGrant(w.id, uid, next);
+      }
+      await refresh();
+    } catch (e) {
+      setErr(studioHata(e, "Toplu yetki uygulanamadı — tekrar dene."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /**
+   * CSV: "kim hangi ekranda ne yapabiliyor" — iç denetim/ISO sorusunun cevabı.
+   * SÜZGEÇLERDEN BAĞIMSIZ, herkesi ve tüm ekranları yazar: denetim belgesi
+   * ekranda ne gördüğüne değil, sistemde ne olduğuna bakmalı. Yalnız en az bir
+   * yetkisi olan satırlar girer (yoksa "kimse erişemiyor" gürültüsü).
+   */
+  const disaAktar = () => {
+    const satirlar: YetkiSatiri[] = [];
+    for (const u of users) {
+      const yonetici = u.role === "admin" || u.email === ADMIN_EMAIL;
+      for (const w of wallsSorted) {
+        const p = signPerm(w, u.id);
+        if (!yonetici && !p.view && !p.edit && !p.copy && !p.delete) continue;
+        const acikKayit = !!w.grants?.[u.id];
+        satirlar.push({
+          kisi: u.displayName || u.email || u.id,
+          girisAdi: u.email ?? "",
+          ekran: w.name,
+          view: yonetici || !!p.view,
+          edit: yonetici || !!p.edit,
+          copy: yonetici || !!p.copy,
+          delete: yonetici || !!p.delete,
+          kaynak: yonetici ? "yönetici" : acikKayit ? "açık kayıt" : w.ownerId === u.id ? "oluşturan" : "varsayılan",
+        });
+      }
+    }
+    csvIndir(yetkiCsv(satirlar), yetkiDosyaAdi(new Date()));
+  };
 
   /** Tek tik → o kişinin o ekrandaki kaydı (varsayılandan kopyalanarak) yazılır. */
   const toggle = async (wall: Videowall, uid: string, key: keyof SignGrant) => {
@@ -194,9 +266,24 @@ export default function AdminSignPage() {
           />
         </div>
 
-        <p className="text-muted text-sm font-semibold mb-3 tabular-nums">
-          {visibleUsers.length} kişi · {walls.length} ekran
-        </p>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <p className="text-muted text-sm font-semibold tabular-nums">
+            {visibleUsers.length} kişi · {walls.length} ekran
+          </p>
+          {/* DIŞA AKTAR: "kim hangi ekranda ne yapabiliyor" tablosu tek dosya.
+              İç denetim/ISO istediğinde sorulan tam olarak bu; bugüne dek
+              cevabı ekrandan tek tek okumaktı. Dosya SÜZGEÇTEN BAĞIMSIZ:
+              denetim belgesi ekranda ne göründüğüne değil, sistemde ne
+              olduğuna bakar. */}
+          <button
+            onClick={disaAktar}
+            disabled={!users.length}
+            className="chip !py-1.5 text-xs text-muted hover:border-muted shrink-0 inline-flex items-center gap-1.5 disabled:opacity-40"
+            title="Tüm yetki tablosunu CSV olarak indir (Excel ile açılır)"
+          >
+            <Icon name="download" size={14} /> <span className="hidden sm:inline">Dışa aktar</span>
+          </button>
+        </div>
 
         <ul className="flex flex-col gap-2.5">
           {visibleUsers.map((u) => {
@@ -245,13 +332,63 @@ export default function AdminSignPage() {
                     ) : wallsSorted.length === 0 ? (
                       <p className="text-muted text-sm py-2">Henüz ekran yok.</p>
                     ) : (
-                      <div className="overflow-x-auto">
+                      <>
+                      {/* Ekran araması + toplu uygulama: kırk ekranlık tabloda
+                          "herkese görüntüleme" kurmak kırk tık sürüyordu.
+                          Süzgeç varken düğmeler YALNIZ görünen ekranlara işler. */}
+                      {wallsSorted.length > 6 && (
+                        <div className="relative mb-2.5">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" aria-hidden>
+                            <Icon name="search" size={14} />
+                          </span>
+                          <input
+                            value={wallSearch}
+                            onChange={(e) => setWallSearch(e.target.value)}
+                            placeholder="Ekran ara…"
+                            aria-label="Bu tabloda ekran ara"
+                            className="input-base !py-1.5 !pl-9 !text-sm"
+                          />
+                        </div>
+                      )}
+                      <div className="flex flex-wrap items-center gap-1.5 mb-2.5 text-[11px]">
+                        <span className="text-muted">
+                          {wallSearch.trim() ? `${wallsFiltered.length} ekran süzüldü · ` : ""}Görünenlere uygula:
+                        </span>
+                        {PERMS.map((p) => (
+                          <span key={p.key} className="inline-flex items-center rounded-lg border border-line overflow-hidden">
+                            <span className="px-2 py-1 bg-paper text-muted font-semibold">{p.label}</span>
+                            <button
+                              onClick={() => topluUygula(u.id, p.key, true)}
+                              disabled={busy || !wallsFiltered.length}
+                              className="px-2 py-1 font-bold text-accent hover:bg-accent-soft disabled:opacity-30 border-l border-line"
+                              title={`Görünen ${wallsFiltered.length} ekranda "${p.label}" yetkisini AÇ`}
+                            >
+                              aç
+                            </button>
+                            <button
+                              onClick={() => topluUygula(u.id, p.key, false)}
+                              disabled={busy || !wallsFiltered.length}
+                              className="px-2 py-1 font-bold text-muted hover:bg-paper disabled:opacity-30 border-l border-line"
+                              title={`Görünen ${wallsFiltered.length} ekranda "${p.label}" yetkisini KAPAT`}
+                            >
+                              kapat
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      {wallsFiltered.length === 0 ? (
+                        <p className="text-muted text-sm py-2">&ldquo;{wallSearch}&rdquo; ile eşleşen ekran yok.</p>
+                      ) : (
+                      <div className="overflow-x-auto max-h-[26rem] overflow-y-auto rounded-xl">
                         <table className="w-full text-sm border-separate border-spacing-y-1">
-                          <thead>
+                          {/* YAPIŞIK BAŞLIK: kırk satırlık tabloda 30. satırdayken
+                              hangi tikin "Düzenle" hangisinin "Sil" olduğu
+                              görünmüyordu — yanlış tik sessiz ve tehlikeli. */}
+                          <thead className="sticky top-0 z-10 bg-paper">
                             <tr className="text-muted text-[11px] uppercase tracking-wider">
-                              <th className="text-left font-bold py-1">Ekran</th>
+                              <th className="text-left font-bold py-1.5">Ekran</th>
                               {PERMS.map((p) => (
-                                <th key={p.key} className="font-bold px-2 py-1 whitespace-nowrap" title={p.hint}>
+                                <th key={p.key} className="font-bold px-2 py-1.5 whitespace-nowrap" title={p.hint}>
                                   {p.label}
                                 </th>
                               ))}
@@ -261,7 +398,7 @@ export default function AdminSignPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {wallsSorted.map((w) => {
+                            {wallsFiltered.map((w) => {
                               const perm = signPerm(w, u.id);
                               const allOn = PERMS.every((p) => perm[p.key]);
                               const someOn = PERMS.some((p) => perm[p.key]);
@@ -305,6 +442,8 @@ export default function AdminSignPage() {
                           </tbody>
                         </table>
                       </div>
+                      )}
+                      </>
                     )}
                   </div>
                 )}
