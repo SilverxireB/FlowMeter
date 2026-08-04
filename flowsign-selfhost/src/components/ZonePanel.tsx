@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName } from "@/components/icons";
 import FlowSpinner from "@/components/FlowSpinner";
-import { fixLiveSrc, listOrtakRaf, listWalls, rafaKoy as rafaKoyUc, raftanSil as raftanSilUc } from "@/lib/client";
+import { fixLiveSrc, listOrtakRaf, listWalls, rafaKoy as rafaKoyUc, raftanSil as raftanSilUc, updateZones } from "@/lib/client";
 import { adresDegistir, RafOgesi } from "@/lib/ortakRaf";
 import { SAHNE_MODLARI, SAHNE_MODU_VARSAYILAN } from "@/lib/fotoSahne";
 import { uploadMedia } from "@/lib/media";
@@ -182,6 +182,22 @@ export default function ZonePanel({
       // YAYIN da çevrilmeli: yalnız taslak çevrilirse yayındaki ekran artık var
       // olmayan adresi gösterir ve kütüphanede fotoğraf iki kez görünür.
       await fixLiveSrc(vw.id, vw.live, it.src, oge.src).catch(() => {});
+      // DİĞER EKRANLAR: taşıma dosyayı fiziksen taşıyor — aynı dosyayı kullanan
+      // başka ekranlar ölü adreste kalırdı (canlıda görüldü). Erişilebilen her
+      // ekranda çevrilir; yetkisiz ekran atlanır.
+      try {
+        const digerleri = (await listWalls()).walls.filter((w) => w.id !== vw.id);
+        for (const w of digerleri) {
+          const kullaniyor =
+            (w.zones ?? []).some((z) => (z.items ?? []).some((x) => x.src === it.src)) ||
+            (w.live?.zones ?? []).some((z) => (z.items ?? []).some((x) => x.src === it.src));
+          if (!kullaniyor) continue;
+          await updateZones(w.id, adresDegistir(w.zones, it.src, oge.src)).catch(() => {});
+          await fixLiveSrc(w.id, w.live, it.src, oge.src).catch(() => {});
+        }
+      } catch {
+        /* liste okunamazsa kendi ekranımız yine de düzgün */
+      }
       setRaf((r) => [oge, ...(r ?? [])]);
       setLibTab("ortak");
     } catch (e) {

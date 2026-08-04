@@ -15,7 +15,7 @@ import { cldFit, cldPublicId, isCloudinaryConfigured, uploadToCloudinary } from 
 import { adresDegistir, rafaEkle, RafOgesi, raftanSil, watchOrtakRaf } from "@/lib/ortakRaf";
 import { SAHNE_MODLARI, SAHNE_MODU_VARSAYILAN } from "@/lib/fotoSahne";
 import { auth } from "@/lib/firebase";
-import { fixLiveSrc, icAgAdresi, itemInWindow, itemTakvimDurumu, listAllVideowalls, ZONE_BG_DEFAULT } from "@/lib/videowalls";
+import { fixLiveSrc, icAgAdresi, itemInWindow, itemTakvimDurumu, listAllVideowalls, updateZones, ZONE_BG_DEFAULT } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 const iid = () => `it-${Math.random().toString(36).slice(2, 9)}`;
@@ -220,6 +220,24 @@ export default function ZonePanel({
       // olmayan adresi göstermeye devam eder (alan kararır) ve kütüphane
       // taslak+yayını birleştirdiği için aynı fotoğraf iki kez görünür.
       await fixLiveSrc(vw.id, vw.live, it.src, j.src).catch(() => {});
+      // DİĞER EKRANLAR: taşıma dosyayı FİZİKSEN taşıyor — aynı dosyayı kullanan
+      // başka ekranlar ölü adreste kalır ve duvarları sessizce kararır (canlıda
+      // görüldü: "eski resimler patladı"). Erişilebilen her ekranda çevrilir;
+      // yetkin olmayan ekran atlanır (yazamayız — o dosya zaten rafta, sahibi
+      // kütüphaneden yeniden seçer).
+      try {
+        const digerleri = (await listAllVideowalls()).filter((w) => w.id !== vw.id);
+        for (const w of digerleri) {
+          const kullaniyor =
+            (w.zones ?? []).some((z) => (z.items ?? []).some((x) => x.src === it.src)) ||
+            (w.live?.zones ?? []).some((z) => (z.items ?? []).some((x) => x.src === it.src));
+          if (!kullaniyor) continue;
+          await updateZones(w.id, adresDegistir(w.zones, it.src, j.src)).catch(() => {});
+          await fixLiveSrc(w.id, w.live, it.src, j.src).catch(() => {});
+        }
+      } catch {
+        /* liste okunamazsa kendi ekranımız yine de düzgün */
+      }
       await rafaEkle({
         kind: it.kind,
         src: j.src,

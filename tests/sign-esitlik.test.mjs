@@ -71,6 +71,13 @@ const IZLER = [
   ["rehberde ortak raf", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", 'id: "ortakraf"'],
   ["rehberde yetkiler", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", 'id: "yetkiler"'],
   ["kütüphane hatası pencerede görünür", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "ARKASINDA kalıyordu"],
+  // ── Foto sahne (Wall'dan taşınan perde) ───────────────────────────────────
+  ["foto sahne çizimi", "src/components/videowall/FotoSahne.tsx", "flowsign-selfhost/src/components/FotoSahne.tsx", "function Mozaik"],
+  ["foto sahne mod listesi", "src/lib/fotoSahne.ts", "flowsign-selfhost/src/lib/fotoSahne.ts", "SAHNE_MODLARI"],
+  ["foto sahne öğe tipi", "src/lib/types.ts", "flowsign-selfhost/src/lib/types.ts", '"fotoSahne"'],
+  ["foto sahne ekleme düğmesi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", 'label: "Foto sahne"'],
+  ["sahneye doğrudan yükleme", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "sahneyeYukle"],
+  ["perde foto sahneyi çizer", "src/components/videowall/PlayerStage.tsx", "flowsign-selfhost/src/components/PlayerStage.tsx", '"fotoSahne"'],
 ];
 
 const oku = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);
@@ -171,7 +178,7 @@ for (const [etiket, yol] of [
 {
   const k = oku("src/components/videowall/ZonePanel.tsx") ?? "";
   const bas = k.indexOf("async function rafaKoy");
-  const govde = bas < 0 ? "" : k.slice(bas, bas + 2400);
+  const govde = bas < 0 ? "" : k.slice(bas, bas + 4200);
   const cevir = govde.indexOf("adresDegistir(");
   const yaz = govde.indexOf("rafaEkle(");
   const dogru = cevir > 0 && yaz > 0 && cevir < yaz;
