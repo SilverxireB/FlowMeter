@@ -643,6 +643,26 @@ export async function updateZones(id: string, zones: Zone[]): Promise<void> {
   await updateDoc(doc(db(), "videowalls", id), { zones: stripUndefined(zones), updatedAt: serverTimestamp() });
 }
 
+/**
+ * YAYINDAKİ adresleri yerinde değiştir (ortak rafa taşıma).
+ *
+ * Neden ayrı ve neden gerekli: dosya rafa taşınınca ESKİ adres artık yok. Taslak
+ * çevrilip yayın çevrilmezse:
+ *  - yayındaki ekran var olmayan bir adresi göstermeye devam eder (alan kararır),
+ *  - kütüphane taslak+yayını birleştirdiği için aynı fotoğraf İKİ KEZ görünür
+ *    ("fotoğraflar çoğaldı" şikâyeti tam olarak budur).
+ * Yayın burada YENİDEN YAYINLANMAZ, yalnız adres düzeltilir — kullanıcının
+ * yayınlamadığı bir taslak sahaya çıkmasın.
+ */
+export async function fixLiveSrc(id: string, live: Videowall["live"], eski: string, yeni: string): Promise<void> {
+  if (!live?.zones?.length) return;
+  const zones = live.zones.map((z) => ({
+    ...z,
+    items: (z.items ?? []).map((it) => (it.src === eski ? { ...it, src: yeni } : it)),
+  }));
+  await updateDoc(doc(db(), "videowalls", id), { live: stripUndefined({ ...live, zones }), updatedAt: serverTimestamp() });
+}
+
 /** Oynatma modu (tabela/sunum) — yayından bağımsız, perde anında uyar. */
 export async function setPlayMode(id: string, playMode: VideowallPlayMode): Promise<void> {
   await updateDoc(doc(db(), "videowalls", id), { playMode, updatedAt: serverTimestamp() });

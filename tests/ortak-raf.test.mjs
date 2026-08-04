@@ -191,6 +191,37 @@ kontrol(adresKullanimSayisi({ zones: undefined, live: null }, ESKI) === 0, "boş
   kontrol(/message: mesaj/.test(rota), "sunucu Cloudinary'nin gerçek hata metnini geri veriyor (kör kalmayalım)");
 }
 
+// ── 3c. YAYIN DA ÇEVRİLMELİ ─────────────────────────────────────────────────
+// GERÇEK HATA (kullanıcı yakaladı): dosya rafa taşınınca yalnız TASLAK adresi
+// çevriliyordu. Sonuç iki katmanlı ve ilki masum görünüyor:
+//   - kütüphane taslak+yayını birleştirdiği için aynı fotoğraf İKİ KEZ listelenir
+//     ("fotoğraflar çoğalmaya başladı"),
+//   - asıl mesele: YAYINDAKİ ekran artık var olmayan bir adresi göstermeye devam
+//     eder ve o alan sahada kararır. Kimse yeniden yayınlamadıkça düzelmez.
+for (const [etiket, yol] of [
+  ["online", "src/components/videowall/ZonePanel.tsx"],
+  ["self-host", "flowsign-selfhost/src/components/ZonePanel.tsx"],
+]) {
+  const k = fs.readFileSync(yol, "utf8");
+  const bas = k.indexOf("async function rafaKoy");
+  const govde = bas < 0 ? "" : k.slice(bas, bas + 2600);
+  kontrol(/fixLiveSrc\(/.test(govde), `${etiket}: rafa taşırken YAYIN adresleri de çevriliyor`);
+}
+
+// ── 3d. İKİ KİMLİK ADAYI ────────────────────────────────────────────────────
+// GERÇEK HATA (canlıda görüldü): "Resource not found - flowsign/{ekran}/{ad}".
+// Cloudinary'nin "dinamik klasör" kipinde TESLİM ADRESİ klasörü gösterir ama
+// gerçek `public_id` ÇIPLAK isimdir. Adresten türetilen tam yol o kipte hiçbir
+// dosyayla eşleşmez. Hangi kipte olduğumuz dışarıdan bilinemez ve hesap ayarı
+// zamanla değişebilir → ikisi de denenmeli, ama YALNIZ "bulunamadı" hatasında
+// (imza/yetki hatasında ikinci deneme teşhisi zorlaştırır).
+{
+  const rota = fs.readFileSync("src/app/api/sign/ortak-raf/route.ts", "utf8");
+  kontrol(/const adaylar = \[/.test(rota), "rota iki kimlik adayı üretiyor (tam yol + çıplak ad)");
+  kontrol(/not found/i.test(rota) && /break;/.test(rota), "yalnız 'bulunamadı' hatasında ikinci aday deneniyor");
+  kontrol(/denenen: adaylar/.test(rota), "hata mesajı DENENEN kimlikleri yazıyor");
+}
+
 // ── 4. CLOUDINARY İMZASI (online taraf) ─────────────────────────────────────
 // Online uç gerçek anahtar istediği için uçtan uca denenemiyor; oradaki TEK
 // riskli parça imza üretimi. Yeni jenerik imzalayıcı, ÜRETİMDE ÇALIŞTIĞI BİLİNEN

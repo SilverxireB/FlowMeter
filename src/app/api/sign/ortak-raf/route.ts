@@ -96,33 +96,62 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "already-shared" }, { status: 409 });
   }
 
-  // Yeni ad: raf klasörü + dosyanın son parçası. Aynı ad varsa Cloudinary
-  // `overwrite=false` ile reddeder; o yüzden çakışmayı zaman damgasıyla keser.
-  const sonParca = b.publicId.split("/").pop() || "dosya";
+  /**
+   * ADAY KİMLİKLER. Cloudinary'nin "dinamik klasör" kipinde TESLİM ADRESİ
+   * klasörü gösterir ama gerçek `public_id` ÇIPLAK isimdir:
+   *   adres  .../upload/v17/flowsign/{ekran}/v7blwb1d1tqzwinnyuu8.jpg
+   *   kimlik v7blwb1d1tqzwinnyuu8          ← klasör YOK
+   * Klasik kipte ise kimlik tam yoldur. Hangi kipte olduğumuzu dışarıdan
+   * bilemeyiz ve hesap ayarı zamanla değişebilir; bu yüzden ikisini de deneriz.
+   *
+   * Yeni yüklemelerde gerçek kimlik öğeye yazılıyor (`cloudinaryId`) ve o zaten
+   * ilk aday oluyor — bu geri dönüş ESKİ öğeler için.
+   */
+  const adaylar = [b.publicId, b.publicId.split("/").pop() ?? b.publicId].filter(
+    (v, i, a) => v && a.indexOf(v) === i
+  ) as string[];
+
+  const sonParca = adaylar[adaylar.length - 1];
   const yeniId = `${ORTAK_KLASOR}/${Date.now().toString(36)}-${sonParca}`;
 
-  const params: Record<string, string> = {
-    from_public_id: b.publicId,
-    to_public_id: yeniId,
-    overwrite: "false",
-    invalidate: "true",
-    timestamp: String(Math.floor(Date.now() / 1000)),
-  };
-  const form = new URLSearchParams({ ...params, api_key: KEY, signature: imza(params, SECRET) });
+  let j: Record<string, unknown> = {};
+  let sonDurum = 0;
+  for (const aday of adaylar) {
+    const params: Record<string, string> = {
+      from_public_id: aday,
+      to_public_id: yeniId,
+      overwrite: "false",
+      invalidate: "true",
+      timestamp: String(Math.floor(Date.now() / 1000)),
+    };
+    const form = new URLSearchParams({ ...params, api_key: KEY, signature: imza(params, SECRET) });
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/${resourceType}/rename`, {
+      method: "POST",
+      body: form,
+    });
+    j = await res.json().catch(() => ({}));
+    sonDurum = res.status;
+    if (res.ok && (j as { secure_url?: string }).secure_url) {
+      return NextResponse.json({
+        ok: true,
+        src: (j as { secure_url: string }).secure_url,
+        publicId: (j as { public_id: string }).public_id,
+      });
+    }
+    // "Bulunamadı" dışındaki hatalarda (imza, yetki, kota) tekrar denemenin
+    // anlamı yok — aynı hatayı ikinci kez almak teşhisi zorlaştırır.
+    const mesaj0 = (j as { error?: { message?: string } })?.error?.message ?? "";
+    if (!/not found/i.test(mesaj0)) break;
+  }
 
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/${resourceType}/rename`, {
-    method: "POST",
-    body: form,
-  });
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok || !j.secure_url) {
-    // HATA METNİ YÜZEYE ÇIKAR. Önce yalnız "cloudinary" dönüyordu ve panelde
-    // "Ortak rafa taşınamadı" yazıyordu — sebep hiçbir yerde görünmüyordu, ne
-    // kullanıcı ne de biz teşhis edebiliyorduk. Cloudinary'nin kendi mesajı
-    // ("Resource not found", "Invalid Signature" gibi) doğrudan yapılacak işi
-    // söyler; hangi public_id denendiği de öyle.
-    const mesaj = (j as { error?: { message?: string } })?.error?.message ?? `Cloudinary ${res.status}`;
-    return NextResponse.json({ ok: false, error: "cloudinary", message: mesaj, denenen: b.publicId }, { status: 502 });
+  {
+    // HATA METNİ YÜZEYE ÇIKAR: hangi kimlikler denendi, Cloudinary ne dedi.
+    // Önce yalnız "Ortak rafa taşınamadı" yazıyordu ve teşhis imkânsızdı.
+    const mesaj = (j as { error?: { message?: string } })?.error?.message ?? `Cloudinary ${sonDurum}`;
+    return NextResponse.json(
+      { ok: false, error: "cloudinary", message: mesaj, denenen: adaylar.join(" · ") },
+      { status: 502 }
+    );
   }
   return NextResponse.json({ ok: true, src: j.secure_url, publicId: j.public_id as string });
 }

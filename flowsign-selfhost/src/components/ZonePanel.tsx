@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName } from "@/components/icons";
 import FlowSpinner from "@/components/FlowSpinner";
-import { listOrtakRaf, listWalls, rafaKoy as rafaKoyUc, raftanSil as raftanSilUc } from "@/lib/client";
+import { fixLiveSrc, listOrtakRaf, listWalls, rafaKoy as rafaKoyUc, raftanSil as raftanSilUc } from "@/lib/client";
 import { adresDegistir, RafOgesi } from "@/lib/ortakRaf";
 import { uploadMedia } from "@/lib/media";
 import { icAgAdresi, itemInWindow, itemTakvimDurumu, ZONE_BG_DEFAULT } from "@/lib/zones";
@@ -163,6 +163,9 @@ export default function ZonePanel({
       // Adres çevirme, taşımadan HEMEN sonra: bu ikisinin arasına başka bir
       // işlem girerse, hata durumunda öğe artık var olmayan bir adresi gösterir.
       onZones(adresDegistir(vw.zones, it.src, oge.src));
+      // YAYIN da çevrilmeli: yalnız taslak çevrilirse yayındaki ekran artık var
+      // olmayan adresi gösterir ve kütüphanede fotoğraf iki kez görünür.
+      await fixLiveSrc(vw.id, vw.live, it.src, oge.src).catch(() => {});
       setRaf((r) => [oge, ...(r ?? [])]);
       setLibTab("ortak");
     } catch (e) {

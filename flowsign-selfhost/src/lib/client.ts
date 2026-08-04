@@ -88,6 +88,24 @@ export async function updateZones(id: string, zones: Zone[]): Promise<void> {
   await updateWall(id, { zones });
 }
 
+/**
+ * YAYINDAKİ adresleri yerinde değiştir (ortak rafa taşıma).
+ *
+ * Dosya rafa taşınınca ESKİ adres artık yok. Taslak çevrilip yayın çevrilmezse:
+ *  - yayındaki ekran var olmayan bir adresi göstermeye devam eder (alan kararır),
+ *  - kütüphane taslak+yayını birleştirdiği için aynı fotoğraf İKİ KEZ görünür
+ *    ("fotoğraflar çoğaldı" şikâyeti tam olarak budur).
+ * Yayın YENİDEN YAYINLANMAZ, yalnız adres düzeltilir.
+ */
+export async function fixLiveSrc(id: string, live: Videowall["live"], eski: string, yeni: string): Promise<void> {
+  if (!live?.zones?.length) return;
+  const zones = live.zones.map((z) => ({
+    ...z,
+    items: (z.items ?? []).map((it) => (it.src === eski ? { ...it, src: yeni } : it)),
+  }));
+  await updateWall(id, { live: { ...live, zones } });
+}
+
 /** Oynatma modu (tabela/sunum) — yayından bağımsız, perde anında uyar. */
 export async function setPlayMode(id: string, playMode: VideowallPlayMode): Promise<void> {
   await updateWall(id, { playMode });

@@ -89,6 +89,36 @@ say "EKRAN SILINDI → raftaki dosya DURUYOR" "$(ls $VERI/media/_ortak/ 2>/dev/n
 say "EKRAN SILINDI → paylasilmayan dosya GITTI (silme gercekten calisiyor)" "$([ -d $VERI/media/$W ] && echo var || echo yok)" "yok"
 
 
+# ── YAYINDAKI ADRES DE CEVRILMELI (kullanicinin yakaladigi hata) ──────────────
+# Ekrani YAYINLA, sonra dosyayi rafa tasi. Taslak cevrilip yayin cevrilmezse:
+# kutuphane ikisini birlestirdigi icin foto "coklanir", ve asil kotusu YAYINDAKI
+# ekran artik var olmayan bir adresi gosterir (alan sahada kararır).
+W3=$(curl -s -b ku.txt -X POST $B/api/walls -H 'Content-Type: application/json' -d '{"name":"Yayin Testi","width":1920,"height":1080,"cols":1,"rows":1}' | jq "['id']")
+printf '\xff\xd8\xffYAYIN' > yayinfoto.jpg
+Y=$(curl -s -b ku.txt -F "file=@yayinfoto.jpg;type=image/jpeg" "$B/api/upload?wall=$W3" | jq "['url']")
+Z=$(curl -s -b ku.txt $B/api/walls/$W3 | python3 -c 'import sys,json;print(json.load(sys.stdin)["zones"][0]["id"])')
+curl -s -o /dev/null -b ku.txt -X PATCH $B/api/walls/$W3 -H 'Content-Type: application/json' \
+  -d "{\"zones\":[{\"id\":\"$Z\",\"x\":0,\"y\":0,\"w\":1,\"h\":1,\"items\":[{\"id\":\"i1\",\"kind\":\"image\",\"src\":\"$Y\",\"name\":\"yayinfoto\"}]}]}"
+curl -s -o /dev/null -b ku.txt -X POST $B/api/walls/$W3/publish
+say "yayinda dosya var" "$(curl -s -b ku.txt $B/api/walls/$W3 | grep -c "$Y")" "1"
+
+R3=$(curl -s -b ku.txt -X POST $B/api/ortak-raf -H 'Content-Type: application/json' -d "{\"src\":\"$Y\",\"kind\":\"image\",\"name\":\"yayinfoto\"}" | jq "['oge']['src']")
+say "  dosya rafa tasindi" "$([ -n "$R3" ] && echo evet || echo hayir)" "evet"
+
+# UC TEK BASINA YAYINI DUZELTMEZ — duzeltmeyi istemci yapar (`fixLiveSrc`).
+# Once bunu KANITLA: yoksa asagidaki dogrulama bir sey olcmemis olur.
+LIVE0=$(curl -s -b ku.txt $B/api/walls/$W3 | python3 -c "import sys,json;print(json.load(sys.stdin)['live']['zones'][0]['items'][0]['src'])")
+say "  uc tek basina yayini duzeltmiyor (istemci adimi SART)" "$LIVE0" "$Y"
+
+# Istemcinin yaptigini taklit et: TASLAK + YAYIN birlikte yeni adrese cevrilir.
+YENIZ="[{\"id\":\"$Z\",\"x\":0,\"y\":0,\"w\":1,\"h\":1,\"items\":[{\"id\":\"i1\",\"kind\":\"image\",\"src\":\"$R3\",\"name\":\"yayinfoto\"}]}]"
+curl -s -o /dev/null -b ku.txt -X PATCH $B/api/walls/$W3 -H 'Content-Type: application/json' \
+  -d "{\"zones\":$YENIZ,\"live\":{\"zones\":$YENIZ,\"cols\":1,\"rows\":1,\"width\":1920,\"height\":1080}}"
+GUNCEL=$(curl -s -b ku.txt $B/api/walls/$W3)
+say "  taslak yeni adreste" "$(echo "$GUNCEL" | python3 -c "import sys,json;print(json.load(sys.stdin)['zones'][0]['items'][0]['src'])")" "$R3"
+say "  YAYIN da yeni adreste (alan kararmiyor)" "$(echo "$GUNCEL" | python3 -c "import sys,json;print(json.load(sys.stdin)['live']['zones'][0]['items'][0]['src'])")" "$R3"
+say "  eski adres hicbir yerde kalmadi (foto coklanmiyor)" "$(echo "$GUNCEL" | grep -c "$Y")" "0"
+
 echo; echo "SONUC: $ok gecti, $bad kaldi"
 rm -rf "$CALISMA"
 [ "$bad" = "0" ] || exit 1

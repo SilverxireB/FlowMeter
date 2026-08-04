@@ -14,7 +14,7 @@ import FlowSpinner from "@/components/FlowSpinner";
 import { cldFit, cldPublicId, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { adresDegistir, rafaEkle, RafOgesi, raftanSil, watchOrtakRaf } from "@/lib/ortakRaf";
 import { auth } from "@/lib/firebase";
-import { icAgAdresi, itemInWindow, itemTakvimDurumu, listAllVideowalls, ZONE_BG_DEFAULT } from "@/lib/videowalls";
+import { fixLiveSrc, icAgAdresi, itemInWindow, itemTakvimDurumu, listAllVideowalls, ZONE_BG_DEFAULT } from "@/lib/videowalls";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 const iid = () => `it-${Math.random().toString(36).slice(2, 9)}`;
@@ -199,6 +199,10 @@ export default function ZonePanel({
       // Bu sırada en kötü ihtimal "dosya rafta ama listede görünmüyor": kimsenin
       // ekranı bozulmaz, yönetici tekrar deneyince düzelir.
       onZones(adresDegistir(vw.zones, it.src, j.src));
+      // YAYIN da çevrilmeli. Yalnız taslak çevrilirse yayındaki ekran artık var
+      // olmayan adresi göstermeye devam eder (alan kararır) ve kütüphane
+      // taslak+yayını birleştirdiği için aynı fotoğraf iki kez görünür.
+      await fixLiveSrc(vw.id, vw.live, it.src, j.src).catch(() => {});
       await rafaEkle({
         kind: it.kind,
         src: j.src,
