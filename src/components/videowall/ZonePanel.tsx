@@ -183,6 +183,14 @@ export default function ZonePanel({
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error === "already-shared" ? "Bu dosya zaten ortak rafta." : "Ortak rafa taşınamadı.");
+
+      // SIRA: dosya taşındıktan sonra ÖNCE kendi adreslerimizi çevir, SONRA
+      // rafa yaz. Ters sırada bir kez yandık: kurallar henüz yayınlanmamışken
+      // rafa yazma reddediliyor, ama dosya ÇOKTAN taşınmış oluyor — öğe eski
+      // adresi gösteriyor ve o adreste artık dosya YOK (alan kararıyor).
+      // Bu sırada en kötü ihtimal "dosya rafta ama listede görünmüyor": kimsenin
+      // ekranı bozulmaz, yönetici tekrar deneyince düzelir.
+      onZones(adresDegistir(vw.zones, it.src, j.src));
       await rafaEkle({
         kind: it.kind,
         src: j.src,
@@ -191,12 +199,18 @@ export default function ZonePanel({
         by: kullanici?.displayName || kullanici?.email || "",
         fromWall: vw.name,
       });
-      // Kendi öğelerimizi yeni adrese çevir — TASLAK ve YAYIN birlikte, yoksa
-      // biri kırık kalır ve fark ancak perdede edilir.
-      onZones(adresDegistir(vw.zones, it.src, j.src));
       setLibTab("ortak");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Ortak rafa taşınamadı.");
+      // Kural yayınlanmadıysa Firestore "permission-denied" der ve kullanıcı
+      // sebebi asla anlayamaz — mesaj yapılacak işi söylesin.
+      const kod = (e as { code?: string })?.code ?? "";
+      setErr(
+        kod === "permission-denied"
+          ? "Dosya taşındı ama ortak raf listesine yazılamadı — firestore kuralları henüz yayınlanmamış olabilir."
+          : e instanceof Error
+            ? e.message
+            : "Ortak rafa taşınamadı."
+      );
     } finally {
       setRafBusy(null);
     }
@@ -925,6 +939,14 @@ export default function ZonePanel({
               <p className="font-display font-semibold inline-flex items-center gap-2"><Icon name="folder" size={16} /> Medya kütüphanesi</p>
               <button onClick={() => setLibOpen(false)} className="w-9 h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-paper" aria-label="Kapat"><Icon name="close" size={16} /></button>
             </div>
+            {/* HATA BURADA DA GÖSTERİLİR. Panelin hata şeridi bu pencerenin
+                ARKASINDA kalıyordu: kullanıcı "rafa koy" deyip hiçbir şey
+                olmadığını görüyor, sebebini hiç öğrenemiyordu. Modal içindeki
+                işlemin hatası modal içinde görünmeli. */}
+            {err && (
+              <div className="mb-3 rounded-xl bg-brand-soft text-brand px-3 py-2 text-xs font-semibold">{err}</div>
+            )}
+
             {/* SEKMELER — "Bu ekran" ile "Ortak raf" AYRI iki havuz.
                 Ortak raf bir depo değil DAĞITIM aracı: kurumsaldan gelen video
                 bir kez rafa konur, herkes kendi ekranında oradan seçer (dosyayı

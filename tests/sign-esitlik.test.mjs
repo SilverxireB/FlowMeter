@@ -67,6 +67,7 @@ const IZLER = [
   ["raftan silme yalnız yöneticide", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "{isAdmin && ("],
   ["rehberde ortak raf", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", 'id: "ortakraf"'],
   ["rehberde yetkiler", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", 'id: "yetkiler"'],
+  ["kütüphane hatası pencerede görünür", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "ARKASINDA kalıyordu"],
 ];
 
 const oku = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);
@@ -157,6 +158,22 @@ for (const [etiket, yol] of [
     `${topluDogru && disaDogru ? "✓" : "✗"} ${etiket}: toplu uygulama SÜZÜLMÜŞ listeye, dışa aktarma TAM listeye bakıyor` +
       `${topluDogru ? "" : " — topluUygula süzgeci yok sayıyor"}${disaDogru ? "" : " — disaAktar süzgeçten etkileniyor"}`
   );
+}
+
+// SIRA KORUMASI (ortak raf). Dosya taşındıktan sonra ÖNCE kendi adreslerimiz
+// çevrilmeli, SONRA raf listesine yazılmalı. Ters sırada bir kez yandı: kurallar
+// yayınlanmamışken raf yazımı reddediliyor ama dosya ÇOKTAN taşınmış oluyor —
+// öğe artık var olmayan bir adresi gösteriyor ve alan kararıyor. Derleme bunu
+// yakalamaz, gözle de fark edilmez.
+{
+  const k = oku("src/components/videowall/ZonePanel.tsx") ?? "";
+  const bas = k.indexOf("async function rafaKoy");
+  const govde = bas < 0 ? "" : k.slice(bas, bas + 2400);
+  const cevir = govde.indexOf("adresDegistir(");
+  const yaz = govde.indexOf("rafaEkle(");
+  const dogru = cevir > 0 && yaz > 0 && cevir < yaz;
+  if (!dogru) hata++;
+  console.log(`${dogru ? "✓" : "✗"} rafa koyarken adres çevirme, raf yazımından ÖNCE${dogru ? "" : " — TERS SIRADA (hata anında alan kararır)"}`);
 }
 
 // İkon seti: self-host, online'da kullanılan her ikonu tanımalı.

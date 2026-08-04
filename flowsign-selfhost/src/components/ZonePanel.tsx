@@ -160,6 +160,8 @@ export default function ZonePanel({
     setErr(null);
     try {
       const oge = await rafaKoyUc({ src: it.src, kind: it.kind, name: it.name || "adsız", fromWall: vw.name });
+      // Adres çevirme, taşımadan HEMEN sonra: bu ikisinin arasına başka bir
+      // işlem girerse, hata durumunda öğe artık var olmayan bir adresi gösterir.
       onZones(adresDegistir(vw.zones, it.src, oge.src));
       setRaf((r) => [oge, ...(r ?? [])]);
       setLibTab("ortak");
@@ -873,6 +875,14 @@ export default function ZonePanel({
               <p className="font-display font-semibold">🗂 Medya kütüphanesi</p>
               <button onClick={() => setLibOpen(false)} className="w-9 h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-paper" aria-label="Kapat"><Icon name="close" size={16} /></button>
             </div>
+            {/* HATA BURADA DA GÖSTERİLİR. Panelin hata şeridi bu pencerenin
+                ARKASINDA kalıyordu: kullanıcı "rafa koy" deyip hiçbir şey
+                olmadığını görüyor, sebebini hiç öğrenemiyordu. Modal içindeki
+                işlemin hatası modal içinde görünmeli. */}
+            {err && (
+              <div className="mb-3 rounded-xl bg-brand-soft text-brand px-3 py-2 text-xs font-semibold">{err}</div>
+            )}
+
             {/* SEKMELER — "Bu ekran" ile "Ortak raf" AYRI iki havuz.
                 Ortak raf bir depo değil DAĞITIM aracı: kurumsaldan gelen video
                 bir kez rafa konur, herkes kendi ekranında oradan seçer (dosyayı

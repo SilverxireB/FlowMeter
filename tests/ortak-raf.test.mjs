@@ -34,6 +34,21 @@ const { ORTAK_KLASOR, EKRAN_KLASOR, klasorCakisiyorMu, adresDegistir, adresKulla
   `${rafKod}; return { ORTAK_KLASOR, EKRAN_KLASOR, klasorCakisiyorMu, adresDegistir, adresKullanimSayisi };`
 )();
 
+// SELF-HOST çekirdeği de kendi kaynağından — iki ağacın sabitleri ayrı ayrı
+// sınanmalı; eşitlik sınavı yalnız "iz var mı" diye bakıyor, DEĞERİ görmüyor.
+const selfSrc = fs.readFileSync("flowsign-selfhost/src/lib/ortakRaf.ts", "utf8");
+const selfKod = selfSrc
+  .slice(selfSrc.indexOf("export const ORTAK_KLASOR"), selfSrc.indexOf("/** `/media/"))
+  .replace(/export interface [\s\S]*?\n\}\n/g, "")
+  .replace(/export const ORTAK_KLASOR = /, "const ORTAK_KLASOR = ")
+  .replace(/export function klasorCakisiyorMu\([^)]*\)[^{]*\{/, "function klasorCakisiyorMu(wallId) {")
+  .replace(/export function adresDegistir\([^)]*\)[^{]*\{/, "function adresDegistir(zones, eski, yeni) {")
+  .replace(/export function adresKullanimSayisi\([\s\S]*?\): number \{/, "function adresKullanimSayisi(vw, src) {")
+  .replace(/\(zones: Zone\[\] \| undefined\)/, "(zones)");
+const { ORTAK_KLASOR: SELF_ORTAK, klasorCakisiyorMu: selfCakisiyorMu } = new Function(
+  `${selfKod}; return { ORTAK_KLASOR, klasorCakisiyorMu };`
+)();
+
 const cldSrc = fs.readFileSync("src/lib/cloudinary.ts", "utf8");
 const cldKod =
   cldSrc.slice(cldSrc.indexOf("function isCld("), cldSrc.indexOf("/** secure_url")).replace(
@@ -62,6 +77,60 @@ for (const id of ["vw-abc123", "ortak", "flowsign-ortak", "", "a", "ortak/alt"])
   const sahte = `${EKRAN_KLASOR}/ortak`;
   const cakisir = `${EKRAN_KLASOR}/ortak` === sahte;
   kontrol(cakisir, `koruma anlamlı: raf "${sahte}" olsaydı "ortak" kimlikli ekranın silmesi onu süpürürdü`);
+}
+
+// ── 1b. SİLME AKIŞLARINI MODELLE (asıl güvence burada sınanıyor) ───────────
+// Kullanıcının tek şartı: "ekran silinince ortak rafa HİÇ dokunmasın".
+// Yukarıdaki kontrol niyeti ölçüyor; burası GERÇEK silme davranışını modelliyor
+// ve ayrıca RAFI YANLIŞ YERE KOYSAK ne olacağını da ölçüyor — yoksa "geçti"
+// satırı korumanın çalıştığını değil, testin bir şeye bakmadığını gösterir.
+
+/** Online: Cloudinary `delete_resources_by_prefix?prefix=flowsign/{id}` */
+const onlineSuprulurMu = (publicId, silinenEkranId) => publicId.startsWith(`${EKRAN_KLASOR}/${silinenEkranId}`);
+/**
+ * Self-host: `deleteWall` önce `klasorCakisiyorMu` ile reddeder, SONRA
+ * `rm -rf data/media/{id}` yapar. Model bu SIRAYI taşımalı — koruma kaldırılırsa
+ * sınav düşsün. (Ekran kimlikleri "w-…" olduğu için pratikte çakışma olmaz;
+ * koruma "kimlikler zaten öyle" varsayımına güvenmemek için var.)
+ */
+const selfSuprulurMu = (yol, silinenEkranId) =>
+  selfCakisiyorMu(silinenEkranId) ? false : yol.startsWith(`data/media/${silinenEkranId}/`);
+
+for (const silinen of ["w-abc123", "ortak", "w-1", SELF_ORTAK]) {
+  const rafDosyasi = `${ORTAK_KLASOR}/k3x-bekofilmi`;
+  kontrol(
+    onlineSuprulurMu(rafDosyasi, silinen) === false,
+    `online: "${silinen}" ekranı silinince raf dosyası duruyor`
+  );
+  kontrol(
+    selfSuprulurMu(`data/media/${SELF_ORTAK}/bekofilmi.mp4`, silinen) === false,
+    `self-host: "${silinen}" ekranı silinince raf dosyası duruyor`
+  );
+}
+// Kendi ekranının dosyası ise SİLİNMELİ (silme gerçekten çalışıyor mu).
+kontrol(onlineSuprulurMu(`${EKRAN_KLASOR}/w-abc123/afis`, "w-abc123") === true, "online: silinen ekranın kendi dosyası süprülüyor");
+kontrol(selfSuprulurMu("data/media/w-abc123/afis.jpg", "w-abc123") === true, "self-host: silinen ekranın kendi dosyası süprülüyor");
+// ÇİFT YÖNLÜ: raf ekran ağacının ALTINDA olsaydı koruma çökerdi.
+kontrol(
+  onlineSuprulurMu(`${EKRAN_KLASOR}/ortak/k3x-bekofilmi`, "ortak") === true,
+  'çift yönlü: raf "flowsign/ortak" altında OLSAYDI, "ortak" kimlikli ekranın silmesi rafı götürürdü'
+);
+kontrol(
+  selfSuprulurMu("data/media/w-abc/_ortak/x.mp4", "w-abc") === true,
+  "çift yönlü: raf bir ekranın İÇİNDE olsaydı o ekranın silmesi rafı götürürdü"
+);
+
+// KAYNAK KORUMASI: yukarıdaki model korumanın VAR olduğunu varsayıyor. Koruma
+// `deleteWall`den silinirse model yine "geçti" derdi — o yüzden çağrının kendisi
+// de aranıyor.
+{
+  const store = fs.readFileSync("flowsign-selfhost/src/lib/store.ts", "utf8");
+  const bas = store.indexOf("export async function deleteWall");
+  const govde = bas < 0 ? "" : store.slice(bas, bas + 1200);
+  kontrol(
+    /klasorCakisiyorMu\(/.test(govde) && /fs\.rm\(path\.join\(MEDIA_DIR/.test(govde),
+    "self-host silme yolu, medyayı kaldırmadan ÖNCE raf korumasını çağırıyor"
+  );
 }
 
 // ── 2. ADRES ÇÖZÜMLEME ──────────────────────────────────────────────────────
@@ -105,6 +174,51 @@ kontrol(adresDegistir(undefined, ESKI, YENI).length === 0, "alanı olmayan ekran
 const vw = { zones, live: { zones: [{ id: "l1", items: [{ id: "d", src: ESKI }] }] } };
 kontrol(adresKullanimSayisi(vw, ESKI) === 3, `kullanım sayısı taslak(2) + yayın(1) = 3 (ölçülen ${adresKullanimSayisi(vw, ESKI)})`);
 kontrol(adresKullanimSayisi({ zones: undefined, live: null }, ESKI) === 0, "boş ekran 0 döner");
+
+
+// ── 4. CLOUDINARY İMZASI (online taraf) ─────────────────────────────────────
+// Online uç gerçek anahtar istediği için uçtan uca denenemiyor; oradaki TEK
+// riskli parça imza üretimi. Yeni jenerik imzalayıcı, ÜRETİMDE ÇALIŞTIĞI BİLİNEN
+// `/api/wall/destroy` rotasının elle kurulmuş imzasıyla karşılaştırılıyor:
+// aynı parametreler için aynı özeti üretmiyorsa Cloudinary "Invalid Signature"
+// der ve dosya ne taşınır ne silinir.
+import crypto from "node:crypto";
+{
+  const rotaSrc = fs.readFileSync("src/app/api/sign/ortak-raf/route.ts", "utf8");
+  const imzaKod = rotaSrc
+    .slice(rotaSrc.indexOf("function imza("), rotaSrc.indexOf("/** POST —"))
+    .replace(/function imza\([^)]*\)[^{]*\{/, "function imza(params, secret) {");
+  const { imza } = new Function("crypto", `${imzaKod}; return { imza };`)(crypto);
+
+  const SECRET = "gizli-anahtar";
+  const publicId = "flowsign-ortak/k3x-bekofilmi";
+  const timestamp = "1712345678";
+  // destroy rotasının ürettiği dizge (birebir o dosyadan):
+  //   `invalidate=true&public_id=${id}&timestamp=${ts}${SECRET}`
+  const beklenen = crypto
+    .createHash("sha1")
+    .update(`invalidate=true&public_id=${publicId}&timestamp=${timestamp}${SECRET}`)
+    .digest("hex");
+  const uretilen = imza({ invalidate: "true", public_id: publicId, timestamp }, SECRET);
+  kontrol(uretilen === beklenen, "imza, üretimde çalışan destroy rotasıyla BİREBİR aynı");
+
+  // Sıralama gerçekten alfabetik mi (Cloudinary şartı): parametreleri ters
+  // sırada verince de aynı özet çıkmalı.
+  kontrol(
+    imza({ timestamp, public_id: publicId, invalidate: "true" }, SECRET) === beklenen,
+    "parametre sırası imzayı değiştirmiyor (alfabetik sıralanıyor)"
+  );
+  // Rename imzası: beş parametre, alfabetik.
+  const renameBeklenen = crypto
+    .createHash("sha1")
+    .update(`from_public_id=a&invalidate=true&overwrite=false&timestamp=${timestamp}&to_public_id=b${SECRET}`)
+    .digest("hex");
+  kontrol(
+    imza({ to_public_id: "b", from_public_id: "a", overwrite: "false", invalidate: "true", timestamp }, SECRET) ===
+      renameBeklenen,
+    "rename imzası beş parametreyi alfabetik diziyor"
+  );
+}
 
 console.log(hata ? `\n${hata} SINAV BAŞARISIZ` : "\nhepsi geçti");
 process.exit(hata ? 1 : 0);
