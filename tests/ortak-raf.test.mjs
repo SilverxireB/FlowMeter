@@ -222,6 +222,29 @@ for (const [etiket, yol] of [
   kontrol(/denenen: adaylar/.test(rota), "hata mesajı DENENEN kimlikleri yazıyor");
 }
 
+// ── 3e. TIMESTAMP BOZULMASI (üretimde iki ekranı kilitleyen hata) ───────────
+// `fixLiveSrc` yayını yazarken stripUndefined (= JSON turu) kullanıyordu; bu,
+// Firestore Timestamp'ini düz {seconds,nanoseconds} nesnesine çevirir. Editör
+// `publishedAt.toDate()` çağırınca SAYFA AÇILMIYOR — kullanıcı veriye
+// ulaşamadığı için kendisi de düzeltemiyor. İki koruma birden:
+//  1. yazan taraf: publishedAt strip'ten GEÇMEZ, olduğu gibi verilir,
+//  2. okuyan taraf: toDate yoksa seconds'tan kurtarır (bozulmuş geçmiş
+//     dokümanlar için kalıcı emniyet).
+{
+  const vws = fs.readFileSync("src/lib/videowalls.ts", "utf8");
+  const bas = vws.indexOf("export async function fixLiveSrc");
+  const govde = bas < 0 ? "" : vws.slice(bas, bas + 1600);
+  kontrol(
+    /const \{ publishedAt, \.\.\.kalan \} = live;/.test(govde) && !/stripUndefined\(\{ \.\.\.live/.test(govde),
+    "fixLiveSrc: publishedAt stripUndefined'dan GEÇMİYOR (Timestamp bozulmaz)"
+  );
+  const edit = fs.readFileSync("src/app/videowall/[id]/edit/page.tsx", "utf8");
+  kontrol(
+    /publishedTs\?\.toDate\?\.\(\)/.test(edit) && /seconds/.test(edit),
+    "editör publishedAt'i TOLERANSLI okuyor (bozuk doküman sayfayı kilitleyemez)"
+  );
+}
+
 // ── 4. CLOUDINARY İMZASI (online taraf) ─────────────────────────────────────
 // Online uç gerçek anahtar istediği için uçtan uca denenemiyor; oradaki TEK
 // riskli parça imza üretimi. Yeni jenerik imzalayıcı, ÜRETİMDE ÇALIŞTIĞI BİLİNEN

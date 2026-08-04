@@ -458,10 +458,18 @@ export interface ZoneItem {
    * sen onu buraya bağlarsın. Sınır ekranın sınırıdır — o kişi seninkine
    * dokunamaz. Perde, bağlı ekranın YAYININI çizer (taslağı değil).
    */
-  kind: "image" | "video" | "url" | "text" | "clock" | "screen";
+  kind: "image" | "video" | "url" | "text" | "clock" | "screen" | "fotoSahne";
   src?: string; // image/video/url için kaynak; text/clock'ta yok
   /** screen öğesi: bağlanan ekranın KİMLİĞİ (adres değil — ad değişse de kopmaz). */
   screenId?: string;
+  /**
+   * fotoSahne öğesi: sahnede dönecek fotoğrafların ADRESLERİ ve sahne modu.
+   * Fotoğraflar öğenin KENDİ listesinde durur — alandaki gevşek görsellerden
+   * ayrı; yoksa aynı fotoğraf hem tek tek hem sahnede dönerdi.
+   * Süre `durationSec`ten gelir: sahnenin TOPLAM süresi odur (yeni alan yok).
+   */
+  fotolar?: string[];
+  sahneModu?: "mozaik" | "polaroid" | "sahne" | "spot" | "sinema";
   /** Cloudinary public_id — silme/ortak rafa taşıma bunu ister (yeni yüklemelerde yazılır; eskilerde adresten çözülür). */
   cloudinaryId?: string;
   name?: string;

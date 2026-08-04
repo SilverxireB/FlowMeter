@@ -7,6 +7,7 @@
  * Etkileşim pointer-capture + koordinat matematiğiyle (fare VE dokunmatik çalışır;
  * hücre başına DOM yok). Alanlar oransal (0–1) → yayın çözünürlükten bağımsız.
  */
+import FotoSahne from "@/components/videowall/FotoSahne";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cldFit } from "@/lib/cloudinary";
 import { CellBox, contentZonesIn, itemInWindow, layoutColsOf, layoutRowsOf, mergeCells, normalizeGrid, watchVideowall, zoneCells, ZONE_BG_DEFAULT, snapBoxToZones } from "@/lib/videowalls";
@@ -85,6 +86,15 @@ function ZonePreview({ item, ic = false }: { item?: ZoneItem; ic?: boolean }) {
   // yazdığını görmeden tasarım yapılamıyor, üstelik liste kartındaki minyatür
   // (WallThumb) metnin başlığını ZATEN gösteriyordu — iki yüzey ayrışmıştı.
   // Artık ikisi de gerçek içeriğini gösterir; boyut alana göre (cqmin).
+  if (item.kind === "fotoSahne")
+    // GERÇEK bileşenle çizilir (rehber kuralıyla aynı ilke): mod seçilirken
+    // önizlemede gerçek hâli görünmezse kör ayar olur. `durgun` — kokpitte
+    // zamanlayıcı çalışmaz, sahne ilk karesinde durur.
+    return (
+      <div className="absolute inset-0">
+        <FotoSahne item={item} box={{ w: 320, h: 180 }} durgun />
+      </div>
+    );
   if (item.kind === "text")
     return (
       <div

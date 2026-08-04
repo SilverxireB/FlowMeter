@@ -24,6 +24,10 @@ function ItemFace({ item }: { item?: ZoneItem }) {
       <div className="absolute inset-0 grid place-items-center bg-black/40 text-base">🎬</div>
     );
   }
+  if (item.kind === "fotoSahne" && item.fotolar?.length)
+    // Liste kartında sahnenin İLK fotoğrafı: boş kutu "içerik yok" derdi, oysa var.
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={cldFit(item.fotolar[0], 320)} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: "cover" }} />;
   if (item.kind === "text")
     return (
       <div className="absolute inset-0 grid place-items-center px-1 text-center" style={{ background: item.bg ?? "#312e81", color: item.color ?? "#fff" }}>

@@ -12,10 +12,18 @@ export interface ZoneItem {
    * bölümünü başkasına yönettirmenin yolu: o kişi kendi ekranını düzenler,
    * sen onu buraya bağlarsın. Perde bağlı ekranın YAYININI çizer.
    */
-  kind: "image" | "video" | "url" | "text" | "clock" | "screen";
+  kind: "image" | "video" | "url" | "text" | "clock" | "screen" | "fotoSahne";
   src?: string; // image/video: yerel /media/... yolu; url: http(s) — iç ağ adresleri dahil
   /** screen öğesi: bağlanan ekranın KİMLİĞİ (adres değil — ad değişse de kopmaz). */
   screenId?: string;
+  /**
+   * fotoSahne öğesi: sahnede dönecek fotoğrafların ADRESLERİ ve sahne modu.
+   * Fotoğraflar öğenin KENDİ listesinde durur — alandaki gevşek görsellerden
+   * ayrı; yoksa aynı fotoğraf hem tek tek hem sahnede dönerdi.
+   * Süre `durationSec`ten gelir: sahnenin TOPLAM süresi odur (yeni alan yok).
+   */
+  fotolar?: string[];
+  sahneModu?: "mozaik" | "polaroid" | "sahne" | "spot" | "sinema";
   name?: string;
   durationSec?: number; // image/url/text/clock için gösterim süresi; video kendi süresi (ya da cap)
   from?: string; // "HH:MM" saat aralığı başı (boşsa hep)

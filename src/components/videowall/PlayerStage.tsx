@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { BEAT_MS, itemInWindow as inWindow, sendScreenBeat, signAdresi, watchVideowall, watchVideowallBySlug, ZONE_BG_DEFAULT } from "@/lib/videowalls";
+import FotoSahne from "./FotoSahne";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 type Transition = "fade" | "cut" | "slide";
@@ -297,6 +298,10 @@ function Layer({ item, transition, loop, designPx, zincir = [], onEnded, onError
         <TextView item={item} />
       ) : item.kind === "clock" ? (
         <ClockView item={item} />
+      ) : item.kind === "fotoSahne" ? (
+        // Alanın GERÇEK piksel ölçüsü sahneye geçer: ızgara alanın oranına göre
+        // türetiliyor, yanlış oran yanlış yerleşim demek.
+        <FotoSahne item={item} box={designPx ?? { w: 1920, h: 1080 }} />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={safeSrc(item.src)} alt={item.name || ""} onError={onError} className="w-full h-full" style={{ objectFit: "fill" }} />

@@ -660,7 +660,16 @@ export async function fixLiveSrc(id: string, live: Videowall["live"], eski: stri
     ...z,
     items: (z.items ?? []).map((it) => (it.src === eski ? { ...it, src: yeni } : it)),
   }));
-  await updateDoc(doc(db(), "videowalls", id), { live: stripUndefined({ ...live, zones }), updatedAt: serverTimestamp() });
+  // `publishedAt` STRIP'TEN GEÇMEZ. stripUndefined = JSON turu ve Firestore
+  // Timestamp'ini düz {seconds,nanoseconds} nesnesine çevirir; geri okuyan
+  // editör `publishedAt.toDate()` çağırınca SAYFA ÇÖKER (üretimde iki ekran
+  // böyle kilitlendi — ekrana her girişte "Application error"). Timestamp
+  // nesnesi updateDoc'a OLDUĞU GİBİ verilir.
+  const { publishedAt, ...kalan } = live;
+  await updateDoc(doc(db(), "videowalls", id), {
+    live: { ...stripUndefined({ ...kalan, zones }), ...(publishedAt ? { publishedAt } : {}) },
+    updatedAt: serverTimestamp(),
+  });
 }
 
 /** Oynatma modu (tabela/sunum) — yayından bağımsız, perde anında uyar. */

@@ -13,12 +13,13 @@ import { Icon, IconName } from "@/components/icons";
 import FlowSpinner from "@/components/FlowSpinner";
 import { fixLiveSrc, listOrtakRaf, listWalls, rafaKoy as rafaKoyUc, raftanSil as raftanSilUc } from "@/lib/client";
 import { adresDegistir, RafOgesi } from "@/lib/ortakRaf";
+import { SAHNE_MODLARI, SAHNE_MODU_VARSAYILAN } from "@/lib/fotoSahne";
 import { uploadMedia } from "@/lib/media";
 import { icAgAdresi, itemInWindow, itemTakvimDurumu, ZONE_BG_DEFAULT } from "@/lib/zones";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 const iid = () => `it-${Math.random().toString(36).slice(2, 9)}`;
-const KIND_LABEL = { image: "Görsel", video: "Video", url: "URL", text: "Metin", clock: "Saat", screen: "Ekran" } as const;
+const KIND_LABEL = { image: "Görsel", video: "Video", url: "URL", text: "Metin", clock: "Saat", screen: "Ekran", fotoSahne: "Foto sahne" } as const;
 const DAYS = [
   { v: 1, l: "Pzt" }, { v: 2, l: "Sal" }, { v: 3, l: "Çar" }, { v: 4, l: "Per" },
   { v: 5, l: "Cum" }, { v: 6, l: "Cmt" }, { v: 0, l: "Paz" },
@@ -49,6 +50,13 @@ function ItemThumb({ item }: { item: ZoneItem }) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={item.src} alt="" className={`${base} object-cover`} />;
   if (item.kind === "video" && item.src) return <div className={`${base} bg-ink/80 text-xl`}>🎬</div>;
+  if (item.kind === "fotoSahne")
+    return item.fotolar?.length ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={item.fotolar[0]} alt="" className={`${base} object-cover`} />
+    ) : (
+      <div className={`${base} bg-ink/80 text-xl`}>🖼</div>
+    );
   if (item.kind === "text")
     return <div className={`${base} font-bold text-sm`} style={{ background: item.bg ?? "#312e81", color: item.color ?? "#fff" }}>Aa</div>;
   if (item.kind === "clock")
@@ -100,6 +108,12 @@ export default function ZonePanel({
    * pencere açıkken okunur — kokpit her açıldığında boşuna istek atmasın.
    */
   const [libTab, setLibTab] = useState<"ekran" | "ortak">("ekran");
+  /**
+   * FOTO SAHNE FOTOĞRAF SEÇİCİSİ. Ayrı bir pencere açmıyoruz: seçilecek şey
+   * zaten kütüphanedeki medya. Bu değer doluyken kütüphane "sahneye ekle"
+   * kipinde çalışır — aynı yüzey, iki iş; kullanıcı yeni bir yer öğrenmez.
+   */
+  const [fotoSecici, setFotoSecici] = useState<string | null>(null);
   const [raf, setRaf] = useState<RafOgesi[] | null>(null);
   const [rafBusy, setRafBusy] = useState<string | null>(null);
   useEffect(() => {
@@ -281,11 +295,39 @@ export default function ZonePanel({
 
   const addText = () => setItems([...zone.items, { id: iid(), kind: "text", title: "Başlık", text: "", bg: "#312e81", color: "#ffffff", durationSec: 10 }]);
   const addClock = () => setItems([...zone.items, { id: iid(), kind: "clock", bg: "#0d102f", color: "#ffffff", durationSec: 10 }]);
+  /**
+   * FOTO SAHNE ekle. Fotoğraflar öğenin KENDİ listesinde durur (alandaki gevşek
+   * görsellerden ayrı) — yoksa aynı fotoğraf hem tek tek hem sahnede dönerdi.
+   * Süre uzun başlar: modların ritmi saatlerce açık kalan bir perdeye göre;
+   * 30 saniyede mod ısınamadan biter.
+   */
+  const addFotoSahne = () =>
+    setItems([
+      ...zone.items,
+      { id: iid(), kind: "fotoSahne", name: "Foto sahne", fotolar: [], sahneModu: SAHNE_MODU_VARSAYILAN, durationSec: 300 },
+    ]);
+
   /** Başka bir ekranı bu alana bağla — ADRESLE değil KİMLİKLE. */
   const addScreen = (hedef: Videowall) => {
     setItems([...zone.items, { id: iid(), kind: "screen", screenId: hedef.id, name: hedef.name }]);
     setScreenPick(false);
   };
+  /**
+   * Seçilen fotoğrafı AÇIK OLAN foto sahnenin listesine ekle. Pencere KAPANMAZ:
+   * sahneye tek fotoğraf koyan yok, arka arkaya seçilir. Aynı fotoğraf iki kez
+   * eklenmez — sahnede tekrar eden kare çirkin ve sebebi anlaşılmaz.
+   */
+  const sahneyeEkle = (src: string) => {
+    if (!fotoSecici || !src) return;
+    setItems(
+      zone.items.map((x) =>
+        x.id === fotoSecici && !(x.fotolar ?? []).includes(src)
+          ? { ...x, fotolar: [...(x.fotolar ?? []), src] }
+          : x
+      )
+    );
+  };
+
   const addFromLib = (src: ZoneItem) => {
     // Yalnız dosyanın kendisi kopyalanır — eski öğenin takvimi/süresi GİZLİCE taşınmaz.
     setItems([
@@ -354,6 +396,7 @@ export default function ZonePanel({
     { label: "URL", icon: "link" as const, fn: () => setUrlForm({ src: "", name: "" }) },
     { label: "Metin", icon: "pencil" as const, fn: addText },
     { label: "Saat", icon: "clock" as const, fn: addClock },
+    { label: "Foto sahne", icon: "image" as const, fn: addFotoSahne },
     {
       label: "Ekran",
       icon: "monitor" as const,
@@ -565,7 +608,7 @@ export default function ZonePanel({
                       // kurulu, kopmuyor; yanıltan yalnız etiketti).
                       const taze = it.kind === "screen" ? screens?.find((v) => v.id === it.screenId)?.name : undefined;
                       const baslik =
-                        it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : taze ?? it.name ?? it.src;
+                        it.kind === "text" ? it.title || "Metin" : it.kind === "clock" ? "Saat" : it.kind === "fotoSahne" ? `Foto sahne · ${(it.fotolar?.length ?? 0)} foto` : taze ?? it.name ?? it.src;
                       return (
                         <p className="text-sm font-semibold truncate" title={baslik}>
                           {baslik}
@@ -663,6 +706,62 @@ export default function ZonePanel({
                             className={`${inputCls} px-3 py-2 text-xs w-full font-mono`}
                             aria-label="Sayfa adresi (URL)"
                           />
+                        )}
+                      </div>
+                    )}
+                    {it.kind === "fotoSahne" && (
+                      <div className="flex flex-col gap-2.5 pl-9">
+                        {/* MOD SEÇİCİ — modlar `lib/fotoSahne`ten türer, burada
+                            elle liste yok: yeni mod eklenince seçici de rehber
+                            de kendiliğinden güncellenir. */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {SAHNE_MODLARI.map((m) => (
+                            <button
+                              key={m.id}
+                              onClick={() => patchItem(it.id, { sahneModu: m.id })}
+                              title={m.ipucu}
+                              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                                (it.sahneModu ?? SAHNE_MODU_VARSAYILAN) === m.id
+                                  ? "bg-ink text-white border-ink"
+                                  : "bg-white border-line text-muted hover:border-muted"
+                              }`}
+                            >
+                              {m.ad}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-muted text-[11px]">
+                          {SAHNE_MODLARI.find((m) => m.id === (it.sahneModu ?? SAHNE_MODU_VARSAYILAN))?.ipucu}
+                        </p>
+
+                        {/* SEÇİLİ FOTOĞRAFLAR — tıkla çıkar. */}
+                        {(it.fotolar?.length ?? 0) > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {(it.fotolar ?? []).map((f) => (
+                              <button
+                                key={f}
+                                onClick={() => patchItem(it.id, { fotolar: (it.fotolar ?? []).filter((x) => x !== f) })}
+                                title="Sahneden çıkar"
+                                className="relative w-12 h-12 rounded-lg overflow-hidden border border-line hover:border-brand group"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={f} alt="" className="w-full h-full object-cover bg-black" />
+                                <span className="absolute inset-0 bg-brand/70 opacity-0 group-hover:opacity-100 grid place-items-center text-white text-lg">×</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <button
+                          onClick={() => setFotoSecici(it.id)}
+                          className="self-start rounded-lg bg-paper border border-line px-3 py-1.5 text-xs font-semibold hover:border-muted inline-flex items-center gap-1.5"
+                        >
+                          <Icon name="image" size={13} /> Fotoğraf ekle ({it.fotolar?.length ?? 0})
+                        </button>
+                        {/* Süre uyarısı: modların ritmi uzun pencereye göre. */}
+                        {(it.durationSec ?? 0) > 0 && (it.durationSec ?? 0) < 45 && (
+                          <p className="text-[11px] font-semibold text-[#8a6100]">
+                            ⚠ Süre kısa — sahne ısınmadan biter. 45 sn ve üstü önerilir.
+                          </p>
                         )}
                       </div>
                     )}
@@ -871,12 +970,12 @@ export default function ZonePanel({
       </div>
 
       {/* Medya kütüphanesi */}
-      {libOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 grid place-items-center p-4" onClick={() => setLibOpen(false)}>
+      {(libOpen || fotoSecici) && (
+        <div className="fixed inset-0 z-50 bg-black/60 grid place-items-center p-4" onClick={() => { setLibOpen(false); setFotoSecici(null); }}>
           <div className="bg-white border border-line rounded-2xl p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <p className="font-display font-semibold">🗂 Medya kütüphanesi</p>
-              <button onClick={() => setLibOpen(false)} className="w-9 h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-paper" aria-label="Kapat"><Icon name="close" size={16} /></button>
+              <button onClick={() => { setLibOpen(false); setFotoSecici(null); }} className="w-9 h-9 grid place-items-center rounded-xl text-muted hover:text-ink hover:bg-paper" aria-label="Kapat"><Icon name="close" size={16} /></button>
             </div>
             {/* HATA BURADA DA GÖSTERİLİR. Panelin hata şeridi bu pencerenin
                 ARKASINDA kalıyordu: kullanıcı "rafa koy" deyip hiçbir şey
@@ -908,9 +1007,11 @@ export default function ZonePanel({
               ))}
             </div>
             <p className="text-muted text-xs mb-3">
-              {libTab === "ekran"
-                ? "Bu ekrana yüklediğin medya (taslak + yayın). Tıkla, bu alana ekle."
-                : "Kurumun ortak medyası — herkes buradan seçebilir. Ekran silinse bile raf etkilenmez."}
+              {fotoSecici
+                ? "Tıkla, foto sahneye ekle. Pencere açık kalır — birkaçını arka arkaya seçebilirsin."
+                : libTab === "ekran"
+                  ? "Bu ekrana yüklediğin medya (taslak + yayın). Tıkla, bu alana ekle."
+                  : "Kurumun ortak medyası — herkes buradan seçebilir. Ekran silinse bile raf etkilenmez."}
             </p>
 
             {/* Tür sekmeleri: Tümü / Foto / Video */}
@@ -940,7 +1041,7 @@ export default function ZonePanel({
                     // Kart ARTIK düğme değil: içinde ikinci bir eylem var
                     // (rafa koy) ve iç içe düğme geçersiz HTML.
                     <div key={it.src} className="relative rounded-lg overflow-hidden border border-line hover:border-accent">
-                      <button onClick={() => addFromLib(it)} className="block w-full text-left" title="Bu alana ekle">
+                      <button onClick={() => (fotoSecici ? sahneyeEkle(it.src!) : addFromLib(it))} className="block w-full text-left" title={fotoSecici ? "Sahneye ekle" : "Bu alana ekle"}>
                         <span className="block aspect-square relative">
                           {it.kind === "video" ? (
                             <span className="w-full h-full grid place-items-center bg-black text-2xl">🎬</span>
@@ -973,7 +1074,7 @@ export default function ZonePanel({
                   .filter((o) => libFilter === "all" || o.kind === libFilter)
                   .map((o) => (
                     <div key={o.id} className="relative rounded-lg overflow-hidden border border-line hover:border-accent">
-                      <button onClick={() => addFromLib({ id: o.id, kind: o.kind, src: o.src, name: o.name })} className="block w-full text-left" title="Bu alana ekle">
+                      <button onClick={() => (fotoSecici ? sahneyeEkle(o.src) : addFromLib({ id: o.id, kind: o.kind, src: o.src, name: o.name }))} className="block w-full text-left" title={fotoSecici ? "Sahneye ekle" : "Bu alana ekle"}>
                         <span className="block aspect-square relative">
                           {o.kind === "video" ? (
                             <span className="w-full h-full grid place-items-center bg-black text-2xl">🎬</span>

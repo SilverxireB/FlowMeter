@@ -255,8 +255,15 @@ export default function VideowallEditPage() {
     });
   };
 
-  const lastPublished = vw?.live?.publishedAt
-    ? vw.live.publishedAt.toDate().toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+  // TOLERANSLI OKUMA: `publishedAt` her zaman Timestamp olmayabilir — bir ara
+  // yazma yolu onu düz {seconds} nesnesine çevirdi ve `.toDate()` çağrısı o
+  // ekranların EDİTÖRÜNÜ tamamen kilitledi (sayfa hiç açılmıyordu; kullanıcı
+  // veriye ulaşamadığı için kendisi de düzeltemiyordu). Yazma yolu düzeltildi;
+  // bu okuma, bozulmuş geçmiş dokümanlar için kalıcı emniyettir.
+  const publishedTs = vw?.live?.publishedAt as { toDate?: () => Date; seconds?: number } | null | undefined;
+  const publishedDate = publishedTs?.toDate?.() ?? (typeof publishedTs?.seconds === "number" ? new Date(publishedTs.seconds * 1000) : null);
+  const lastPublished = publishedDate
+    ? publishedDate.toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
     : null;
 
   if (vw === undefined || loading)
