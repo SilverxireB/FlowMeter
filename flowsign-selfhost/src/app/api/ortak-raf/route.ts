@@ -40,7 +40,33 @@ async function yaz(liste: RafOgesi[]): Promise<void> {
 
 export async function GET(req: NextRequest) {
   if (!(await currentUser(req))) return unauthorized();
-  return NextResponse.json({ raf: await oku() });
+  /**
+   * LİSTE = KLASÖRÜN KENDİSİ + kayıt süsü. Kayıt dosyasıyla klasör ayrışırsa
+   * (yarım taşıma, elle kopyalanan dosya) klasördeki KAZANIR: rafta ne varsa o
+   * görünür, kayıtsız dosya "dosya-" kimliğiyle listelenir ve silinebilir.
+   * (Online'daki yetim-dosya dersinin self-host karşılığı.)
+   */
+  const kayitlar = await oku();
+  let liste: RafOgesi[] = [...kayitlar];
+  try {
+    const dosyalar = await fs.readdir(RAF_DIZIN);
+    const kayitli = new Set(kayitlar.map((k) => medyaDosyaAdi(k.src)));
+    for (const f of dosyalar) {
+      if (kayitli.has(f)) continue;
+      const video = /\.(mp4|mov|webm|m4v)$/i.test(f);
+      liste.push({
+        id: `dosya-${f}`,
+        kind: video ? "video" : "image",
+        src: `/media/${ORTAK_KLASOR}/${f}`,
+        name: f.includes("_") ? f.slice(f.indexOf("_") + 1) : f,
+      });
+    }
+    // Dosyası silinmiş kayıt listede durmasın (çöp satır).
+    liste = liste.filter((o) => o.id.startsWith("dosya-") || dosyalar.includes(medyaDosyaAdi(o.src)));
+  } catch {
+    /* klasör henüz yoksa yalnız kayıtlar */
+  }
+  return NextResponse.json({ raf: liste });
 }
 
 /** Rafa koy — dosya TAŞINIR, sonra kayıt yazılır. */
@@ -100,6 +126,14 @@ export async function DELETE(req: NextRequest) {
   if (!me) return unauthorized();
   if (me.role !== "admin") return forbidden();
   const id = req.nextUrl.searchParams.get("id") ?? "";
+  // YETİM dosya (kaydı yok, "dosya-" kimliğiyle listelendi): doğrudan sil.
+  if (id.startsWith("dosya-")) {
+    const f = id.slice(6);
+    if (!f || f.includes("..") || f.includes("/") || f.includes("\\"))
+      return NextResponse.json({ error: "Geçersiz dosya adı" }, { status: 400 });
+    await fs.rm(path.join(RAF_DIZIN, f), { force: true });
+    return NextResponse.json({ ok: true });
+  }
   const liste = await oku();
   const oge = liste.find((o) => o.id === id);
   if (!oge) return NextResponse.json({ error: "Kayıt yok" }, { status: 404 });

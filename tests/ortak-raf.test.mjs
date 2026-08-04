@@ -245,6 +245,24 @@ for (const [etiket, yol] of [
   );
 }
 
+// ── 3e. LİSTE SUNUCU GERÇEĞİNDEN (yetim dosya dersi) ────────────────────────
+// CANLIDA GÖRÜLDÜ: taşıma iki adım (dosyayı taşı + listeye yaz) ve ikincisi
+// düşebiliyor — kurallar yapıştırılmadan yapılan denemelerde dosyalar rafa
+// TAŞINDI, kayıt yazılamadı: panel "Ortak raf (0)" derken taşıma "zaten rafta"
+// diyordu. Liste artık dosyaların KENDİSİNDEN gelir (Cloudinary / raf klasörü);
+// kayıt yalnız kim/ne zaman süsüdür. Bu korunmazsa yetim sınıfı geri gelir.
+{
+  const rota = fs.readFileSync("src/app/api/sign/ortak-raf/route.ts", "utf8");
+  kontrol(/export async function GET/.test(rota) && /resources\/\$\{rt\}\/upload\?prefix=/.test(rota),
+    "online: raf listesi Cloudinary'den okunuyor (GET, prefix)");
+  const panel = fs.readFileSync("src/components/videowall/ZonePanel.tsx", "utf8");
+  kontrol(/rafDosyalar/.test(panel) && /watchOrtakRaf\(setRafKayitlar\)/.test(panel),
+    "online panel: dosya listesi gerçek, kayıt yalnız süs");
+  const shRota = fs.readFileSync("flowsign-selfhost/src/app/api/ortak-raf/route.ts", "utf8");
+  kontrol(/readdir\(RAF_DIZIN\)/.test(shRota) && /dosya-/.test(shRota),
+    "self-host: klasör kazanır — kayıtsız dosya listelenir ve silinebilir");
+}
+
 // ── 4. CLOUDINARY İMZASI (online taraf) ─────────────────────────────────────
 // Online uç gerçek anahtar istediği için uçtan uca denenemiyor; oradaki TEK
 // riskli parça imza üretimi. Yeni jenerik imzalayıcı, ÜRETİMDE ÇALIŞTIĞI BİLİNEN
@@ -254,8 +272,12 @@ for (const [etiket, yol] of [
 import crypto from "node:crypto";
 {
   const rotaSrc = fs.readFileSync("src/app/api/sign/ortak-raf/route.ts", "utf8");
+  // Kesit imzanın KENDİ gövdesiyle sınırlı: "bir sonraki yorum"a kadar kesmek,
+  // araya yeni bir işlev (GET) girince kesite export sızdırıp sınavı patlatmıştı.
+  const imzaBas = rotaSrc.indexOf("function imza(");
+  const imzaSon = rotaSrc.indexOf("\n}\n", imzaBas) + 3;
   const imzaKod = rotaSrc
-    .slice(rotaSrc.indexOf("function imza("), rotaSrc.indexOf("/** POST —"))
+    .slice(imzaBas, imzaSon)
     .replace(/function imza\([^)]*\)[^{]*\{/, "function imza(params, secret) {");
   const { imza } = new Function("crypto", `${imzaKod}; return { imza };`)(crypto);
 

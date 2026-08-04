@@ -129,12 +129,44 @@ export default function ZonePanel({
    * kipinde çalışır — aynı yüzey, iki iş; kullanıcı yeni bir yer öğrenmez.
    */
   const [fotoSecici, setFotoSecici] = useState<string | null>(null);
-  const [raf, setRaf] = useState<RafOgesi[] | null>(null);
+  /**
+   * RAF LİSTESİ SUNUCU GERÇEĞİNDEN (Cloudinary'de rafta ne varsa o). Firestore
+   * kaydı yalnız kim/ne zaman bilgisini süsler. Neden: taşıma iki adım ve
+   * ikincisi (listeye yazma) düşebiliyor — kurallar yapıştırılmadan yapılan ilk
+   * denemelerde tam bu oldu: dosyalar rafa TAŞINDI, kayıt yazılamadı, panel
+   * "Ortak raf (0)" derken taşıma "zaten rafta" diyordu. Liste dosyaların
+   * kendisinden gelince YETİM diye bir şey kalmaz.
+   */
+  const [rafDosyalar, setRafDosyalar] = useState<{ publicId: string; src: string; kind: "image" | "video"; name: string }[] | null>(null);
+  const [rafKayitlar, setRafKayitlar] = useState<RafOgesi[]>([]);
   const [rafBusy, setRafBusy] = useState<string | null>(null);
   useEffect(() => {
     if (!libOpen) return;
-    return watchOrtakRaf(setRaf);
+    let iptal = false;
+    (async () => {
+      try {
+        const t = await auth().currentUser?.getIdToken();
+        const r = await fetch("/api/sign/ortak-raf", { headers: { Authorization: `Bearer ${t}` } });
+        const j = await r.json();
+        if (!iptal) setRafDosyalar(r.ok ? (j.dosyalar ?? []) : []);
+      } catch {
+        if (!iptal) setRafDosyalar([]);
+      }
+    })();
+    const dur = watchOrtakRaf(setRafKayitlar);
+    return () => {
+      iptal = true;
+      dur();
+    };
   }, [libOpen]);
+  /** Ekranda görünen raf: dosya (gerçek) + varsa kayıt süsü (kim koydu). */
+  const raf = useMemo(() => {
+    if (rafDosyalar === null) return null;
+    return rafDosyalar.map((f) => {
+      const k = rafKayitlar.find((r) => r.publicId === f.publicId || r.src === f.src);
+      return { id: k?.id ?? "", kind: f.kind, src: f.src, publicId: f.publicId, name: k?.name || f.name, by: k?.by, fromWall: k?.fromWall } as RafOgesi;
+    });
+  }, [rafDosyalar, rafKayitlar]);
   const [urlForm, setUrlForm] = useState<{ src: string; name: string } | null>(null);
   const [replacingId, setReplacingId] = useState<string | null>(null);
   // Sadeleştirme: süre/takvim/gün ayarları öğe başına AÇILIR (⚙) — panel
@@ -246,6 +278,7 @@ export default function ZonePanel({
         by: kullanici?.displayName || kullanici?.email || "",
         fromWall: vw.name,
       });
+      setRafDosyalar((d) => [{ publicId: j.publicId, src: j.src, kind: it.kind as "image" | "video", name: it.name || "adsız" }, ...(d ?? [])]);
       setLibTab("ortak");
     } catch (e) {
       // Kural yayınlanmadıysa Firestore "permission-denied" der ve kullanıcı
@@ -281,7 +314,9 @@ export default function ZonePanel({
         const j = await r.json().catch(() => ({}));
         throw new Error(j.message ? `Silinemedi — ${j.message}` : "Silinemedi.");
       }
-      await raftanSil(o.id);
+      // YETİM dosyanın kaydı yok (id boş) — yalnız dosya silinir, kayıt varsa o da.
+      if (o.id) await raftanSil(o.id).catch(() => {});
+      setRafDosyalar((d) => (d ?? []).filter((x) => x.src !== o.src));
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Raftan silinemedi.");
     } finally {
@@ -1240,7 +1275,7 @@ export default function ZonePanel({
                   ))}
               </div>
             )}
-            {(libTab === "ekran" ? library : raf ?? []).filter((o) => libFilter === "all" || o.kind === libFilter).length === 0 && (
+            {(libTab !== "ortak" || raf !== null) && (libTab === "ekran" ? library : raf ?? []).filter((o) => libFilter === "all" || o.kind === libFilter).length === 0 && (
               <p className="text-muted text-sm text-center py-8">
                 {libTab === "ekran"
                   ? "Bu türde medya yok."

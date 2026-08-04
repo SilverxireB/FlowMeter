@@ -72,6 +72,48 @@ function imza(params: Record<string, string>, secret: string): string {
   return crypto.createHash("sha1").update(govde + secret).digest("hex");
 }
 
+/**
+ * GET — rafı LİSTELE (giriş yeter). Kaynak: CLOUDINARY'NİN KENDİSİ, Firestore
+ * kaydı değil.
+ *
+ * Neden: taşıma iki adım (dosyayı taşı + listeye yaz) ve ikincisi düşebiliyor —
+ * kurallar yapıştırılmadan yapılan ilk denemelerde tam bu oldu: dosyalar rafa
+ * TAŞINDI ama liste kaydı yazılamadı. Sonuç "Ortak raf (0)" ama "bu dosya zaten
+ * rafta" çelişkisi: YETİM dosyalar. Liste sunucu gerçeğinden gelince yetim diye
+ * bir şey kalmaz — rafta ne varsa o görünür; Firestore kaydı yalnız kim/ne
+ * zaman bilgisini süsler.
+ */
+export async function GET(req: Request) {
+  const { CLOUD, KEY, SECRET, FB_KEY, FB_PROJECT } = ortam();
+  if (!CLOUD || !KEY || !SECRET) return NextResponse.json({ ok: false, error: "not-configured" }, { status: 501 });
+  if (!FB_KEY || !FB_PROJECT) return NextResponse.json({ ok: false, error: "firebase-env" }, { status: 500 });
+  const idToken = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!idToken || !(await kimlikCoz(idToken, FB_KEY, FB_PROJECT)))
+    return NextResponse.json({ ok: false, error: "auth-failed" }, { status: 401 });
+
+  const auth = "Basic " + Buffer.from(`${KEY}:${SECRET}`).toString("base64");
+  const dosyalar: { publicId: string; src: string; kind: "image" | "video"; name: string }[] = [];
+  for (const rt of ["image", "video"] as const) {
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD}/resources/${rt}/upload?prefix=${encodeURIComponent(ORTAK_KLASOR + "/")}&max_results=200`,
+      { headers: { Authorization: auth } }
+    );
+    if (!res.ok) continue;
+    const j = await res.json().catch(() => ({}));
+    for (const r of (j.resources ?? []) as { public_id: string; secure_url: string }[]) {
+      const kuyruk = r.public_id.split("/").pop() ?? r.public_id;
+      dosyalar.push({
+        publicId: r.public_id,
+        src: r.secure_url,
+        kind: rt,
+        // Ad: "ts-orijinalad" → zaman öneki atılır (insan orijinal adı görmeli).
+        name: kuyruk.includes("-") ? kuyruk.slice(kuyruk.indexOf("-") + 1) : kuyruk,
+      });
+    }
+  }
+  return NextResponse.json({ ok: true, dosyalar });
+}
+
 /** POST — dosyayı ekranın klasöründen ORTAK RAFA taşı. */
 export async function POST(req: Request) {
   const { CLOUD, KEY, SECRET, FB_KEY, FB_PROJECT } = ortam();
