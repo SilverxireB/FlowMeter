@@ -242,3 +242,61 @@ kişi 403 · "yalnız düzenle" tikiyle kopyala/sil/yetki-dağıt 403 · PATCH i
 grants/ownerId ezme etkisiz · oluşturanın yetkisi kesilebiliyor ve kayıt
 kaldırılınca varsayılana dönüyor · "yeni ekran açabilir" tiki 403/200 ·
 tek fiziksel ekran 3 alana bölünüyor (fiziksel 1×1, yerleşim 3×1).
+
+---
+
+## Foto sahne (tasarım notu — HENÜZ YAPILMADI, 2026-08)
+
+Kullanıcıyla karara bağlanan şekil. Kod yazılmadan önce buraya kilitlendi ki
+sıra gelince baştan tartışılmasın.
+
+**Ne:** yeni bir İÇERİK TÜRÜ — `Görsel · Video · URL · Metin · Saat · Ekran`
+yanına **`Foto sahne`**. Alana eklenir, içine kütüphaneden fotoğraflar dizilir,
+bir SAHNE MODU ve bir TOPLAM SÜRE verilir. Sıra ona gelince o süre boyunca
+FlowWall'ın perde estetiğiyle döner, sonra alan bir sonraki öğeye geçer.
+
+Tipik kullanım (kullanıcının kendi örneği): tek alanda
+`üretim dashboard 30sn → kalite panosu 30sn → Foto sahne 5dk (hatıra köşesi)`.
+
+**Neden bu şekil doğru:** yükleme sayfası, onay kuyruğu, saklama politikası,
+yeni yetki kavramı — hiçbiri gerekmiyor. Fotoğraflar var olan yoldan (kokpit,
+yetkisi olan ekip) giriyor. `durationSec` ve takvim (`fromDate/toDate/days/
+from/to`) öğede ZATEN var → "bayram haftası boyunca dönsün, sonra kendiliğinden
+düşsün" ek iş olmadan çalışır. Online ve self-host'ta BİREBİR aynı (ayrım yok,
+test derdi yok).
+
+**KARARLAR (kullanıcı):**
+- **"Son yüklenen öne çıkar" YOK.** Wall'da modlar canlı akış üstüne kuruludur;
+  Sign'da sıra kullanıcının dizdiği sıradır. Bu tek karar, modların Sign'a
+  taşınmasının önündeki asıl engeli kaldırıyor — geriye yalnız yerleşim ve
+  hareket kalıyor.
+- **Modlar: Sahne · Mozaik · Spot · Polaroid · Sinema.** Zaman tüneli ÇIKTI
+  (tek zaman damgası isteyen oydu; Sign'da fotoğrafın zamanı yok).
+- **Otomatik geçiş** opsiyonel — 5 dakikalık pencerede anlamlı, kısa pencerede
+  "bozuldu" hissi verir.
+- **Süre uzun tutulur** (örn. 5 dk). Wall modlarının ritmi saatlerce açık kalan
+  bir perdeye göre; 30 saniyede mod ısınamadan biter.
+- **GİRMEYENLER:** çekiliş, anons, "en çok sevilen foto", milestone. Bunlar
+  etkinlik özellikleri; fabrika panosunun işi değil.
+- Fotoğraflar Foto sahne öğesinin KENDİ listesinde durur (alandaki gevşek
+  görsellerden ayrı) — yoksa aynı fotoğraf hem tek tek hem sahnede dönerdi.
+
+**Yaparken dikkat:** 7/24 açık kalacağı için animasyon CSS ile ve SABİT sayıda
+düğümle olmalı (Wall perdesi bir etkinlik boyunca açık kalıyor, Sign'ınki aylarca).
+Editör önizlemesinde gerçek hâli çizilmeli — yoksa kör ayar olur.
+
+**Açık konu:** ORTAK MEDYA KÜTÜPHANESİ ayrıca tartışılacak (aşağıya bak).
+
+## Ortak medya kütüphanesi (açık tartışma — 2026-08)
+
+Bugün kütüphane EKRAN BAŞINA (o ekranın taslak + yayın medyası). Kullanıcının
+mevcut .NET uygulamasında ise TEK ORTAK havuz var. İkisinin de yarısı doğru:
+
+- Ekran başına havuzun artısı: çöplük olmuyor, kişiselleşiyor.
+- Ortak havuzun artısı — ve ASIL MESELE BU: havuz bir DEPO değil bir DAĞITIM
+  aracı. Kurumsaldan gelen "bekofilmi" videosu bir ekranda açılıyor; sonra
+  "sen de şurada aç" deniyor. Ortak havuz varsa ikinci kişi dosyayı aramıyor,
+  USB'yle taşımıyor — havuzdan seçip kendi ekranında yayınlıyor.
+
+Yani soru "global mi ekran başına mı" değil; İKİSİ DE gerekli ve ayrılmaları
+gerekiyor. Tasarım tartışması sürüyor; karar çıkmadan kod yazılmayacak.
