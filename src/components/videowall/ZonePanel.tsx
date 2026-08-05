@@ -463,8 +463,9 @@ export default function ZonePanel({
 
       {/* Yüzde ve çubuk kalktı: küçük dosyalarda 0'da bekleyip birden 100 oluyor,
           arada "yüklenmiyor" hissi veriyordu. Dönen halka baştan sona hareket
-          eder; DOSYA SAYACI kaldı, asıl ilerlemeyi o gösteriyor. */}
-      {queue && (
+          eder; DOSYA SAYACI kaldı, asıl ilerlemeyi o gösteriyor. Kütüphane
+          penceresi açıkken gösterge ORADA — burada ikinci kopya çizilmez. */}
+      {queue && !libOpen && (
         <div className="mb-4 flex items-center gap-3">
           <FlowSpinner
             size={72}
@@ -871,20 +872,32 @@ export default function ZonePanel({
                 (ekranın medya[] kaydına) girer, alana yerleştirme tıklamayla —
                 yanlış alana istemsiz düşmesin. Panele sürükle-bırak ise eskisi
                 gibi hem yükler hem alana koyar. */}
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={queue !== null || !cloudReady}
-              title={cloudReady ? undefined : "Medya deposu yapılandırılmadı"}
-              className="w-full mb-3 rounded-xl border-2 border-dashed border-line hover:border-accent text-muted hover:text-accent px-3 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-40"
-            >
-              <Icon name="upload" size={15} /> Cihazdan yükle (görsel / video)
-            </button>
-            {queue && (
-              <p className="text-muted text-xs mb-3 text-center">
-                Yükleniyor {queue.done + 1}/{queue.total} · %{queue.pct}
-              </p>
+            {queue ? (
+              <div className="w-full mb-3 rounded-xl border-2 border-dashed border-accent/40 bg-accent-soft/30 px-3 py-4 flex items-center justify-center gap-3">
+                <FlowSpinner
+                  size={48}
+                  center={<span className="text-[10px] font-bold tabular-nums text-ink">%{queue.pct}</span>}
+                />
+                <div>
+                  {/* %100'de sunucu hâlâ işliyor olabilir — adı konur, kullanıcı neyi beklediğini bilir. */}
+                  <p className="text-sm font-semibold text-ink">{queue.pct >= 100 ? "İşleniyor…" : "Yükleniyor…"}</p>
+                  <p className="text-muted text-xs tabular-nums">Dosya {queue.done + 1}/{queue.total} — bitince kütüphanede en üstte</p>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={!cloudReady}
+                title={cloudReady ? undefined : "Medya deposu yapılandırılmadı"}
+                className="w-full mb-3 rounded-xl border-2 border-dashed border-line hover:border-accent hover:bg-accent-soft/20 text-muted hover:text-accent px-3 py-4 flex flex-col items-center gap-1.5 transition-colors disabled:opacity-40 group"
+              >
+                <span className="w-10 h-10 rounded-full bg-paper group-hover:bg-accent-soft grid place-items-center transition-colors">
+                  <Icon name="upload" size={17} />
+                </span>
+                <span className="text-sm font-semibold text-ink">Cihazdan yükle</span>
+                <span className="text-[11px]">Görsel veya video — kütüphaneye eklenir, tıklayınca alana girer</span>
+              </button>
             )}
-            <p className="text-muted text-xs mb-3">Yüklenen dosya kütüphaneye girer; bir öğeye tıklayınca bu alana eklenir.</p>
 
             {/* Tür sekmeleri: Tümü / Foto / Video */}
             <div className="flex gap-1.5 mb-3">

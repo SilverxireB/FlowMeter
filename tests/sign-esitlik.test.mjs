@@ -46,7 +46,8 @@ const IZLER = [
   ["mobilde rozet kırılmaz", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "truncate max-w-full shrink-0"],
   ["mobilde ad kendi satırında", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "order-last basis-full"],
   // ── Kütüphane = tek veri merkezi (yeniden kurulum 1. adım) ────────────────
-  ["kütüphane içinden yükleme", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Cihazdan yükle (görsel / video)"],
+  ["kütüphane içinden yükleme", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Cihazdan yükle"],
+  ["yükleme göstergesi kütüphanede", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "queue && !libOpen"],
   ["rehberde tek kapı", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "TEK kapısı"],
   // 2. adım: ekranın kalıcı medya[] kaydı — alandan silinen dosya kütüphanede kalır.
   ["kütüphane kaydı tipi", "src/lib/types.ts", "flowsign-selfhost/src/lib/types.ts", "export interface MedyaKaydi"],
