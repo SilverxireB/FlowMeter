@@ -21,7 +21,7 @@
  * İçerik listesi DURAĞAN (yükleme sırası; "son yüklenen öne çıkar" bilerek
  * yok) olduğu için Wall'ın "yeni anı gelince anında geç" makinesi gerekmez.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FotoSahneKaydi, MOD_GECIS_MS, SAHNE_MODU_VARSAYILAN, SAHNE_ZEMIN_VARSAYILAN, SahneFoto, SahneModu, seritlereBol } from "@/lib/fotoSahne";
 import { cldFit, cldThumb } from "@/lib/cloudinary";
 import SahneEfektleri from "./SahneEfektleri";
@@ -75,6 +75,27 @@ export default function FotoSahne({
   }, [durgun, fotolar.length]);
   const aktif = fotolar.length ? fotolar[sira % fotolar.length] : undefined;
 
+  // SIRADAKİNİ ÖNDEN İNDİR + ÇÖZ (PlayerStage disipliniyle aynı): büyük foto
+  // geçiş ANINDA çözülünce ana iş parçacığı kilitleniyor ve efekt animasyonları
+  // (balon/kabarcık) o an kısa kısa takılıyordu (kullanıcı yakaladı).
+  useEffect(() => {
+    if (durgun || fotolar.length <= 1) return;
+    const sonraki = fotolar[(sira + 1) % fotolar.length];
+    const img = new Image();
+    img.src = buyuk(sonraki.src);
+    img.decode?.().catch(() => {});
+  }, [durgun, sira, fotolar]);
+
+  // GEÇİŞ PÜRÜZÜ: yeni kare fade ile girerken ESKİSİ anında sökülüyordu —
+  // yarım saniye zemin görünüp "önce açık gelip sonra doluyor" hissi
+  // veriyordu (kullanıcı yakaladı). Eski kare ALTTA tutulur, yenisi üstüne
+  // geçer (gerçek crossfade — Wall'daki davranış).
+  const oncekiRef = useRef<SahneFoto | undefined>(undefined);
+  useEffect(() => {
+    oncekiRef.current = aktif;
+  }, [aktif]);
+  const onceki = oncekiRef.current && aktif && oncekiRef.current.src !== aktif.src ? oncekiRef.current : undefined;
+
   if (!fotolar.length)
     return (
       <div className="w-full h-full grid place-items-center text-white/35 text-xs text-center px-3" style={{ background: zemin }}>
@@ -87,10 +108,10 @@ export default function FotoSahne({
     <div className="absolute inset-0 overflow-hidden text-white" style={{ background: zemin }}>
       <SahneStilleri />
       {mod === "mozaik" && <Mozaik fotolar={srcler} box={box} />}
-      {mod === "sahne" && <Sahne fotolar={srcler} aktif={aktif!} />}
+      {mod === "sahne" && <Sahne fotolar={srcler} aktif={aktif!} onceki={onceki} />}
       {mod === "spot" && <Spot fotolar={srcler} aktif={aktif!} box={box} />}
       {mod === "polaroid" && <Polaroid fotolar={fotolar} sira={sira} box={box} />}
-      {mod === "sinema" && <Sinema aktif={aktif!} sira={sira} />}
+      {mod === "sinema" && <Sinema aktif={aktif!} onceki={onceki} sira={sira} />}
       {!durgun && <SahneEfektleri efekt={sahne.efekt} />}
     </div>
   );
@@ -148,10 +169,18 @@ function Mozaik({ fotolar, box }: { fotolar: string[]; box: { w: number; h: numb
 }
 
 /* ── SAHNE — Wall StageMode: bulanık zemin + Ken Burns + yan şeritler ────── */
-function Sahne({ fotolar, aktif }: { fotolar: string[]; aktif: SahneFoto }) {
+function Sahne({ fotolar, aktif, onceki }: { fotolar: string[]; aktif: SahneFoto; onceki?: SahneFoto }) {
   const seritler = seritlereBol(fotolar);
   return (
     <div className="h-full flex relative">
+      {/* Eski bulanık fon ALTTA durur — yenisi üstüne fade olur (boşluk yok). */}
+      {onceki && (
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{ backgroundImage: `url(${kucuk(onceki.src)})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(60px) brightness(0.42) saturate(1.3)", transform: "scale(1.25)" }}
+        />
+      )}
       <div
         key={"bg-" + aktif.src}
         aria-hidden
@@ -253,9 +282,16 @@ function Polaroid({ fotolar, sira, box }: { fotolar: SahneFoto[]; sira: number; 
 }
 
 /* ── SİNEMA — Wall CinemaMode: tam alan tek kare, sinematik crossfade ────── */
-function Sinema({ aktif, sira }: { aktif: SahneFoto; sira: number }) {
+function Sinema({ aktif, onceki, sira }: { aktif: SahneFoto; onceki?: SahneFoto; sira: number }) {
   return (
     <div className="h-full relative bg-black">
+      {/* Eski kare ALTTA — yenisi üstüne fade olur (siyah flaş yok). */}
+      {onceki && (
+        <div aria-hidden className="absolute inset-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={buyuk(onceki.src)} alt="" className="w-full h-full object-cover" />
+        </div>
+      )}
       <div key={aktif.src} className="absolute inset-0 fs-fade">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={buyuk(aktif.src)} alt="" className={`w-full h-full object-cover ${sira % 2 === 0 ? "fs-ken" : "fs-ken-slow"}`} />

@@ -210,7 +210,9 @@ export const SIGN_REHBER: RehberBolum[] = [
               <>
                 Kendi linki olan hatıra köşesi: <b>Foto sahne oluştur</b> sahneyi açar, linkini alana ekler.
                 Fotoğraflar, mod (<b>{SAHNE_MODLARI.map((m) => m.ad).join(" · ")}</b>), efekt, zemin rengi ve foto yazıları
-                sahnenin KENDİ sayfasından yönetilir (🔀 Otomatik: seçtiğin modlar 30 sn'de bir sırayla döner) — değişiklik linke anında düşer, aynı sahne birden çok
+                sahnenin KENDİ sayfasından yönetilir (🔀 Otomatik: seçtiğin modlar 30 sn'de bir sırayla döner). Tüm sahneler ekran
+                listesinin altındaki <b>Foto sahneler</b> bölümünde durur — link alandan silinse de sahneye
+                oradan ulaşılır; silme depodaki fotoğrafları da temizler — değişiklik linke anında düşer, aynı sahne birden çok
                 ekranda oynar. Yönetim linkini fotoğrafları yönetecek kişiye verebilirsin; o kişi ekranına dokunamaz.
               </>,
             ],

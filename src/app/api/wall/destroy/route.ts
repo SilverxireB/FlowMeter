@@ -44,6 +44,7 @@ export async function POST(req: Request) {
   const wallMode = body.mode === "wall"; // FlowWall: tüm duvarı topluca temizle (prefix)
   const signMode = body.mode === "sign"; // FlowSign: videowall medyasını topluca temizle
   const signFileMode = body.mode === "sign-file"; // FlowSign: kütüphaneden TEK dosya sil
+  const sahneMode = body.mode === "sahne"; // Foto sahne: flowsign/sahne/{id} klasörünü topluca temizle
   const guestMode = body.mode === "guest"; // misafir KENDİ medyasını siler (voterId == uid)
   const kantinMode = body.mode === "kantin"; // Kantin: ürün görsellerini topluca temizle
   const bulk = wallMode || signMode || kantinMode;
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
   if (
     !wallId ||
     !idToken ||
-    (!bulk && !guestMode && !signFileMode && !cloudinaryId) ||
+    (!bulk && !guestMode && !signFileMode && !sahneMode && !cloudinaryId) ||
     (guestMode && !body.mediaId) ||
     (signFileMode && !body.src)
   ) {
@@ -107,6 +108,22 @@ export async function POST(req: Request) {
     const eposta = account?.email ?? "";
     const yetkili = eposta === "doganbaharozu@gmail.com" || rol === "admin" || (rol === "kantinci" && kantinId === wallId);
     if (!yetkili) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  } else if (sahneMode) {
+    // Foto sahne: sahibi ya da yönetici siler (rules sahneler bloğuyla aynı kapı).
+    const sahneRes = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/sahneler/${wallId}`
+    );
+    if (!sahneRes.ok) return NextResponse.json({ ok: false, error: "sahne-not-found" }, { status: 404 });
+    const ownerId = (await sahneRes.json())?.fields?.ownerId?.stringValue;
+    let yetkili = ownerId === uid || account?.email === "doganbaharozu@gmail.com";
+    if (!yetkili) {
+      const kisi = await fetch(
+        `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/users/${uid}`,
+        { headers: { Authorization: `Bearer ${idToken}` } }
+      );
+      if (kisi.ok) yetkili = (await kisi.json())?.fields?.role?.stringValue === "admin";
+    }
+    if (!yetkili) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   } else {
     const ownerCollection = signMode || signFileMode ? "videowalls" : "walls";
     const wallRes = await fetch(
@@ -151,6 +168,39 @@ export async function POST(req: Request) {
       purged[rt] = deleted;
     }
     return NextResponse.json({ ok: true, purged });
+  }
+
+  // ── FOTO SAHNE klasörünü temizle ────────────────────────────────────────────
+  // PREFIX SİLME KULLANILMAZ: dinamik klasör modunda public_id klasör
+  // taşımayabilir — prefix o dosyaları KAÇIRIR. Asset folder listelenir
+  // (ortak raf listesiyle aynı yöntem), her dosya KESİN public_id'siyle silinir.
+  if (sahneMode) {
+    const basic = "Basic " + Buffer.from(`${KEY}:${SECRET}`).toString("base64");
+    const klasor = `flowsign/sahne/${wallId}`;
+    let silinen = 0;
+    for (let guard = 0; guard < 10; guard++) {
+      const r = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD}/resources/by_asset_folder?asset_folder=${encodeURIComponent(klasor)}&max_results=100`,
+        { headers: { Authorization: basic } }
+      );
+      if (!r.ok) break;
+      const kaynaklar: { public_id: string; resource_type?: string }[] = (await r.json())?.resources ?? [];
+      if (!kaynaklar.length) break;
+      for (const a of kaynaklar) {
+        const rt = a.resource_type === "video" ? "video" : "image";
+        const ts = Math.floor(Date.now() / 1000);
+        const imza = crypto.createHash("sha1").update(`invalidate=true&public_id=${a.public_id}&timestamp=${ts}${SECRET}`).digest("hex");
+        const f = new URLSearchParams();
+        f.set("public_id", a.public_id);
+        f.set("invalidate", "true");
+        f.set("timestamp", String(ts));
+        f.set("api_key", KEY);
+        f.set("signature", imza);
+        const del = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/${rt}/destroy`, { method: "POST", body: f });
+        if (del.ok) silinen++;
+      }
+    }
+    return NextResponse.json({ ok: true, silinen });
   }
 
   // ── FlowSign kütüphanesinden TEK dosya ──────────────────────────────────────

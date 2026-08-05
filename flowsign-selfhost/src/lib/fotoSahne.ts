@@ -44,6 +44,20 @@ export const SAHNE_MODU_VARSAYILAN: SahneModu = "mozaik";
 /** Sahne zemini — Wall'ın koyu lacivert perde rengi (kullanıcı değiştirebilir). */
 export const SAHNE_ZEMIN_VARSAYILAN = "#05091c";
 
+/** Zemin KARTELASI — marka renklerimiz (native renk seçicinin cırtlak seti değil).
+ *  "Özel" ile yine her renk seçilebilir; kartela hızlı ve markaya uygun yolu verir. */
+export const SAHNE_ZEMINLERI: { renk: string; ad: string }[] = [
+  { renk: "#05091c", ad: "Wall laciverti (varsayılan)" },
+  { renk: "#001e64", ad: "Logo lacisi" },
+  { renk: "#1e1b4b", ad: "Koyu indigo" },
+  { renk: "#312e81", ad: "İndigo" },
+  { renk: "#000000", ad: "Siyah" },
+  { renk: "#101014", ad: "Kömür" },
+  { renk: "#4f46e5", ad: "Accent" },
+  { renk: "#e11d48", ad: "Gül" },
+  { renk: "#ffffff", ad: "Beyaz" },
+];
+
 /** Otomatik kipte modlar arası geçiş aralığı (Wall autoIntervalSec varsayılanıyla aynı: 30 sn). */
 export const MOD_GECIS_MS = 30_000;
 

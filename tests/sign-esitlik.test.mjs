@@ -73,7 +73,7 @@ const IZLER = [
   // tests/foto-sahne.test.mjs; burada yalnız iki ağacın eşitliği.
   ["foto sahne çekirdeği", "src/lib/fotoSahne.ts", "flowsign-selfhost/src/lib/fotoSahne.ts", "export function sahneAdresi"],
   ["foto sahne bileşeni", "src/components/videowall/FotoSahne.tsx", "flowsign-selfhost/src/components/FotoSahne.tsx", "export default function FotoSahne"],
-  ["sahne efekt katmanı", "src/components/videowall/SahneEfektleri.tsx", "flowsign-selfhost/src/components/SahneEfektleri.tsx", "export default function SahneEfektleri"],
+  ["sahne efekt katmanı", "src/components/videowall/SahneEfektleri.tsx", "flowsign-selfhost/src/components/SahneEfektleri.tsx", "export default memo(SahneEfektleri)"],
   ["sahne oluştur karosu", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "fotoSahneOlustur"],
   ["öğeden sahne yönetimi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Sahneyi yönet"],
   ["perde sahneyi yerel çizer", "src/components/videowall/PlayerStage.tsx", "flowsign-selfhost/src/components/PlayerStage.tsx", "GomuluSahne"],
@@ -81,6 +81,8 @@ const IZLER = [
   ["sahne yayın sayfası", "src/app/sahne/[id]/page.tsx", "flowsign-selfhost/src/app/sahne/[id]/page.tsx", "SahnePlayPage"],
   ["sahne yönetim sayfası", "src/app/sahne/[id]/manage/page.tsx", "flowsign-selfhost/src/app/sahne/[id]/manage/page.tsx", "Foto yazısı (ör. Ahmet Bey'e teşekkürler)"],
   ["rehberde foto sahne", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "SAHNE_MODLARI.map((m) => m.ad)"],
+  ["foto sahneler bölümü (sahnelerin evi)", "src/components/videowall/SahneListesi.tsx", "flowsign-selfhost/src/components/SahneListesi.tsx", "kullanılmıyor"],
+  ["sahne listesi ekran sayfasında", "src/app/videowall/page.tsx", "flowsign-selfhost/src/app/screens/page.tsx", "<SahneListesi walls={walls} />"],
   ["mobilde Saat/Tarih taşmaz", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "basis-full sm:basis-auto min-w-0"],
   ["ters tarih aralığı uyarısı", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Başlangıç bitişten sonra"],
   ["geçmiş gün seçilemez", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "const enErken ="],

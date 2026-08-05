@@ -113,5 +113,13 @@ kontrol(/auto\/upload/.test(rafOnline) && /f\.set\("file", src\)/.test(rafOnline
 const rafSelf = yorumsuz(fs.readFileSync("flowsign-selfhost/src/app/api/ortak-raf/route.ts", "utf8"));
 kontrol(/copyFile/.test(rafSelf) && !/\brename\(/.test(rafSelf), "self-host rafa koy = fs.copyFile (taşıma değil)");
 
+// ── 7. Silme TAM temizliktir (yetim dosya sözü) ─────────────────────────────
+// Online: destroy'da "sahne" modu asset-folder listesinden KESİN public_id ile
+// siler (prefix dinamik klasörde kaçırır); self-host: sahne klasörü rm ile gider.
+const destroyKod = fs.readFileSync("src/app/api/wall/destroy/route.ts", "utf8");
+kontrol(/sahneMode/.test(destroyKod) && /by_asset_folder/.test(destroyKod), "online sahne silme depoyu asset-folder'dan temizler");
+const sahneStoreKod = fs.readFileSync("flowsign-selfhost/src/lib/sahneStore.ts", "utf8");
+kontrol(/rm\(path\.join\(SAHNE_MEDIA_DIR, id\)/.test(sahneStoreKod), "self-host sahne silme foto klasörünü de siler");
+
 console.log(hata ? `\n${hata} SINAV BAŞARISIZ` : "\nhepsi geçti");
 process.exit(hata ? 1 : 0);

@@ -38,6 +38,7 @@ const inputCls =
 const playHref = (v: Videowall) => `/play/${v.slug ?? v.id}`;
 
 const SignRehber = dynamic(() => import("@/components/SignRehber"), { ssr: false });
+const SahneListesi = dynamic(() => import("@/components/SahneListesi"), { ssr: false });
 
 export default function ScreensPage() {
   const [rehber, setRehber] = useState(false);
@@ -435,6 +436,9 @@ export default function ScreensPage() {
           </>
         )}
       </section>
+
+      {/* Sahnelerin EVİ: link alandan silinse de sahneye buradan ulaşılır. */}
+      <SahneListesi walls={walls} />
 
       {confirmDel && (
         <ConfirmDialog

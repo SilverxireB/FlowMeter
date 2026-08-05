@@ -27,6 +27,19 @@ function emitSahne(id: string) {
   emitter.emit(`sahne:${id}`);
 }
 
+/** Tüm sahneler — "Foto sahneler" bölümü (ada göre sıralı). */
+export async function listSahneler(): Promise<FotoSahneKaydi[]> {
+  await fs.mkdir(SAHNE_DIR, { recursive: true });
+  const files = (await fs.readdir(SAHNE_DIR)).filter((f) => f.endsWith(".json"));
+  const out: FotoSahneKaydi[] = [];
+  for (const f of files) {
+    try {
+      out.push(JSON.parse(await fs.readFile(path.join(SAHNE_DIR, f), "utf8")) as FotoSahneKaydi);
+    } catch {}
+  }
+  return out.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "tr"));
+}
+
 export async function getSahne(id: string): Promise<FotoSahneKaydi | null> {
   if (!safeId(id)) return null;
   try {

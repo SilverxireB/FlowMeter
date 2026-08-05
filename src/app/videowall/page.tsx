@@ -48,6 +48,7 @@ const PRESETS: { label: string; w: number; h: number; cols: number; rows: number
 const inputCls = "input-base !py-2 !px-3 !rounded-lg";
 
 const SignRehber = dynamic(() => import("@/components/videowall/SignRehber"), { ssr: false });
+const SahneListesi = dynamic(() => import("@/components/videowall/SahneListesi"), { ssr: false });
 
 /** Yayın linki: slug kayıtlıysa kolay link; değilse id rotası (eski ekranlar ölü link vermesin). */
 const playHref = (v: Videowall) => (v.slug ? `/flowsign/${v.slug}` : `/videowall/${v.id}/play`);
@@ -484,6 +485,9 @@ export default function VideowallListPage() {
           </div>
         )}
       </section>
+
+      {/* Sahnelerin EVİ: link alandan silinse de sahneye buradan ulaşılır. */}
+      <SahneListesi walls={walls} />
 
       {dialog}
       {toast}

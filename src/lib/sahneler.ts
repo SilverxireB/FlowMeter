@@ -16,11 +16,12 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { auth, db } from "./firebase";
 import { FotoSahneKaydi, SAHNE_MODU_VARSAYILAN, SahneFoto } from "./fotoSahne";
 
 const stripUndefined = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
@@ -64,12 +65,29 @@ export async function removeSahneFoto(sahne: FotoSahneKaydi, src: string): Promi
   await updateSahne(sahne.id, { fotolar: (sahne.fotolar ?? []).filter((f) => f.src !== src) });
 }
 
+/** Tüm sahneler — "Foto sahneler" bölümü (sahnelerin EVİ: link alandan
+ *  silinse de sahneye buradan ulaşılır). Ada göre sıralı. */
+export async function listSahneler(): Promise<FotoSahneKaydi[]> {
+  const snap = await getDocs(collection(db(), "sahneler"));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as FotoSahneKaydi)
+    .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "tr"));
+}
+
 /**
- * Sahneyi sil (yalnız kayıt). Cloudinary `flowsign/sahne/{id}/` klasörünün
- * temizliği sonraki adımda /api/wall/destroy'a "sahne" modu eklenince gelecek —
- * kayıt silinince link ölür, dosyalar görünmez ama depoda yer tutar (bilinen
- * eksik, sessiz değil).
+ * Sahneyi TAM sil: ÖNCE depo (sunucu, Cloudinary flowsign/sahne/{id} klasörünü
+ * asset-folder listesinden temizler — best effort), SONRA kayıt. Temizlik
+ * hatası silmeyi engellemez (kayıt ölünce link kararır; yetim dosya kalırsa
+ * bir sonraki silmede değil, elle Cloudinary'den gider — engel olmasın).
  */
 export async function deleteSahne(id: string): Promise<void> {
+  const idToken = await auth().currentUser?.getIdToken();
+  if (idToken) {
+    await fetch("/api/wall/destroy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "sahne", wallId: id, idToken }),
+    }).catch(() => {});
+  }
   await deleteDoc(doc(db(), "sahneler", id));
 }

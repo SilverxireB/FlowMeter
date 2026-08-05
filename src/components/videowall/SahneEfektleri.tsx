@@ -6,14 +6,18 @@
  * Hepsi CSS, dış servis yok; alanın İÇİNDE yaşar (contained — cq birimleri
  * alanın kendi ölçüsüne göre çalışır, viewport'a göre değil).
  */
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { SahneEfektAd } from "@/lib/fotoSahne";
 
 const RENKLER = ["#e11d48", "#4f46e5", "#f59e0b", "#10b981", "#a855f7", "#ec4899", "#22d3ee"];
 const sarici = "pointer-events-none overflow-hidden absolute inset-0 z-20";
 const sariciStil: React.CSSProperties = { containerType: "size" };
 
-export default function SahneEfektleri({ efekt }: { efekt?: SahneEfektAd }) {
+/** memo: sahnenin 6.5 sn'lik kare tikleri efekt ağacını yeniden çizmesin —
+ *  parçacıklar kendi CSS animasyonlarında kesintisiz akar. */
+export default memo(SahneEfektleri);
+
+function SahneEfektleri({ efekt }: { efekt?: SahneEfektAd }) {
   switch (efekt) {
     case "snow": return <Kar />;
     case "hearts": return <Kalpler />;
@@ -57,7 +61,7 @@ function Kalpler() {
   return (
     <div aria-hidden className={sarici} style={sariciStil}>
       {items.map((f) => (
-        <div key={f.id} className="absolute bottom-[-8cqh] sfx-kalp" style={{ left: `${f.x}cqw`, fontSize: `${f.size}rem`, opacity: f.opacity, animationDuration: `${f.duration}s`, animationDelay: `${f.delay}s`, filter: "drop-shadow(0 0 6px rgba(244,63,94,0.4))" }}>
+        <div key={f.id} className="absolute bottom-[-8cqh] sfx-kalp" style={{ willChange: "transform", left: `${f.x}cqw`, fontSize: `${f.size}rem`, opacity: f.opacity, animationDuration: `${f.duration}s`, animationDelay: `${f.delay}s`, filter: "drop-shadow(0 0 6px rgba(244,63,94,0.4))" }}>
           💗
         </div>
       ))}
@@ -81,7 +85,7 @@ function Konfeti() {
   return (
     <div aria-hidden className={sarici} style={sariciStil}>
       {conf.map((p) => (
-        <div key={p.id} className="absolute top-[-6cqh] sfx-konfeti" style={{ left: `${p.x}cqw`, width: `${p.size}px`, height: `${p.size * 0.5}px`, background: p.color, opacity: 0.72, borderRadius: "1px", animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s`, ["--rot" as string]: `${p.rot}deg` }} />
+        <div key={p.id} className="absolute top-[-6cqh] sfx-konfeti" style={{ willChange: "transform", left: `${p.x}cqw`, width: `${p.size}px`, height: `${p.size * 0.5}px`, background: p.color, opacity: 0.72, borderRadius: "1px", animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s`, ["--rot" as string]: `${p.rot}deg` }} />
       ))}
       <style>{`
         .sfx-konfeti { animation-name: sfxkonfeti; animation-timing-function: linear; animation-iteration-count: infinite; }
@@ -142,7 +146,7 @@ function Balonlar() {
   return (
     <div aria-hidden className={sarici} style={sariciStil}>
       {items.map((b) => (
-        <div key={b.id} className="absolute bottom-[-20cqh] sfx-balon" style={{ left: `${b.x}cqw`, animationDuration: `${b.duration}s`, animationDelay: `${b.delay}s` }}>
+        <div key={b.id} className="absolute bottom-[-20cqh] sfx-balon" style={{ willChange: "transform", left: `${b.x}cqw`, animationDuration: `${b.duration}s`, animationDelay: `${b.delay}s` }}>
           <div style={{ width: b.size, height: b.size * 1.25, background: b.color, opacity: 0.55, borderRadius: "50% 50% 50% 50% / 45% 45% 55% 55%", boxShadow: "inset -4px -6px 10px rgba(0,0,0,0.15)" }} />
           <div style={{ width: 1, height: b.size * 0.7, background: "rgba(255,255,255,0.3)", margin: "0 auto" }} />
         </div>
@@ -166,7 +170,7 @@ function Kabarciklar() {
   return (
     <div aria-hidden className={sarici} style={sariciStil}>
       {items.map((b) => (
-        <div key={b.id} className="absolute bottom-[-12cqh] rounded-full sfx-kabarcik" style={{ left: `${b.x}cqw`, width: b.size, height: b.size, background: "radial-gradient(circle at 32% 28%, rgba(255,255,255,0.55), rgba(255,255,255,0.06) 60%, rgba(255,255,255,0.02))", border: "1px solid rgba(255,255,255,0.28)", animationDuration: `${b.duration}s`, animationDelay: `${b.delay}s` }} />
+        <div key={b.id} className="absolute bottom-[-12cqh] rounded-full sfx-kabarcik" style={{ willChange: "transform", left: `${b.x}cqw`, width: b.size, height: b.size, background: "radial-gradient(circle at 32% 28%, rgba(255,255,255,0.55), rgba(255,255,255,0.06) 60%, rgba(255,255,255,0.02))", border: "1px solid rgba(255,255,255,0.28)", animationDuration: `${b.duration}s`, animationDelay: `${b.delay}s` }} />
       ))}
       <style>{`
         .sfx-kabarcik { animation-name: sfxkabarcik; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }

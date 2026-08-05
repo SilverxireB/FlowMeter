@@ -12,6 +12,12 @@ async function j<T>(r: Response): Promise<T> {
   return d as T;
 }
 
+/** Tüm sahneler — "Foto sahneler" bölümü. */
+export async function listSahneler(): Promise<FotoSahneKaydi[]> {
+  const d = await j<{ sahneler: FotoSahneKaydi[] }>(await fetch("/api/sahne", { cache: "no-store" }));
+  return d.sahneler ?? [];
+}
+
 export async function createSahne(name: string): Promise<FotoSahneKaydi> {
   const d = await j<{ sahne: FotoSahneKaydi }>(
     await fetch("/api/sahne", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) })

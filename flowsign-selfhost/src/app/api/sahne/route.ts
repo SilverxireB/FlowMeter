@@ -5,11 +5,18 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser, forbidden, unauthorized } from "@/lib/serverAuth";
-import { createSahne, deleteSahne, getSahne, patchSahne } from "@/lib/sahneStore";
+import { createSahne, deleteSahne, getSahne, listSahneler, patchSahne } from "@/lib/sahneStore";
 import { FotoSahneKaydi } from "@/lib/fotoSahne";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/** "Foto sahneler" bölümü — giriş yapan herkes listeler. */
+export async function GET(req: NextRequest) {
+  const me = await currentUser(req);
+  if (!me) return unauthorized();
+  return NextResponse.json({ ok: true, sahneler: await listSahneler() });
+}
 
 export async function POST(req: NextRequest) {
   const me = await currentUser(req);

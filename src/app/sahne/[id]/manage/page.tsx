@@ -20,7 +20,7 @@ import { useAuthUser } from "@/lib/hooks";
 import { loginYolu } from "@/lib/girisYolu";
 import { isCloudinaryConfigured, uploadToCloudinary, cldThumb } from "@/lib/cloudinary";
 import { addSahneFoto, deleteSahne, removeSahneFoto, updateSahne, watchSahne } from "@/lib/sahneler";
-import { FotoSahneKaydi, SAHNE_EFEKTLERI, SAHNE_MODLARI, SAHNE_ZEMIN_VARSAYILAN, SahneFoto } from "@/lib/fotoSahne";
+import { FotoSahneKaydi, SAHNE_EFEKTLERI, SAHNE_MODLARI, SAHNE_ZEMIN_VARSAYILAN, SAHNE_ZEMINLERI, SahneFoto } from "@/lib/fotoSahne";
 
 const MAX_IMAGE_MB = 10;
 
@@ -35,6 +35,17 @@ export default function SahneManagePage() {
   const [silOnay, setSilOnay] = useState<SahneFoto | null>(null);
   const [sahneSilOnay, setSahneSilOnay] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  // "Özel" renk: önizleme ANINDA değişsin, yazım 400ms sonda bir (sürüklerken
+  // her karede Firestore/sunucu yazımı olmasın).
+  const [zeminTaslak, setZeminTaslak] = useState<string | null>(null);
+  const zeminZaman = useRef<number | undefined>(undefined);
+  const ozelZemin = (v: string) => {
+    setZeminTaslak(v);
+    window.clearTimeout(zeminZaman.current);
+    zeminZaman.current = window.setTimeout(() => {
+      void updateSahne(sahne!.id, { zemin: v }).finally(() => setZeminTaslak(null));
+    }, 400);
+  };
   const cloudReady = isCloudinaryConfigured();
 
   useEffect(() => {
@@ -206,30 +217,38 @@ export default function SahneManagePage() {
             </div>
 
             <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Zemin</p>
-            <div className="flex items-center gap-2.5 mb-4">
-              <input
-                type="color"
-                defaultValue={sahne.zemin ?? SAHNE_ZEMIN_VARSAYILAN}
-                onBlur={(e) => {
-                  if (e.target.value !== (sahne.zemin ?? SAHNE_ZEMIN_VARSAYILAN)) void updateSahne(sahne.id, { zemin: e.target.value });
-                }}
-                className="w-9 h-9 rounded-lg border border-line p-0.5 cursor-pointer bg-transparent"
-                aria-label="Sahne zemin rengi"
-              />
-              {sahne.zemin && sahne.zemin !== SAHNE_ZEMIN_VARSAYILAN && (
+            {/* KARTELA = marka renklerimiz — native renk seçicinin cırtlak seti
+                değil (kullanıcı 😁 ile şikâyet etti). "Özel" yine her rengi verir.
+                Tıklama ANINDA yazar → önizleme anında değişir. */}
+            <div className="flex items-center gap-1.5 flex-wrap mb-4">
+              {SAHNE_ZEMINLERI.map((z) => (
                 <button
-                  onClick={() => void updateSahne(sahne.id, { zemin: SAHNE_ZEMIN_VARSAYILAN })}
-                  className="text-xs font-semibold text-muted hover:text-ink underline decoration-line"
-                >
-                  Varsayılana dön
-                </button>
-              )}
-              <span className="text-muted text-[11px]">Fotoğrafların arkasındaki boşluklarda görünür.</span>
+                  key={z.renk}
+                  onClick={() => void updateSahne(sahne.id, { zemin: z.renk })}
+                  title={z.ad}
+                  aria-label={z.ad}
+                  className={`w-8 h-8 rounded-lg border ${
+                    (sahne.zemin ?? SAHNE_ZEMIN_VARSAYILAN) === z.renk ? "border-accent ring-2 ring-accent/40" : "border-line"
+                  }`}
+                  style={{ background: z.renk }}
+                />
+              ))}
+              <label className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted cursor-pointer">
+                <input
+                  type="color"
+                  defaultValue={sahne.zemin ?? SAHNE_ZEMIN_VARSAYILAN}
+                  onChange={(e) => ozelZemin(e.target.value)}
+                  className="w-8 h-8 rounded-lg border border-line p-0.5 cursor-pointer bg-transparent"
+                  aria-label="Özel zemin rengi"
+                />
+                Özel
+              </label>
+              <span className="text-muted text-[11px] basis-full">Fotoğrafların arkasındaki boşluklarda görünür.</span>
             </div>
 
             <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Canlı önizleme</p>
             <div className="relative aspect-video rounded-xl overflow-hidden border border-line [color-scheme:dark]" style={{ containerType: "size" }}>
-              <FotoSahne sahne={sahne} box={{ w: 640, h: 360 }} />
+              <FotoSahne sahne={zeminTaslak ? { ...sahne, zemin: zeminTaslak } : sahne} box={{ w: 640, h: 360 }} />
             </div>
           </div>
 
