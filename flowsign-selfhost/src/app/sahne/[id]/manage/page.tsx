@@ -23,7 +23,7 @@ import { FotoSahneKaydi, SAHNE_EFEKTLERI, SAHNE_MODLARI, SAHNE_ZEMIN_VARSAYILAN,
 export default function SahneManagePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { loading, authed } = useSession();
+  const { loading, authed, me } = useSession();
   const [sahne, setSahne] = useState<FotoSahneKaydi | null | undefined>(undefined);
   const [queue, setQueue] = useState<{ done: number; total: number; pct: number } | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -86,9 +86,21 @@ export default function SahneManagePage() {
       </main>
     );
 
+  // Düzenleme yetkisi: sahibi + yönetici + yöneticinin yetki verdikleri
+  // (Kullanıcılar → Foto sahneler). Yetkisiz kişi sayfayı GÖREBİLİR ama
+  // yazamaz (karar sunucuda) — şerit bunu baştan söyler.
+  const duzenleyebilir =
+    me?.role === "admin" || (me != null && (sahne.ownerId === me.name || (sahne.duzenleyenler ?? []).includes(me.name)));
+
   return (
     <main className="min-h-screen bg-wash">
       <div className="max-w-5xl mx-auto px-4 py-6">
+        {!duzenleyebilir && (
+          <div className="mb-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm font-semibold">
+            Salt görüntüleme — bu sahneyi düzenleme yetkin yok. Yetkiyi yönetici, Kullanıcılar sayfasındaki
+            &ldquo;Foto sahneler&rdquo; bölümünden verir.
+          </div>
+        )}
         {/* Başlık: ← geldiği yere (editörden açılır) */}
         <div className="flex items-center gap-3 mb-5">
           <button

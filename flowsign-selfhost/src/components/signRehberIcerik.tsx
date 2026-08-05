@@ -213,7 +213,7 @@ export const SIGN_REHBER: RehberBolum[] = [
                 sahnenin KENDİ sayfasından yönetilir (🔀 Otomatik: seçtiğin modlar 30 sn'de bir sırayla döner). Tüm sahneler ekran
                 listesinin altındaki <b>Foto sahneler</b> bölümünde durur — link alandan silinse de sahneye
                 oradan ulaşılır; silme depodaki fotoğrafları da temizler — değişiklik linke anında düşer, aynı sahne birden çok
-                ekranda oynar. Yönetim linkini fotoğrafları yönetecek kişiye verebilirsin; o kişi ekranına dokunamaz.
+                ekranda oynar. Düzenleme yetkisini yönetici verir (Sign yetkileri → Foto sahneler); yetkili kişi ekranına dokunamaz, yalnız sahneyi besler.
               </>,
             ],
             [

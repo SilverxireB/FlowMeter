@@ -17,6 +17,7 @@ import FlowSpinner from "@/components/FlowSpinner";
 import FotoSahne from "@/components/videowall/FotoSahne";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useAuthUser } from "@/lib/hooks";
+import { useAdminGate } from "@/lib/useAdminGate";
 import { loginYolu } from "@/lib/girisYolu";
 import { isCloudinaryConfigured, uploadToCloudinary, cldThumb } from "@/lib/cloudinary";
 import { addSahneFoto, deleteSahne, removeSahneFoto, updateSahne, watchSahne } from "@/lib/sahneler";
@@ -47,6 +48,7 @@ export default function SahneManagePage() {
     }, 400);
   };
   const cloudReady = isCloudinaryConfigured();
+  const adminMi = useAdminGate();
 
   useEffect(() => {
     if (!loading && !user) router.replace(loginYolu());
@@ -99,9 +101,21 @@ export default function SahneManagePage() {
       </main>
     );
 
+  // Düzenleme yetkisi: sahibi + yönetici + yöneticinin yetki verdikleri
+  // (Sign yetkileri → Foto sahneler). Yetkisiz kişi sayfayı GÖREBİLİR ama
+  // yazamaz (kurallar reddeder) — şerit bunu baştan söyler.
+  const duzenleyebilir =
+    adminMi === true || (user != null && (sahne.ownerId === user.uid || (sahne.duzenleyenler ?? []).includes(user.uid)));
+
   return (
     <main className="min-h-screen bg-wash">
       <div className="max-w-5xl mx-auto px-4 py-6">
+        {!duzenleyebilir && (
+          <div className="mb-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm font-semibold">
+            Salt görüntüleme — bu sahneyi düzenleme yetkin yok. Yetkiyi yönetici, Sign yetkileri sayfasındaki
+            &ldquo;Foto sahneler&rdquo; bölümünden verir.
+          </div>
+        )}
         {/* Başlık: ← geldiği yere (editörden açılır) */}
         <div className="flex items-center gap-3 mb-5">
           <button

@@ -154,6 +154,8 @@ export interface PublicUser {
   role: "admin" | "user";
   /** Yeni ekran açabilir mi? (yoksa AÇABİLİR sayılır — yönetici kapatabilir) */
   canCreate?: boolean;
+  /** Foto sahne açabilir mi? (yoksa AÇABİLİR) */
+  canCreateSahne?: boolean;
   createdAt: number;
   /** Denetim izi — hesabı son değiştiren kişi ve zamanı (ms). */
   updatedBy?: string;

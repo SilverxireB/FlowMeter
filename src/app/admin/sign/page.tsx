@@ -26,7 +26,9 @@ import Logo from "@/components/Logo";
 import { Icon } from "@/components/Icon";
 import { SkelBox } from "@/components/Skeleton";
 import { useAuthUser } from "@/lib/hooks";
-import { ADMIN_EMAIL, getUserRecord, isAdminUser, listUsers, setCanCreateSign } from "@/lib/users";
+import { ADMIN_EMAIL, getUserRecord, isAdminUser, listUsers, setCanCreateSahne, setCanCreateSign } from "@/lib/users";
+import { listSahneler, updateSahne } from "@/lib/sahneler";
+import { FotoSahneKaydi } from "@/lib/fotoSahne";
 import { clearSignGrant, listAllVideowalls, setSignGrant, signPerm } from "@/lib/videowalls";
 import { SignGrant, UserRecord, Videowall } from "@/lib/types";
 import { loginYolu } from "@/lib/girisYolu";
@@ -46,6 +48,7 @@ export default function AdminSignPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [walls, setWalls] = useState<Videowall[]>([]);
+  const [sahneler, setSahneler] = useState<FotoSahneKaydi[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -63,9 +66,10 @@ export default function AdminSignPage() {
   }, [user, loading, router]);
 
   const refresh = useCallback(async () => {
-    const [u, w] = await Promise.all([listUsers(), listAllVideowalls()]);
+    const [u, w, sa] = await Promise.all([listUsers(), listAllVideowalls(), listSahneler()]);
     setUsers(u);
     setWalls(w);
+    setSahneler(sa);
   }, []);
 
   useEffect(() => {
@@ -197,6 +201,34 @@ export default function AdminSignPage() {
     }
   };
 
+  /** Sahne düzenleme yetkisi: sahnenin duzenleyenler listesine kişiyi ekle/çıkar. */
+  const toggleSahneYetki = async (sa: FotoSahneKaydi, uid: string) => {
+    setErr(null);
+    setBusy(true);
+    try {
+      const cur = sa.duzenleyenler ?? [];
+      await updateSahne(sa.id, { duzenleyenler: cur.includes(uid) ? cur.filter((x) => x !== uid) : [...cur, uid] });
+      await refresh();
+    } catch (e) {
+      setErr(studioHata(e, "Sahne yetkisi kaydedilemedi — tekrar dene."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleSahneCreate = async (u: UserRecord) => {
+    setErr(null);
+    setBusy(true);
+    try {
+      await setCanCreateSahne(u.id, u.canCreateSahne === false);
+      await refresh();
+    } catch (e) {
+      setErr(studioHata(e, "Kaydedilemedi — tekrar dene."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const toggleCreate = async (u: UserRecord) => {
     setErr(null);
     setBusy(true);
@@ -319,7 +351,18 @@ export default function AdminSignPage() {
                       className="w-4 h-4 accent-accent cursor-pointer"
                     />
                     <span className="hidden sm:inline">Yeni ekran açabilir</span>
-                    <span className="sm:hidden">Açabilir</span>
+                    <span className="sm:hidden">Ekran</span>
+                  </label>
+                  <label className="shrink-0 inline-flex items-center gap-2 text-xs text-muted cursor-pointer" title="Foto sahne oluşturabilsin mi?">
+                    <input
+                      type="checkbox"
+                      checked={u.canCreateSahne !== false}
+                      disabled={busy}
+                      onChange={() => toggleSahneCreate(u)}
+                      className="w-4 h-4 accent-accent cursor-pointer"
+                    />
+                    <span className="hidden sm:inline">Sahne açabilir</span>
+                    <span className="sm:hidden">Sahne</span>
                   </label>
                 </div>
 
@@ -446,6 +489,42 @@ export default function AdminSignPage() {
                       </div>
                       )}
                       </>
+                    )}
+                    {/* FOTO SAHNELER — sahne düzenleme yetkisi de BURADAN verilir
+                        (kullanıcı kararı: "ayrım istemiyorum, yetkiyi yönetici
+                        versin"). Tek sütun: Düzenle. Görüntüleme zaten public,
+                        silme sahibinde/yönetimde, kopyalama sahnede yok. */}
+                    {u.role !== "admin" && u.email !== ADMIN_EMAIL && sahneler.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-1.5">
+                          📸 Foto sahneler — düzenleme yetkisi
+                        </p>
+                        <ul className="flex flex-col gap-1">
+                          {sahneler.map((sa) => {
+                            const sahibi = sa.ownerId === u.id;
+                            return (
+                              <li key={sa.id} className="flex items-center gap-2.5 rounded-lg bg-white border border-line px-3 py-2 text-sm">
+                                <span className="flex-1 min-w-0 truncate font-semibold">{sa.name}</span>
+                                <span className="text-muted text-[11px] tabular-nums shrink-0">{(sa.fotolar ?? []).length} foto</span>
+                                {sahibi ? (
+                                  <span className="text-[10px] uppercase tracking-wider text-accent-dark bg-accent-soft rounded px-1.5 py-0.5 shrink-0">
+                                    oluşturan
+                                  </span>
+                                ) : (
+                                  <input
+                                    type="checkbox"
+                                    checked={(sa.duzenleyenler ?? []).includes(u.id)}
+                                    disabled={busy}
+                                    onChange={() => toggleSahneYetki(sa, u.id)}
+                                    aria-label={`${sa.name} — düzenleme yetkisi`}
+                                    className="w-4 h-4 accent-accent cursor-pointer shrink-0"
+                                  />
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
                     )}
                   </div>
                 )}

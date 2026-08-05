@@ -211,7 +211,7 @@ export async function createUser(name: string, password: string, role: "admin" |
 
 export async function updateUser(
   id: string,
-  patch: { password?: string; role?: "admin" | "user"; label?: string; canCreate?: boolean }
+  patch: { password?: string; role?: "admin" | "user"; label?: string; canCreate?: boolean; canCreateSahne?: boolean }
 ): Promise<void> {
   await j(
     await fetch(`/api/users/${encodeURIComponent(id)}`, {

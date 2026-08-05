@@ -393,15 +393,29 @@ service cloud.firestore {
     // sayfası kaydı PUBLIC okur (perde auth istemez). Taslak/yayın katmanı yok,
     // değişiklik linke anında düşer.
     //
-    // Güncelleme GİRİŞLİ HERKESE açık (kullanıcı kararı: yönetim linkini
-    // verdiğin kişi fotoğrafları yönetir; ekran yetkilerine dokunmaz). Sahiplik
-    // serbest yazımla ele geçirilemez; silme sahibi ya da yönetici.
+    // YETKİ YÖNETİCİDEN (kullanıcı kararı: "ayrım istemiyorum, yetkiyi yönetici
+    // versin — Sign yetkilerine ekleyelim"): güncelleme = sahibi + yönetici +
+    // duzenleyenler listesindekiler. Listedeki kişi İÇERİĞİ düzenler ama yetki
+    // listesine ve sahipliğe DOKUNAMAZ (kendi yetkisini büyütemez). Sahne açma
+    // hakkı kişide kapatılabilir (users.canCreateSahne — canCreateSign'ın ikizi).
     match /sahneler/{id} {
+      function canCreateSahne() {
+        return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          || get(/databases/$(database)/documents/users/$(request.auth.uid))
+               .data.get('canCreateSahne', true) != false;
+      }
       allow read: if true;
       allow create: if request.auth != null
-        && request.resource.data.ownerId == request.auth.uid;
+        && request.resource.data.ownerId == request.auth.uid
+        && (isAdmin() || canCreateSahne());
       allow update: if request.auth != null
-        && request.resource.data.get('ownerId', '') == resource.data.get('ownerId', '');
+        && request.resource.data.get('ownerId', '') == resource.data.get('ownerId', '')
+        && (
+          isAdmin()
+          || resource.data.get('ownerId', '') == request.auth.uid
+          || (request.auth.uid in resource.data.get('duzenleyenler', [])
+              && request.resource.data.get('duzenleyenler', []) == resource.data.get('duzenleyenler', []))
+        );
       allow delete: if request.auth != null
         && (isAdmin() || resource.data.get('ownerId', '') == request.auth.uid);
     }

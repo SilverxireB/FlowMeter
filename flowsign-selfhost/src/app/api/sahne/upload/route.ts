@@ -5,7 +5,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser, unauthorized } from "@/lib/serverAuth";
+import { currentUser, forbidden, unauthorized } from "@/lib/serverAuth";
 import { addSahneFotoKaydi, getSahne, SAHNE_MEDIA_DIR } from "@/lib/sahneStore";
 import { ayarSayi } from "@/lib/settings";
 
@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id") ?? "";
   const sahne = await getSahne(id);
   if (!sahne) return NextResponse.json({ error: "Sahne bulunamadı" }, { status: 404 });
+  // Fotoğraf eklemek de düzenlemedir — aynı yetki kapısı.
+  if (me.role !== "admin" && sahne.ownerId !== me.name && !(sahne.duzenleyenler ?? []).includes(me.name)) return forbidden();
 
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");

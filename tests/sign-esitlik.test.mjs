@@ -83,6 +83,11 @@ const IZLER = [
   ["rehberde foto sahne", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "SAHNE_MODLARI.map((m) => m.ad)"],
   ["foto sahneler bölümü (sahnelerin evi)", "src/components/videowall/SahneListesi.tsx", "flowsign-selfhost/src/components/SahneListesi.tsx", "kullanılmıyor"],
   ["sahne listesi ekran sayfasında", "src/app/videowall/page.tsx", "flowsign-selfhost/src/app/screens/page.tsx", "<SahneListesi walls={walls} />"],
+  // Sahne yetkisi YÖNETİCİDEN (kullanıcı kararı: ayrım yok, sayfada yetki yüzeyi yok).
+  ["sahne yetki matrisi yönetimde", "src/app/admin/sign/page.tsx", "flowsign-selfhost/src/app/users/page.tsx", "Foto sahneler — düzenleme yetkisi"],
+  ["sahne açabilir tiki", "src/app/admin/sign/page.tsx", "flowsign-selfhost/src/app/users/page.tsx", "Sahne açabilir"],
+  ["salt görüntüleme şeridi", "src/app/sahne/[id]/manage/page.tsx", "flowsign-selfhost/src/app/sahne/[id]/manage/page.tsx", "Salt görüntüleme"],
+  ["duzenleyenler alanı", "src/lib/fotoSahne.ts", "flowsign-selfhost/src/lib/fotoSahne.ts", "duzenleyenler?: string[]"],
   ["mobilde Saat/Tarih taşmaz", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "basis-full sm:basis-auto min-w-0"],
   ["ters tarih aralığı uyarısı", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Başlangıç bitişten sonra"],
   ["geçmiş gün seçilemez", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "const enErken ="],

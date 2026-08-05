@@ -32,6 +32,8 @@ export interface User {
   role: Role;
   /** Yeni ekran açabilir mi? (yoksa AÇABİLİR — yönetici "Sign yetkileri"nden kapatır) */
   canCreate?: boolean;
+  /** Foto sahne açabilir mi? (yoksa AÇABİLİR — canCreate'in sahne ikizi) */
+  canCreateSahne?: boolean;
   salt: string;
   hash: string;
   createdAt: number;
@@ -54,6 +56,7 @@ export const publicUser = (u: User): PublicUser => ({
   label: u.label,
   role: u.role,
   canCreate: u.canCreate,
+  canCreateSahne: u.canCreateSahne,
   createdAt: u.createdAt,
   updatedBy: u.updatedBy,
   updatedAt: u.updatedAt,
@@ -160,6 +163,11 @@ export async function setRole(id: string, role: Role, kim: string): Promise<void
     throw new Error("Tek yönetici kaldı — önce başka bir yönetici ata.");
   }
   await saveUsers(users.map((u) => (u.id === id ? damgala({ ...u, role }, kim) : u)));
+}
+
+export async function setCanCreateSahne(id: string, deger: boolean, kim: string): Promise<void> {
+  const users = await listUsers();
+  await saveUsers(users.map((u) => (u.id === id ? damgala({ ...u, canCreateSahne: deger }, kim) : u)));
 }
 
 export async function setCanCreate(id: string, canCreate: boolean, kim: string): Promise<void> {

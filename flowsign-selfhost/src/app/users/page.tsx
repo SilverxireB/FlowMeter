@@ -18,6 +18,8 @@ import { Icon } from "@/components/icons";
 import { createUser, deleteUser, listUsers, listWalls, setWallGrant, updateUser, wallPerm } from "@/lib/client";
 import { PublicUser, SignPerms, Videowall } from "@/lib/types";
 import { eslesir } from "@/lib/arama";
+import { listSahneler, updateSahne } from "@/lib/sahneClient";
+import { FotoSahneKaydi } from "@/lib/fotoSahne";
 import { csvIndir, yetkiCsv, yetkiDosyaAdi, YetkiSatiri } from "@/lib/yetkiCsv";
 
 /**
@@ -41,6 +43,7 @@ const PERMS = [
 export default function UsersPage() {
   const [tab, setTab] = useState<"accounts" | "access">("accounts");
   const [walls, setWalls] = useState<Videowall[]>([]);
+  const [sahneler, setSahneler] = useState<FotoSahneKaydi[]>([]);
   const [open, setOpen] = useState<string | null>(null); // açık kişi (yetki matrisi)
   const [wallAra, setWallAra] = useState("");
   const [users, setUsers] = useState<PublicUser[]>([]);
@@ -62,10 +65,11 @@ export default function UsersPage() {
 
   const refresh = useCallback(async () => {
     try {
-      const [u, w] = await Promise.all([listUsers(), listWalls()]);
+      const [u, w, sa] = await Promise.all([listUsers(), listWalls(), listSahneler()]);
       setUsers(u.users);
       setMe(u.me);
       setWalls([...w.walls].sort((a, b) => a.name.localeCompare(b.name, "tr")));
+      setSahneler(sa);
     } catch {
       setErr("Kullanıcılar okunamadı — oturumun düşmüş olabilir.");
     } finally {
@@ -77,6 +81,15 @@ export default function UsersPage() {
    * Tek tik → o kişinin o ekrandaki kaydı (varsayılandan kopyalanarak) yazılır.
    * Oluşturan kişide TÜM tikler geri gelirse kayıt kaldırılır → varsayılana döner.
    */
+  /** Sahne düzenleme yetkisi: sahnenin duzenleyenler listesine kişiyi ekle/çıkar. */
+  const toggleSahneYetki = (sa: FotoSahneKaydi, u: PublicUser) => {
+    void run(async () => {
+      const cur = sa.duzenleyenler ?? [];
+      await updateSahne(sa.id, { duzenleyenler: cur.includes(u.name) ? cur.filter((x) => x !== u.name) : [...cur, u.name] });
+      await refresh();
+    });
+  };
+
   const toggleGrant = (w: Videowall, u: PublicUser, key: keyof SignPerms) => {
     const cur = wallPerm(w, u);
     const next: SignPerms = { ...cur, [key]: !cur[key] };
@@ -422,7 +435,18 @@ export default function UsersPage() {
                             className="w-4 h-4 accent-accent cursor-pointer"
                           />
                           <span className="hidden sm:inline">Yeni ekran açabilir</span>
-                          <span className="sm:hidden">Açabilir</span>
+                          <span className="sm:hidden">Ekran</span>
+                        </label>
+                        <label className="shrink-0 inline-flex items-center gap-2 text-xs text-muted cursor-pointer" title="Foto sahne oluşturabilsin mi?">
+                          <input
+                            type="checkbox"
+                            checked={u.role === "admin" ? true : u.canCreateSahne !== false}
+                            disabled={busy || u.role === "admin"}
+                            onChange={() => run(() => updateUser(u.id, { canCreateSahne: u.canCreateSahne === false }))}
+                            className="w-4 h-4 accent-accent cursor-pointer"
+                          />
+                          <span className="hidden sm:inline">Sahne açabilir</span>
+                          <span className="sm:hidden">Sahne</span>
                         </label>
                       </div>
 
@@ -556,6 +580,40 @@ export default function UsersPage() {
                             </div>
                             )}
                             </>
+                          )}
+                          {/* FOTO SAHNELER — sahne düzenleme yetkisi de BURADAN
+                              verilir (kullanıcı kararı: yetkiyi yönetici verir). */}
+                          {u.role !== "admin" && sahneler.length > 0 && (
+                            <div className="mt-4">
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-1.5">
+                                📸 Foto sahneler — düzenleme yetkisi
+                              </p>
+                              <ul className="flex flex-col gap-1">
+                                {sahneler.map((sa) => {
+                                  const sahibi = sa.ownerId === u.name;
+                                  return (
+                                    <li key={sa.id} className="flex items-center gap-2.5 rounded-lg bg-white border border-line px-3 py-2 text-sm">
+                                      <span className="flex-1 min-w-0 truncate font-semibold">{sa.name}</span>
+                                      <span className="text-muted text-[11px] tabular-nums shrink-0">{(sa.fotolar ?? []).length} foto</span>
+                                      {sahibi ? (
+                                        <span className="text-[10px] uppercase tracking-wider text-accent-dark bg-accent-soft rounded px-1.5 py-0.5 shrink-0">
+                                          oluşturan
+                                        </span>
+                                      ) : (
+                                        <input
+                                          type="checkbox"
+                                          checked={(sa.duzenleyenler ?? []).includes(u.name)}
+                                          disabled={busy}
+                                          onChange={() => toggleSahneYetki(sa, u)}
+                                          aria-label={`${sa.name} — düzenleme yetkisi`}
+                                          className="w-4 h-4 accent-accent cursor-pointer shrink-0"
+                                        />
+                                      )}
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
                           )}
                         </div>
                       )}

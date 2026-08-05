@@ -89,6 +89,14 @@ export interface FotoSahneKaydi {
   id: string;
   /** Oluşturan (silme yetkisi). Self-host'ta giriş adı. */
   ownerId?: string;
+  /**
+   * DÜZENLEYEBİLENLER — yetkiyi YÖNETİCİ verir (Sign yetkileri sayfası;
+   * kullanıcı kararı: "ayrım istemiyorum, yetkiyi yönetici versin").
+   * Online: uid listesi · self-host: giriş adı listesi. Sahibi + yönetici
+   * her zaman yetkilidir; listedeki kişi İÇERİĞİ düzenler ama listeyi ve
+   * sahipliği DEĞİŞTİREMEZ (kendi yetkisini büyütemez).
+   */
+  duzenleyenler?: string[];
   ownerName?: string;
   name: string;
   mod?: SahneModu;

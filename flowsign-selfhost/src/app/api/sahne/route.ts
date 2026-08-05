@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const me = await currentUser(req);
   if (!me) return unauthorized();
+  // Sahne açma hakkı kişide kapatılabilir (kayıt yoksa AÇIK — canCreate'in ikizi).
+  if (me.role !== "admin" && me.canCreateSahne === false) return forbidden();
   let name = "";
   try {
     name = (await req.json())?.name ?? "";
@@ -39,6 +41,15 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }
   if (!body.id || !body.patch) return NextResponse.json({ error: "missing-params" }, { status: 400 });
+  // YETKİ: sahibi + yönetici + yöneticinin yetki verdikleri (duzenleyenler).
+  // Listedeki kişi İÇERİĞİ düzenler ama listeyi DEĞİŞTİREMEZ (kendi yetkisini
+  // büyütemez) — duzenleyenler'e yalnız sahibi/yönetici dokunur.
+  const mevcut = await getSahne(body.id);
+  if (!mevcut) return NextResponse.json({ error: "Sahne bulunamadı" }, { status: 404 });
+  const sahipVeyaAdmin = me.role === "admin" || mevcut.ownerId === me.name;
+  const yetkili = sahipVeyaAdmin || (mevcut.duzenleyenler ?? []).includes(me.name);
+  if (!yetkili) return forbidden();
+  if (body.patch.duzenleyenler !== undefined && !sahipVeyaAdmin) return forbidden();
   const sahne = await patchSahne(body.id, body.patch);
   if (!sahne) return NextResponse.json({ error: "Sahne bulunamadı" }, { status: 404 });
   return NextResponse.json({ ok: true, sahne });

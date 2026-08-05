@@ -78,6 +78,11 @@ export async function setCanCreateSign(uid: string, canCreate: boolean): Promise
   await updateDoc(doc(db(), "users", uid), { canCreateSign: canCreate });
 }
 
+/** Foto sahne açma hakkı — canCreateSign'ın sahne ikizi (kayıt yoksa AÇIK). */
+export async function setCanCreateSahne(uid: string, canCreate: boolean): Promise<void> {
+  await updateDoc(doc(db(), "users", uid), { canCreateSahne: canCreate });
+}
+
 /**
  * E-postası olmayan kayıtlar — anonim oturumdan kalma hayaletler.
  * Gerçek kullanıcının e-postası hep vardır (Google ile girilir).
