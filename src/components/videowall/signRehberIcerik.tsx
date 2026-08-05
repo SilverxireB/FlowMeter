@@ -189,7 +189,10 @@ export const SIGN_REHBER: RehberBolum[] = [
               <>
                 Görsel ve videonun TEK kapısı. <b>Cihazdan yükle</b> dosyayı kütüphaneye alır; alana
                 yerleştirmek için öğeye tıkla. <b>kullanılmıyor</b> rozetli dosya hiçbir alanda değildir —
-                çöp simgesiyle kalıcı silinir (kullanılan dosya silinemez). Video için MP4 (H.264) en güvenlisi.
+                çöp simgesiyle kalıcı silinir (kullanılan dosya silinemez). <b>Ortak raf</b> sekmesi tüm
+                ekranların havuzudur: herkes ekler (yükleme ya da dosyanın yanındaki klasör simgesi —
+                KOPYALAR, ekrandan silmez), yalnız yönetici siler; ekran silinse de raf etkilenmez.
+                Video için MP4 (H.264) en güvenlisi.
               </>,
             ],
             [

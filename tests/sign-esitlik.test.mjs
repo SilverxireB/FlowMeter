@@ -58,6 +58,14 @@ const IZLER = [
   ["kullanılmıyor rozeti", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "kullanılmıyor"],
   ["yalnız kullanılmayan silinir", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "it.kayit && !it.used"],
   ["silme onay penceresi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", 'title="Kütüphaneden sil"'],
+  // Ortak raf v2: ekran klasörlerinden YAPISAL olarak ayrı havuz; rafa koymak
+  // KOPYADIR (ilk deneme taşıma yüzünden çökmüştü); liste sunucu gerçeği;
+  // herkes ekler, yalnız yönetici siler.
+  ["ortak raf sekmesi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", '"Ortak raf"'],
+  ["rafa koymak kopyadır", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Ortak rafa koy (kopyalar — buradan silmez)"],
+  ["raf silme yalnız yönetici", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", 'title="Raftan sil (yönetici)"'],
+  ["raf liste = sunucu gerçeği", "src/lib/ortakRaf.ts", "flowsign-selfhost/src/lib/media.ts", "export async function rafListesi"],
+  ["rehberde ortak raf", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "ekran silinse de raf etkilenmez"],
   ["mobilde Saat/Tarih taşmaz", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "basis-full sm:basis-auto min-w-0"],
   ["ters tarih aralığı uyarısı", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Başlangıç bitişten sonra"],
   ["geçmiş gün seçilemez", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "const enErken ="],
