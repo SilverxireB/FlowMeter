@@ -1,0 +1,634 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Yönetici: bootstrap e-posta (Google token'ından) VEYA users kaydında role=admin.
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'doganbaharozu@gmail.com'
+        || get(/databases/$(database)/documents/users/$(request.auth.uid))
+             .data.get('role', '') == 'admin'
+      );
+    }
+
+    // Kullanıcı kayıt defteri: girişte herkes KENDİ kaydını yazar ama role
+    // alanına dokunamaz (kendini admin yapamaz); rol atama/silme sadece yönetici.
+    match /users/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.get('role', 'user') == 'user';
+      allow update: if isAdmin()
+        || (request.auth != null && request.auth.uid == uid
+            && request.resource.data.get('role', 'user') == resource.data.get('role', 'user'));
+      allow delete: if isAdmin();
+    }
+
+    // Sunumlar: herkes okuyabilir (izleyiciler auth'suz katılır),
+    // sadece sahibi yazabilir.
+    match /presentations/{presentationId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+      // Yönetici de yazabilir: ayrılan personelin içeriğini DEVRALIP (ownerId'yi
+      // kendine alıp) yönetebilsin/silebilsin diye. Devirden sonra alt
+      // koleksiyonların mevcut "sahip" kuralları kendiliğinden geçer — bu yüzden
+      // ~20 kural satırına dokunmak gerekmedi.
+      allow update, delete: if request.auth != null
+        && (resource.data.ownerId == request.auth.uid || isAdmin());
+
+      // Katılımcılar: izleyici kendi voterId dokümanını oluşturur/günceller
+      // (nickname). Silme sadece sunum sahibinde ("yeni oturum" ile temizleme).
+      match /participants/{participantId} {
+        allow read: if true;
+        allow create, update: if request.resource.data.keys()
+            .hasOnly(['nickname', 'emoji', 'avatarSeed', 'joinedAt', 'sessionId'])
+          && request.resource.data.nickname is string
+          && request.resource.data.nickname.size() <= 30;
+        allow delete: if request.auth != null
+          && get(/databases/$(database)/documents/presentations/$(presentationId))
+             .data.ownerId == request.auth.uid;
+      }
+
+      // Geçmiş oturum arşivi (yalnızca zaman damgaları): sadece sunum sahibi yazar.
+      match /sessions/{sessionId} {
+        allow read: if true;
+        allow create, update, delete: if request.auth != null
+          && get(/databases/$(database)/documents/presentations/$(presentationId))
+             .data.ownerId == request.auth.uid;
+      }
+
+      // Tepkiler (uçuşan emojiler): herkes ekleyebilir, sadece izinli emojiler.
+      // Değiştirilemez; silme sadece sunum sahibinde (temizlik / yeni oturum).
+      match /reactions/{reactionId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['emoji', 'createdAt'])
+          && request.resource.data.emoji in ['❤️', '👍', '😂', '😮', '🎉'];
+        allow update: if false;
+        allow delete: if request.auth != null
+          && get(/databases/$(database)/documents/presentations/$(presentationId))
+             .data.ownerId == request.auth.uid;
+      }
+
+      // Canlı sohbet: izleyici mesaj ekler (create-only, 200 karakter),
+      // silme (moderasyon) sadece sunum sahibinde.
+      match /messages/{messageId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys()
+            .hasOnly(['text', 'voterId', 'nickname', 'createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() <= 200
+          && request.resource.data.nickname is string
+          && request.resource.data.nickname.size() <= 30;
+        allow update: if false;
+        allow delete: if request.auth != null
+          && get(/databases/$(database)/documents/presentations/$(presentationId))
+             .data.ownerId == request.auth.uid;
+      }
+
+      // Q&A soruları: izleyici ekler ve upvote eder (+1'den fazla artırılamaz),
+      // moderasyon (gizle/sil) sadece sahibinde.
+      match /questions/{questionId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys()
+            .hasOnly(['text', 'voterId', 'upvotes', 'createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() <= 250
+          && request.resource.data.upvotes == 0;
+        allow update: if
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes'])
+            && request.resource.data.upvotes == resource.data.upvotes + 1)
+          || (request.auth != null
+            && get(/databases/$(database)/documents/presentations/$(presentationId))
+               .data.ownerId == request.auth.uid);
+        allow delete: if request.auth != null
+          && get(/databases/$(database)/documents/presentations/$(presentationId))
+             .data.ownerId == request.auth.uid;
+      }
+
+      match /slides/{slideId} {
+        allow read: if true;
+        allow create, update, delete: if request.auth != null
+          && get(/databases/$(database)/documents/presentations/$(presentationId))
+             .data.ownerId == request.auth.uid;
+
+        // Oylar: herkes ekleyebilir (anonim izleyici), ama asla
+        // değiştirilemez/silinemez — sadece create.
+        // SUNUCU TARAFI KAPILAR (istemci saati/kurcalama aşamaz):
+        //  - sunum bitmişse / oylama kapalıysa oy YOK
+        //  - oy, sunumun AKTİF oturumuna ait olmalı (eski oturum telefonu yazamaz)
+        //  - quiz/quiz-type: geri sayım başlamamışsa ya da süre dolmuşsa oy YOK
+        //    (+1.5 sn ağ gecikmesi toleransı)
+        match /responses/{responseId} {
+          function pres() {
+            return get(/databases/$(database)/documents/presentations/$(presentationId)).data;
+          }
+          function slideData() {
+            return get(/databases/$(database)/documents/presentations/$(presentationId)/slides/$(slideId)).data;
+          }
+          function sessionOk() {
+            return !('sessionId' in pres())
+              || request.resource.data.get('sessionId', '') == pres().sessionId;
+          }
+          function quizWindowOpen() {
+            let s = slideData();
+            return !(s.type in ['quiz', 'quiz-type'])
+              || (s.get('quizStartedAt', null) != null
+                  && request.time.toMillis() < s.quizStartedAt.toMillis()
+                     + s.get('settings', {}).get('timeLimit', s.type == 'quiz' ? 20 : 30) * 1000
+                     + 1500);
+          }
+          allow read: if true;
+          allow create: if request.resource.data.keys()
+              .hasOnly(['voterId', 'value', 'createdAt', 'sessionId', 'status'])
+            && request.resource.data.voterId is string
+            // Açık metin moderasyonu: izleyici kendini ONAYLAYAMAZ (status ancak
+            // 'pending' olabilir); moderasyon açıkken open-ended/word-cloud
+            // cevabında 'pending' ZORUNLU — kapatılamaz istemci kapısı.
+            && (!('status' in request.resource.data)
+                || request.resource.data.status == 'pending')
+            && (!(slideData().type in ['open-ended', 'word-cloud'])
+                || pres().get('textModeration', false) != true
+                || request.resource.data.get('status', '') == 'pending')
+            && pres().get('ended', false) != true
+            && pres().get('votingClosed', false) != true
+            && sessionOk()
+            && quizWindowOpen();
+          // Moderasyon onayı: yalnız sunum sahibi, yalnız status alanı değişir
+          allow update: if request.auth != null
+            && pres().ownerId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+          // Sadece sunum sahibi silebilir ("cevapları sıfırla")
+          allow delete: if request.auth != null
+            && get(/databases/$(database)/documents/presentations/$(presentationId))
+               .data.ownerId == request.auth.uid;
+        }
+      }
+    }
+
+    // ── FlowWall: canlı etkinlik foto/video duvarı ──────────────────────────
+    // Duvar: herkes okur (perde + misafir), sadece sahibi yazar.
+    match /walls/{wallId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+      // Yönetici de yazabilir: ayrılan personelin içeriğini DEVRALIP (ownerId'yi
+      // kendine alıp) yönetebilsin/silebilsin diye. Devirden sonra alt
+      // koleksiyonların mevcut "sahip" kuralları kendiliğinden geçer — bu yüzden
+      // ~20 kural satırına dokunmak gerekmedi.
+      allow update, delete: if request.auth != null
+        && (resource.data.ownerId == request.auth.uid || isAdmin());
+
+      // Medya: misafir (anonim) ekler; byte'lar Cloudinary'de, burada metadata.
+      // Moderasyon açıkken status 'pending' olmak ZORUNDA (kendi kendini onaylayamaz).
+      // SUNUCU KAPILARI (istemci kontrolü aşılamaz): kapalı duvara yazma YOK,
+      // url yalnız Cloudinary, nickname ≤30, aktif oturum eşleşmesi, video süresi
+      // duvar limitine bağlı (+3 sn tolerans).
+      match /media/{mediaId} {
+        function wall() {
+          return get(/databases/$(database)/documents/walls/$(wallId)).data;
+        }
+        function mediaShapeOk() {
+          return request.resource.data.keys().hasOnly(
+              ['voterId','nickname','type','cloudinaryId','url','w','h','durationMs','status','likes','sessionId','createdAt'])
+            && request.resource.data.voterId is string
+            && request.resource.data.type in ['image','video']
+            && request.resource.data.url is string
+            && request.resource.data.url.matches('https://res\\.cloudinary\\.com/.*')
+            && (!('nickname' in request.resource.data)
+                || (request.resource.data.nickname is string
+                    && request.resource.data.nickname.size() <= 30))
+            && request.resource.data.get('sessionId', '') == wall().get('sessionId', '')
+            && request.resource.data.get('likes', 0) == 0
+            && request.resource.data.status ==
+               (wall().get('moderation', false) == true ? 'pending' : 'approved');
+        }
+        allow read: if true;
+        allow create: if mediaShapeOk() && (
+          // Sahip kendi duvarına her zaman ekleyebilir (kapalıyken de)
+          (request.auth != null && wall().ownerId == request.auth.uid)
+          // Misafir: duvar açıkken + video kurallarına uyarak
+          || (wall().get('closed', false) != true
+              && (request.resource.data.type == 'image'
+                  || (wall().get('allowVideo', true) == true
+                      && request.resource.data.get('durationMs', 0) <= (wall().get('videoLimitSec', 60) + 3) * 1000)))
+        );
+        // Beğeni: herkes yalnız 'likes' alanını +1 artırabilir (misafir ❤);
+        // diğer tüm değişiklikler (moderasyon/onayla/reddet) ve silme sadece sahibinde.
+        allow update: if
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
+            && request.resource.data.likes == resource.data.get('likes', 0) + 1)
+          || (request.auth != null && wall().ownerId == request.auth.uid);
+        // Silme: duvar sahibi HER medyayı; misafir (anonim auth) yalnız
+        // voterId'si kendi uid'i olan medyayı ("kötü çıktı, kaldırayım").
+        allow delete: if request.auth != null
+          && (wall().ownerId == request.auth.uid
+              || resource.data.get('voterId', '') == request.auth.uid);
+      }
+
+      // Tepkiler (misafir emoji/kalp yağmuru → perde): herkes ekler, sadece
+      // izinli emojiler. Değiştirilemez; silme (temizlik) sadece duvar sahibinde.
+      match /reactions/{reactionId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['emoji', 'createdAt'])
+          && request.resource.data.emoji in ['❤️', '👏', '🎉', '😍', '🔥', '😮'];
+        allow update: if false;
+        allow delete: if request.auth != null
+          && get(/databases/$(database)/documents/walls/$(wallId)).data.ownerId == request.auth.uid;
+      }
+
+      // Dilekler (misafir yazılı not → perdede dilek bandı): herkes ekler
+      // (1–140 karakter). Moderasyon açıkken status 'pending' ZORUNDA (kendini
+      // onaylayamaz). Onaylama/reddetme/silme sadece duvar sahibinde.
+      match /wishes/{wishId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['text', 'nickname', 'voterId', 'status', 'createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 1
+          && request.resource.data.text.size() <= 140
+          && request.resource.data.voterId is string
+          && get(/databases/$(database)/documents/walls/$(wallId)).data.get('wishesEnabled', true) == true
+          && request.resource.data.status ==
+             (get(/databases/$(database)/documents/walls/$(wallId)).data.get('moderation', false) == true ? 'pending' : 'approved');
+        allow update, delete: if request.auth != null
+          && get(/databases/$(database)/documents/walls/$(wallId)).data.ownerId == request.auth.uid;
+      }
+
+      // Yarışma oyları: misafir KENDİ oyunu yazar (doc id = voterId → kişi başı
+      // tek, değiştirilebilir). Aktif yarışmanın contestId'si zorunlu; süre
+      // dolduysa oy YOK (+2 sn ağ toleransı — kokpit kapatmasa bile). Silme sahibinde.
+      match /contestVotes/{voterId} {
+        function w() { return get(/databases/$(database)/documents/walls/$(wallId)).data; }
+        allow read: if true;
+        allow create, update: if request.resource.data.keys().hasOnly(['mediaId','contestId','createdAt'])
+          && request.resource.data.mediaId is string
+          && w().get('contest', null) != null
+          && w().contest.get('status','') == 'running'
+          && request.resource.data.contestId == w().contest.id
+          && (w().contest.get('endsAt', null) == null
+              || request.time.toMillis() < w().contest.endsAt.toMillis() + 2000);
+        allow delete: if request.auth != null
+          && get(/databases/$(database)/documents/walls/$(wallId)).data.ownerId == request.auth.uid;
+      }
+
+      // Çekiliş kayıtları: misafir isim+sicil girer (doc id = sicil → aynı sicil
+      // tek kayıt). Yalnız kayıt türünde + kayıt açıkken. GÜNCELLEME yalnız aynı
+      // cihazdan (voterId eşleşmeli) — misafir başkasının kaydını ezemez. Silme sahibinde.
+      match /raffleEntries/{sicil} {
+        function w() { return get(/databases/$(database)/documents/walls/$(wallId)).data; }
+        function entryShapeOk() {
+          return request.resource.data.keys().hasOnly(['name','sicil','voterId','createdAt'])
+            && request.resource.data.name is string
+            && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 40
+            && request.resource.data.sicil is string
+            && request.resource.data.sicil.size() >= 1 && request.resource.data.sicil.size() <= 40
+            && request.resource.data.voterId is string;
+        }
+        function guestWindowOpen() {
+          return w().get('raffle', null) != null
+            && w().raffle.get('type','') == 'registration'
+            && w().raffle.get('registerOpen', true) == true;
+        }
+        allow read: if true;
+        allow create: if entryShapeOk()
+          && ((request.auth != null && w().ownerId == request.auth.uid) // toplu liste (Excel)
+              || guestWindowOpen());
+        allow update: if entryShapeOk()
+          && ((request.auth != null && w().ownerId == request.auth.uid)
+              || (guestWindowOpen()
+                  && request.resource.data.voterId == resource.data.get('voterId', '')));
+        allow delete: if request.auth != null && w().ownerId == request.auth.uid;
+      }
+
+      // Çekim kayıt defteri (denetim): kazananlar + havuz boyu. Yalnız sahip yazar.
+      match /draws/{drawId} {
+        allow read: if true;
+        allow create, delete: if request.auth != null
+          && get(/databases/$(database)/documents/walls/$(wallId)).data.ownerId == request.auth.uid;
+        allow update: if false;
+      }
+    }
+
+    // Join kodu -> sunum/duvar lookup tablosu ({presentationId} veya {id,kind:"wall"}).
+    // Oluşturma/silme HEDEFİN SAHİBİNE bağlı — başka bir hesap, bir etkinliğin
+    // kodunu silip katılımı kıramaz. (Parent doküman koddan ÖNCE yaratılır;
+    // silmede batch içi get() ön-durumu okur → sahiplik kontrolü geçer.)
+    match /joinCodes/{code} {
+      function ownsWall(id) {
+        return get(/databases/$(database)/documents/walls/$(id)).data.ownerId == request.auth.uid;
+      }
+      function ownsDeck(id) {
+        return get(/databases/$(database)/documents/presentations/$(id)).data.ownerId == request.auth.uid;
+      }
+      allow read: if true;
+      allow create: if request.auth != null && (
+        (request.resource.data.keys().hasOnly(['id', 'kind'])
+          && request.resource.data.kind == 'wall'
+          && ownsWall(request.resource.data.id))
+        || (request.resource.data.keys().hasOnly(['presentationId'])
+          && ownsDeck(request.resource.data.presentationId))
+      );
+      allow delete: if request.auth != null && (
+        (resource.data.get('kind', '') == 'wall' && ownsWall(resource.data.id))
+        || (resource.data.get('kind', '') != 'wall' && ownsDeck(resource.data.presentationId))
+      );
+      allow update: if false;
+    }
+
+    // ── FlowSign (VideoWall): dijital tabela / video-wall CMS ────────────────
+    // Config herkes OKUR (perde linki auth'suz açılır — tabela cihazı giriş
+    // yapamaz); YAZMA yetki matrisine bağlı. Matris TEK yerden yönetilir:
+    // /admin → "Sign yetkileri" (ekran sayfalarında yetki yüzeyi yoktur).
+    //   grants: uid → {view, edit, copy, delete}
+    //   Açık kayıt YOKSA: ekranı OLUŞTURAN (ownerId) tam yetkilidir.
+    //   Açık kayıt VARSA: varsayılanı ezer (oluşturanın yetkisi de kesilebilir).
+    //   Yönetici (isAdmin) her ekranda tam yetkilidir.
+    // NOT: view/copy GÖRÜNÜRLÜK seviyesidir — doküman okuması public olmak
+    // zorunda olduğundan rules ile gizlenemez; edit/delete gerçek kapıdır.
+    match /videowalls/{id} {
+      function signAllows(d, key) {
+        return request.auth != null && (
+          isAdmin()
+          || (request.auth.uid in d.get('grants', {})
+              ? d.get('grants', {}).get(request.auth.uid, {}).get(key, false) == true
+              : d.get('ownerId', '') == request.auth.uid)
+        );
+      }
+      // Yeni ekran açma hakkı kişide kapatılabilir (kayıt yoksa AÇIK sayılır).
+      function canCreateSign() {
+        return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          || get(/databases/$(database)/documents/users/$(request.auth.uid))
+               .data.get('canCreateSign', true) != false;
+      }
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid
+        && (isAdmin() || canCreateSign());
+      // Yetkili yazımı yetki alanlarına DOKUNAMAZ (yoksa kendini yükseltirdi).
+      allow update: if isAdmin()
+        || (signAllows(resource.data, 'edit')
+            && request.resource.data.get('grants', {}) == resource.data.get('grants', {})
+            && request.resource.data.get('ownerId', '') == resource.data.get('ownerId', ''));
+      allow delete: if signAllows(resource.data, 'delete');
+
+      // Ekran sağlığı (heartbeat): perde AUTH'SUZ "canlıyım" yazar — alan seti
+      // sabit ve zararsız (yalnız görünürlük bilgisi; içerik/yayına dokunamaz).
+      // Bayat kayıt temizliği: ekranı düzenleme yetkisi olan kişi.
+      match /screens/{screenId} {
+        function wall() {
+          return get(/databases/$(database)/documents/videowalls/$(id)).data;
+        }
+        allow read: if true;
+        allow create, update: if request.resource.data.keys()
+            .hasOnly(['ua', 'vwPx', 'vhPx', 'startedAt', 'lastSeenAt', 'totalMs'])
+          && (!('ua' in request.resource.data)
+              || (request.resource.data.ua is string && request.resource.data.ua.size() <= 160))
+          && (!('totalMs' in request.resource.data)
+              || request.resource.data.totalMs is number);
+        allow delete: if signAllows(wall(), 'edit');
+      }
+    }
+
+    // ── FOTO SAHNE (FlowSign) ───────────────────────────────────────────────
+    // Kendi linki olan hatıra köşesi (Wall mantığı, sadeleşmiş): /sahne/{id}
+    // sayfası kaydı PUBLIC okur (perde auth istemez). Taslak/yayın katmanı yok,
+    // değişiklik linke anında düşer.
+    //
+    // Güncelleme GİRİŞLİ HERKESE açık (kullanıcı kararı: yönetim linkini
+    // verdiğin kişi fotoğrafları yönetir; ekran yetkilerine dokunmaz). Sahiplik
+    // serbest yazımla ele geçirilemez; silme sahibi ya da yönetici.
+    match /sahneler/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update: if request.auth != null
+        && request.resource.data.get('ownerId', '') == resource.data.get('ownerId', '');
+      allow delete: if request.auth != null
+        && (isAdmin() || resource.data.get('ownerId', '') == request.auth.uid);
+    }
+
+    // ── FlowPulse: sürekli nabız/geri bildirim (kiosk + QR, tamamen anonim) ──
+    match /pulses/{pulseId} {
+      function pulseOwner() {
+        return request.auth != null
+          && get(/databases/$(database)/documents/pulses/$(pulseId)).data.ownerId == request.auth.uid;
+      }
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+      // Yönetici de yazabilir: ayrılan personelin içeriğini DEVRALIP (ownerId'yi
+      // kendine alıp) yönetebilsin/silebilsin diye. Devirden sonra alt
+      // koleksiyonların mevcut "sahip" kuralları kendiliğinden geçer — bu yüzden
+      // ~20 kural satırına dokunmak gerekmedi.
+      allow update, delete: if request.auth != null
+        && (resource.data.ownerId == request.auth.uid || isAdmin());
+
+      // Ham oylar: herkes ekler (anonim) ama değer SORU TİPİNE bağlı doğrulanır
+      // (smiley 1–5, nps 0–10, yesno 0/1, choice < seçenek sayısı; tam sayı).
+      // get() aynı zamanda ebeveyn pulse'ın varlığını zorlar (yetim yazım yok).
+      match /votes/{voteId} {
+        function q() {
+          return get(/databases/$(database)/documents/pulses/$(pulseId)).data.question;
+        }
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['value', 'channel', 'createdAt'])
+          && request.resource.data.value is int
+          && request.resource.data.channel in ['kiosk', 'qr']
+          && (
+            (q().type == 'smiley' && request.resource.data.value >= 1 && request.resource.data.value <= 5)
+            || (q().type == 'nps' && request.resource.data.value >= 0 && request.resource.data.value <= 10)
+            || (q().type == 'yesno' && (request.resource.data.value == 0 || request.resource.data.value == 1))
+            || (q().type == 'choice' && request.resource.data.value >= 0
+                && request.resource.data.value < q().get('options', []).size())
+          );
+        allow update: if false;
+        allow delete: if pulseOwner();
+      }
+
+      // Günlük özet (rollup): oyla birlikte artar. dayId gerçek tarih formatında,
+      // alanlar sabit küme, total tam +1 & sum ≤ +10 → yazım başına en fazla tek
+      // oyluk etki. (counts/hours iç deltaları rules'ta sınırlanamıyor — görsel
+      // grafikleri kirletebilir ama skor/oy sayısı total/sum'dan gelir, dürüst kalır.)
+      match /days/{dayId} {
+        allow read: if true;
+        allow create: if dayId.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && exists(/databases/$(database)/documents/pulses/$(pulseId))
+          && request.resource.data.keys().hasOnly(['total', 'sum', 'counts', 'hours'])
+          && request.resource.data.get('total', 0) == 1
+          && request.resource.data.get('sum', 0) >= 0
+          && request.resource.data.get('sum', 0) <= 10;
+        allow update: if request.resource.data.keys().hasOnly(['total', 'sum', 'counts', 'hours'])
+          && request.resource.data.get('total', 0) == resource.data.get('total', 0) + 1
+          && request.resource.data.get('sum', 0) >= resource.data.get('sum', 0)
+          && request.resource.data.get('sum', 0) <= resource.data.get('sum', 0) + 10;
+        allow delete: if pulseOwner();
+      }
+
+      // Anonim yorumlar: moderasyon açıkken 'pending' ZORUNDA; yönetim sahibinde.
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['text', 'status', 'createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 1
+          && request.resource.data.text.size() <= 200
+          && request.resource.data.status ==
+             (get(/databases/$(database)/documents/pulses/$(pulseId)).data.get('moderation', true) == true ? 'pending' : 'approved');
+        allow update, delete: if pulseOwner();
+      }
+    }
+    // ═══════════════════════════════════════════════════════════════════════
+    // KANTİN — Flow Studio'dan BAĞIMSIZ bölüm.
+    // Bu blok silinince kantin tamamen kalkar; yukarıdaki hiçbir kural
+    // etkilenmez. Yardımcı işlevler bilerek k- önekli: Studio'nun isAdmin()
+    // işleviyle bağ kurmamak için (bağ kurarsa "kaldır" tek hamle olmaz).
+    //
+    // Roller: yönetici (bootstrap e-posta ya da rol=admin) → her şey;
+    // kantinci → yalnız kendi kantini; personel → menü + KENDİ siparişi.
+    // Ödeme YOK: para bu modelde hiç geçmez, fiyat sadece bilgidir.
+    //
+    // SİPARİŞ KİMLİĞİ `{uid}_{yyyy-mm-dd}_{1..5}` OLMAK ZORUNDA. Bu tek kural
+    // üç işi birden yapıyor: (1) sipariş sahibi kimlikten belli, (2) çift
+    // dokunuş ikinci kayıt açamıyor, (3) kişi başı GÜNLÜK tavan sunucuda.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    function kKisi() {
+      return get(/databases/$(database)/documents/kantinUsers/$(request.auth.uid)).data;
+    }
+    function kGirisli() { return request.auth != null; }
+    function kAdmin() {
+      return kGirisli() && (
+        request.auth.token.email == 'doganbaharozu@gmail.com'
+        || kKisi().get('rol', 'personel') == 'admin'
+      );
+    }
+    function kGorevli(kantinId) {
+      return kGirisli() && (
+        kAdmin()
+        || (kKisi().get('rol', 'personel') == 'kantinci'
+            && kKisi().get('kantinId', '') == kantinId)
+      );
+    }
+    function kYasakli() {
+      return kKisi().get('yasakBitis', null) != null
+        && kKisi().yasakBitis > request.time;
+    }
+    // Gün alanı SUNUCU saatiyle tutarlı mı? Cihaz saati kaymış bir telefon
+    // (fabrika ağında NTP'siz eski Android) siparişi başka bir güne yazıyor,
+    // tezgâh onu HİÇ görmüyordu. ±1 gün tolerans: saat dilimi farkı yeter.
+    function kGunTutarli(g) {
+      let p = g.split('-');
+      let t = timestamp.date(int(p[0]), int(p[1]), int(p[2]));
+      return request.time > t - duration.value(1, 'd')
+        && request.time < t + duration.value(2, 'd');
+    }
+
+    // Kişi kaydı: kendi kaydını açar ama ROLÜNÜ SEÇEMEZ, kendine yasak
+    // koyamaz/kaldıramaz. Yükseltmeyi ve yasağı yalnız yönetici yapar.
+    match /kantinUsers/{uid} {
+      function kKisiSekli() {
+        return request.resource.data.keys()
+             .hasOnly(['ad', 'sicil', 'email', 'rol', 'kantinId', 'yasakBitis', 'createdAt'])
+          && request.resource.data.ad is string && request.resource.data.ad.size() <= 60
+          && request.resource.data.sicil is string && request.resource.data.sicil.size() <= 20;
+      }
+      allow read: if kGirisli() && (request.auth.uid == uid || kAdmin());
+      allow create: if kGirisli() && request.auth.uid == uid
+        && kKisiSekli()
+        && request.resource.data.rol == 'personel'
+        && !('yasakBitis' in request.resource.data);
+      allow update: if kAdmin()
+        || (kGirisli() && request.auth.uid == uid
+            && kKisiSekli()
+            && request.resource.data.rol == resource.data.rol
+            && request.resource.data.get('kantinId', '') == resource.data.get('kantinId', '')
+            && request.resource.data.get('yasakBitis', null) == resource.data.get('yasakBitis', null));
+      allow delete: if kAdmin();
+    }
+
+    match /kantin/{kantinId} {
+      // Kantin bilgisi + menü giriş yapmış herkese açık (sipariş verebilmek için).
+      allow read: if kGirisli();
+      allow create, delete: if kAdmin();
+      allow update: if kGorevli(kantinId);
+
+      match /menu/{urunId} {
+        allow read: if kGirisli();
+        allow write: if kGorevli(kantinId);
+      }
+
+      // Günlük özet: bekleme tahmininin girdisi. Siparişler artık herkese açık
+      // OLMADIĞI için kuyruk uzunluğu buradan okunur. Yazımlar sınırlı: bir
+      // yazımda toplam en fazla +1, açık sayısı en fazla ±1 oynar.
+      match /gunler/{gun} {
+        allow read: if kGirisli();
+        allow create: if kGorevli(kantinId)
+          || (kGirisli()
+          && gun.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && request.resource.data.keys().hasOnly(['toplam', 'acik'])
+          && request.resource.data.get('toplam', 0) <= 1
+          && request.resource.data.get('acik', 0) <= 1);
+        allow update: if kGorevli(kantinId)
+          || (kGirisli()
+              && request.resource.data.keys().hasOnly(['toplam', 'acik'])
+              && request.resource.data.get('toplam', 0) >= resource.data.get('toplam', 0)
+              && request.resource.data.get('toplam', 0) <= resource.data.get('toplam', 0) + 1
+              && request.resource.data.get('acik', 0) >= resource.data.get('acik', 0) - 1
+              && request.resource.data.get('acik', 0) <= resource.data.get('acik', 0) + 1);
+        allow delete: if kAdmin();
+      }
+
+      match /siparisler/{siparisId} {
+        // OKUMA: yalnız sahibi ve görevli. Eskiden giriş yapan herkes tüm
+        // siparişleri okuyabiliyordu — ad, sicil, not ve alışkanlık dahil.
+        allow read: if kGirisli()
+          && (resource.data.uid == request.auth.uid || kGorevli(kantinId));
+
+        // Sipariş SUNUCUDA doğrulanır: kimlik KENDİ kaydından gelir (ad/sicil
+        // taklit edilemez), kantin açık olmalı, yasaklı kişi sipariş veremez,
+        // durum 'yeni' başlar, zaman damgası sunucudan, belge kimliği tavanı
+        // uygular.
+        allow create: if kGirisli()
+          && (siparisId == request.auth.uid + '_' + request.resource.data.gun + '_1'
+              || siparisId == request.auth.uid + '_' + request.resource.data.gun + '_2'
+              || siparisId == request.auth.uid + '_' + request.resource.data.gun + '_3'
+              || siparisId == request.auth.uid + '_' + request.resource.data.gun + '_4'
+              || siparisId == request.auth.uid + '_' + request.resource.data.gun + '_5')
+          && request.resource.data.keys().hasOnly(
+               ['uid', 'ad', 'sicil', 'satirlar', 'toplamAdet', 'durum', 'gun', 'not', 'createdAt', 'updatedAt'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.ad == kKisi().get('ad', '')
+          && request.resource.data.sicil == kKisi().get('sicil', '')
+          && request.resource.data.durum == 'yeni'
+          && request.resource.data.gun is string
+          && request.resource.data.gun.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && kGunTutarli(request.resource.data.gun)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.satirlar is list
+          && request.resource.data.satirlar.size() >= 1
+          && request.resource.data.satirlar.size() <= 10
+          && request.resource.data.toplamAdet is int
+          && request.resource.data.toplamAdet >= 1
+          && request.resource.data.toplamAdet <= 20
+          && request.resource.data.get('not', '') is string
+          && request.resource.data.get('not', '').size() <= 120
+          && get(/databases/$(database)/documents/kantin/$(kantinId)).data.get('acik', false) == true
+          && !kYasakli();
+
+        // Durum: görevli YALNIZ durum alanını değiştirir (uid/ad/sicil'e
+        // dokunamaz — yoksa masum birini "gelinmedi" yapıp yasağa itebilirdi).
+        // Kişi ise YALNIZ kendi 'yeni' siparişinden vazgeçebilir; hazırlanmaya
+        // başlandıysa artık geç (malzeme gitti).
+        allow update: if request.resource.data.diff(resource.data)
+                           .affectedKeys().hasOnly(['durum', 'updatedAt'])
+          && (
+            kGorevli(kantinId)
+            || (kGirisli()
+                && resource.data.uid == request.auth.uid
+                && resource.data.durum == 'yeni'
+                && request.resource.data.durum == 'iptal')
+          );
+        allow delete: if kAdmin();
+      }
+    }
+
+  }
+}

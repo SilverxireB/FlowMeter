@@ -11,6 +11,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { BEAT_MS, itemInWindow as inWindow, sendScreenBeat, signAdresi, watchVideowall, watchVideowallBySlug, ZONE_BG_DEFAULT } from "@/lib/videowalls";
+import { FotoSahneKaydi, sahneAdresi } from "@/lib/fotoSahne";
+import { watchSahne } from "@/lib/sahneler";
+import FotoSahne from "./FotoSahne";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 type Transition = "fade" | "cut" | "slide";
@@ -92,6 +95,25 @@ function GomuluEkran({ hedef, box, zincir }: { hedef: { id?: string; slug?: stri
       ))}
     </div>
   );
+}
+
+/**
+ * FOTO SAHNE (link ile) — gömülü ekran dersinin aynısı: sahne linki URL öğesi
+ * olarak eklenir ama IFRAME AÇILMAZ; kayıt izlenip sahne AYNI ağaçta çizilir
+ * (iframe alanın tasarım çözünürlüğünde çizilip küçültülür ve animasyonları
+ * kekemeleştirirdi). Link kullanıcı için, perde için değil.
+ */
+function GomuluSahne({ id, box }: { id: string; box: { w: number; h: number } }) {
+  const [sahne, setSahne] = useState<FotoSahneKaydi | null | undefined>(undefined);
+  useEffect(() => watchSahne(id, setSahne), [id]);
+  if (sahne === undefined) return null;
+  if (sahne === null)
+    return (
+      <div className="w-full h-full grid place-items-center bg-black/40 text-white/40 text-xs text-center px-2">
+        Foto sahne bulunamadı
+      </div>
+    );
+  return <FotoSahne sahne={sahne} box={box} />;
 }
 
 function ClockView({ item }: { item: ZoneItem }) {
@@ -241,11 +263,15 @@ function Layer({ item, transition, loop, designPx, zincir = [], onEnded, onError
       : item.kind === "url"
         ? signAdresi(item.src, typeof window !== "undefined" ? window.location.origin : undefined)
         : null;
+  // Foto sahne linki de aynı kapıdan: URL öğesi ama iframe DEĞİL, yerel çizim.
+  const sahneId = item.kind === "url" ? sahneAdresi(item.src) : null;
 
   return (
     <div ref={ref} className="absolute inset-0" style={style}>
       {gomuluHedef ? (
         <GomuluEkran hedef={gomuluHedef} box={designPx ?? { w: 1920, h: 1080 }} zincir={zincir} />
+      ) : sahneId ? (
+        <GomuluSahne id={sahneId} box={designPx ?? { w: 1920, h: 1080 }} />
       ) : item.kind === "video" ? (
         <video
           ref={vidRef}

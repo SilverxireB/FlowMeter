@@ -9,12 +9,16 @@
  * İçerik alana STRETCH edilir (sığdır/doldur YOK). Yazım → updateZones (taslak).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Icon, IconName } from "@/components/Icon";
 import FlowSpinner from "@/components/FlowSpinner";
 import { cldFit, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
 import { addMedya, icAgAdresi, itemInWindow, itemTakvimDurumu, listAllVideowalls, removeMedya, ZONE_BG_DEFAULT } from "@/lib/videowalls";
 import { auth } from "@/lib/firebase";
 import { eslesir } from "@/lib/arama";
+import { sahneAdresi } from "@/lib/fotoSahne";
+import { createSahne } from "@/lib/sahneler";
 import { RafDosyasi, rafListesi, rafaKoy, raftanSil } from "@/lib/ortakRaf";
 import { useAdminGate } from "@/lib/useAdminGate";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -122,6 +126,8 @@ export default function ZonePanel({
   const [rafHata, setRafHata] = useState<string | null>(null);
   const [koyBusy, setKoyBusy] = useState<string | null>(null);
   const [rafSilOnay, setRafSilOnay] = useState<RafDosyasi | null>(null);
+  const [sahneBusy, setSahneBusy] = useState(false);
+  const router = useRouter();
   // Toplu seçim: açıkken tıklama EKLEMEZ, seçer; alttaki çubuk hepsini tek
   // seferde alana koyar. Seçim src ile anahtarlı — iki sekme karışık seçilebilir.
   const [topluMod, setTopluMod] = useState(false);
@@ -386,6 +392,28 @@ export default function ZonePanel({
 
   const addText = () => setItems([...zone.items, { id: iid(), kind: "text", title: "Başlık", text: "", bg: "#312e81", color: "#ffffff", durationSec: 10 }]);
   const addClock = () => setItems([...zone.items, { id: iid(), kind: "clock", bg: "#0d102f", color: "#ffffff", durationSec: 10 }]);
+
+  /**
+   * FOTO SAHNE: içerik türü DEĞİL — kendi linki olan bağımsız bir kayıt (Wall
+   * mantığı, sadeleşmiş). Düğme sahneyi oluşturur, linkini bu alana URL öğesi
+   * olarak ekler ve yönetim sayfasını açar; fotoğraflar ORAYA yüklenir.
+   * Perde linki tanır ve sahneyi iframe'siz çizer (sahneAdresi).
+   */
+  async function fotoSahneOlustur() {
+    setErr(null);
+    setSahneBusy(true);
+    try {
+      const u = auth().currentUser;
+      const sid = await createSahne(u?.uid ?? "", `${vw.name} sahnesi`, u?.displayName || u?.email || undefined);
+      const link = `${window.location.origin}/sahne/${sid}`;
+      // Süre uzun başlar: Wall modlarının ritmi uzun pencereye göre (kullanıcı kararı: 5 dk gibi).
+      setItems([...zoneRef.current.items, { id: iid(), kind: "url", src: link, name: "Foto sahne", durationSec: 300 }]);
+      router.push(`/sahne/${sid}/manage`);
+    } catch (e) {
+      setErr(`Sahne oluşturulamadı: ${e instanceof Error ? e.message : "bilinmeyen hata"}`);
+      setSahneBusy(false);
+    }
+  }
   /** Başka bir ekranı bu alana bağla — ADRESLE değil KİMLİKLE (ad değişse de kopmaz). */
   const addScreen = (hedef: Videowall) => {
     setItems([...zone.items, { id: iid(), kind: "screen", screenId: hedef.id, name: hedef.name }]);
@@ -562,6 +590,19 @@ export default function ZonePanel({
             {b.label}
           </button>
         ))}
+        {/* FOTO SAHNE — diğer türlerden BİLEREK ayrı (kullanıcı kararı): içerik
+            öğesi değil, kendi linki olan bağımsız bir Wall-tarzı hatıra köşesi.
+            Düğme sahneyi oluşturur, linkini bu alana ekler, yönetimi açar. */}
+        <button
+          onClick={() => void fotoSahneOlustur()}
+          disabled={sahneBusy}
+          title="Kendi linki olan hatıra köşesi — fotoğraflar sahnenin kendi sayfasından yönetilir"
+          className="col-span-2 sm:col-span-3 rounded-xl text-white px-3 py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-95 disabled:opacity-50 transition-opacity"
+          style={{ background: "linear-gradient(100deg, #0b1030, #1e1b4b 60%, #312e81)" }}
+        >
+          📸 {sahneBusy ? "Sahne oluşturuluyor…" : "Foto sahne oluştur"}
+          <span className="text-white/60 font-normal text-xs hidden sm:inline">— Wall tarzı hatıra köşesi, kendi linkiyle</span>
+        </button>
         <input
           ref={fileRef}
           type="file"
@@ -790,8 +831,18 @@ export default function ZonePanel({
                             <Icon name="swap" size={14} /> Dosyayı değiştir
                           </button>
                         )}
+                        {/* Foto sahne linki: adres elle düzenlenmez, sahne KENDİ
+                            sayfasından yönetilir (mod/efekt/fotoğraf/yazı orada). */}
+                        {it.kind === "url" && sahneAdresi(it.src) && (
+                          <Link
+                            href={`/sahne/${sahneAdresi(it.src)}/manage`}
+                            className="self-start rounded-lg bg-paper border border-line px-3 py-1.5 text-xs font-semibold hover:border-muted inline-flex items-center gap-1.5"
+                          >
+                            📸 Sahneyi yönet →
+                          </Link>
+                        )}
                         {/* Adres de düzenlenebilir — geçersizse eski değere döner */}
-                        {it.kind === "url" && (
+                        {it.kind === "url" && !sahneAdresi(it.src) && (
                           <input
                             defaultValue={it.src ?? ""}
                             placeholder="https://…"

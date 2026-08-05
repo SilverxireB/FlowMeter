@@ -14,6 +14,7 @@
  */
 import { RehberBolum } from "@/components/Rehber";
 import { Adimlar, Baslik, Dugme, Kutu, Tablo, Tus } from "@/components/RehberParcalari";
+import { SAHNE_MODLARI } from "@/lib/fotoSahne";
 import RehberDemo from "./RehberDemo";
 
 export const SIGN_REHBER: RehberBolum[] = [
@@ -204,6 +205,15 @@ export const SIGN_REHBER: RehberBolum[] = [
             ],
             ["Metin", "Başlık + mesaj; zemin ve yazı rengi senin."],
             ["Saat", "Canlı saat."],
+            [
+              "Foto sahne",
+              <>
+                Kendi linki olan hatıra köşesi: <b>Foto sahne oluştur</b> sahneyi açar, linkini alana ekler.
+                Fotoğraflar, mod (<b>{SAHNE_MODLARI.map((m) => m.ad).join(" · ")}</b>), efekt ve foto yazıları
+                sahnenin KENDİ sayfasından yönetilir — değişiklik linke anında düşer, aynı sahne birden çok
+                ekranda oynar. Yönetim linkini fotoğrafları yönetecek kişiye verebilirsin; o kişi ekranına dokunamaz.
+              </>,
+            ],
             [
               "Ekran",
               <>

@@ -10,6 +10,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { watchWall } from "@/lib/client";
 import { CellBox, contentZonesIn, itemInWindow, layoutColsOf, layoutRowsOf, mergeCells, normalizeGrid, zoneCells, ZONE_BG_DEFAULT, snapBoxToZones } from "@/lib/zones";
+import { FotoSahneKaydi, sahneAdresi } from "@/lib/fotoSahne";
+import { watchSahne } from "@/lib/sahneClient";
+import FotoSahne from "./FotoSahne";
 import { Videowall, Zone, ZoneItem } from "@/lib/types";
 
 /**
@@ -98,6 +101,15 @@ function ZonePreview({ item, ic = false }: { item?: ZoneItem; ic?: boolean }) {
       </div>
     );
   if (item.kind === "url") {
+    // Foto sahne linki: GERÇEK bileşenle, durgun (ilk kare) çizilir — mod
+    // seçilirken önizlemede gerçek hâli görünmezse kör ayar olur.
+    const sahneId = sahneAdresi(item.src);
+    if (sahneId)
+      return (
+        <div className="absolute inset-0" style={{ containerType: "size" }}>
+          <SahneOnizleme id={sahneId} />
+        </div>
+      );
     // Gerçek sayfanın minyatürü (4× sanal pencere → 0.25 ölçek; salt-görüntü).
     // Site iframe'i reddederse (X-Frame-Options) boş kalır → alttaki 🔗 görünür.
     const src = /^https?:\/\//i.test(item.src ?? "") ? item.src : undefined;
@@ -123,6 +135,19 @@ function ZonePreview({ item, ic = false }: { item?: ZoneItem; ic?: boolean }) {
     );
   }
   return null;
+}
+
+/** Foto sahne minyatürü — kaydı izler, ilk karede durur (zamanlayıcı yok). */
+function SahneOnizleme({ id }: { id: string }) {
+  const [sahne, setSahne] = useState<FotoSahneKaydi | null>(null);
+  useEffect(() => watchSahne(id, setSahne), [id]);
+  if (!sahne)
+    return (
+      <div className="absolute inset-0 grid place-items-center bg-black/40 text-white/60 text-lg" title="Foto sahne">
+        📸
+      </div>
+    );
+  return <FotoSahne sahne={sahne} box={{ w: 320, h: 180 }} durgun />;
 }
 
 /** Dönen önizlemenin üst katmanı — alanın KENDİ geçişiyle girer. */
