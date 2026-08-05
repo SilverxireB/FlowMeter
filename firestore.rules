@@ -388,6 +388,24 @@ service cloud.firestore {
       }
     }
 
+    // ── FOTO SAHNE (FlowSign) ───────────────────────────────────────────────
+    // Kendi linki olan hatıra köşesi (Wall mantığı, sadeleşmiş): /sahne/{id}
+    // sayfası kaydı PUBLIC okur (perde auth istemez). Taslak/yayın katmanı yok,
+    // değişiklik linke anında düşer.
+    //
+    // Güncelleme GİRİŞLİ HERKESE açık (kullanıcı kararı: yönetim linkini
+    // verdiğin kişi fotoğrafları yönetir; ekran yetkilerine dokunmaz). Sahiplik
+    // serbest yazımla ele geçirilemez; silme sahibi ya da yönetici.
+    match /sahneler/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update: if request.auth != null
+        && request.resource.data.get('ownerId', '') == resource.data.get('ownerId', '');
+      allow delete: if request.auth != null
+        && (isAdmin() || resource.data.get('ownerId', '') == request.auth.uid);
+    }
+
     // ── FlowPulse: sürekli nabız/geri bildirim (kiosk + QR, tamamen anonim) ──
     match /pulses/{pulseId} {
       function pulseOwner() {
