@@ -192,7 +192,7 @@ export const SIGN_REHBER: RehberBolum[] = [
                 çöp simgesiyle kalıcı silinir (kullanılan dosya silinemez). <b>Ortak raf</b> sekmesi tüm
                 ekranların havuzudur: herkes ekler (yükleme ya da dosyanın yanındaki klasör simgesi —
                 KOPYALAR, ekrandan silmez), yalnız yönetici siler; ekran silinse de raf etkilenmez.
-                Video için MP4 (H.264) en güvenlisi.
+                Çok dosyayı tek seferde eklemek için <b>Toplu seçim</b>. Video için MP4 (H.264) en güvenlisi.
               </>,
             ],
             [

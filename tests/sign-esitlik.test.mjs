@@ -66,6 +66,9 @@ const IZLER = [
   ["raf silme yalnız yönetici", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", 'title="Raftan sil (yönetici)"'],
   ["raf liste = sunucu gerçeği", "src/lib/ortakRaf.ts", "flowsign-selfhost/src/lib/media.ts", "export async function rafListesi"],
   ["rehberde ortak raf", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "ekran silinse de raf etkilenmez"],
+  // Toplu seçim: çok dosyayı tek seferde alana koy (tek yazım — updateZones bir kez).
+  ["kütüphanede toplu seçim", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "secilenleriEkle"],
+  ["toplu seçim çubuğu", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "öğe seçildi"],
   ["mobilde Saat/Tarih taşmaz", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "basis-full sm:basis-auto min-w-0"],
   ["ters tarih aralığı uyarısı", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Başlangıç bitişten sonra"],
   ["geçmiş gün seçilemez", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "const enErken ="],

@@ -107,6 +107,10 @@ export default function ZonePanel({
   const [rafHata, setRafHata] = useState<string | null>(null);
   const [koyBusy, setKoyBusy] = useState<string | null>(null);
   const [rafSilOnay, setRafSilOnay] = useState<RafDosyasi | null>(null);
+  // Toplu seçim: açıkken tıklama EKLEMEZ, seçer; alttaki çubuk hepsini tek
+  // seferde alana koyar. Seçim src ile anahtarlı — iki sekme karışık seçilebilir.
+  const [topluMod, setTopluMod] = useState(false);
+  const [secili, setSecili] = useState<Set<string>>(new Set());
   const adminMi = useSession().me?.role === "admin";
   const [urlForm, setUrlForm] = useState<{ src: string; name: string } | null>(null);
   const [replacingId, setReplacingId] = useState<string | null>(null);
@@ -336,6 +340,30 @@ export default function ZonePanel({
       ...zone.items,
       { id: iid(), kind: m.kind, src: m.src, name: m.name, durationSec: m.kind === "image" ? 8 : undefined },
     ]);
+    setLibOpen(false);
+  };
+
+  const seciliDegistir = (src: string) =>
+    setSecili((s) => {
+      const n = new Set(s);
+      if (n.has(src)) n.delete(src);
+      else n.add(src);
+      return n;
+    });
+
+  /** Toplu seçim: seçilenleri TEK yazımda alana ekle (ekran + raf karışabilir). */
+  const secilenleriEkle = () => {
+    const havuz: { kind: "image" | "video"; src: string; name?: string }[] = [...library, ...(raf ?? [])];
+    const eklenen: ZoneItem[] = [];
+    const gorulen = new Set<string>();
+    for (const e of havuz)
+      if (secili.has(e.src) && !gorulen.has(e.src)) {
+        gorulen.add(e.src);
+        eklenen.push({ id: iid(), kind: e.kind, src: e.src, name: e.name, durationSec: e.kind === "image" ? 8 : undefined });
+      }
+    if (eklenen.length) setItems([...zone.items, ...eklenen]);
+    setSecili(new Set());
+    setTopluMod(false);
     setLibOpen(false);
   };
 
@@ -938,7 +966,7 @@ export default function ZonePanel({
                 ekranların havuzu — data/media/ortak, ekran klasörlerinden YAPISAL
                 olarak ayrı: ekran silme rafa değemez bile). Rafa koymak KOPYA,
                 taşıma değil — ilk raf denemesi taşıma yüzünden çökmüştü. */}
-            <div className="flex gap-1.5 mb-3">
+            <div className="flex gap-1.5 mb-3 items-center">
               {(["ekran", "raf"] as const).map((k) => (
                 <button
                   key={k}
@@ -951,6 +979,18 @@ export default function ZonePanel({
                   {k === "ekran" ? "Bu ekran" : "Ortak raf"}
                 </button>
               ))}
+              {/* Toplu seçim: açıkken tıklama seçer; alttaki çubuk hepsini tek seferde ekler. */}
+              <button
+                onClick={() => {
+                  setTopluMod(!topluMod);
+                  setSecili(new Set());
+                }}
+                className={`ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold border inline-flex items-center gap-1.5 ${
+                  topluMod ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"
+                }`}
+              >
+                <Icon name="check" size={13} /> Toplu seçim
+              </button>
             </div>
 
             {/* YÜKLEME KAPISI BURADA (kullanıcı kararı): veri merkezi kütüphane —
@@ -1034,17 +1074,26 @@ export default function ZonePanel({
                   {libGoster.map((it) => (
                     <div
                       key={it.key}
-                      className={`relative rounded-lg overflow-hidden border border-line hover:border-accent ${
-                        silBusy === it.kayit?.id || koyBusy === it.src ? "opacity-50" : ""
-                      }`}
+                      className={`relative rounded-lg overflow-hidden border hover:border-accent ${
+                        topluMod && secili.has(it.src) ? "border-accent ring-2 ring-accent" : "border-line"
+                      } ${silBusy === it.kayit?.id || koyBusy === it.src ? "opacity-50" : ""}`}
                     >
-                      <button onClick={() => addFromLib(it)} className="block w-full text-left" disabled={silBusy !== null || koyBusy !== null}>
+                      <button
+                        onClick={() => (topluMod ? seciliDegistir(it.src) : addFromLib(it))}
+                        className="block w-full text-left"
+                        disabled={silBusy !== null || koyBusy !== null}
+                      >
                         <span className="block aspect-square relative">
                           {it.kind === "video" ? (
                             <span className="w-full h-full grid place-items-center bg-black text-2xl">🎬</span>
                           ) : (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={it.src} alt="" className="w-full h-full object-cover bg-black" />
+                          )}
+                          {topluMod && secili.has(it.src) && (
+                            <span className="absolute top-1 right-1 w-5 h-5 grid place-items-center rounded-full bg-accent text-white">
+                              <Icon name="check" size={11} />
+                            </span>
                           )}
                           {/* Hiçbir alanda geçmiyor → temizlik adayı (rozet + silinebilir) */}
                           {!it.used && (
@@ -1058,29 +1107,34 @@ export default function ZonePanel({
                           {it.name || "adsız"}
                         </span>
                       </button>
-                      {/* Ortak rafa koy = KOPYA — dosya bu ekrandan gitmez, raftaki
-                          kopyanın adresi ayrıdır (ekran silinse de raf yaşar). */}
-                      <button
-                        onClick={() => rafaKoyTikla(it)}
-                        disabled={silBusy !== null || koyBusy !== null}
-                        className="absolute top-1 left-1 w-6 h-6 grid place-items-center rounded-md bg-white/90 border border-line text-muted hover:text-accent hover:border-accent/40 disabled:opacity-40"
-                        aria-label={`${it.name || "adsız"} dosyasını ortak rafa koy`}
-                        title="Ortak rafa koy (kopyalar — buradan silmez)"
-                      >
-                        <Icon name="folder" size={12} />
-                      </button>
-                      {/* Silme yalnız KULLANILMAYAN kayıtlarda: kullanılan dosyayı silmek
-                          perdeyi kırık görselle bırakır — önce alandan çıkarılır. */}
-                      {it.kayit && !it.used && (
-                        <button
-                          onClick={() => setSilOnay(it)}
-                          disabled={silBusy !== null || koyBusy !== null}
-                          className="absolute top-1 right-1 w-6 h-6 grid place-items-center rounded-md bg-white/90 border border-line text-muted hover:text-brand hover:border-brand/40 disabled:opacity-40"
-                          aria-label={`${it.name || "adsız"} dosyasını kütüphaneden sil`}
-                          title="Kütüphaneden sil"
-                        >
-                          <Icon name="trash" size={12} />
-                        </button>
+                      {/* Kenar düğmeleri toplu seçimde gizli — tıklama yalnız seçer. */}
+                      {!topluMod && (
+                        <>
+                          {/* Ortak rafa koy = KOPYA — dosya bu ekrandan gitmez, raftaki
+                              kopyanın adresi ayrıdır (ekran silinse de raf yaşar). */}
+                          <button
+                            onClick={() => rafaKoyTikla(it)}
+                            disabled={silBusy !== null || koyBusy !== null}
+                            className="absolute top-1 left-1 w-6 h-6 grid place-items-center rounded-md bg-white/90 border border-line text-muted hover:text-accent hover:border-accent/40 disabled:opacity-40"
+                            aria-label={`${it.name || "adsız"} dosyasını ortak rafa koy`}
+                            title="Ortak rafa koy (kopyalar — buradan silmez)"
+                          >
+                            <Icon name="folder" size={12} />
+                          </button>
+                          {/* Silme yalnız KULLANILMAYAN kayıtlarda: kullanılan dosyayı silmek
+                              perdeyi kırık görselle bırakır — önce alandan çıkarılır. */}
+                          {it.kayit && !it.used && (
+                            <button
+                              onClick={() => setSilOnay(it)}
+                              disabled={silBusy !== null || koyBusy !== null}
+                              className="absolute top-1 right-1 w-6 h-6 grid place-items-center rounded-md bg-white/90 border border-line text-muted hover:text-brand hover:border-brand/40 disabled:opacity-40"
+                              aria-label={`${it.name || "adsız"} dosyasını kütüphaneden sil`}
+                              title="Kütüphaneden sil"
+                            >
+                              <Icon name="trash" size={12} />
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   ))}
@@ -1110,10 +1164,14 @@ export default function ZonePanel({
                   {rafGoster.map((d) => (
                     <div
                       key={d.publicId}
-                      className={`relative rounded-lg overflow-hidden border border-line hover:border-accent ${silBusy === d.publicId ? "opacity-50" : ""}`}
+                      className={`relative rounded-lg overflow-hidden border hover:border-accent ${
+                        topluMod && secili.has(d.src) ? "border-accent ring-2 ring-accent" : "border-line"
+                      } ${silBusy === d.publicId ? "opacity-50" : ""}`}
                     >
                       <button
-                        onClick={() => addFromLib({ key: d.publicId, kind: d.kind, src: d.src, name: d.name, used: true })}
+                        onClick={() =>
+                          topluMod ? seciliDegistir(d.src) : addFromLib({ key: d.publicId, kind: d.kind, src: d.src, name: d.name, used: true })
+                        }
                         className="block w-full text-left"
                         disabled={silBusy !== null}
                       >
@@ -1124,11 +1182,16 @@ export default function ZonePanel({
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={d.src} alt="" className="w-full h-full object-cover bg-black" />
                           )}
+                          {topluMod && secili.has(d.src) && (
+                            <span className="absolute top-1 right-1 w-5 h-5 grid place-items-center rounded-full bg-accent text-white">
+                              <Icon name="check" size={11} />
+                            </span>
+                          )}
                         </span>
                         <span className="block px-1.5 py-1 text-[10px] text-muted truncate bg-paper">{d.name || "adsız"}</span>
                       </button>
                       {/* Raftan silme YALNIZ yönetici — herkes ekler, temizliğe tek el karar verir. */}
-                      {adminMi && (
+                      {adminMi && !topluMod && (
                         <button
                           onClick={() => setRafSilOnay(d)}
                           disabled={silBusy !== null}
@@ -1152,6 +1215,27 @@ export default function ZonePanel({
                   </p>
                 )}
               </>
+            )}
+
+            {/* Toplu seçim çubuğu — pencere kaydırılsa da altta sabit durur. */}
+            {topluMod && (
+              <div className="sticky bottom-0 -mx-5 -mb-5 mt-4 px-5 py-3 bg-white border-t border-line flex items-center justify-between gap-2">
+                <span className="text-xs text-muted tabular-nums">{secili.size} öğe seçildi</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setTopluMod(false);
+                      setSecili(new Set());
+                    }}
+                    className="btn-ghost !py-2 !px-3 text-xs"
+                  >
+                    Vazgeç
+                  </button>
+                  <button onClick={secilenleriEkle} disabled={secili.size === 0} className="btn-primary !py-2 !px-4 text-xs disabled:opacity-40">
+                    Bu alana ekle
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>
