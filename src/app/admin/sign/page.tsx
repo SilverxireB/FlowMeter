@@ -350,13 +350,14 @@ export default function AdminSignPage() {
                           />
                         </div>
                       )}
-                      <div className="flex flex-wrap items-center gap-1.5 mb-2.5 text-[11px]">
+                      <div className="mb-2.5 text-[11px]">
                         <span className="text-muted">
                           {wallSearch.trim() ? `${wallsFiltered.length} ekran süzüldü · ` : ""}Görünenlere uygula:
                         </span>
+<div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
                         {PERMS.map((p) => (
-                          <span key={p.key} className="inline-flex items-center rounded-lg border border-line overflow-hidden">
-                            <span className="px-2 py-1 bg-paper text-muted font-semibold">{p.label}</span>
+                          <span key={p.key} className="inline-flex w-full sm:w-auto items-center rounded-lg border border-line overflow-hidden bg-white">
+                            <span className="flex-1 sm:flex-none px-2 py-1 bg-paper text-muted font-semibold">{p.label}</span>
                             <button
                               onClick={() => topluUygula(u.id, p.key, true)}
                               disabled={busy || !wallsFiltered.length}
@@ -376,6 +377,7 @@ export default function AdminSignPage() {
                           </span>
                         ))}
                       </div>
+</div>
                       {wallsFiltered.length === 0 ? (
                         <p className="text-muted text-sm py-2">&ldquo;{wallSearch}&rdquo; ile eşleşen ekran yok.</p>
                       ) : (
