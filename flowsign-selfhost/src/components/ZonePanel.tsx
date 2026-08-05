@@ -62,6 +62,9 @@ function ItemThumb({ item }: { item: ZoneItem }) {
     return <div className={`${base} font-bold text-sm`} style={{ background: item.bg ?? "#312e81", color: item.color ?? "#fff" }}>Aa</div>;
   if (item.kind === "clock")
     return <div className={`${base} text-xl`} style={{ background: item.bg ?? "#0d102f", color: item.color ?? "#fff" }}>🕐</div>;
+  // Foto sahne linki 🔗 değil kendi yüzüyle görünsün (kullanıcı: "Thumb").
+  if (item.kind === "url" && sahneAdresi(item.src))
+    return <div className={`${base} text-xl`} style={{ background: "#05091c" }} title="Foto sahne">📸</div>;
   return <div className={`${base} bg-paper border border-line text-xl`}>🔗</div>;
 }
 
@@ -530,18 +533,19 @@ export default function ZonePanel({
             {b.label}
           </button>
         ))}
-        {/* FOTO SAHNE — diğer türlerden BİLEREK ayrı (kullanıcı kararı): içerik
-            öğesi değil, kendi linki olan bağımsız bir Wall-tarzı hatıra köşesi.
-            Düğme sahneyi oluşturur, linkini bu alana ekler, yönetimi açar. */}
+        {/* FOTO SAHNE — diğer türlerden FARKLI renkte kare karo (kullanıcı
+            kararı): içerik öğesi değil, kendi linki olan bağımsız bir Wall-tarzı
+            hatıra köşesi. Karo sahneyi oluşturur, linkini bu alana ekler,
+            yönetimi açar. Emoji BİLİNÇLİ (şablon kartı gibi kimlik). */}
         <button
           onClick={() => void fotoSahneOlustur()}
           disabled={sahneBusy}
           title="Kendi linki olan hatıra köşesi — fotoğraflar sahnenin kendi sayfasından yönetilir"
-          className="col-span-2 sm:col-span-3 rounded-xl text-white px-3 py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-95 disabled:opacity-50 transition-opacity"
-          style={{ background: "linear-gradient(100deg, #0b1030, #1e1b4b 60%, #312e81)" }}
+          className="rounded-xl text-white px-2 py-3 text-sm font-semibold flex flex-col items-center gap-1 hover:opacity-95 disabled:opacity-50 transition-opacity"
+          style={{ background: "linear-gradient(135deg, #0b1030, #1e1b4b 60%, #312e81)" }}
         >
-          📸 {sahneBusy ? "Sahne oluşturuluyor…" : "Foto sahne oluştur"}
-          <span className="text-white/60 font-normal text-xs hidden sm:inline">— Wall tarzı hatıra köşesi, kendi linkiyle</span>
+          <span className="text-xl leading-none" aria-hidden>📸</span>
+          {sahneBusy ? "Oluşturuluyor…" : "Foto sahne"}
         </button>
         <input
           ref={fileRef}

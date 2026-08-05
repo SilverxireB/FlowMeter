@@ -674,7 +674,15 @@ export default function PlayerStage({ vw, draft = false }: { vw: Videowall; draf
   return (
     // onPointerDown da poke: dokunmatik ekranda "tap" move üretmez — kontroller
     // yoksa tam ekran butonuna hiç ulaşılamıyordu.
-    <main className={`relative w-screen h-screen bg-black overflow-hidden ${controls ? "" : "cursor-none"}`} onPointerMove={poke} onPointerDown={poke}>
+    <main
+      className={`relative w-screen h-screen bg-black overflow-hidden ${controls ? "" : "cursor-none"}`}
+      /* 100dvh: telefonda adres çubuğu görünürken 100vh GÖRÜNÜR alandan uzundur —
+         perdenin alt %3-4'ü (foto sahne yazısı tam orada) çubuğun altında
+         kalıyordu. dvh görünür alanı ölçer; desteklemeyen cihaz vh'de kalır. */
+      style={{ height: "100dvh" }}
+      onPointerMove={poke}
+      onPointerDown={poke}
+    >
       {stage.zones?.map((z) => (
         <ZonePlayer
           key={z.id}

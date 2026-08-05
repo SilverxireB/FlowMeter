@@ -22,7 +22,7 @@
  * yok) olduğu için Wall'ın "yeni anı gelince anında geç" makinesi gerekmez.
  */
 import { useEffect, useMemo, useState } from "react";
-import { FotoSahneKaydi, SAHNE_MODU_VARSAYILAN, SahneFoto, SahneModu, seritlereBol } from "@/lib/fotoSahne";
+import { FotoSahneKaydi, MOD_GECIS_MS, SAHNE_MODU_VARSAYILAN, SAHNE_ZEMIN_VARSAYILAN, SahneFoto, SahneModu, seritlereBol } from "@/lib/fotoSahne";
 import SahneEfektleri from "./SahneEfektleri";
 
 /** Wall ile aynı kalma süresi (hooks.ts IMAGE_MS). */
@@ -44,13 +44,27 @@ export default function FotoSahne({
   /** Editör önizlemesi: zamanlayıcı ve efekt çalışmaz, ilk kare durur. */
   durgun = false,
 }: {
-  sahne: Pick<FotoSahneKaydi, "fotolar" | "mod" | "efekt">;
+  sahne: Pick<FotoSahneKaydi, "fotolar" | "mod" | "otomatik" | "modlar" | "efekt" | "zemin">;
   box: { w: number; h: number };
   durgun?: boolean;
 }) {
   const fotolar = useMemo(() => (sahne.fotolar ?? []).filter((f) => f?.src), [sahne.fotolar]);
   const srcler = useMemo(() => fotolar.map((f) => f.src), [fotolar]);
-  const mod: SahneModu = sahne.mod ?? SAHNE_MODU_VARSAYILAN;
+  const zemin = sahne.zemin ?? SAHNE_ZEMIN_VARSAYILAN;
+
+  // OTOMATİK KİP: seçilen modlar 30 sn'de bir sırayla döner (Wall'ın auto
+  // moduyla aynı fikir). Kapalıyken ya da tek mod seçiliyken sabit mod.
+  const modListesi = useMemo<SahneModu[]>(
+    () => (sahne.otomatik && (sahne.modlar?.length ?? 0) > 0 ? sahne.modlar! : [sahne.mod ?? SAHNE_MODU_VARSAYILAN]),
+    [sahne.otomatik, sahne.modlar, sahne.mod]
+  );
+  const [modSira, setModSira] = useState(0);
+  useEffect(() => {
+    if (durgun || modListesi.length <= 1) return;
+    const t = window.setInterval(() => setModSira((s) => s + 1), MOD_GECIS_MS);
+    return () => window.clearInterval(t);
+  }, [durgun, modListesi.length]);
+  const mod: SahneModu = modListesi[modSira % modListesi.length];
 
   // Sıralı dönüş — liste durağan, sıra yükleme sırası (adalet bedava).
   const [sira, setSira] = useState(0);
@@ -63,14 +77,14 @@ export default function FotoSahne({
 
   if (!fotolar.length)
     return (
-      <div className="w-full h-full grid place-items-center text-white/35 text-xs text-center px-3" style={{ background: "#05091c" }}>
+      <div className="w-full h-full grid place-items-center text-white/35 text-xs text-center px-3" style={{ background: zemin }}>
         Foto sahne — henüz fotoğraf yok
       </div>
     );
 
   return (
-    // Wall'ın koyu lacivert perde zemini (tema: dark).
-    <div className="absolute inset-0 overflow-hidden text-white" style={{ background: "#05091c" }}>
+    // Zemin: varsayılan Wall laciverti; kullanıcı yönetim sayfasından değiştirir.
+    <div className="absolute inset-0 overflow-hidden text-white" style={{ background: zemin }}>
       <SahneStilleri />
       {mod === "mozaik" && <Mozaik fotolar={srcler} box={box} />}
       {mod === "sahne" && <Sahne fotolar={srcler} aktif={aktif!} />}

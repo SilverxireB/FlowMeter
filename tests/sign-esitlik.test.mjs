@@ -74,7 +74,7 @@ const IZLER = [
   ["foto sahne çekirdeği", "src/lib/fotoSahne.ts", "flowsign-selfhost/src/lib/fotoSahne.ts", "export function sahneAdresi"],
   ["foto sahne bileşeni", "src/components/videowall/FotoSahne.tsx", "flowsign-selfhost/src/components/FotoSahne.tsx", "export default function FotoSahne"],
   ["sahne efekt katmanı", "src/components/videowall/SahneEfektleri.tsx", "flowsign-selfhost/src/components/SahneEfektleri.tsx", "export default function SahneEfektleri"],
-  ["sahne oluştur düğmesi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Foto sahne oluştur"],
+  ["sahne oluştur karosu", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "fotoSahneOlustur"],
   ["öğeden sahne yönetimi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Sahneyi yönet"],
   ["perde sahneyi yerel çizer", "src/components/videowall/PlayerStage.tsx", "flowsign-selfhost/src/components/PlayerStage.tsx", "GomuluSahne"],
   ["editörde sahne önizlemesi", "src/components/videowall/LayoutEditor.tsx", "flowsign-selfhost/src/components/LayoutEditor.tsx", "SahneOnizleme"],

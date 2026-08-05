@@ -41,6 +41,12 @@ export const SAHNE_MODLARI: SahneModuBilgi[] = [
 
 export const SAHNE_MODU_VARSAYILAN: SahneModu = "mozaik";
 
+/** Sahne zemini — Wall'ın koyu lacivert perde rengi (kullanıcı değiştirebilir). */
+export const SAHNE_ZEMIN_VARSAYILAN = "#05091c";
+
+/** Otomatik kipte modlar arası geçiş aralığı (Wall autoIntervalSec varsayılanıyla aynı: 30 sn). */
+export const MOD_GECIS_MS = 30_000;
+
 /** Ambient efekt — Wall perdesindeki katmanın Sign kopyası (SahneEfektleri). */
 export type SahneEfektAd = "none" | "snow" | "confetti" | "fireworks" | "hearts" | "balloons" | "bubbles" | "stars";
 
@@ -72,7 +78,12 @@ export interface FotoSahneKaydi {
   ownerName?: string;
   name: string;
   mod?: SahneModu;
+  /** Otomatik kip: `modlar` listesindeki modlar 30 sn'de bir sırayla döner. */
+  otomatik?: boolean;
+  modlar?: SahneModu[];
   efekt?: SahneEfektAd;
+  /** Sahne zemin rengi (hex). Yoksa Wall laciverti. */
+  zemin?: string;
   /** Sıra = yükleme sırası ("son yüklenen öne çıkar" bilerek yok). */
   fotolar?: SahneFoto[];
   createdAt?: unknown;

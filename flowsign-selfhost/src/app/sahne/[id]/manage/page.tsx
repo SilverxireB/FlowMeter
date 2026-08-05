@@ -18,7 +18,7 @@ import FotoSahne from "@/components/FotoSahne";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useSession } from "@/lib/useSession";
 import { deleteSahne, updateSahne, uploadSahneFoto, watchSahne } from "@/lib/sahneClient";
-import { FotoSahneKaydi, SAHNE_EFEKTLERI, SAHNE_MODLARI, SahneFoto } from "@/lib/fotoSahne";
+import { FotoSahneKaydi, SAHNE_EFEKTLERI, SAHNE_MODLARI, SAHNE_ZEMIN_VARSAYILAN, SahneFoto } from "@/lib/fotoSahne";
 
 export default function SahneManagePage() {
   const { id } = useParams<{ id: string }>();
@@ -132,21 +132,49 @@ export default function SahneManagePage() {
           {/* SOL: mod + efekt + önizleme */}
           <div className="rounded-2xl border border-line bg-white p-4">
             <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Sahne modu</p>
+            {/* Otomatik kip: çipler ÇOKLU seçime döner, seçili modlar 30 sn'de bir
+                sırayla döner (Wall'ın auto modu). Kapalıyken tekli seçim. */}
             <div className="flex flex-wrap gap-1.5 mb-1.5">
-              {SAHNE_MODLARI.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => void updateSahne(sahne.id, { mod: m.id })}
-                  title={m.ipucu}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
-                    (sahne.mod ?? "mozaik") === m.id ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"
-                  }`}
-                >
-                  {m.ad}
-                </button>
-              ))}
+              {SAHNE_MODLARI.map((m) => {
+                const secili = sahne.otomatik ? (sahne.modlar ?? []).includes(m.id) : (sahne.mod ?? "mozaik") === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      if (sahne.otomatik) {
+                        const cur = sahne.modlar ?? [];
+                        void updateSahne(sahne.id, { modlar: cur.includes(m.id) ? cur.filter((x) => x !== m.id) : [...cur, m.id] });
+                      } else void updateSahne(sahne.id, { mod: m.id });
+                    }}
+                    title={m.ipucu}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                      secili ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted"
+                    }`}
+                  >
+                    {m.ad}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() =>
+                  void updateSahne(sahne.id, {
+                    otomatik: !sahne.otomatik,
+                    // Açılışta boş liste kalmasın: hepsiyle başla, istemediğini çıkarır.
+                    ...(sahne.otomatik ? {} : { modlar: sahne.modlar?.length ? sahne.modlar : SAHNE_MODLARI.map((m) => m.id) }),
+                  })
+                }
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                  sahne.otomatik ? "bg-accent text-white border-accent" : "bg-white border-line text-muted hover:border-muted"
+                }`}
+              >
+                🔀 Otomatik
+              </button>
             </div>
-            <p className="text-muted text-[11px] mb-4">{SAHNE_MODLARI.find((m) => m.id === (sahne.mod ?? "mozaik"))?.ipucu}</p>
+            <p className="text-muted text-[11px] mb-4">
+              {sahne.otomatik
+                ? `Seçili modlar (${(sahne.modlar ?? []).length}) 30 sn'de bir sırayla döner — istemediğin modu tıkla, çıksın.`
+                : SAHNE_MODLARI.find((m) => m.id === (sahne.mod ?? "mozaik"))?.ipucu}
+            </p>
 
             <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Efekt</p>
             {/* Emoji BİLİNÇLİ: efekt seçicisi efektin kendisini gösterir (Wall ile aynı dil). */}
@@ -162,6 +190,28 @@ export default function SahneManagePage() {
                   {e.ikon} {e.ad}
                 </button>
               ))}
+            </div>
+
+            <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Zemin</p>
+            <div className="flex items-center gap-2.5 mb-4">
+              <input
+                type="color"
+                defaultValue={sahne.zemin ?? SAHNE_ZEMIN_VARSAYILAN}
+                onBlur={(e) => {
+                  if (e.target.value !== (sahne.zemin ?? SAHNE_ZEMIN_VARSAYILAN)) void updateSahne(sahne.id, { zemin: e.target.value });
+                }}
+                className="w-9 h-9 rounded-lg border border-line p-0.5 cursor-pointer bg-transparent"
+                aria-label="Sahne zemin rengi"
+              />
+              {sahne.zemin && sahne.zemin !== SAHNE_ZEMIN_VARSAYILAN && (
+                <button
+                  onClick={() => void updateSahne(sahne.id, { zemin: SAHNE_ZEMIN_VARSAYILAN })}
+                  className="text-xs font-semibold text-muted hover:text-ink underline decoration-line"
+                >
+                  Varsayılana dön
+                </button>
+              )}
+              <span className="text-muted text-[11px]">Fotoğrafların arkasındaki boşluklarda görünür.</span>
             </div>
 
             <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Canlı önizleme</p>
