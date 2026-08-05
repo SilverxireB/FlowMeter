@@ -211,6 +211,34 @@ export async function addWallMedya(id: string, kayit: MedyaKaydi): Promise<Video
   return next;
 }
 
+/**
+ * Kütüphane kaydını VE diskteki dosyayı birlikte sil. Dosya herhangi bir
+ * alanda (taslak ya da yayın) kullanılıyorsa reddedilir — kullanılan dosyayı
+ * silmek perdeyi kırık görselle bırakır; önce alandan çıkarılır.
+ */
+export async function removeWallMedya(
+  id: string,
+  medyaId: string
+): Promise<{ ok: true } | { ok: false; error: "not-found" | "in-use" }> {
+  const cur = await getWall(id);
+  const kayit = cur?.medya?.find((m) => m.id === medyaId);
+  if (!cur || !kayit) return { ok: false, error: "not-found" };
+  const kullaniliyor = [...(cur.zones ?? []), ...(cur.live?.zones ?? [])].some((z) =>
+    (z.items ?? []).some((it) => it.src === kayit.src)
+  );
+  if (kullaniliyor) return { ok: false, error: "in-use" };
+  // Dosya bu duvarın klasöründeyse sil; ad path-traversal'a kapalı (basename).
+  const on = `/media/${id}/`;
+  if (kayit.src.startsWith(on)) {
+    const dosya = path.basename(kayit.src.slice(on.length));
+    await fs.rm(path.join(MEDIA_DIR, id, dosya), { force: true });
+  }
+  const next: Videowall = { ...cur, medya: (cur.medya ?? []).filter((m) => m.id !== medyaId), updatedAt: Date.now() };
+  await writeJsonAtomic(path.join(WALLS_DIR, `${id}.json`), next);
+  emitWall(id);
+  return { ok: true };
+}
+
 /** Duvarı sil: tanım + kalp atışları + medya klasörü birlikte gider (yetim dosya kalmaz). */
 export async function deleteWall(id: string): Promise<void> {
   if (!safeId(id)) return;

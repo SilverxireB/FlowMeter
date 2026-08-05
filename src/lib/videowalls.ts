@@ -655,6 +655,12 @@ export async function addMedya(id: string, kayit: MedyaKaydi): Promise<void> {
   });
 }
 
+/** Kütüphane kaydını düşür (dosyanın kendisi /api/wall/destroy ile silinir — ÖNCE o). */
+export async function removeMedya(v: Videowall, medyaId: string): Promise<void> {
+  const medya = (v.medya ?? []).filter((m) => m.id !== medyaId);
+  await updateDoc(doc(db(), "videowalls", v.id), { medya: stripUndefined(medya), updatedAt: serverTimestamp() });
+}
+
 /** Oynatma modu (tabela/sunum) — yayından bağımsız, perde anında uyar. */
 export async function setPlayMode(id: string, playMode: VideowallPlayMode): Promise<void> {
   await updateDoc(doc(db(), "videowalls", id), { playMode, updatedAt: serverTimestamp() });

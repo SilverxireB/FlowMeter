@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "firebase-env" }, { status: 500 });
   }
 
-  let body: { wallId?: string; cloudinaryId?: string; resourceType?: string; idToken?: string; mode?: string; mediaId?: string };
+  let body: { wallId?: string; cloudinaryId?: string; resourceType?: string; idToken?: string; mode?: string; mediaId?: string; src?: string };
   try {
     body = await req.json();
   } catch {
@@ -43,11 +43,18 @@ export async function POST(req: Request) {
   let cloudinaryId = body.cloudinaryId;
   const wallMode = body.mode === "wall"; // FlowWall: tüm duvarı topluca temizle (prefix)
   const signMode = body.mode === "sign"; // FlowSign: videowall medyasını topluca temizle
+  const signFileMode = body.mode === "sign-file"; // FlowSign: kütüphaneden TEK dosya sil
   const guestMode = body.mode === "guest"; // misafir KENDİ medyasını siler (voterId == uid)
   const kantinMode = body.mode === "kantin"; // Kantin: ürün görsellerini topluca temizle
   const bulk = wallMode || signMode || kantinMode;
   let resourceType = body.resourceType === "video" ? "video" : "image";
-  if (!wallId || !idToken || (!bulk && !guestMode && !cloudinaryId) || (guestMode && !body.mediaId)) {
+  if (
+    !wallId ||
+    !idToken ||
+    (!bulk && !guestMode && !signFileMode && !cloudinaryId) ||
+    (guestMode && !body.mediaId) ||
+    (signFileMode && !body.src)
+  ) {
     return NextResponse.json({ ok: false, error: "missing-params" }, { status: 400 });
   }
 
@@ -101,7 +108,7 @@ export async function POST(req: Request) {
     const yetkili = eposta === "doganbaharozu@gmail.com" || rol === "admin" || (rol === "kantinci" && kantinId === wallId);
     if (!yetkili) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   } else {
-    const ownerCollection = signMode ? "videowalls" : "walls";
+    const ownerCollection = signMode || signFileMode ? "videowalls" : "walls";
     const wallRes = await fetch(
       `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/${ownerCollection}/${wallId}`
     );
@@ -111,12 +118,14 @@ export async function POST(req: Request) {
     // FlowSign: silme yetkisi MATRİSTEN gelir (yönetici "Sign yetkileri"nden
     // dağıtır). Firestore rules ile AYNI kapı — sunucu tarafı gevşek kalmasın
     // diye burada birebir tekrarlanır: açık kayıt varsa o geçerli, yoksa
-    // ekranı oluşturan kişi tam yetkilidir.
+    // ekranı oluşturan kişi tam yetkilidir. Tek dosya (kütüphane) İÇERİK işidir
+    // → edit yetkisi yeter; ekranı topluca temizlemek delete ister.
     const grants = fields?.grants?.mapValue?.fields ?? {};
     const mine = grants?.[uid]?.mapValue?.fields;
-    const isOwner = signMode
-      ? (mine ? mine?.delete?.booleanValue === true : ownerId === uid)
-      : ownerId === uid;
+    const isOwner =
+      signMode || signFileMode
+        ? (mine ? mine?.[signFileMode ? "edit" : "delete"]?.booleanValue === true : ownerId === uid)
+        : ownerId === uid;
     if (!isOwner) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
@@ -142,6 +151,47 @@ export async function POST(req: Request) {
       purged[rt] = deleted;
     }
     return NextResponse.json({ ok: true, purged });
+  }
+
+  // ── FlowSign kütüphanesinden TEK dosya ──────────────────────────────────────
+  // Kayıtta public_id varsa o KESİNDİR. Yoksa URL'den türetilir — dinamik klasör
+  // tuzağı: teslim URL'si klasör gösterir ama gerçek public_id çıplak ad
+  // olabilir → adaylar sırayla denenir, yalnız "not found"da sıradakine geçilir.
+  // Hepsi "not found" ise dosya zaten yok — ok döner, istemci kaydı düşürür.
+  if (signFileMode) {
+    const src = body.src!;
+    if (!src.includes(`flowsign/${wallId}/`)) {
+      return NextResponse.json({ ok: false, error: "src-mismatch" }, { status: 400 });
+    }
+    const adaylar: string[] = [];
+    if (cloudinaryId) adaylar.push(cloudinaryId);
+    const m = src.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[a-z0-9]+)?$/i);
+    if (m) {
+      const tam = decodeURIComponent(m[1]);
+      for (const aday of [tam, tam.split("/").pop()!]) if (!adaylar.includes(aday)) adaylar.push(aday);
+    }
+    if (!adaylar.length) return NextResponse.json({ ok: false, error: "bad-src" }, { status: 400 });
+    let sonuc = "not found";
+    for (const pid of adaylar) {
+      const ts = Math.floor(Date.now() / 1000);
+      const imza = crypto.createHash("sha1").update(`invalidate=true&public_id=${pid}&timestamp=${ts}${SECRET}`).digest("hex");
+      const f = new URLSearchParams();
+      f.set("public_id", pid);
+      f.set("invalidate", "true");
+      f.set("timestamp", String(ts));
+      f.set("api_key", KEY);
+      f.set("signature", imza);
+      const del = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/${resourceType}/destroy`, { method: "POST", body: f });
+      const j = await del.json().catch(() => ({}));
+      if (del.ok && j.result === "ok") {
+        sonuc = "ok";
+        break;
+      }
+      if (j.result !== "not found") {
+        return NextResponse.json({ ok: false, error: "cloudinary", detail: j, denenen: pid }, { status: 502 });
+      }
+    }
+    return NextResponse.json({ ok: true, result: sonuc, adaylar });
   }
 
   // Test tohumu / Cloudinary-dışı kayıtlar: silinecek dosya yok

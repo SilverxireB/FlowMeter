@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { canEdit, currentUser, forbidden, unauthorized } from "@/lib/serverAuth";
-import { addWallMedya, getWall, MEDIA_DIR } from "@/lib/store";
+import { addWallMedya, getWall, MEDIA_DIR, removeWallMedya } from "@/lib/store";
 import { ayarSayi } from "@/lib/settings";
 
 export const runtime = "nodejs";
@@ -79,4 +79,22 @@ export async function POST(req: NextRequest) {
   await addWallMedya(wall.id, kayit);
 
   return NextResponse.json({ url: kayit.src, type: kayit.kind, kayit });
+}
+
+/** Kütüphaneden dosya sil (kayıt + disk). Kullanımdaki dosya reddedilir. */
+export async function DELETE(req: NextRequest) {
+  const me = await currentUser(req);
+  if (!me) return unauthorized();
+  const wallId = req.nextUrl.searchParams.get("wall") ?? "";
+  const medyaId = req.nextUrl.searchParams.get("medya") ?? "";
+  const wall = await getWall(wallId);
+  if (!wall) return NextResponse.json({ error: "Ekran bulunamadı" }, { status: 404 });
+  if (!canEdit(wall, me)) return forbidden();
+  const r = await removeWallMedya(wallId, medyaId);
+  if (!r.ok) {
+    return r.error === "in-use"
+      ? NextResponse.json({ error: "Dosya bir alanda kullanılıyor — önce alandan çıkar" }, { status: 409 })
+      : NextResponse.json({ error: "Kayıt bulunamadı" }, { status: 404 });
+  }
+  return NextResponse.json({ ok: true });
 }

@@ -53,6 +53,11 @@ const IZLER = [
   ["kütüphane kaydı tipi", "src/lib/types.ts", "flowsign-selfhost/src/lib/types.ts", "export interface MedyaKaydi"],
   ["kütüphane = medya[] ∪ alanlar", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "[...(vw.medya ?? [])].reverse()"],
   ["pencereden yükleme kütüphaneye", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", ', "kutuphane")'],
+  // 3. adım: kütüphane yönetimi — arama, "kullanılmıyor" rozeti, silme (depo dahil).
+  ["kütüphanede Türkçe arama", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", 'placeholder="Medyada ara…"'],
+  ["kullanılmıyor rozeti", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "kullanılmıyor"],
+  ["yalnız kullanılmayan silinir", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "it.kayit && !it.used"],
+  ["silme onay penceresi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", 'title="Kütüphaneden sil"'],
   ["mobilde Saat/Tarih taşmaz", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "basis-full sm:basis-auto min-w-0"],
   ["ters tarih aralığı uyarısı", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Başlangıç bitişten sonra"],
   ["geçmiş gün seçilemez", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "const enErken ="],

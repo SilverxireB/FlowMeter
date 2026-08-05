@@ -12,9 +12,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName } from "@/components/Icon";
 import FlowSpinner from "@/components/FlowSpinner";
 import { cldFit, isCloudinaryConfigured, uploadToCloudinary } from "@/lib/cloudinary";
-import { addMedya, icAgAdresi, itemInWindow, itemTakvimDurumu, listAllVideowalls, ZONE_BG_DEFAULT } from "@/lib/videowalls";
+import { addMedya, icAgAdresi, itemInWindow, itemTakvimDurumu, listAllVideowalls, removeMedya, ZONE_BG_DEFAULT } from "@/lib/videowalls";
 import { auth } from "@/lib/firebase";
+import { eslesir } from "@/lib/arama";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { MedyaKaydi, Videowall, Zone, ZoneItem } from "@/lib/types";
+
+/** Kütüphane satırı: `kayit` = medya[] kaydı (yalnız bunlar silinebilir); `used` = bir alanda geçiyor. */
+type LibEntry = { key: string; kind: "image" | "video"; src: string; name?: string; kayit?: MedyaKaydi; used: boolean };
 
 const iid = () => `it-${Math.random().toString(36).slice(2, 9)}`;
 const KIND_LABEL = { image: "Görsel", video: "Video", url: "URL", text: "Metin", clock: "Saat", screen: "Ekran" } as const;
@@ -105,6 +110,9 @@ export default function ZonePanel({
       .catch(() => setScreens([]));
   }, [screenPick, ekranOgesiVar, screens, vw.id]);
   const [libFilter, setLibFilter] = useState<"all" | "image" | "video">("all");
+  const [libAra, setLibAra] = useState("");
+  const [silOnay, setSilOnay] = useState<LibEntry | null>(null);
+  const [silBusy, setSilBusy] = useState<string | null>(null);
   const [urlForm, setUrlForm] = useState<{ src: string; name: string } | null>(null);
   const [replacingId, setReplacingId] = useState<string | null>(null);
   // Sadeleştirme: süre/takvim/gün ayarları öğe başına AÇILIR (⚙) — panel
@@ -128,26 +136,29 @@ export default function ZonePanel({
   // Kütüphane: ekranın KENDİ medya[] listesi (kalıcı kayıt — alandan silinse de
   // kütüphanede durur) ∪ alanlardan türetilen eski medya (eski ekranlar göç
   // gerekmeden çalışır). medya[] önce ve son yüklenen ÜSTTE.
-  const library = useMemo(() => {
+  const library = useMemo<LibEntry[]>(() => {
+    const pools = [...(vw.zones ?? []), ...(vw.live?.zones ?? [])];
+    const usedSrcs = new Set<string>();
+    for (const z of pools) for (const it of z.items ?? []) if (it.src) usedSrcs.add(it.src);
     const seen = new Set<string>();
-    const out: ZoneItem[] = [];
+    const out: LibEntry[] = [];
     for (const m of [...(vw.medya ?? [])].reverse())
       if (m.src && !seen.has(m.src)) {
         seen.add(m.src);
-        out.push({ id: m.id, kind: m.kind, src: m.src, name: m.name });
+        out.push({ key: m.id, kind: m.kind, src: m.src, name: m.name, kayit: m, used: usedSrcs.has(m.src) });
       }
-    const pools = [...(vw.zones ?? []), ...(vw.live?.zones ?? [])];
     for (const z of pools)
       for (const it of z.items ?? [])
         if ((it.kind === "image" || it.kind === "video") && it.src && !seen.has(it.src)) {
           seen.add(it.src);
-          out.push(it);
+          out.push({ key: it.id, kind: it.kind, src: it.src, name: it.name, used: true });
         }
     return out;
   }, [vw.medya, vw.zones, vw.live?.zones]);
+  const libGoster = library.filter((it) => (libFilter === "all" || it.kind === libFilter) && eslesir(it.name ?? "", libAra));
 
   /** Yüklenen dosyayı ekranın medya[] listesine yazar (kütüphane kalıcı kaydı). */
-  async function medyaKaydet(kind: "image" | "video", src: string, name: string) {
+  async function medyaKaydet(kind: "image" | "video", src: string, name: string, cloudinaryId?: string) {
     const u = auth().currentUser;
     const kayit: MedyaKaydi = {
       id: `m-${Math.random().toString(36).slice(2, 9)}`,
@@ -156,8 +167,40 @@ export default function ZonePanel({
       name,
       at: Date.now(), // arrayUnion içinde serverTimestamp olmaz — ms sayı
       by: u?.displayName || u?.email || undefined,
+      cloudinaryId,
     };
     await addMedya(vw.id, kayit);
+  }
+
+  /** Kütüphaneden sil: ÖNCE depo dosyası (sunucu imzalar), SONRA kayıt.
+   *  Ters sıra yetim kayıt bırakır (kayıt var, dosya ölü). */
+  async function medyaSil(e: LibEntry) {
+    if (!e.kayit) return;
+    setErr(null);
+    setSilBusy(e.kayit.id);
+    try {
+      const idToken = await auth().currentUser?.getIdToken();
+      if (!idToken) throw new Error("oturum bulunamadı");
+      const r = await fetch("/api/wall/destroy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "sign-file",
+          wallId: vw.id,
+          idToken,
+          src: e.src,
+          cloudinaryId: e.kayit.cloudinaryId,
+          resourceType: e.kind,
+        }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.message || j.error || `sunucu ${r.status}`);
+      await removeMedya(vw, e.kayit.id);
+    } catch (hata) {
+      setErr(`Silinemedi: ${hata instanceof Error ? hata.message : "bilinmeyen hata"}`);
+    } finally {
+      setSilBusy(null);
+    }
   }
 
   /** Boyut/tür ön-kontrolü: geçenler + insanca ret nedenleri. */
@@ -196,7 +239,7 @@ export default function ZonePanel({
         setQueue({ done: i, total: ok.length, pct: 0 });
         const res = await uploadToCloudinary(ok[i], `flowsign/${vw.id}`, (pct) => setQueue({ done: i, total: ok.length, pct }), { keepOriginal: true });
         const ad = ok[i].name.replace(/\.[^.]+$/, "");
-        await medyaKaydet(res.type, res.url, ad);
+        await medyaKaydet(res.type, res.url, ad, res.cloudinaryId);
         added.push({ id: iid(), kind: res.type, src: res.url, name: ad, durationSec: res.type === "image" ? 8 : undefined });
       } catch (e) {
         failed.push(`${ok[i].name} (${e instanceof Error ? e.message : "yükleme hatası"})`);
@@ -220,7 +263,7 @@ export default function ZonePanel({
     try {
       setQueue({ done: 0, total: 1, pct: 0 });
       const res = await uploadToCloudinary(ok[0], `flowsign/${vw.id}`, (pct) => setQueue({ done: 0, total: 1, pct }), { keepOriginal: true });
-      await medyaKaydet(res.type, res.url, ok[0].name.replace(/\.[^.]+$/, ""));
+      await medyaKaydet(res.type, res.url, ok[0].name.replace(/\.[^.]+$/, ""), res.cloudinaryId);
       setItems(
         zoneRef.current.items.map((it) =>
           it.id === itemId
@@ -270,12 +313,12 @@ export default function ZonePanel({
     setItems([...zone.items, { id: iid(), kind: "screen", screenId: hedef.id, name: hedef.name }]);
     setScreenPick(false);
   };
-  const addFromLib = (src: ZoneItem) => {
+  const addFromLib = (m: LibEntry) => {
     // Yalnız dosyanın kendisi kopyalanır — eski öğenin takvimi/süresi GİZLİCE
     // taşınmaz ("kütüphaneden ekledim, neden görünmüyor?" sürprizi biterdi).
     setItems([
       ...zone.items,
-      { id: iid(), kind: src.kind, src: src.src, name: src.name, durationSec: src.kind === "image" ? 8 : undefined },
+      { id: iid(), kind: m.kind, src: m.src, name: m.name, durationSec: m.kind === "image" ? 8 : undefined },
     ]);
     setLibOpen(false);
   };
@@ -899,7 +942,24 @@ export default function ZonePanel({
               </button>
             )}
 
-            {/* Tür sekmeleri: Tümü / Foto / Video */}
+            {/* Hata MODALIN İÇİNDE — paneldeki şerit bu pencerenin arkasında kalıyor. */}
+            {err && <p className="text-brand text-xs mb-3 font-semibold">{err}</p>}
+
+            {/* Arama + tür sekmeleri (Türkçe duyarlı — lib/arama) */}
+            {library.length > 0 && (
+              <div className="relative mb-3">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none">
+                  <Icon name="search" size={14} />
+                </span>
+                <input
+                  value={libAra}
+                  onChange={(e) => setLibAra(e.target.value)}
+                  placeholder="Medyada ara…"
+                  className={`${inputCls} !pl-9`}
+                  aria-label="Kütüphanede medya ara"
+                />
+              </div>
+            )}
             <div className="flex gap-1.5 mb-3">
               {([
                 { v: "all", label: `Tümü (${library.length})` },
@@ -919,29 +979,70 @@ export default function ZonePanel({
             </div>
 
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {library
-                .filter((it) => libFilter === "all" || it.kind === libFilter)
-                .map((it) => (
-                  <button key={it.src} onClick={() => addFromLib(it)} className="rounded-lg overflow-hidden border border-line hover:border-accent text-left">
+              {libGoster.map((it) => (
+                <div
+                  key={it.key}
+                  className={`relative rounded-lg overflow-hidden border border-line hover:border-accent ${silBusy === it.kayit?.id ? "opacity-50" : ""}`}
+                >
+                  <button onClick={() => addFromLib(it)} className="block w-full text-left" disabled={silBusy !== null}>
                     <span className="block aspect-square relative">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={it.kind === "video" ? stillOf(it.src!) || undefined : cldFit(it.src!, 200)} alt="" className="w-full h-full object-cover bg-black" />
+                      <img src={it.kind === "video" ? stillOf(it.src) || undefined : cldFit(it.src, 200)} alt="" className="w-full h-full object-cover bg-black" />
                       {it.kind === "video" && <span className="absolute bottom-1 right-1 text-xs">🎬</span>}
+                      {/* Hiçbir alanda geçmiyor → temizlik adayı (rozet + silinebilir) */}
+                      {!it.used && (
+                        <span className="absolute bottom-1 left-1 rounded bg-amber-100 text-amber-800 text-[9px] font-semibold px-1 py-0.5">
+                          kullanılmıyor
+                        </span>
+                      )}
                     </span>
                     {/* Dosya adı — hangi dosya olduğu görünsün */}
                     <span className="block px-1.5 py-1 text-[10px] text-muted truncate bg-paper">
                       {it.name || "adsız"}
                     </span>
                   </button>
-                ))}
+                  {/* Silme yalnız KULLANILMAYAN kayıtlarda: kullanılan dosyayı silmek
+                      perdeyi kırık görselle bırakır — önce alandan çıkarılır. */}
+                  {it.kayit && !it.used && (
+                    <button
+                      onClick={() => setSilOnay(it)}
+                      disabled={silBusy !== null}
+                      className="absolute top-1 right-1 w-6 h-6 grid place-items-center rounded-md bg-white/90 border border-line text-muted hover:text-brand hover:border-brand/40 disabled:opacity-40"
+                      aria-label={`${it.name || "adsız"} dosyasını kütüphaneden sil`}
+                      title="Kütüphaneden sil"
+                    >
+                      <Icon name="trash" size={12} />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-            {library.filter((it) => libFilter === "all" || it.kind === libFilter).length === 0 && (
+            {libGoster.length === 0 && (
               <p className="text-muted text-sm text-center py-8">
-                {library.length === 0 ? "Henüz medya yok — yukarıdan Cihazdan yükle ile başla." : "Bu türde medya yok."}
+                {library.length === 0
+                  ? "Henüz medya yok — yukarıdan Cihazdan yükle ile başla."
+                  : libAra
+                    ? "Aramaya uyan medya yok."
+                    : "Bu türde medya yok."}
               </p>
             )}
           </div>
         </div>
+      )}
+
+      {silOnay && (
+        <ConfirmDialog
+          title="Kütüphaneden sil"
+          message={`"${silOnay.name || "adsız"}" kalıcı olarak silinecek — depodaki dosya da gider. Bu işlem geri alınamaz.`}
+          confirmLabel="Sil"
+          danger
+          onConfirm={() => {
+            const e = silOnay;
+            setSilOnay(null);
+            void medyaSil(e);
+          }}
+          onCancel={() => setSilOnay(null)}
+        />
       )}
 
       {/* EKRAN SEÇİCİ — ekranın bir bölümünü başkasına yönettirmenin yolu.

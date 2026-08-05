@@ -548,6 +548,9 @@ export interface MedyaKaydi {
   at?: number;
   /** Yükleyen — denetim izi. */
   by?: string;
+  /** Cloudinary public_id — silmede KESİN kimlik (URL'den türetme dinamik
+   *  klasör modunda yanılabiliyor). Self-host'ta kullanılmaz (disk yolu src'de). */
+  cloudinaryId?: string;
 }
 
 export interface Videowall {

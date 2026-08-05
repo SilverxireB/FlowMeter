@@ -106,6 +106,8 @@ export interface MedyaKaydi {
   at?: number;
   /** Yükleyen — denetim izi (giriş adı). */
   by?: string;
+  /** Online paketin Cloudinary kimliği — self-host'ta kullanılmaz (dosya src'de). */
+  cloudinaryId?: string;
 }
 
 /** Video-wall tanımı. zones = TASLAK (editör); live = YAYIN. */
