@@ -96,6 +96,25 @@ export default function FotoSahne({
   }, [aktif]);
   const onceki = oncekiRef.current && aktif && oncekiRef.current.src !== aktif.src ? oncekiRef.current : undefined;
 
+  // GERÇEK ÖLÇÜ: `box` çağıranın TASARIM ölçüsüdür (perdede alanın 3240×1920
+  // gibisinden). Alan yüzdeyle GERÇEK ekrana yayıldığından telefonda/dar
+  // pencerede biçim bambaşka olabilir — dikey telefonda yatay yerleşim
+  // çiziliyordu (kullanıcı ekran görüntüsü). Yerleşim oranı tasarımdan değil
+  // ölçülen kutudan hesaplanır; gerçek TV'de ikisi zaten aynıdır.
+  const kokRef = useRef<HTMLDivElement>(null);
+  const [olcum, setOlcum] = useState<{ w: number; h: number } | null>(null);
+  useEffect(() => {
+    const el = kokRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((es) => {
+      const r = es[0]?.contentRect;
+      if (r && r.width > 0) setOlcum({ w: r.width, h: r.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const kutu = olcum ?? box;
+
   if (!fotolar.length)
     return (
       <div className="w-full h-full grid place-items-center text-white/35 text-xs text-center px-3" style={{ background: zemin }}>
@@ -105,12 +124,12 @@ export default function FotoSahne({
 
   return (
     // Zemin: varsayılan Wall laciverti; kullanıcı yönetim sayfasından değiştirir.
-    <div className="absolute inset-0 overflow-hidden text-white" style={{ background: zemin }}>
+    <div ref={kokRef} className="absolute inset-0 overflow-hidden text-white" style={{ background: zemin }}>
       <SahneStilleri />
-      {mod === "mozaik" && <Mozaik fotolar={srcler} box={box} />}
+      {mod === "mozaik" && <Mozaik fotolar={srcler} box={kutu} />}
       {mod === "sahne" && <Sahne fotolar={srcler} aktif={aktif!} onceki={onceki} />}
-      {mod === "spot" && <Spot fotolar={srcler} aktif={aktif!} box={box} />}
-      {mod === "polaroid" && <Polaroid fotolar={fotolar} sira={sira} box={box} />}
+      {mod === "spot" && <Spot fotolar={srcler} aktif={aktif!} box={kutu} />}
+      {mod === "polaroid" && <Polaroid fotolar={fotolar} sira={sira} box={kutu} />}
       {mod === "sinema" && <Sinema aktif={aktif!} onceki={onceki} sira={sira} />}
       {!durgun && <SahneEfektleri efekt={sahne.efekt} />}
     </div>
