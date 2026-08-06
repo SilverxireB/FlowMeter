@@ -265,7 +265,12 @@ function Layer({ item, transition, loop, designPx, zincir = [], onEnded, onError
   const sahneId = item.kind === "url" ? sahneAdresi(item.src) : null;
 
   return (
-    <div ref={ref} className="absolute inset-0" style={style}>
+    // isolation: içerideki z-index'ler (polaroid kartları zIndex 1..40) bu
+    // katmanın İÇİNDE kalsın. Eski katman opacity:1 beklerken yığın bağlamı
+    // oluşturmaz; kartlar alanın köküne sızıp ÜSTTE solan yeni katmanı
+    // (z-index auto) yeniyordu — zemin doğru kaybolup kartlar sonraki
+    // içeriğin üzerine binmiş görünüyordu.
+    <div ref={ref} className="absolute inset-0" style={{ ...style, isolation: "isolate" }}>
       {gomuluHedef ? (
         <GomuluEkran hedef={gomuluHedef} box={designPx ?? { w: 1920, h: 1080 }} zincir={zincir} />
       ) : sahneId ? (

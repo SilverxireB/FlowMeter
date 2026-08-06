@@ -66,16 +66,15 @@ export default function SahneListesi({ walls }: { walls: Videowall[] }) {
   if (!sahneler?.length) return null;
 
   return (
-    // Ekran listesiyle AYNI kapta durur (max-w-5xl) ama satırlar dar tutulur:
-    // bilgi az, tam genişlikte kart boşlukta yüzüyordu — ortada birikir.
+    // Ekran listesiyle AYNI kapta ve AYNI genişlikte (oluşturma kartıyla hizalı);
+    // bilgi az olduğundan satırlar ikişerli dizilir.
     <section className="max-w-5xl mx-auto px-4 pb-10">
-      <div className="max-w-2xl mx-auto">
-        <h2 className="font-display font-bold text-lg mb-1 text-center">📸 Foto sahneler</h2>
-        <p className="text-muted text-xs mb-3 text-center">
-          Kendi linki olan hatıra köşeleri — link alandan silinse de sahneye buradan ulaşılır.
-        </p>
-        {err && <p className="text-brand text-xs mb-2 font-semibold text-center">{err}</p>}
-        <ul className="flex flex-col gap-2">
+      <h2 className="font-display font-bold text-lg mb-1">📸 Foto sahneler</h2>
+      <p className="text-muted text-xs mb-3">
+        Kendi linki olan hatıra köşeleri — link alandan silinse de sahneye buradan ulaşılır.
+      </p>
+      {err && <p className="text-brand text-xs mb-2 font-semibold">{err}</p>}
+      <ul className="grid gap-2 sm:grid-cols-2">
         {sahneler.map((s) => {
           const ekranlar = kullanim.get(s.id) ?? [];
           const silebilir = me?.role === "admin" || (me && s.ownerId === me.name);
@@ -114,8 +113,7 @@ export default function SahneListesi({ walls }: { walls: Videowall[] }) {
             </li>
           );
         })}
-        </ul>
-      </div>
+      </ul>
 
       {silOnay && (
         <ConfirmDialog

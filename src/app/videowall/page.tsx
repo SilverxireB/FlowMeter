@@ -392,6 +392,9 @@ export default function VideowallListPage() {
           </div>
         </form>
 
+        {/* Kart ızgarasının başlığı — alttaki "Foto sahneler" bölümüyle simetrik */}
+        <h2 className="font-display font-bold text-lg mt-10 mb-3">🖥 Videowallar</h2>
+
         {/* Arama kutusu: liste UZUNSA görünür. Üç ekranı olan kişiye süzgeç
             göstermek gürültü; kırk ekranı olan kişi onsuz çalışamıyor. */}
         {walls.length > 6 && (
