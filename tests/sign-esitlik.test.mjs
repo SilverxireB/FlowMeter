@@ -70,6 +70,7 @@ const IZLER = [
   // Çift tıklama kilitleri: hızlı tekrar eklemez (onay sorusu YOK — kullanıcı kararı)
   ["hızlı tekrar kilidi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "hizliTekrar"],
   ["sahne karosu ref kilidi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "sahneKilidi"],
+  ["sahne karosu ad formu", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Sahneyi oluştur"],
   // Geçişte katman yalıtımı: polaroid kartlarının z-index'i sonraki içeriğe binmesin
   ["perde katman yalıtımı", "src/components/videowall/PlayerStage.tsx", "flowsign-selfhost/src/components/PlayerStage.tsx", 'isolation: "isolate"'],
   ["editör önizleme yalıtımı", "src/components/videowall/LayoutEditor.tsx", "flowsign-selfhost/src/components/LayoutEditor.tsx", 'isolation: "isolate"'],

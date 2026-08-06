@@ -328,8 +328,9 @@ export const SIGN_REHBER: RehberBolum[] = [
               baslik: "Oluştur",
               metin: (
                 <>
-                  Alan panelindeki <b>📸 Foto sahne</b> karesi sahneyi açar ve linkini alana ekler — sonra ekranı{" "}
-                  <Dugme icon="save" birincil>Kaydet &amp; Yayınla</Dugme> (link yerleşimin parçasıdır, bir kez yeter).
+                  Alan panelindeki <b>📸 Foto sahne</b> karesi ad sorar; <b>Sahneyi oluştur</b> linki alana ekler ve
+                  yönetim sayfasını açar — sonra ekranı <Dugme icon="save" birincil>Kaydet &amp; Yayınla</Dugme> (link
+                  yerleşimin parçasıdır, bir kez yeter).
                 </>
               ),
             },

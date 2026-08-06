@@ -122,6 +122,10 @@ export default function ZonePanel({
   const [secili, setSecili] = useState<Set<string>>(new Set());
   const adminMi = useSession().me?.role === "admin";
   const [urlForm, setUrlForm] = useState<{ src: string; name: string } | null>(null);
+  // Sahne karosu ÖNCE ad sorar (null = form kapalı): kayıt yalnız "Sahneyi
+  // oluştur" ile açılır — kazara dokunuş hiçbir şey yaratmaz, liste de
+  // "Yeni ekran sahnesi ×3" yerine gerçek adlar taşır.
+  const [sahneForm, setSahneForm] = useState<string | null>(null);
   const [replacingId, setReplacingId] = useState<string | null>(null);
   // Sadeleştirme: süre/takvim/gün ayarları öğe başına AÇILIR (⚙) — panel
   // varsayılanda kompakt liste gösterir.
@@ -365,13 +369,13 @@ export default function ZonePanel({
    * Perde linki tanır ve sahneyi iframe'siz çizer (sahneAdresi).
    */
   const sahneKilidi = useRef(false); // sahneBusy state'i yarışı kaybeder: iki hızlı dokunuş İKİ sahne açıyordu
-  async function fotoSahneOlustur() {
+  async function fotoSahneOlustur(ad: string) {
     if (sahneKilidi.current) return;
     sahneKilidi.current = true;
     setErr(null);
     setSahneBusy(true);
     try {
-      const sahne = await createSahne(`${vw.name} sahnesi`);
+      const sahne = await createSahne(ad.trim() || `${vw.name} sahnesi`);
       const link = `${window.location.origin}/sahne/${sahne.id}`;
       // Süre uzun başlar: Wall modlarının ritmi uzun pencereye göre (kullanıcı kararı: 5 dk gibi).
       setItems([...zoneRef.current.items, { id: iid(), kind: "url", src: link, name: "Foto sahne", durationSec: 300 }]);
@@ -562,7 +566,7 @@ export default function ZonePanel({
             hatıra köşesi. Karo sahneyi oluşturur, linkini bu alana ekler,
             yönetimi açar. Emoji BİLİNÇLİ (şablon kartı gibi kimlik). */}
         <button
-          onClick={() => void fotoSahneOlustur()}
+          onClick={() => setSahneForm((s) => (s === null ? `${vw.name} sahnesi` : null))}
           disabled={sahneBusy}
           title="Kendi linki olan hatıra köşesi — fotoğraflar sahnenin kendi sayfasından yönetilir"
           className="rounded-xl text-white px-2 py-3 text-sm font-semibold flex flex-col items-center gap-1 hover:opacity-95 disabled:opacity-50 transition-opacity"
@@ -621,6 +625,33 @@ export default function ZonePanel({
                 </button>
               )}
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Sahne mini formu (URL formuyla aynı desen): ad + bilinçli oluşturma anı */}
+      {sahneForm !== null && (
+        <div className="mb-4 rounded-xl bg-paper border border-accent/40 p-3 flex flex-col gap-2">
+          <input
+            autoFocus
+            value={sahneForm}
+            onChange={(e) => setSahneForm(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && void fotoSahneOlustur(sahneForm)}
+            placeholder="Sahne adı (ör. Ahmet Bey emeklilik)"
+            className={`${inputCls} px-3 py-2 text-sm`}
+          />
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => void fotoSahneOlustur(sahneForm)}
+              disabled={sahneBusy}
+              className="rounded-xl bg-accent hover:bg-accent-dark text-white px-4 py-2 text-sm font-semibold disabled:opacity-50"
+            >
+              {sahneBusy ? "Oluşturuluyor…" : "Sahneyi oluştur"}
+            </button>
+            <button onClick={() => { setSahneForm(null); setErr(null); }} className="rounded-xl bg-white border border-line px-4 py-2 text-sm font-semibold hover:border-muted">
+              Vazgeç
+            </button>
+            <span className="text-muted text-[11px]">Linki bu alana ekler, yönetim sayfasını açar.</span>
           </div>
         </div>
       )}
