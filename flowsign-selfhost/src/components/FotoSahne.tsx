@@ -248,19 +248,39 @@ function Spot({ fotolar, aktif, box }: { fotolar: string[]; aktif: SahneFoto; bo
 /* ── POLAROID — Wall PolaroidMode: saçılmış eğik kartlar, biri tepeye düşer ─ */
 function Polaroid({ fotolar, sira, box }: { fotolar: SahneFoto[]; sira: number; box: { w: number; h: number } }) {
   const oran = box.h > 0 ? box.w / box.h : 1.78;
+  // ARKA DESTE: en fazla 12 kart — kalabalık sahne kaosa dönmesin; fazlası
+  // sırayla dolaşır (tepeye çıkan zaten dolaşıyor, deste de onunla kayar).
+  // Kartlar KÜÇÜK ve SOLUK (Wall'daki desen buydu, kopya ayrışmıştı): öne
+  // düşen kart arkadakilerden NET ayrılır, "arada kaynamaz".
+  const deste = fotolar.length <= 12 ? fotolar : Array.from({ length: 12 }, (_, k) => fotolar[(sira + 1 + k) % fotolar.length]);
+  const n = Math.max(1, deste.length);
+  // IZGARA + TİTREŞİM: her karta görünmez bir hücre, hücre içinde küçük
+  // rastgele kaydırma/açı. Saf rastgele saçılım piyangoydu — şansa göre bir
+  // köşe boş kalıp başka yerde kartlar üst üste yığılıyordu.
+  const cols = Math.max(1, Math.min(n, Math.round(Math.sqrt(n * Math.max(0.4, oran)))));
+  const rows = Math.max(1, Math.ceil(n / cols));
+  // Kart genişliği HEM sütuna HEM yüksekliğe bağlı: yalnız sütuna bağlanınca
+  // yatay alanda kartlar boyca %40'ı bulup birbirine biniyordu (tavan: %26 boy).
+  const gen = Math.max(8, Math.min(18, 74 / cols, 26 / (oran * 1.22)));
+  const kartYuk = gen * oran * 1.22; // kare foto + beyaz kenar, alan yüksekliğine oranla
   const ust = fotolar[sira % fotolar.length];
+  // Öne düşen kartın ölçüsü ALANA göre: sabit %30 dar/dikey alanda cüce kalıyordu.
+  const ustGen = Math.round(Math.max(26, Math.min(46, 62 / (oran * 1.22))));
   return (
     <div className="h-full relative overflow-hidden">
-      {fotolar.map((m, i) => {
-        const x = 4 + tohum(i * 2) * 72;
-        const y = 4 + tohum(i * 2 + 1) * 62;
+      {deste.map((m, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const bosX = Math.max(0, 96 - gen - 4);
+        const bosY = Math.max(0, 96 - kartYuk - 4);
+        const x = 2 + (cols > 1 ? (col * bosX) / (cols - 1) : bosX / 2) + (tohum(i * 2) - 0.5) * Math.min(6, (bosX / cols) * 0.5);
+        const y = 2 + (rows > 1 ? (row * bosY) / (rows - 1) : bosY / 2) + (tohum(i * 2 + 1) - 0.5) * Math.min(6, (bosY / rows) * 0.5);
         const aci = (tohum(i * 3) - 0.5) * 22;
-        const gen = Math.max(14, Math.min(26, 90 / Math.sqrt(fotolar.length * Math.max(1, oran))));
         return (
           <div
             key={m.src}
-            className="absolute fs-float bg-white p-[0.5%] pb-[2%] rounded-md shadow-2xl"
-            style={{ left: `${x}%`, top: `${y}%`, width: `${gen}%`, ["--r" as string]: `${aci.toFixed(1)}deg`, transform: `rotate(${aci.toFixed(1)}deg)`, zIndex: 1 + (i % 5), animationDelay: `${(i % 7) * 0.9}s` }}
+            className="absolute fs-float bg-white p-[0.5%] pb-[1.6%] rounded-md shadow-xl"
+            style={{ left: `${x.toFixed(1)}%`, top: `${y.toFixed(1)}%`, width: `${gen.toFixed(1)}%`, opacity: 0.55, ["--r" as string]: `${aci.toFixed(1)}deg`, transform: `rotate(${aci.toFixed(1)}deg)`, zIndex: 1 + (i % 5), animationDelay: `${(i % 7) * 0.9}s` }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={kucuk(m.src, 520)} alt="" loading="lazy" className="w-full aspect-square object-cover" />
@@ -270,7 +290,7 @@ function Polaroid({ fotolar, sira, box }: { fotolar: SahneFoto[]; sira: number; 
       {/* En üste düşen kart — Wall'da "en yenisi tepeye düşer"; durağan listede
           sıra dolaşır, herkes sırayla tepeye çıkar. Yazı polaroid'in beyaz
           kenarına yazılır (kartın doğal yeri). */}
-      <div key={"ust-" + ust.src} className="absolute left-1/2 top-1/2 fs-drop bg-white p-[0.6%] pb-[1%] rounded-md shadow-2xl" style={{ width: "30%", transform: "translate(-50%, -50%) rotate(-3deg)", zIndex: 40 }}>
+      <div key={"ust-" + ust.src} className="absolute left-1/2 top-1/2 fs-drop bg-white p-[0.6%] pb-[1%] rounded-md shadow-2xl" style={{ width: `${ustGen}%`, transform: "translate(-50%, -50%) rotate(-3deg)", zIndex: 40 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={buyuk(ust.src)} alt="" className="w-full aspect-square object-cover" />
         <p className="text-center text-black/75 font-display font-semibold truncate px-1" style={{ fontSize: "clamp(10px, 1.7cqw, 26px)", minHeight: "1.4em", marginTop: "2%" }}>

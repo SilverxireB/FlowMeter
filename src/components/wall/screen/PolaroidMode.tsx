@@ -11,13 +11,22 @@ export default function PolaroidMode({ media, topLovedId, front }: { media: Wall
   const back = useMemo(() => [...media].slice(-12), [media]);
   // Ön: ortak oynatmadan gelen current (adil + yeni foto önce; hep aynı resimden başlamaz).
 
+  // IZGARA + TİTREŞİM (Sign'daki düzeltmenin aynısı): saf rastgele konum
+  // piyangoydu — şansa göre köşe boş kalıp kartlar üst üste yığılıyordu.
+  // Her karta görünmez bir hücre, hücre içinde küçük rastgele kaydırma.
+  const n = Math.max(1, back.length);
+  const cols = Math.max(1, Math.min(n, Math.round(Math.sqrt(n * 1.78))));
+  const rows = Math.max(1, Math.ceil(n / cols));
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       {/* Arka yığın — küçük, soluk, dağınık */}
       {back.map((m, i) => {
         const seed = hashStr(m.id);
-        const left = 5 + ((seed % 1000) / 1000) * 82; // %
-        const top = 12 + (((seed >> 3) % 1000) / 1000) * 66; // %
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const left = 4 + (cols > 1 ? (col * 82) / (cols - 1) : 41) + (((seed % 1000) / 1000) - 0.5) * Math.min(7, (82 / cols) * 0.5); // %
+        const top = 10 + (rows > 1 ? (row * 62) / (rows - 1) : 31) + (((((seed >> 3) % 1000) / 1000) - 0.5) * Math.min(7, (62 / rows) * 0.5)); // %
         const rot = -16 + (((seed >> 6) % 32)); // -16..+16
         return (
           <div

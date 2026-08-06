@@ -873,7 +873,9 @@ export default function ZonePanel({
                           <label className="flex items-center gap-1.5">Yazı <input type="color" defaultValue={it.color ?? "#ffffff"} onChange={(e) => patchItem(it.id, { color: e.target.value })} className="w-7 h-7 rounded bg-transparent border border-line p-0.5 cursor-pointer" /></label>
                         </>
                       )}
-                      {it.kind === "url" && (
+                      {/* Sahne linkinde yakınlaştırma YOK: perde sahneyi iframe'siz
+                          çizer, ölçek yalnız iframe'e uygulanır — ölü düğme olurdu. */}
+                      {it.kind === "url" && !sahneAdresi(it.src) && (
                         <label className="flex items-center gap-1.5" title="Sayfa daha büyük sanal pencerede açılıp ölçeklenir — dashboard grafikleri elle zoom gerekmeden sığar">
                           Yakınlaştırma
                           <select
