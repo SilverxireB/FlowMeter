@@ -262,13 +262,16 @@ function Polaroid({ fotolar, sira, box }: { fotolar: SahneFoto[]; sira: number; 
   // köşe boş kalıp başka yerde kartlar üst üste yığılıyordu.
   const cols = Math.max(1, Math.min(n, Math.round(Math.sqrt(n * Math.max(0.4, oran)))));
   const rows = Math.max(1, Math.ceil(n / cols));
-  // Kart genişliği HEM sütuna HEM yüksekliğe bağlı: yalnız sütuna bağlanınca
-  // yatay alanda kartlar boyca %40'ı bulup birbirine biniyordu (tavan: %26 boy).
-  const gen = Math.max(8, Math.min(18, 74 / cols, 26 / (oran * 1.22)));
+  // Kart genişliği HÜCREDEN türetilir (hem sütun genişliği hem satır boyu):
+  // yalnız sütuna bağlanınca yatayda kartlar boyca %40'ı bulup biniyor,
+  // yalnız genişlik tavanıyla da dikeyde kartlar cüce kalıp satır araları
+  // kocaman boşluğa dönüyordu (kullanıcı ekran görüntüsü). Dikeyde tavan geniş.
+  const gen = Math.max(8, Math.min(oran < 1 ? 28 : 18, 74 / cols, 26 / (oran * 1.22), ((96 / rows) * 0.8) / (oran * 1.22)));
   const kartYuk = gen * oran * 1.22; // kare foto + beyaz kenar, alan yüksekliğine oranla
   const ust = fotolar[sira % fotolar.length];
-  // Öne düşen kartın ölçüsü ALANA göre: sabit %30 dar/dikey alanda cüce kalıyordu.
-  const ustGen = Math.round(Math.max(26, Math.min(46, 62 / (oran * 1.22))));
+  // Öne düşen kartın ölçüsü ALANA göre: sabit %30 dar/dikey alanda cüce
+  // kalıyordu; dikeyde tavan %62 (genişlik dar olduğundan yüzde büyük olmalı).
+  const ustGen = Math.round(Math.max(26, Math.min(oran < 1 ? 62 : 46, 62 / (oran * 1.22))));
   return (
     <div className="h-full relative overflow-hidden">
       {deste.map((m, i) => {
