@@ -1212,7 +1212,7 @@ export default function ZonePanel({
                           {/* Hiçbir alanda geçmiyor → temizlik adayı (rozet + silinebilir) */}
                           {!it.used && (
                             <span className="absolute bottom-1 left-1 rounded bg-amber-100 text-amber-800 text-[9px] font-semibold px-1 py-0.5">
-                              kullanılmıyor
+                              Kullanılmıyor
                             </span>
                           )}
                         </span>

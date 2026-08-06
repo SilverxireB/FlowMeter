@@ -66,19 +66,22 @@ export default function SahneListesi({ walls }: { walls: Videowall[] }) {
   if (!sahneler?.length) return null;
 
   return (
-    <section className="mt-8">
-      <h2 className="font-display font-bold text-lg mb-1">📸 Foto sahneler</h2>
-      <p className="text-muted text-xs mb-3">
-        Kendi linki olan hatıra köşeleri — link alandan silinse de sahneye buradan ulaşılır.
-      </p>
-      {err && <p className="text-brand text-xs mb-2 font-semibold">{err}</p>}
-      <ul className="flex flex-col gap-2">
+    // Ekran listesiyle AYNI kapta durur (max-w-5xl) ama satırlar dar tutulur:
+    // bilgi az, tam genişlikte kart boşlukta yüzüyordu — ortada birikir.
+    <section className="max-w-5xl mx-auto px-4 pb-10">
+      <div className="max-w-2xl mx-auto">
+        <h2 className="font-display font-bold text-lg mb-1 text-center">📸 Foto sahneler</h2>
+        <p className="text-muted text-xs mb-3 text-center">
+          Kendi linki olan hatıra köşeleri — link alandan silinse de sahneye buradan ulaşılır.
+        </p>
+        {err && <p className="text-brand text-xs mb-2 font-semibold text-center">{err}</p>}
+        <ul className="flex flex-col gap-2">
         {sahneler.map((s) => {
           const ekranlar = kullanim.get(s.id) ?? [];
           const silebilir = me?.role === "admin" || (me && s.ownerId === me.name);
           return (
-            <li key={s.id} className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-line bg-white p-3 ${busy === s.id ? "opacity-50" : ""}`}>
-              <span className="w-9 h-9 rounded-lg grid place-items-center text-lg shrink-0" style={{ background: "#05091c" }} aria-hidden>
+            <li key={s.id} className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-line bg-white p-2.5 ${busy === s.id ? "opacity-50" : ""}`}>
+              <span className="w-8 h-8 rounded-lg grid place-items-center text-base shrink-0" style={{ background: "#05091c" }} aria-hidden>
                 📸
               </span>
               <div className="min-w-0 flex-1">
@@ -92,7 +95,7 @@ export default function SahneListesi({ walls }: { walls: Videowall[] }) {
                   {ekranlar.length} ekranda: {ekranlar.join(", ")}
                 </span>
               ) : (
-                <span className="rounded bg-amber-100 text-amber-800 text-[10px] font-semibold px-1.5 py-0.5">kullanılmıyor</span>
+                <span className="rounded bg-amber-100 text-amber-800 text-[10px] font-semibold px-1.5 py-0.5">Kullanılmıyor</span>
               )}
               <Link href={`/sahne/${s.id}/manage`} className="rounded-lg bg-paper border border-line px-3 py-1.5 text-xs font-semibold hover:border-muted">
                 Yönet
@@ -111,7 +114,8 @@ export default function SahneListesi({ walls }: { walls: Videowall[] }) {
             </li>
           );
         })}
-      </ul>
+        </ul>
+      </div>
 
       {silOnay && (
         <ConfirmDialog

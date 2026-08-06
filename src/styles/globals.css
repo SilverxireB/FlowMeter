@@ -88,33 +88,6 @@ body {
   }
 }
 
-/* Rehberi YAZDIR: "Videowall bilgisayarı" bölümü A4 basılıp ekranın yanına
-   asılabilsin. Çekmece sayfa ağacının içinde durduğu için kardeşleri gizlemek
-   yetmez — görünürlüğü kökten kapatıp yalnız rehberi geri açıyoruz. */
-@media print {
-  body:has(.rehber-yazdir) * {
-    visibility: hidden;
-  }
-
-  body:has(.rehber-yazdir) .rehber-yazdir,
-  body:has(.rehber-yazdir) .rehber-yazdir * {
-    visibility: visible;
-  }
-
-  .rehber-yazdir {
-    position: absolute !important;
-    inset: 0 auto auto 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    height: auto !important;
-    box-shadow: none !important;
-    overflow: visible !important;
-  }
-
-  .rehber-yazdir > div {
-    overflow: visible !important;
-  }
-}
 
 @keyframes confetti-fall {
   0% {

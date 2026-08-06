@@ -189,7 +189,7 @@ export const SIGN_REHBER: RehberBolum[] = [
               "Kütüphane",
               <>
                 Görsel ve videonun TEK kapısı. <b>Cihazdan yükle</b> dosyayı kütüphaneye alır; alana
-                yerleştirmek için öğeye tıkla. <b>kullanılmıyor</b> rozetli dosya hiçbir alanda değildir —
+                yerleştirmek için öğeye tıkla. <b>Kullanılmıyor</b> rozetli dosya hiçbir alanda değildir —
                 çöp simgesiyle kalıcı silinir (kullanılan dosya silinemez). <b>Ortak raf</b> sekmesi tüm
                 ekranların havuzudur: herkes ekler (yükleme ya da dosyanın yanındaki klasör simgesi —
                 KOPYALAR, ekrandan silmez), yalnız yönetici siler; ekran silinse de raf etkilenmez.
@@ -362,7 +362,7 @@ export const SIGN_REHBER: RehberBolum[] = [
         <Baslik>Sahnelerin evi</Baslik>
         <p>
           Tüm sahneler ekran listesinin altındaki <b>Foto sahneler</b> bölümünde durur; hangi ekranlarda oynadığı yanında
-          yazar, hiçbir alanda olmayan sahne <Dugme>kullanılmıyor</Dugme> rozeti alır — link alandan silinse de sahneye
+          yazar, hiçbir alanda olmayan sahne <Dugme>Kullanılmıyor</Dugme> rozeti alır — link alandan silinse de sahneye
           buradan ulaşılır.
         </p>
 

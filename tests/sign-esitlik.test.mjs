@@ -32,10 +32,9 @@ const IZLER = [
   ["adres tanıyıcı", "src/lib/videowalls.ts", "flowsign-selfhost/src/lib/zones.ts", "function signAdresi"],
   ["toplam yayın süresi", "src/lib/types.ts", "flowsign-selfhost/src/lib/types.ts", "totalMs"],
   ["ekran süre sütunu", "src/components/videowall/ScreensCard.tsx", "flowsign-selfhost/src/components/ScreensCard.tsx", "function sure"],
-  ["rehber çekmecesi", "src/components/Rehber.tsx", "flowsign-selfhost/src/components/Rehber.tsx", "rehber-yazdir"],
+  ["rehber çekmecesi", "src/components/Rehber.tsx", "flowsign-selfhost/src/components/Rehber.tsx", "Rehberi kapat"],
   ["rehber yapı taşları", "src/components/RehberParcalari.tsx", "flowsign-selfhost/src/components/RehberParcalari.tsx", "export function Dugme"],
   ["rehberde Ekran türü", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "başkasına yönettirmenin yolu"],
-  ["yazdırma düzeni", "src/styles/globals.css", "flowsign-selfhost/src/styles/globals.css", "rehber-yazdir"],
   ["boş alanda logo (yazı değil)", "src/components/videowall/PlayerStage.tsx", "flowsign-selfhost/src/components/PlayerStage.tsx", "function BosAlan"],
   ["dikey duvar kartta doğru oranda", "src/components/videowall/WallThumb.tsx", "flowsign-selfhost/src/components/WallThumb.tsx", 'aspectRatio: "1.6"'],
   ["yayınlanmamış çipi", "src/app/videowall/page.tsx", "flowsign-selfhost/src/app/screens/page.tsx", "henüz yayınlanmamış"],
@@ -55,7 +54,7 @@ const IZLER = [
   ["pencereden yükleme kütüphaneye", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", ', "kutuphane")'],
   // 3. adım: kütüphane yönetimi — arama, "kullanılmıyor" rozeti, silme (depo dahil).
   ["kütüphanede Türkçe arama", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", 'placeholder="Medyada ara…"'],
-  ["kullanılmıyor rozeti", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "kullanılmıyor"],
+  ["kullanılmıyor rozeti", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "Kullanılmıyor"],
   ["yalnız kullanılmayan silinir", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "it.kayit && !it.used"],
   ["silme onay penceresi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", 'title="Kütüphaneden sil"'],
   // Ortak raf v2: ekran klasörlerinden YAPISAL olarak ayrı havuz; rafa koymak

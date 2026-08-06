@@ -63,7 +63,7 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   rehber kendiliğinden güncellenir. Yalnız bizim olmayan yüzeyler (Windows,
   ekran kartı) ekran görüntüsü ister. Giriş: her kokpit + liste + hub başlıkları.
   Derin link: hata şeridi ilgili bölümü açar (Sign `errBolum`/`onRehber`).
-  Yazdırma `.rehber-yazdir` + `@media print`.
+  Yazdırma YOK (2026-08'de kaldırıldı — kullanıcı kararı).
   Editoryal kural: tekrar yok (aynı bilgi iki bölümde geçmez), dolgu yok, her
   bölümde bir "sık karşılaşılanlar" tablosu, uyarı kutusu YALNIZ gerçek tuzak için.
 - **Metin ekonomisi (kullanıcı kararı):** yardım paragrafları KISA — "demo sayfa"
@@ -193,7 +193,7 @@ Hub: `/dashboard`. Landing/hub/login/PWA çatı kimliği taşır; ürün adları
   hiçbir yere yazmaz) basılır; tasarım değişince rehber kendiliğinden değişir.
   Yalnız bizim olmayan yüzeyler (Windows/ekran kartı) ekran görüntüsü ister.
   Derin link: hata şeridi + URL uyarısı ilgili başlığı açar (`errBolum`,
-  `onRehber`). Yazdırma: `.rehber-yazdir` + `@media print`.
+  `onRehber`). Yazdırma YOK (kaldırıldı).
   Sign'ın TÜRKÇESİ **videowall** (tabela DEĞİL — kullanıcı kararı); oynatma modu
   çipi de "Videowall / Sunum".
 - **FlowMeter:** `mode: audience-pace` → /p yerel gezinme (quiz slaytları atlanır —

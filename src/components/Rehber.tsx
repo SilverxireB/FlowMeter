@@ -90,25 +90,22 @@ export default function Rehber({
 
   return (
     <div className="fixed inset-0 z-[80] flex justify-end" role="dialog" aria-modal="true" aria-label={baslik}>
-      <button className="absolute inset-0 bg-black/45 print:hidden" onClick={onClose} aria-label="Rehberi kapat" tabIndex={-1} />
+      <button className="absolute inset-0 bg-black/45" onClick={onClose} aria-label="Rehberi kapat" tabIndex={-1} />
 
-      <div className="rehber-yazdir relative w-full sm:max-w-xl bg-white h-full flex flex-col shadow-2xl animate-slide-in">
+      <div className="relative w-full sm:max-w-xl bg-white h-full flex flex-col shadow-2xl animate-slide-in">
         {/* Başlık */}
         <div className="shrink-0 flex items-start gap-3 px-5 pt-5 pb-3 border-b border-line">
           <div className="min-w-0 flex-1">
             <p className="font-display font-semibold text-lg leading-tight">{baslik}</p>
             {altBaslik && <p className="text-muted text-sm mt-0.5">{altBaslik}</p>}
           </div>
-          <button onClick={() => window.print()} className="btn-icon print:hidden" title="Rehberi yazdır" aria-label="Rehberi yazdır">
-            <Icon name="print" size={16} />
-          </button>
-          <button onClick={onClose} className="btn-icon print:hidden" aria-label="Rehberi kapat">
+          <button onClick={onClose} className="btn-icon" aria-label="Rehberi kapat">
             <Icon name="close" size={16} />
           </button>
         </div>
 
         {/* Bölüm şeridi */}
-        <div className="shrink-0 flex gap-1.5 overflow-x-auto px-5 py-2.5 border-b border-line print:hidden">
+        <div className="shrink-0 flex gap-1.5 overflow-x-auto px-5 py-2.5 border-b border-line">
           {bolumler.map((b) => (
             <button
               key={b.id}
