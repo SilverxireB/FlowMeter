@@ -318,7 +318,7 @@ function Polaroid({ fotolar, sira, box }: { fotolar: SahneFoto[]; sira: number; 
       <div key={"ust-" + ust.src} className="absolute left-1/2 top-1/2 fs-drop bg-white p-[0.6%] pb-[1%] rounded-md shadow-2xl" style={{ width: `${ustGen}%`, transform: "translate(-50%, -50%) rotate(-3deg)", zIndex: 40 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={cldFit(ust.src, 900)} alt="" className="w-full aspect-square object-cover" />
-        <p className="text-center text-black/75 font-display font-semibold truncate px-1" style={{ fontSize: "clamp(10px, 1.7cqw, 26px)", minHeight: "1.4em", marginTop: "2%" }}>
+        <p className="text-center text-black/75 font-display font-semibold line-clamp-2 leading-tight px-1" style={{ fontSize: "clamp(10px, 1.7cqw, 26px)", minHeight: "1.4em", marginTop: "2%" }}>
           {ust.yazi ?? ""}
         </p>
       </div>
