@@ -14,7 +14,7 @@
  */
 import { RehberBolum } from "@/components/Rehber";
 import { Adimlar, Baslik, Dugme, Kutu, Tablo, Tus } from "@/components/RehberParcalari";
-import { SAHNE_MODLARI } from "@/lib/fotoSahne";
+import { MOD_GECIS_MS, SAHNE_EFEKTLERI, SAHNE_MODLARI } from "@/lib/fotoSahne";
 import RehberDemo from "./RehberDemo";
 
 export const SIGN_REHBER: RehberBolum[] = [
@@ -208,12 +208,8 @@ export const SIGN_REHBER: RehberBolum[] = [
             [
               "Foto sahne",
               <>
-                Kendi linki olan hatıra köşesi: <b>Foto sahne oluştur</b> sahneyi açar, linkini alana ekler.
-                Fotoğraflar, mod (<b>{SAHNE_MODLARI.map((m) => m.ad).join(" · ")}</b>), efekt, zemin rengi ve foto yazıları
-                sahnenin KENDİ sayfasından yönetilir (🔀 Otomatik: seçtiğin modlar 30 sn'de bir sırayla döner). Tüm sahneler ekran
-                listesinin altındaki <b>Foto sahneler</b> bölümünde durur — link alandan silinse de sahneye
-                oradan ulaşılır; silme depodaki fotoğrafları da temizler — değişiklik linke anında düşer, aynı sahne birden çok
-                ekranda oynar. Düzenleme yetkisini yönetici verir (Sign yetkileri → Foto sahneler); yetkili kişi ekranına dokunamaz, yalnız sahneyi besler.
+                Kendi linki olan hatıra köşesi — fotoğraf döngüsü ekrandan ayrı, sahnenin kendi sayfasından yönetilir.
+                Ayrıntı aşağıda, <b>Foto sahne</b> bölümünde.
               </>,
             ],
             [
@@ -311,6 +307,86 @@ export const SIGN_REHBER: RehberBolum[] = [
             ],
           ]}
         />
+      </>
+    ),
+  },
+
+  {
+    id: "fotosahne",
+    kicker: "İçerik",
+    baslik: "Foto sahne: hatıra köşesi",
+    icerik: (
+      <>
+        <p>
+          Emeklilik, kutlama, karşılama köşesi: fotoğrafları yüklersin, sahne kendi başına döndürür. Sahne ekrandan{" "}
+          <b>ayrı bir kayıttır</b> — kendi linki, kendi yönetim sayfası vardır; aynı sahne birden çok ekranda oynayabilir
+          ve değişiklik yayın beklemeden hepsine düşer.
+        </p>
+        <Adimlar
+          items={[
+            {
+              baslik: "Oluştur",
+              metin: (
+                <>
+                  Alan panelindeki <b>📸 Foto sahne</b> karesi sahneyi açar ve linkini alana ekler — sonra ekranı{" "}
+                  <Dugme icon="save" birincil>Kaydet &amp; Yayınla</Dugme> (link yerleşimin parçasıdır, bir kez yeter).
+                </>
+              ),
+            },
+            {
+              baslik: "Besle",
+              metin: (
+                <>
+                  Yönetim sayfasında fotoğraf yükle; istersen her fotoğrafın altına kısa bir <b>yazı</b> ekle
+                  (&ldquo;Ahmet Bey&apos;e teşekkürler&rdquo;).
+                </>
+              ),
+            },
+            {
+              baslik: "Giydir",
+              metin: <>Mod, efekt ve zemin rengini seç — canlı önizleme hemen yanında.</>,
+            },
+          ]}
+        />
+
+        <Baslik>Modlar</Baslik>
+        <Tablo basliklar={["Mod", "Ne yapar"]} satirlar={SAHNE_MODLARI.map((m) => [m.ad, m.ipucu])} />
+        <p>
+          <b>🔀 Otomatik</b>: seçtiğin modlar {Math.round(MOD_GECIS_MS / 1000)} sn'de bir sırayla değişir. Efektler:{" "}
+          {SAHNE_EFEKTLERI.filter((e) => e.id !== "none")
+            .map((e) => `${e.ikon} ${e.ad}`)
+            .join(" · ")}
+          .
+        </p>
+
+        <Baslik>Sahnelerin evi</Baslik>
+        <p>
+          Tüm sahneler ekran listesinin altındaki <b>Foto sahneler</b> bölümünde durur; hangi ekranlarda oynadığı yanında
+          yazar, hiçbir alanda olmayan sahne <Dugme>kullanılmıyor</Dugme> rozeti alır — link alandan silinse de sahneye
+          buradan ulaşılır.
+        </p>
+
+        <Baslik>Kim düzenler?</Baslik>
+        <p>
+          Oluşturan ve yönetici. Devretmek için yönetici <b>Sign yetkileri → Foto sahneler</b>&apos;den kişiyi işaretler:
+          o kişi sahneyi besler ama ekranına dokunamaz; yetkisiz açan yalnız görür (&ldquo;Salt görüntüleme&rdquo;).
+        </p>
+
+        <Tablo
+          basliklar={["Sık karşılaşılan", "Sebep / çözüm"]}
+          satirlar={[
+            ["Fotoğraf yükledim, ekranda yok", "Sahne linki alanda değil ya da ekran hiç yayınlanmadı; sonrası anında düşer."],
+            ["Yazı perdede görünmüyor", "Mozaik yazı göstermez (kareler küçük); diğer modlarda fotoğrafın altındadır."],
+            ["Sahneyi düzenleyemiyorum", "Sayfa “Salt görüntüleme” diyorsa yetkiyi yönetici verir."],
+          ]}
+        />
+
+        <Kutu tur="uyari" baslik="Silme her yerde siler">
+          <p>
+            Sahneyi silmek depodaki fotoğraflarını da temizler ve sahne <b>oynadığı tüm ekranlardan</b> düşer — silme
+            onayı hangi ekranların etkileneceğini adlarıyla sayar.
+          </p>
+        </Kutu>
       </>
     ),
   },

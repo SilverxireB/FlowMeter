@@ -36,6 +36,8 @@ export interface User {
   canCreateSahne?: boolean;
   salt: string;
   hash: string;
+  /** Dış kimlikle (LDAP / üst uygulama) doğrulanan hesap — yerel parolası YOK. */
+  dis?: boolean;
   createdAt: number;
   /** Denetim izi — "bu hesabı kim değiştirdi" sorusunun cevabı. */
   updatedBy?: string;
@@ -75,6 +77,9 @@ function hashPassword(pw: string, salt: string): string {
 }
 
 export function verifyPassword(u: User, pw: string): boolean {
+  // Dış kimlikli hesabın yerel özeti yok — boş özet HİÇBİR parolayla eşleşmez
+  // (boş-boş karşılaştırması "her parola doğru" kapısı açardı).
+  if (!u.salt || !u.hash) return false;
   const a = Buffer.from(hashPassword(pw, u.salt), "hex");
   const b = Buffer.from(u.hash, "hex");
   return a.length === b.length && timingSafeEqual(a, b);
@@ -145,6 +150,42 @@ export async function createUser(name: string, password: string, role: Role, lab
   const users = await listUsers();
   if (users.some((u) => u.name === n)) throw new Error("Bu kullanıcı adı zaten var.");
   const u = makeUser(n, password, role, label);
+  await saveUsers([...users, u]);
+  return u;
+}
+
+/**
+ * Dış kimlik (LDAP / üst uygulama) doğruladıktan sonra yerel hesabı hazırla.
+ * İlk girişte kayıt açılır: rol dıştan "admin" denmedikçe USER, ekran/sahne
+ * açma KAPALI (kurum kararı: giriş yapan herkes yalnız GÖRÜNTÜLEYEREK doğar,
+ * yetkiyi yönetici sonradan verir). Sonraki girişlerde yalnız görünen ad tazelenir.
+ */
+export async function ensureDisKullanici(name: string, label?: string, rol?: string): Promise<User> {
+  const n = normName(name);
+  if (!n || !/^[a-z0-9._-]{2,32}$/.test(n)) throw new Error("Kullanıcı adı 2-32 karakter olmalı (harf, rakam, . _ -).");
+  const users = await listUsers();
+  const mevcut = users.find((u) => u.name === n);
+  if (mevcut) {
+    const yeniAd = label?.trim() || undefined;
+    if (yeniAd && yeniAd !== mevcut.label) {
+      const tazelenmis = { ...mevcut, label: yeniAd };
+      await saveUsers(users.map((u) => (u.id === mevcut.id ? tazelenmis : u)));
+      return tazelenmis;
+    }
+    return mevcut;
+  }
+  const u: User = {
+    id: `u-${Date.now().toString(36)}${randomBytes(3).toString("hex")}`,
+    name: n,
+    label: label?.trim() || undefined,
+    role: rol === "admin" ? "admin" : "user",
+    canCreate: false,
+    canCreateSahne: false,
+    salt: "",
+    hash: "",
+    dis: true,
+    createdAt: Date.now(),
+  };
   await saveUsers([...users, u]);
   return u;
 }

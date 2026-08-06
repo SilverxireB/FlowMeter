@@ -253,7 +253,9 @@ export function wallPerm(w: Videowall | null | undefined, me: PublicUser | null)
   if (me.role === "admin") return FULL;
   const explicit = w.grants?.[me.id];
   if (explicit) return { ...NONE, ...explicit };
-  return w.ownerId && w.ownerId === me.id ? FULL : NONE;
+  // VARSAYILAN: giriş yapan herkes GÖRÜNTÜLEYEREK doğar (kurum kararı) —
+  // sunucudaki permOf ile birebir; açık kayıt yine ezer.
+  return w.ownerId && w.ownerId === me.id ? FULL : { ...NONE, view: true };
 }
 
 export const canEditWall = (w: Videowall | null | undefined, me: PublicUser | null) => wallPerm(w, me).edit;

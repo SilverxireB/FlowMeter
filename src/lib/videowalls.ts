@@ -959,7 +959,9 @@ export function signPerm(
   if (!v || !uid) return NONE;
   const explicit = v.grants?.[uid];
   if (explicit) return { ...NONE, ...explicit };
-  return v.ownerId === uid ? FULL : NONE;
+  // VARSAYILAN: giriş yapan herkes GÖRÜNTÜLEYEREK doğar (kurum kararı) —
+  // açık kayıt bunu da ezebilir (yönetici kişi+ekran bazında kesebilir).
+  return v.ownerId === uid ? FULL : { ...NONE, view: true };
 }
 
 export const canEditSign = (v: Videowall | null | undefined, uid?: string | null, isAdmin = false) =>

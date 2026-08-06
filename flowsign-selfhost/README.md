@@ -157,6 +157,25 @@ kurmasını açar/kapatır.
 - Bir hesap silinince o kişinin ekranları **yöneticiye devrolur** — yönetilemeyen
   yetim ekran kalmaz.
 - Parola değişince o kullanıcının açık oturumları kendiliğinden geçersizleşir.
+- **Varsayılan görüş hakkı:** giriş yapan herkes TÜM ekranları **görüntüleyerek**
+  doğar (dokunamaz). Yönetici açık kayıtla kişi × ekran bazında bunu da kesebilir.
+
+### Dış kimlik (LDAP / kurum uygulaması) — `DIS_KIMLIK_URL`
+
+Girişleri kendi uygulamanıza (ör. LDAP bilen .NET servisinize) doğrulatmak
+için `.env`'e ekleyin:
+
+```
+DIS_KIMLIK_URL=http://ic-sunucu/api/flowsign-login
+```
+
+FlowSign her girişte bu adrese `POST {"kullanici","parola"}` gönderir ve
+`{"ok":true,"ad":"Ahmet Yılmaz","rol":"user"}` bekler (`rol` isteğe bağlı,
+`"admin"` denirse yönetici olur). Başarıda hesap **otomatik açılır**: kullanıcı
+rolünde, ekran/sahne açma **kapalı**, tüm ekranlarda yalnız görüntüleme —
+yetkileri sonra yönetici dağıtır. Servis HAYIR derse ya da yanıt vermezse
+(4 sn) yerel `users.json` denenir; `.env`'li `yonetici` hesabı böylece her
+koşulda girer. Ayrıntı ve .NET uç örneği: `DEVIR-NOTU.md` §7.
 
 ## Güvenlik modeli
 
@@ -193,3 +212,24 @@ kurmasını açar/kapatır.
   servisi yeniden başlatın — `.env`'deki `SIGN_ADMIN_PASSWORD` ile `yonetici`
   hesabı yeniden kurulur. (Ekranlar ve medya etkilenmez; diğer hesaplar silinir,
   ekranlar sahipsiz kalır ve yönetici tarafından yeniden dağıtılır.)
+
+## Yazılımcıya teslim (paketleme)
+
+```bash
+./paketle.sh
+```
+
+Bir üst klasöre `flowsign-selfhost-YYYYMMDD.tar.gz` üretir: kaynak kod +
+bu README + `DEVIR-NOTU.md` + `.env.example`. Derleme çıktısı, `node_modules`,
+canlı `data/` ve gerçek `.env` arşive GİRMEZ (parola sızmaz). Alan taraf:
+
+```bash
+tar -xzf flowsign-selfhost-*.tar.gz && cd flowsign-selfhost
+npm ci              # internetli bir makinede
+cp .env.example .env
+npm run build
+npm run start
+```
+
+Yazılımcı ekibin ilk okuyacağı dosya **`DEVIR-NOTU.md`**: mimari, SQL şeması,
+API sözleşmesi, LDAP kapısı ve "dokunmayın" listesi orada.

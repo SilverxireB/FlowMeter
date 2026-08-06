@@ -74,7 +74,9 @@ export function permOf(w: Videowall, u: User | null): { view: boolean; edit: boo
   if (u.role === "admin") return { ...FULL };
   const explicit = w.grants?.[u.id];
   if (explicit) return { ...NONE, ...explicit };
-  return w.ownerId && w.ownerId === u.id ? { ...FULL } : { ...NONE };
+  // VARSAYILAN: giriş yapan herkes GÖRÜNTÜLEYEREK doğar (kurum kararı) —
+  // açık kayıt bunu da ezebilir (yönetici kişi+ekran bazında kesebilir).
+  return w.ownerId && w.ownerId === u.id ? { ...FULL } : { ...NONE, view: true };
 }
 
 export const canEdit = (w: Videowall, u: User | null) => permOf(w, u).edit;

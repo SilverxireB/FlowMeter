@@ -80,7 +80,8 @@ const IZLER = [
   ["editörde sahne önizlemesi", "src/components/videowall/LayoutEditor.tsx", "flowsign-selfhost/src/components/LayoutEditor.tsx", "SahneOnizleme"],
   ["sahne yayın sayfası", "src/app/sahne/[id]/page.tsx", "flowsign-selfhost/src/app/sahne/[id]/page.tsx", "SahnePlayPage"],
   ["sahne yönetim sayfası", "src/app/sahne/[id]/manage/page.tsx", "flowsign-selfhost/src/app/sahne/[id]/manage/page.tsx", "Foto yazısı (ör. Ahmet Bey'e teşekkürler)"],
-  ["rehberde foto sahne", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "SAHNE_MODLARI.map((m) => m.ad)"],
+  ["rehberde foto sahne bölümü (mod tablosu sabitten)", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "SAHNE_MODLARI.map((m) => [m.ad, m.ipucu])"],
+  ["rehberde foto sahne bölümü (kimlik)", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", 'id: "fotosahne"'],
   ["foto sahneler bölümü (sahnelerin evi)", "src/components/videowall/SahneListesi.tsx", "flowsign-selfhost/src/components/SahneListesi.tsx", "kullanılmıyor"],
   ["sahne listesi ekran sayfasında", "src/app/videowall/page.tsx", "flowsign-selfhost/src/app/screens/page.tsx", "<SahneListesi walls={walls} />"],
   // Sahne yetkisi YÖNETİCİDEN (kullanıcı kararı: ayrım yok, sayfada yetki yüzeyi yok).

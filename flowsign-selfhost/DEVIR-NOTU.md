@@ -159,7 +159,28 @@ kaydetmede tam senkronizasyon demek — kazancı yok, çünkü **hiçbir zaman
 yazılır.
 
 SQL Server 2016+ `JSON_VALUE` ile gerekirse içine bakabilirsiniz. Şema
-`src/lib/types.ts` içinde tam olarak yazılı (`Zone`, `ZoneItem`).
+`src/lib/types.ts` içinde tam olarak yazılı (`Zone`, `ZoneItem`). Ekran
+kaydında ayrıca `medya[]` var (kütüphane: ekrana yüklenmiş dosyaların kalıcı
+listesi) — o da aynı JSON'un içinde kalır, ayrı tablo istemez.
+
+**2026-08 eki — foto sahne:** ekrandan AYRI, kendi linki olan fotoğraf
+döngüsü kaydı (`data/sahneler/{id}.json`). SQL karşılığı tek tablo:
+
+```sql
+CREATE TABLE Scenes (
+  Id            NVARCHAR(40)  PRIMARY KEY,
+  Name          NVARCHAR(200) NOT NULL,
+  OwnerId       NVARCHAR(100) NULL,
+  SceneJson     NVARCHAR(MAX) NOT NULL,  -- mod/otomatik/efekt/zemin/duzenleyenler/fotolar (types.ts › FotoSahneKaydi)
+  CreatedAt     DATETIME2 NOT NULL,
+  UpdatedAt     DATETIME2 NULL
+);
+```
+
+Ekrana "eklenmesi" yalnız bir URL öğesidir (`/sahne/{id}`); oynatıcı bu
+adresi tanıyıp sahneyi iframe'siz, aynı ağaçta çizer (`sahneAdresi` +
+`GomuluSahne`). Sahne içeriği değişince yayın beklenmez — sahne kendi SSE
+kanalından canlı akar.
 
 > **Uyarı:** `LiveJson`, `ZonesJson`'ın *anlık görüntüsüdür*, referansı değil.
 > Publish = kopyala. Bu bilerek böyle; yayın, editördeki değişikliklerden
@@ -190,6 +211,10 @@ arayüz hiç değişmez.
 | GET/POST/PATCH/DELETE | `/api/users…` | Kişi defteri (LDAP'a bağlanınca sadeleşir) |
 | POST | `/api/upload` | Dosya yükle (bkz. §6) |
 | GET | `/api/embed-check` | Bir URL iframe'e izin veriyor mu (uyarı için) |
+| GET/POST/PATCH/DELETE | `/api/sahne` | Foto sahne listele / aç / güncelle / sil |
+| POST | `/api/sahne/upload` | Sahneye fotoğraf yükle (yalnız görsel) |
+| GET | `/api/sahne/{id}/events` | **SSE** — sahne değişince it (oturumsuz; perde açar) |
+| GET/POST/PUT/DELETE | `/api/ortak-raf` | Ortak medya rafı: listele / yükle / ekrandan kopyala / sil (silme yalnız yönetici) |
 
 Gövde şekilleri `src/app/api/**/route.ts` dosyalarında birebir görünüyor —
 kopyalarken oradan okuyun, tahmin etmeyin.
@@ -206,6 +231,9 @@ Bugünkü davranış, aynen korunmalı:
   çizgiye çevrilir. Bu kozmetik değil — aksi hâlde bazı TV tarayıcılarında
   URL bozuluyor.
 - Ekran silinince o klasör komple silinir.
+- Foto sahne fotoğrafları `data/media/sahne/{sahneId}/`, ortak raf
+  `data/media/ortak/` altındadır — aynı kurallar: güvenli ad, sahne/raf
+  silinince klasör temizliği.
 - Servis ederken `Cache-Control` uzun verin; içerik değişince dosya adı da
   değişiyor (yeni yükleme = yeni ad), bu yüzden önbellek zehirlenmesi yok.
 
@@ -221,8 +249,38 @@ atamaz ve sebebini anlamaz.
 
 ## 7. Kimlik: LDAP / üst uygulamadan devralma
 
-Referans pakette basit bir kullanıcı defteri var (`data/users.json`, scrypt ile
-parola). **Siz bunu tümden atacaksınız.** Yerine:
+### Seçenek A — HAZIR KAPI (önerilen ilk adım, sıfır FlowSign kodu)
+
+Pakette dış kimlik kapısı hazır: `.env`'e **`DIS_KIMLIK_URL`** yazılırsa giriş
+ekranındaki kullanıcı adı + parola **sizin servisinize** sorulur. LDAP'a bu
+paket hiç dokunmaz — LDAP'ı zaten bilen .NET uygulamanız tek küçük uç açar:
+
+```
+POST {DIS_KIMLIK_URL}
+İstek : { "kullanici": "ahmet.yilmaz", "parola": "..." }
+Cevap : { "ok": true, "ad": "Ahmet Yılmaz", "rol": "user" }   // rol: "admin" | "user" (isteğe bağlı)
+        { "ok": false }                                        // ya da HTTP 401/403
+```
+
+Davranış (`src/app/api/auth/login/route.ts` + `users.ts › ensureDisKullanici`):
+
+- `ok:true` → yerel hesap **otomatik açılır** (ilk girişte): rol dıştan
+  `"admin"` denmedikçe `user`; **ekran ve sahne açma kapalı** doğar; yerel
+  parolası yoktur (`dis:true`). Sonraki girişlerde yalnız görünen ad tazelenir.
+- Kurum kararı: **giriş yapan herkes tüm ekranları GÖRÜNTÜLEYEREK doğar,
+  başka yetkisi yoktur** — yönetici sonradan kişi × ekran tik verir
+  (bkz. §9). Yönetici zaten her şeyi görür.
+- `ok:false` ya da servise ulaşılamadı (4 sn zaman aşımı) → yerel
+  `users.json` denenir. `.env`'li `yonetici` hesabı böylece **her koşulda
+  girer** (LDAP servisi çökse bile kurtarma kapısı açık kalır).
+
+Bu seçenekle giriş ekranı, oturum çerezi, yetki sayfası olduğu gibi kalır;
+tek işiniz o POST ucunu yazmak.
+
+### Seçenek B — tam devralma (SSO/çerez isterseniz)
+
+Kişinin FlowSign'da parola YAZMASINI bile istemiyorsanız (oturum üst
+uygulamadan devralınacaksa) kullanıcı defterini tümden atarsınız. Yerine:
 
 1. Kişi zaten üst uygulamanızda giriş yapmış oluyor. FlowSign kendi giriş
    ekranını **göstermez**; oturumu üst uygulamadan devralır (paylaşılan çerez,
@@ -279,13 +337,21 @@ her değişiklikte tam ekran nesnesi.
 Model kişi × ekran, dört tik: **görüntüle / düzenle / kopyala / sil**.
 
 Kurallar:
-- Açık kayıt yoksa **oluşturan** kişi tam yetkilidir.
-- Açık kayıt varsa varsayılanı **ezer** (ayrılan personelin yetkisi kesilebilir).
+- Açık kayıt yoksa **oluşturan** kişi tam yetkilidir; **diğer herkes yalnız
+  GÖRÜNTÜLER** (kurum kararı: giriş yapan herkes tüm ekranları görerek doğar,
+  dokunamaz).
+- Açık kayıt varsa varsayılanı **ezer** — yönetici kişi × ekran bazında
+  görüntülemeyi de kesebilir (ayrılan personel).
 - Yönetici her ekranda tam yetkilidir.
-- **Kararlar SUNUCUDA verilir** (`src/lib/serverAuth.ts`). İstemci yalnız
-  düğmeleri gizler. Bunu böyle bırakın; aksi hâlde adres çubuğuna id yazan
-  herkes düzenler.
+- **Kararlar SUNUCUDA verilir** (`src/lib/serverAuth.ts › permOf`). İstemci
+  yalnız düğmeleri gizler. Bunu böyle bırakın; aksi hâlde adres çubuğuna id
+  yazan herkes düzenler.
 - `canCreate` kişi bazlı: yeni ekran açma hakkı kapatılabilir.
+  `canCreateSahne` aynı şeyin foto sahne ikizi. Dış kimlikle (LDAP) açılan
+  hesaplarda ikisi de **kapalı** doğar.
+- Foto sahnede ekran matrisi yok; sahne kaydındaki `duzenleyenler` listesi
+  (giriş adları) kimin besleyebileceğini söyler, yönetici Kullanıcılar
+  sayfasından işaretler. Sahibi + yönetici her zaman düzenler.
 
 Yetki sayfasını (`src/app/users/page.tsx`) baştan yazabilirsiniz — LDAP'tan
 kişi arama gelince zaten değişmesi gerekir.
