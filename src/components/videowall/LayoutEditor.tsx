@@ -179,7 +179,9 @@ function GecisliKare({ item, gecis }: { item: ZoneItem; gecis: "fade" | "cut" | 
         ? {}
         : { opacity: on ? 1 : 0, transition: "opacity 500ms ease" };
   return (
-    <span className="absolute inset-0 overflow-hidden" style={st}>
+    // isolation: perdedeki düzeltmenin aynısı — içerideki z-index'ler (polaroid
+    // kartları) bu karenin içinde kalsın, alttaki/üstteki katmanı ezmesin.
+    <span className="absolute inset-0 overflow-hidden" style={{ ...st, isolation: "isolate" }}>
       <ZonePreview item={item} />
     </span>
   );
@@ -239,7 +241,11 @@ function ZoneDoner({ items, sira, gecis }: { items: ZoneItem[]; sira: number; ge
   const onceki = i > 0 && gosterilecek.length > 1 ? gosterilecek[(i - 1) % gosterilecek.length] : undefined;
   return (
     <>
-      {onceki && <ZonePreview item={onceki} />}
+      {onceki && (
+        <span className="absolute inset-0 overflow-hidden" style={{ isolation: "isolate" }}>
+          <ZonePreview item={onceki} />
+        </span>
+      )}
       <GecisliKare key={simdiki.id + i} item={simdiki} gecis={gecis} />
     </>
   );

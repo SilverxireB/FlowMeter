@@ -379,8 +379,21 @@ export default function ZonePanel({
     } catch {}
   }
 
+  // HIZLI TEKRAR KİLİDİ (useRef — state kilidi yarışı kaybeder): AYNI ekleme
+  // aksiyonu 800 ms içinde tekrar tetiklenirse yok sayılır. Onay sorusu YOK
+  // (kullanıcı kararı: her seferinde "emin misin" akıcılığı bozar) — art arda
+  // ikinci dokunuş neredeyse hep çift tıklamadır; bilerek ikinci kez eklemek
+  // isteyen bir saniye sonra ekler.
+  const sonEkleme = useRef<{ ne: string; t: number } | null>(null);
+  const hizliTekrar = (ne: string) => {
+    const t = Date.now();
+    if (sonEkleme.current && sonEkleme.current.ne === ne && t - sonEkleme.current.t < 800) return true;
+    sonEkleme.current = { ne, t };
+    return false;
+  };
+
   function submitUrl() {
-    if (!urlForm) return;
+    if (!urlForm || hizliTekrar("url")) return;
     const src = urlForm.src.trim();
     // Güvenlik: yalnız http(s) — javascript:/data: perde iframe'inde script çalıştırır.
     if (!/^https?:\/\//i.test(src)) {
@@ -393,8 +406,14 @@ export default function ZonePanel({
     void warnIfNotEmbeddable(src);
   }
 
-  const addText = () => setItems([...zone.items, { id: iid(), kind: "text", title: "Başlık", text: "", bg: "#312e81", color: "#ffffff", durationSec: 10 }]);
-  const addClock = () => setItems([...zone.items, { id: iid(), kind: "clock", bg: "#0d102f", color: "#ffffff", durationSec: 10 }]);
+  const addText = () => {
+    if (hizliTekrar("text")) return;
+    setItems([...zone.items, { id: iid(), kind: "text", title: "Başlık", text: "", bg: "#312e81", color: "#ffffff", durationSec: 10 }]);
+  };
+  const addClock = () => {
+    if (hizliTekrar("clock")) return;
+    setItems([...zone.items, { id: iid(), kind: "clock", bg: "#0d102f", color: "#ffffff", durationSec: 10 }]);
+  };
 
   /**
    * FOTO SAHNE: içerik türü DEĞİL — kendi linki olan bağımsız bir kayıt (Wall
@@ -402,7 +421,10 @@ export default function ZonePanel({
    * olarak ekler ve yönetim sayfasını açar; fotoğraflar ORAYA yüklenir.
    * Perde linki tanır ve sahneyi iframe'siz çizer (sahneAdresi).
    */
+  const sahneKilidi = useRef(false); // sahneBusy state'i yarışı kaybeder: iki hızlı dokunuş İKİ sahne açıyordu
   async function fotoSahneOlustur() {
+    if (sahneKilidi.current) return;
+    sahneKilidi.current = true;
     setErr(null);
     setSahneBusy(true);
     try {
@@ -415,6 +437,7 @@ export default function ZonePanel({
     } catch (e) {
       setErr(`Sahne oluşturulamadı: ${e instanceof Error ? e.message : "bilinmeyen hata"}`);
       setSahneBusy(false);
+      sahneKilidi.current = false;
     }
   }
   /** Başka bir ekranı bu alana bağla — ADRESLE değil KİMLİKLE (ad değişse de kopmaz). */
@@ -423,6 +446,7 @@ export default function ZonePanel({
     setScreenPick(false);
   };
   const addFromLib = (m: LibEntry) => {
+    if (hizliTekrar(`lib:${m.src}`)) return; // çift tıklama aynı dosyayı iki kez eklemesin
     // Yalnız dosyanın kendisi kopyalanır — eski öğenin takvimi/süresi GİZLİCE
     // taşınmaz ("kütüphaneden ekledim, neden görünmüyor?" sürprizi biterdi).
     setItems([

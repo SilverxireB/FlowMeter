@@ -67,6 +67,12 @@ const IZLER = [
   ["rehberde ortak raf", "src/components/videowall/signRehberIcerik.tsx", "flowsign-selfhost/src/components/signRehberIcerik.tsx", "ekran silinse de raf etkilenmez"],
   // Toplu seçim: çok dosyayı tek seferde alana koy (tek yazım — updateZones bir kez).
   ["kütüphanede toplu seçim", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "secilenleriEkle"],
+  // Çift tıklama kilitleri: hızlı tekrar eklemez (onay sorusu YOK — kullanıcı kararı)
+  ["hızlı tekrar kilidi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "hizliTekrar"],
+  ["sahne karosu ref kilidi", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "sahneKilidi"],
+  // Geçişte katman yalıtımı: polaroid kartlarının z-index'i sonraki içeriğe binmesin
+  ["perde katman yalıtımı", "src/components/videowall/PlayerStage.tsx", "flowsign-selfhost/src/components/PlayerStage.tsx", 'isolation: "isolate"'],
+  ["editör önizleme yalıtımı", "src/components/videowall/LayoutEditor.tsx", "flowsign-selfhost/src/components/LayoutEditor.tsx", 'isolation: "isolate"'],
   ["toplu seçim çubuğu", "src/components/videowall/ZonePanel.tsx", "flowsign-selfhost/src/components/ZonePanel.tsx", "öğe seçildi"],
   // Foto sahne = LİNK modeli (Wall mantığı, sadeleşmiş) — kendi sınavı
   // tests/foto-sahne.test.mjs; burada yalnız iki ağacın eşitliği.
