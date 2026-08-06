@@ -248,11 +248,14 @@ function Spot({ fotolar, aktif, box }: { fotolar: string[]; aktif: SahneFoto; bo
 /* ── POLAROID — Wall PolaroidMode: saçılmış eğik kartlar, biri tepeye düşer ─ */
 function Polaroid({ fotolar, sira, box }: { fotolar: SahneFoto[]; sira: number; box: { w: number; h: number } }) {
   const oran = box.h > 0 ? box.w / box.h : 1.78;
-  // ARKA DESTE: en fazla 12 kart — kalabalık sahne kaosa dönmesin; fazlası
-  // sırayla dolaşır (tepeye çıkan zaten dolaşıyor, deste de onunla kayar).
-  // Kartlar KÜÇÜK ve SOLUK (Wall'daki desen buydu, kopya ayrışmıştı): öne
-  // düşen kart arkadakilerden NET ayrılır, "arada kaynamaz".
-  const deste = fotolar.length <= 12 ? fotolar : Array.from({ length: 12 }, (_, k) => fotolar[(sira + 1 + k) % fotolar.length]);
+  // ARKA DESTE: en fazla 12 kart — kalabalık sahne kaosa dönmesin. Deste
+  // SABİT (sira'ya bağlı DEĞİL): önceki hâlde ön kart her değiştiğinde 12
+  // kartlık pencere kayıyor, TÜM arka fotoğraflar aynı anda değişip gereksiz
+  // arka plan hareketi yaratıyordu. 12'den fazlaysa liste boyunca eşit
+  // aralıklı 12 foto seçilir; yalnız ÖN kart dolaşır. Kartlar KÜÇÜK ve SOLUK
+  // (Wall'daki desen buydu, kopya ayrışmıştı): öne düşen kart NET ayrılır.
+  const deste =
+    fotolar.length <= 12 ? fotolar : Array.from({ length: 12 }, (_, k) => fotolar[Math.floor((k * fotolar.length) / 12)]);
   const n = Math.max(1, deste.length);
   // IZGARA + TİTREŞİM: her karta görünmez bir hücre, hücre içinde küçük
   // rastgele kaydırma/açı. Saf rastgele saçılım piyangoydu — şansa göre bir
