@@ -7,22 +7,35 @@
  * Buradaki değişmezler onu erken yakalar: alanlar ÇAKIŞMAZ, boşluk KALMAZ
  * (toplam alan = 1), dokunulmayan alan AYNI kalır.
  *
- * Çalıştırmak için (depoya bağımlılık eklenmedi — geçici kurulum):
- *   mkdir -p /tmp/sl && cd /tmp/sl
- *   # videowalls.ts'in saf geometri kısmını çıkar (Firebase importları olmadan):
- *   python3 - <<'EOF'
- *   import re
- *   src = open("<depo>/src/lib/videowalls.ts", encoding="utf-8").read()
- *   kes = src[:src.index("export async function")]
- *   kes = re.sub(r'import\s+[\s\S]*?from\s+"[^"]+";\s*', "", kes)
- *   open("geo.ts","w",encoding="utf-8").write(kes)
- *   EOF
- *   npx tsc geo.ts --target ES2020 --module ESNext --skipLibCheck && mv geo.js geo.mjs
- *   cp <depo>/tests/sign-layout.test.mjs run.mjs && node run.mjs
- *
- * Son durum: 17 sınav, hepsi geçiyor.
+ * KURULUM ARTIK KENDİLİĞİNDEN: bu sınav eskiden elle hazırlanan bir `geo.mjs`
+ * istiyordu ve o dosya depoda yoktu — yani sınav takımı koşarken SESSİZCE
+ * patlıyordu (2026-08'de fark edildi). Elle kurulum isteyen sınav çalıştırılmaz.
+ * Şimdi geometri kısmı `src/lib/videowalls.ts`ten çıkarılıp geçici bir klasörde
+ * derleniyor; tsc tip hatası verse bile JS üretir — burada aranan çalışan kod,
+ * tip denetimi değil (o zaten `npm run build`in işi).
  */
-import { resizeZoneEdge, splitZoneInto, zoneCells, gridZones } from "./geo.mjs";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { execFileSync } from "node:child_process";
+
+const src = fs.readFileSync("src/lib/videowalls.ts", "utf8");
+// Saf geometri kısmı: ilk `export async function`a kadar olan her şey
+// (Firebase'e dokunan hiçbir şey yok). importlar atılır.
+const saf = src.slice(0, src.indexOf("export async function")).replace(/import\s+[\s\S]*?from\s+"[^"]+";\s*/g, "");
+const dizin = fs.mkdtempSync(path.join(os.tmpdir(), "flowsign-geo-"));
+fs.writeFileSync(path.join(dizin, "geo.ts"), saf);
+try {
+  execFileSync("npx", ["tsc", path.join(dizin, "geo.ts"), "--target", "ES2020", "--module", "ESNext", "--skipLibCheck"], {
+    stdio: "pipe",
+  });
+} catch {
+  /* tip hatası olsa da JS üretilir; üretilmediyse aşağıdaki import patlar */
+}
+fs.renameSync(path.join(dizin, "geo.js"), path.join(dizin, "geo.mjs"));
+const { resizeZoneEdge, splitZoneInto, zoneCells, gridZones } = await import(path.join(dizin, "geo.mjs"));
+process.on("exit", () => fs.rmSync(dizin, { recursive: true, force: true }));
+
 
 let ok = 0, bad = 0;
 const t = (ad, kosul, ek = "") => { if (kosul) { ok++; console.log("  ok   " + ad); } else { bad++; console.log("  FAIL " + ad + " " + ek); } };
