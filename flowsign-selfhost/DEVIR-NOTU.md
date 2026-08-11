@@ -6,6 +6,9 @@
 > koda işaret eder.
 >
 > Kısa cevap: **arayüzü yeniden yazma, arkasını değiştir.** Neden, aşağıda.
+>
+> **Yalnız sunucuya kuracaksanız bu belge gerekmez** — veritabanı kurulmaz,
+> veri diskte JSON'dur: [`KURULUM-HARITASI.md`](./KURULUM-HARITASI.md) yeter.
 
 ---
 

@@ -1,6 +1,10 @@
 # FlowSign — Yerel Sunucu (Self-Host) Sürümü
 
-> **Kurum içi sürüme (.NET + SQL + LDAP) taşıyacaksanız:** önce
+> **Sunucuya kuracak yazılımcı:** önce
+> [`KURULUM-HARITASI.md`](./KURULUM-HARITASI.md) — veritabanı kurulmaz, veri
+> hangi klasöre nasıl yazılır, yedek nereden alınır (5 dakikalık okuma).
+>
+> **Kurum içi sürüme (.NET + SQL + LDAP) taşıyacaksanız:** ardından
 > [`DEVIR-NOTU.md`](./DEVIR-NOTU.md) — veri modeli, API sözleşmesi, dosya
 > deposu, kimlik devri, dokunulmayacaklar listesi ve efor tahmini.
 

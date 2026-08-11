@@ -1,6 +1,6 @@
 #!/bin/sh
 # FlowSign self-host TESLİM ARŞİVİ — yazılımcıya verilecek tek dosya.
-# Kaynak + README + DEVIR-NOTU + .env.example girer; derleme çıktısı,
+# Kaynak + README + KURULUM-HARITASI + DEVIR-NOTU + .env.example girer; derleme çıktısı,
 # bağımlılıklar, canlı veri ve gerçek .env GİRMEZ (parola sızmasın).
 # Kullanım: ./paketle.sh  →  bir üst klasörde flowsign-selfhost-YYYYMMDD.tar.gz
 set -e
